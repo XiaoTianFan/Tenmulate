@@ -6,6 +6,7 @@ This folder is the project record for product discovery, design, architecture, a
 
 - `product-requirements.md`: the product contract for the current intended release.
 - `technical-architecture.md`: the current system design and boundaries.
+- `concepts/`: generated or drawn visual hypotheses with prompts, limitations, and explicit owner-review status.
 - `research/`: dated research and option comparisons. Claims that can drift should link to primary sources and record the research date.
 - `decisions/`: architecture decision records (ADRs). ADRs are append-only once accepted; later changes should supersede them with a new ADR.
 - `roadmap.md`: milestone order and validation gates, not a promise of calendar dates.
@@ -35,6 +36,7 @@ This folder is the project record for product discovery, design, architecture, a
 | [0001](decisions/0001-web-rendering-and-simulation-architecture.md) | Proposed | React/Vite shell, direct Three.js runtime, benchmarked WebGPU path, and tennis-specific ball solver |
 | [0002](decisions/0002-v1-scope-and-release-model.md) | Accepted | Complete public-free non-tracking V1; camera-based player tracking defines V2 |
 | [0003](decisions/0003-hybrid-asset-authoring-strategy.md) | Proposed | Procedural/code-owned court plus optimized GLB opponents selected through an asset bake-off |
+| [0004](decisions/0004-generated-world-environment-layer.md) | Proposed | Generated mesh/splat venue shells registered around the exact gameplay layer |
 
 ## Change discipline
 

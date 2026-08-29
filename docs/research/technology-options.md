@@ -12,6 +12,8 @@ Do not use a general physics engine as the primary ball model. Implement a deter
 
 Use a hybrid asset strategy: exact court/net/ball/training geometry generated directly in Three.js, complex skinned opponents delivered as optimized GLB, and Blender as the canonical cleanup/export environment. For opponent motion, prioritize tennis-specific capture plus manual cleanup. Generative 3D and AI mocap tools can accelerate production, but they do not remove the need to validate topology, licensing, footwork, racket path, and contact timing. The current provider/integration comparison is in [AI 3D asset and animation tools: August 2026](ai-3d-asset-tools-2026.md).
 
+Cloud-generated whole worlds are a viable environment-authoring experiment, not a replacement for the exact gameplay layer. Compare Aholo SpatialGen/Reality and World Labs Marble as registered mesh/splat shells around the code-owned court. Prefer an optimized PBR mesh when live sun/day/night controls matter; accept a splat only after renderer, depth/proxy, relighting, transfer, and 4K evidence. See [Cloud world generation and scene reconstruction](world-generation-and-scene-reconstruction-2026.md) and ADR-0004.
+
 ## 2. Decision criteria
 
 | Criterion | Why it matters here |
@@ -102,7 +104,7 @@ Three.js and Blender documentation both recommend glTF/GLB for runtime delivery.
 
 1. Use direct Three.js geometry for the exact court, net, ball, targets, and simple modular venue kit.
 2. Run the standardized Tripo, Meshy, Lux3D, Hunyuan/VISVISE, Rodin, and licensed/commissioned opponent bake-off.
-3. Record a real tennis player from useful angles with clear participant/source rights.
+3. Record a real tennis player from useful angles with clear participant/source rights, using professional footage only as view-only reference unless a specific extraction license is documented.
 4. Generate or capture initial motion via the winning rig/mocap route.
 5. Retarget and clean every clip in Blender with tennis-expert review.
 6. Add explicit ball-contact, opponent-hand, and normal/compact serve-rhythm metadata while keeping skeleton/racket socket conventions stable.

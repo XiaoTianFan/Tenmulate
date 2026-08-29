@@ -75,6 +75,10 @@ No single TV/projector, viewing distance, room, or GPU defines the product. Refe
 ### Environment and view
 
 - Standards-dimension singles court and net, with selectable hard/clay/grass-inspired visual themes and separately selectable surface-physics profiles.
+- Three complete venue shells: outdoor court complex, enclosed indoor club hall, and indoor stadium. Each shell combines with hard, clay, and grass appearances, yielding all nine venue/surface combinations without requiring nine duplicated scene packages.
+- Every venue includes an umpire chair, player rest chair/bench, spectator seating without required crowd models, believable access/context, and appropriate perimeter fencing, walls, or stadium structure.
+- Outdoor venues expose sun direction plus daytime/night presets and floodlights. Indoor venues expose artificial-light intensity/color presets and, where windows/skylights/roof openings exist, optional daylight influence.
+- Venue architecture and seating preserve an uncluttered opponent preparation, contact, ball-flight, and bounce visibility corridor from every required player camera.
 - Game-realistic visual direction: courts as physically and materially credible as the performance budget permits; opponents with credible athlete proportions, silhouette, apparel, and motion.
 - Default camera at 1.70 m eye height, centered 1.5 m behind the near baseline, with a one-action realistic reset.
 - User controls for eye height, lateral/longitudinal position, camera yaw/pitch/look target, FOV/zoom, and physical-view versus immersive mode.
@@ -93,6 +97,7 @@ No single TV/projector, viewing distance, room, or GPU defines the product. Refe
   - **Normal:** relatively high toss, visible loading into a lower/deeper trophy position, then acceleration to contact.
   - **Compact:** low toss and immediate upward swing with shorter preparation and a faster visual rhythm.
 - Serve-motion rhythm and ball pace are independent; choosing compact cannot silently force a faster ball.
+- Opponent production prioritizes motion silhouette, footwork, racket path, contact, and clean deformation over facial close-up detail; the normal opponent distance does not justify expensive high-resolution facial assets.
 
 ### Drills, editor, and feedback
 
@@ -143,6 +148,9 @@ Accounts, premium entitlements, cloud content, and payments belong to a separate
 | POV-03 | Keep the near player absent. | No near-player limb, body, or racket appears during V1 playback. |
 | POV-04 | Provide full-screen rehearsal. | Controls hide and restore with one keyboard-accessible action and pause remains discoverable. |
 | POV-05 | Keep camera motion independent. | Camera transforms never alter shot coordinates, event timing, or deterministic replay. |
+| POV-06 | Supply complete venue context. | Outdoor, indoor-hall, and indoor-stadium shells each include seating, umpire/rest chairs, access/context, and all three surface appearances. |
+| POV-07 | Configure lighting without corrupting play. | Outdoor sun/day/night and indoor lighting controls change presentation only; ball physics, court coordinates, and replay remain identical. |
+| POV-08 | Keep generated environments subordinate. | If a generated mesh/splat shell is used, the exact code-owned court and registered proxy geometry remain the coordinate, collision, and depth authority. |
 
 ### 9.3 Ball simulation
 
@@ -240,7 +248,8 @@ Each reusable shot describes independent axes:
 ## 13. Visual and audio direction
 
 - Use a game-realistic style: physically credible court dimensions/material response and a realistic athlete silhouette/motion without requiring near-photoreal skin, hair, or cinematic rendering.
-- Use restrained venue detail and lighting so the opponent and ball remain readable.
+- Treat the venue as a complete game scene, while keeping detail, seating, props, and lighting restrained enough that the opponent and ball remain readable.
+- Offer outdoor daylight/night and direction-controlled light plus indoor club-hall and stadium lighting identities; generated-world ambience cannot silently remove these controls.
 - The ball may be visually enlarged slightly or receive a subtle contrast halo without changing collision radius.
 - Opponent quality is judged first by preparation, foot plants, racket path, contact, recovery, and serve rhythm.
 - Audio reinforces timing; crowd/venue ambience remains optional.
@@ -260,7 +269,7 @@ Each reusable shot describes independent axes:
 | Performance | Stable 60 fps at 1920×1080 on the agreed reference mid-tier device; adaptive pixel ratio at 1440p/4K. Optional 90/120 fps only after an on-device benchmark. |
 | Frame pacing | Fixed simulation clock and render interpolation; no outcome change across supported refresh rates. |
 | Startup | Cached shell opens immediately; first useful drill target is under 5 seconds on the reference network/device. Final byte and timing budgets are set by the vertical slice. |
-| Asset delivery | Critical court/UI first, opponent/drill assets lazy-loaded, immutable hashed caching, optimized GLB geometry, and compressed GPU textures. |
+| Asset delivery | Critical court/UI first; opponent, drill, and venue-shell assets lazy-loaded from immutable hashed object/CDN storage; optimized GLB/KTX2 or an evidence-approved compressed splat format. |
 | Compatibility | Current Chrome and Edge on Windows primary; current Safari on macOS and Firefox on Windows validation; WebGL 2 minimum fallback. |
 | Offline | App shell and user-selected cached content work without a network after a successful initial load. |
 | Resilience | Renderer/asset failures identify the missing capability or asset and preserve setup/navigation. |
@@ -280,6 +289,7 @@ Each reusable shot describes independent axes:
 - Calibration and core drill flow pass observed testing with the owner, at least one coach, and at least three additional target players across more than one skill level.
 - Safety, accessibility, asset-license/provenance, privacy, browser fallback, and public-hosting reviews are complete.
 - Visual concept-to-browser fidelity and actual large-display reviews are accepted.
+- All nine venue/surface combinations load, preserve regulation gameplay geometry, and meet their documented lighting-control and opponent/ball-readability criteria.
 
 ## 17. Success measures
 

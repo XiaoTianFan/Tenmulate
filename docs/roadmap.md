@@ -11,18 +11,21 @@ This roadmap is ordered by uncertainty and integration risk. V1 is one complete 
 
 - Record the accepted V1/V2 boundary and public-free release model.
 - Approve a complete game-realistic visual concept for setup, drill selection/editor, rehearsal, pause, diagnostics, and completion.
+- Review the bird's-eye and player-view court boards; select an outdoor and indoor visual north star before generating a 3D world.
 - Run the standardized opponent/animation bake-off in the AI 3D research note.
+- Run the cloud-only, sub-US$100 plan: Marble versus Aholo world shell, Tripo/Meshy/Lux3D character candidates, and Rokoko/Move/DeepMotion/Plask motion candidates.
 - Select a provisional character source, motion source, Blender cleanup workflow, and commercial provenance record.
+- Decide whether the first venue uses an optimized PBR mesh shell, a registered Gaussian splat plus proxy mesh, or the procedural/modular control.
 - Define reference performance tiers rather than one mandatory room/display/GPU.
 - Confirm the first tennis biomechanics reviewer and initial hosting/CDN experiment.
 
 ### Exit gate
 
-The owner has accepted the visual direction, one provisional asset pipeline, the reference performance matrix, and the first useful-session walkthrough. Unpriced or unlicensed production assets cannot pass this gate.
+The owner has accepted the visual direction, one provisional character/motion pipeline, one venue-shell path, the reference performance matrix, and the first useful-session walkthrough. Total experimental spend is recorded below US$100. Unpriced, unlicensed, or unexportable production assets cannot pass this gate.
 
 ## Phase 1: Risk-reduction vertical slice
 
-Build one standards-dimension procedural court, camera calibration/preferences, one game-realistic animated opponent, and one ball that crosses the net, bounces, and reaches the receiver plane.
+Build one standards-dimension procedural court, one complete registered venue shell, camera calibration/preferences, one game-realistic animated opponent, and one ball that crosses the net, bounces, and reaches the receiver plane.
 
 ### Workstreams
 
@@ -33,7 +36,8 @@ Build one standards-dimension procedural court, camera calibration/preferences, 
 5. Synchronize one opponent contact marker to launch.
 6. Compare WebGPU, forced WebGL 2, and mature WebGLRenderer paths.
 7. Compare an optimized GLB opponent against one code-generated court on 1080p and 4K displays.
-8. Measure initial bytes, parse/decode, first frame, warm cache, and offline behavior.
+8. Compare one optimized mesh venue with a registered splat/proxy venue where the world bake-off produces a viable result.
+9. Measure initial bytes, parse/decode, first frame, warm cache, offline behavior, depth/occlusion, and lighting changes.
 
 ### Exit gate
 
@@ -42,6 +46,7 @@ Build one standards-dimension procedural court, camera calibration/preferences, 
 - Renderer selection has measured compatibility/performance/visual evidence.
 - Realistic default and user-adjusted physical/immersive views pass a real-screen review.
 - ADR-0001 and ADR-0003 are accepted, replaced, or narrowed using the evidence.
+- ADR-0004 is accepted, replaced, or narrowed using metric registration, lighting, and runtime evidence.
 
 ## Phase 2: Baseline laboratory and core player
 
@@ -49,7 +54,7 @@ Build one standards-dimension procedural court, camera calibration/preferences, 
 
 - Near-left/body/near-right targets; cross-court/down-line/inside-out/inside-in metadata.
 - Flat/topspin/slice families with explicit pace, frequency, depth, height, spin, and variation controls.
-- Hard-court physics baseline plus three independently selectable visual themes.
+- Hard-court physics baseline plus hard, clay, and grass visual themes independently selectable inside the first complete venue shell.
 - Single-shot/work-rest player with countdown, pause, replay, slow motion, exact seed replay, and learning/rehearsal modes.
 - Opponent idle, split-step, both-hand groundstrokes, footwork, and recovery clips.
 - Coach/debug metrics and authoring validation.
@@ -95,6 +100,7 @@ Four multi-shot patterns, including serve-and-volley and overhead movement, rema
 - Pre-play content/asset/schema validation.
 - Versioned drill JSON export/import and migrations.
 - Multiple opponent appearances and venue/ambience variants.
+- Outdoor, indoor club-hall, and indoor-stadium shells, each compatible with hard, clay, and grass; outdoor sun/day/night and indoor fixture/daylight controls.
 - Service worker/offline UX and user-selected asset caching.
 - Lazy asset manifests, compressed GLB/textures, immutable caching, loading and error recovery.
 - Runtime capability check for optional 90/120 fps mode.
@@ -141,6 +147,7 @@ The first release is public and free. A future freemium track may add accounts, 
 - Numerical test report for every new shot/surface.
 - Browser/device/backend/display matrix.
 - Frame-time, memory, loading, and asset-byte measurements.
+- World-to-court registration error, proxy/depth/occlusion evidence, and lighting-control limits for every generated venue.
 - Screenshots/video and animation-contact evidence where relevant.
 - Asset/model/input/output licenses and source provenance.
 - Manual owner/coach gates still outstanding.

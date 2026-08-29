@@ -17,6 +17,12 @@
 | Serve rhythms | Ship normal high-toss/deeper-trophy and compact low-toss/immediate-upward motions; keep motion rhythm independent of ball pace. |
 | Release model | V1 is a public free app. Long-term direction is freemium under the same branding and rendering pipeline. |
 | Blender MCP | A local asset-production aid only, never part of the shipped browser runtime. |
+| Bake-off budget | Hard cap below US$100; current envelope is US$99 with no automatic renewals. |
+| Cloud generation | Use cloud generation/mocap and project-hosted cloud delivery; do not run local inference models. Local Blender cleanup/export is still allowed. |
+| Reference upload | Cloud mocap upload is allowed only for footage with explicit upload, derivative-use, likeness, and commercial rights. Public professional footage is not assumed to be cleared. |
+| Court scenes | V1 includes outdoor, indoor club-hall, and indoor-stadium shells combined with hard, clay, and grass, plus umpire/rest seating and spectator stands without crowd models. |
+| Lighting | Outdoor supports sun direction and day/night/floodlights. Indoor supports fixture controls and applicable daylight/roof influence. |
+| World generation | Aholo SpatialGen/Reality and comparable exportable world products belong in the bake-off. A generated world may be a registered visual shell, never the gameplay coordinate authority. |
 
 These decisions are normative in [ADR-0002](decisions/0002-v1-scope-and-release-model.md).
 
@@ -24,11 +30,11 @@ These decisions are normative in [ADR-0002](decisions/0002-v1-scope-and-release-
 
 | # | Question | Why it matters | Proposed default |
 | --- | --- | --- | --- |
-| 1 | Which two or three existing tennis games/videos best express the desired game-realistic opponent, court, lighting, and camera feel? | Makes visual acceptance concrete without requiring photorealism. | One clean practice-court reference plus one game reference emphasizing readable ball/contact timing. |
-| 2 | What is the initial asset-production budget band for the bake-off: free/open-source only, up to US$100, up to US$500, or room for a commissioned/licensed athlete? | Changes whether we test hobby SaaS, studio services, or commissioned art/mocap. | Spend a small capped amount across Tripo, Hunyuan/VISVISE, Rodin, and Meshy before commissioning. |
-| 3 | Can owner-recorded tennis reference video be uploaded to approved cloud mocap services for the bake-off? | Cloud video-to-motion is the fastest way to compare tennis-specific clips; privacy/source rights must be explicit. | Yes for deliberately recorded, non-sensitive footage with informed participants and reviewed terms; otherwise run local or licensed alternatives. |
-| 4 | Which real devices are available for the first performance matrix? | The product supports varied hardware, but the spike still needs reproducible low/mid/high reference tiers. | One mid-tier Windows laptop, one stronger discrete-GPU PC if available, and one lower-power integrated-GPU device connected to at least one 4K display. |
-| 5 | Who can provide the first biomechanics/contact review? | An asset can look polished while serving or striking incorrectly. | Owner review plus one coach or advanced player before a motion family is marked accepted. |
+| 1 | Which outdoor concept panel should be the visual north star: bright public hard court, golden-hour clay club, or floodlit night grass? | Selects the first image-to-world input and lighting stress case. | Start with the bright public hard court because it maximizes ball/opponent readability. |
+| 2 | Which indoor language leads: intimate timber/steel club hall or empty tournament stadium? | Selects architecture, seating density, acoustics, and the second venue-shell experiment. | Club hall first for training clarity; stadium remains a required V1 shell. |
+| 3 | Which real devices are available for the first performance matrix? | The product supports varied hardware, but the spike still needs reproducible low/mid/high reference tiers. | One mid-tier Windows laptop, one stronger discrete-GPU PC if available, and one lower-power integrated-GPU device connected to at least one 4K display. |
+| 4 | Who can provide the first biomechanics/contact review? | An asset can look polished while serving or striking incorrectly. | Owner review plus one coach or advanced player before a motion family is marked accepted. |
+| 5 | What exact source can legally supply the three mocap bake-off clips? | Professional match footage may not be downloaded/uploaded/derived merely because it is publicly viewable. | Record a rights-cleared skilled player reproducing motions while using professional footage only as view-only reference, unless a specific clip license is obtained. |
 
 ## P1: decide during research and the vertical slice
 
@@ -36,6 +42,7 @@ These decisions are normative in [ADR-0002](decisions/0002-v1-scope-and-release-
 | --- | --- | --- |
 | 6 | Direct Three.js geometry, Blender/GLB, or both? | Hybrid: code-own exact court/net/ball/training markers; GLB for skinned opponents and complex authored props; validate in ADR-0003. |
 | 7 | Which generator/mocap chain wins the asset bake-off? | Compare at least one Chinese end-to-end route, one Chinese modular route, one international end-to-end route, and a licensed/commissioned baseline. |
+| 7a | Which environment path wins: Aholo splat, Marble splat/mesh, or procedural/PBR control? | Require metric registration, dynamic-lighting limits, 1080p/4K performance, offline caching, commercial redistribution, and cleanup cost evidence. |
 | 8 | What should the default FOV be when no physical display measurements are entered? | Choose from real-screen perception tests; keep the value visible and provide one-action reset. |
 | 9 | Which performance tiers and quality presets are promised publicly? | Publish measured tiers after the vertical slice; do not promise universal 4K/120 fps. |
 | 10 | Is the first public host a static site plus separate object/CDN assets, or one platform for both? | Affects cache headers, egress, deploy/rollback, and asset URL versioning. | Static app plus immutable versioned object/CDN asset origin. |
@@ -54,4 +61,4 @@ These decisions are normative in [ADR-0002](decisions/0002-v1-scope-and-release-
 
 ## Recommended next decision session
 
-Bring two visual references, the available test-device list, and an approximate asset-spend ceiling. We can then approve the visual target and run the asset/renderer vertical slice without turning any cloud generator into a runtime dependency.
+Review the two generated court boards and choose the first outdoor and indoor north stars. Then identify available test devices, the first biomechanics reviewer, and either a rights-cleared performer/capture plan or a specifically licensed source clip. The US$99 envelope and world/character/motion test order are ready once those gates are answered.

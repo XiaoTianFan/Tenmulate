@@ -3,6 +3,7 @@
 - **Status:** Research complete; hands-on bake-off pending
 - **Research date:** 2026-08-29
 - **Scope:** Chinese-developed and international text/image/video-to-3D, topology, materials, segmentation, rigging, animation, Blender, API, MCP, and Codex workflows
+- **Owner constraints added 2026-08-29:** no local inference models; cloud generation/mocap only; few-shot iteration; complete initial world/character/motion bake-off below US$100
 
 ## 1. Executive conclusion
 
@@ -18,11 +19,13 @@ The strongest initial Tenmulate comparison is:
 - **Tripo:** broad Chinese cloud pipeline, low transparent API task prices, official Blender extension, and official but alpha MCP.
 - **Meshy:** broad international cloud pipeline with the clearest mature Blender + official MCP/Codex story.
 - **Lux3D:** very new Chinese generator with material emphasis and a first-party Harness Mode explicitly described for Codex batch generation and Blender refinement; production details and character capabilities still need verification.
-- **Tencent Hunyuan3D + VISVISE:** strongest modular Chinese/local-control candidate; Hunyuan covers mesh/PBR and VISVISE covers topology, LOD, rigging, skinning, video/text motion, and pose.
+- **Tencent Hunyuan3D Cloud + VISVISE:** strong modular Chinese hosted candidate if access and pricing fit the cap; Hunyuan covers mesh/PBR and VISVISE covers topology, LOD, rigging, skinning, video/text motion, and pose.
 - **Hyper3D Rodin + a motion specialist:** strong high-fidelity/controlled geometry candidate, then VISVISE, DeepMotion, Rokoko, or Move.ai for tennis motion.
 - **Licensed/commissioned character + captured tennis motion:** quality/control baseline that every generated route must beat after cleanup time is counted.
 
 The recommended runtime remains independent of all of them: create assets during development, finish and validate them in Blender, export optimized GLB, and ship those files from static/CDN storage. End users should not call an AI 3D service while practicing in V1.
+
+The active bake-off now excludes all local-model routes even where they remain useful market references below. It adds Aholo SpatialGen/Reality and World Labs Marble for complete environment shells; see [Cloud world generation and scene reconstruction](world-generation-and-scene-reconstruction-2026.md). The character-to-motion binding contract is in [Mocap to web opponent](mocap-to-web-character-pipeline.md).
 
 ## 2. What “Blender/Codex integration” actually means
 
@@ -54,11 +57,13 @@ Three different integrations are easy to conflate:
 | --- | --- | --- | --- |
 | **Tripo / VAST (Beijing)** | Text, image, and multiview to 3D; PBR textures; parts; retopology; segmentation; completion; rig check; auto-rig; animation retarget; GLB output. The [official API price table](https://developers.tripo3d.com/en/pricing) exposes the whole chain. | Cloud web/API plus official Blender/MCP/SDKs. On 2026-08-29, 100 credits = US$1; standard textured image-to-3D is 30 credits, auto-rig 25, and animation retarget 10 per clip. Repeated generations and cleanup dominate real asset cost. | Best Chinese one-stop bake-off route. Test athlete anatomy, part separation, rig consistency, clothing deformation, and whether tennis clips retarget cleanly. |
 | **Lux3D / Manycore (Hangzhou)** | Text/image to explicit 3D assets; Standard mode emphasizes precision/materials, Turbo targets generation in as little as 20 seconds, Harness targets batch creation. Material response is a stated focus. | Cloud/API/Harness; pricing and production API details were not publicly verifiable in this pass. [Aholo's official site](https://www.aholo3d.com/en/) links API Documentation and an Agent Skill. | Must test because of first-party Codex/Blender positioning. Currently a static-asset candidate: the launch says dynamic components/motion logic are planned, so do not assume segmentation, rigging, skinning, or animation today. |
-| **Tencent Hunyuan3D** | Tencent Cloud offers text/image/eight-view generation, topology optimization, component generation, UVs, and materials. [Hunyuan3D 2.1](https://github.com/Tencent-Hunyuan/Hunyuan3D-2.1) releases local image-to-shape and production-oriented PBR texture code/weights. | Cloud API or local. Tencent Cloud listed RMB0.09–0.12 per credit in its [current product pricing](https://cloud.tencent.com/product/ai3d), with operation-specific credit consumption. Local 2.1 reports about 10 GB VRAM for shape, 21 GB for texture, and 29 GB for both. | Best local/private geometry/PBR candidate. License has conditions and must be reviewed for the intended territory/use. Pair with VISVISE or another rig/motion tool. |
+| **Tencent Hunyuan3D** | Tencent Cloud offers text/image/eight-view generation, topology optimization, component generation, UVs, and materials. [Hunyuan3D 2.1](https://github.com/Tencent-Hunyuan/Hunyuan3D-2.1) releases local image-to-shape and production-oriented PBR texture code/weights. | Cloud API or local. Tencent Cloud listed RMB0.09–0.12 per credit in its [current product pricing](https://cloud.tencent.com/product/ai3d), with operation-specific credit consumption. Local 2.1 reports about 10 GB VRAM for shape, 21 GB for texture, and 29 GB for both. | Use only the hosted route under the owner decision. Pair with VISVISE or another hosted rig/motion tool; review territory and output terms. |
 | **Tencent Games VISVISE** | Its [official SDK](https://github.com/tencent-visvise/visvise-sdk-go/blob/main/README_EN.md) exposes image-to-high/mid/low model, mesh refine, retopology, LOD, UV, texture, rigging, skinning, video-to-animation, text-to-animation, image-to-pose, and 2D segmentation. | Service/OpenAPI with assigned credentials; public self-serve pricing was not found. SDK code is MIT, but service terms and asset licenses remain separate. | Most strategically relevant Chinese production pipeline for a tennis character. It can complement Lux3D/Hunyuan/Rodin or be tested end to end. Access/onboarding and tennis-motion quality are the unknowns. |
 | **Hyper3D Rodin / Deemos (Shanghai/global)** | Text/image/multiview generation, PBR, Smart Low-Poly, high-poly normals, UV-ready outputs, control inputs, texturing, ChatAvatar, DCC plugins, and API. | Cloud. [Current pricing](https://hyper3d.ai/pricing) starts Creator at US$30/month and Business/API at US$120/month; direct credits are US$1.50 and base Gen-2.5 is documented at 0.5 credit before add-ons. Enterprise offers on-premise. | Strong hero-character and prop candidate. Public material is clearer on geometry/materials than full-body tennis rigging/motion; pair with a specialist and validate character terms. |
 
 ### 3.2 Open/local and watch-list options
+
+These are research context only. They will not be installed or run under the owner's cloud-only authoring decision.
 
 | Tool | Role | Caveat |
 | --- | --- | --- |
@@ -112,6 +117,8 @@ Costs and risks:
 
 ### Local authoring
 
+Local inference is not an active Tenmulate option. The comparison is retained to explain the tradeoff and to avoid confusing local Blender finishing with local model execution.
+
 Weights and inference code run on a project-controlled workstation or server, with Blender finishing locally.
 
 Advantages:
@@ -143,6 +150,14 @@ licensed input/concept
 ```
 
 Therefore generator compute and mocap subscriptions are development costs. V1 user sessions incur normal static asset delivery—not one AI generation call per player. A runtime generator API would be a separate future product feature with very different cost, safety, latency, moderation, and licensing requirements.
+
+### Accepted cloud-only budget envelope
+
+- Up to US$35: World Labs Marble Pro environment export; Aholo stays on free/trial access until actual terms and checkout price are captured.
+- Up to US$20: Tripo and Meshy character generation; Lux3D introductory/free access unless its current price is verified.
+- Up to US$30: Rokoko Basic plus Move One Starter; DeepMotion and Plask free comparisons.
+- Up to US$14: hypothesis-driven contingency.
+- Hard maximum: US$99 with automatic renewal disabled.
 
 ## 6. Direct Three.js geometry, GLB, and procedural modeling
 
@@ -195,7 +210,7 @@ glTF is designed for runtime transmission and Blender exports skinning/animation
 1. **Tripo end to end:** multiview character -> parts/retopo -> auto-rig -> retarget -> Blender.
 2. **Meshy end to end:** multiview character -> smart topology/PBR -> auto-rig/preset -> Blender.
 3. **Lux3D + specialist:** Lux3D Standard/Turbo geometry/material -> Blender -> VISVISE or motion specialist.
-4. **Hunyuan3D + VISVISE:** cloud and, if hardware permits, local Hunyuan geometry/PBR -> VISVISE retopo/LOD/rig/skin/video motion -> Blender.
+4. **Hunyuan3D Cloud + VISVISE:** hosted Hunyuan geometry/PBR -> VISVISE retopo/LOD/rig/skin/video motion -> Blender, only if self-serve access and total pricing fit the cap.
 5. **Rodin + specialist:** controlled multiview character -> low-poly/PBR -> VISVISE/DeepMotion/Rokoko -> Blender.
 6. **Licensed/commissioned baseline:** commercial game-ready humanoid -> same captured tennis clips -> Blender.
 
@@ -224,18 +239,17 @@ No route wins on screenshot quality alone. The winner minimizes total accepted-a
 
 ## 9. Recommended sequence
 
-1. Approve one game-realistic character concept and rights-cleared tennis capture pack.
+1. Approve one game-realistic character concept and a capture pack whose download, upload, derivative-motion, likeness, and commercial rights are documented.
 2. Test **Tripo, Meshy, and Lux3D first**, because the owner named them and each exposes a distinct agent/Blender story.
-3. Test **Hunyuan3D + VISVISE** as the local/control-oriented Chinese counterfactual.
+3. Test **Hunyuan3D Cloud + VISVISE** only if hosted access and pricing are verifiable; do not install the local models.
 4. Keep **Rodin + DeepMotion/Rokoko** and a licensed humanoid as quality baselines.
 5. Do not install any MCP/plugin until its repository, publisher, requested credentials, network destinations, telemetry, arbitrary-code surface, and credit behavior are reviewed.
 6. Promote only an optimized GLB that passes provenance, rig, contact, visual, load, and frame-time gates.
 
 ## 10. Decisions still needed
 
-- Asset-bake-off budget ceiling and whether commercial SaaS tiers are allowed.
-- Whether rights-cleared owner/performer tennis footage may be uploaded to each approved vendor.
-- Available local GPU/VRAM for Hunyuan/SPAR3D/TRELLIS comparisons.
+- Exact paid tiers after their checkout total, commercial-output rights, renewal behavior, and retention terms are visible.
+- Exact footage source: purpose-recorded and released performance, or a specifically licensed professional clip covering download, cloud upload, derivative motion, likeness, and commercial use.
 - Visual references for opponent face/body/apparel realism.
 - Whether V1 requires two distinct body/appearance meshes or appearance variants on one skeleton.
 - First coach/advanced-player biomechanics reviewer.

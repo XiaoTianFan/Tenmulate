@@ -20,6 +20,7 @@ The system should optimize for perceptual credibility and testability, not for g
 | Ball dynamics | Custom fixed-step 3D numerical solver | Tennis needs drag, spin-dependent lift, precise bounce targets, inverse authoring, and deterministic outputs more than general rigid-body contacts. |
 | General collision option | Rapier, only if later features need it | Provides WASM, CCD, SI-unit guidance, and cross-platform determinism for collision-heavy extensions. |
 | Runtime asset format | glTF/GLB | Designed for runtime delivery and carries meshes, PBR materials, skins, morphs, and animation clips. |
+| Optional world-shell format | Optimized GLB or evidence-approved SPZ/PLY-derived splat | GLB is preferred for live relighting; splats require a registered proxy/depth mesh and a renderer-specific spike. |
 | Asset DCC | Blender | Canonical cleanup, scale/orientation, retargeting, animation markers, optimization, and export, regardless of whether the source was modeled, licensed, scanned, or AI-generated. |
 | Asset delivery | Hashed static manifests + object/CDN origin candidate | Keeps large optional GLB/animation/venue payloads independently cacheable and lazy-loaded; provider selection follows measured egress/caching tests. |
 | Test layers | Vitest-style unit/property tests, browser E2E, frame-time harness, visual snapshots | Separates numerical truth, sequence behavior, runtime behavior, and visual fidelity. Exact test framework is selected during scaffold. |
@@ -220,14 +221,28 @@ At the marker frame:
 
 Source selection is made through the standardized bake-off in the 2026 AI 3D research note. Blender is the canonical finishing/source-of-truth environment; Blender MCP, if used, is an isolated local productivity helper and never part of the runtime.
 
+The accepted authoring constraint is cloud inference only: no local 3D or mocap model will be installed or run. Local Blender cleanup, retargeting, inspection, and deterministic export remain allowed because they are DCC production steps, not model inference. Runtime assets are hosted by the project under immutable URLs; provider generation endpoints are never called during a practice session.
+
+### 8.4 Mocap and character binding contract
+
+- A shippable opponent is a skinned mesh: topology + UV/PBR materials + canonical armature + skin weights.
+- Cloud mocap output is source-skeleton animation data, normally FBX/BVH and sometimes GLB. It is retargeted and baked onto the canonical target armature; the source skeleton is not a runtime dependency.
+- The first slice uses one combined opponent GLB with idle, forehand, normal-serve, and compact-serve actions. Split appearance/animation bundles only after a measured caching benefit and exact skeleton-version checks.
+- Rackets are rigid props attached to named left/right hand sockets. A serve ball follows a kinematic toss through the toss/contact markers, then transfers to the deterministic trajectory solver at contact.
+- Root motion, foot plants, toss, trophy, contact, and recovery are explicitly authored metadata. Normal-speed and frame-step tennis review are both required.
+- Professional match footage may be used as view-only reference. Cloud motion extraction requires documented download, upload, derivative-use, likeness, and commercial rights; public availability alone does not satisfy that gate.
+
+The full contract and provider comparison are in [Mocap to web opponent](research/mocap-to-web-character-pipeline.md).
+
 ## 9. Rendering architecture
 
 - The renderer adapter owns initialization, resize, pixel ratio, render passes, color management, and capability reporting.
-- The scene layer owns regulation court geometry, net, ball, opponent, lighting, venue, and debug overlays.
+- The scene layer owns regulation court geometry, net, ball, opponent, lighting, venue adapters, and debug overlays.
 - Standard PBR materials first. Custom effects must work on the chosen backend path or have a tested accessible fallback.
 - Asset loading is manifest-driven with explicit URL, byte size, hash, cache group, version, compatible skeleton/content versions, and a progress/error state.
-- The critical route loads UI, procedural court, ball, and the chosen drill manifest first. Opponent meshes, animation bundles, alternate appearances, and venue ambience are lazy-loaded by drill and cached under immutable hashed URLs.
-- Start with one directional key light, environment contribution, baked/static shadows where practical, and a high-quality ball contact shadow. V1 includes multiple restrained venue/ambience variants, but they remain lower priority than ball/opponent readability.
+- The critical route loads UI, procedural court, ball, and the chosen drill manifest first. Opponent meshes, animation bundles, alternate appearances, and venue shells are lazy-loaded by drill and cached under immutable hashed URLs.
+- Build three venue shells—outdoor, indoor club hall, and indoor stadium—and combine them at runtime with three code-owned surfaces. Each shell supplies context, seating, walls/roof/landscape, and appropriate lighting fixtures; exact court/net and near-court props remain separately testable meshes.
+- Outdoor lighting exposes sun azimuth/elevation plus day/night/floodlight presets. Indoor lighting exposes fixture intensity/color plus optional window/skylight/roof daylight contribution. Lighting never changes surface physics or event timing.
 - Adaptive quality can lower pixel ratio, shadow map resolution, anisotropy, texture resolution, post-processing, and venue detail. It cannot reduce simulation frequency or change shot outcomes.
 
 Provisional, benchmark-only delivery budgets are no more than 5 MiB compressed for the critical shell/court path and no more than 15 MiB additional data to start the first game-realistic opponent drill. The complete library may be much larger because it is split, lazy-loaded, and cached; measured first-use and warm-cache behavior, not total repository size, determines acceptance.
@@ -239,8 +254,20 @@ Benchmark the same vertical slice using:
 1. Three.js `WebGPURenderer` with WebGPU.
 2. The same renderer forced to its WebGL 2 backend.
 3. Three.js `WebGLRenderer` if API/material parity allows a fair comparison.
+4. If a splat shell passes visual review, Spark with `WebGLRenderer` and the same exact court/opponent/ball layer.
+5. PlayCanvas WebGPU/WebGL GSplat only if the splat result is strong enough to justify reopening the engine choice.
 
 Capture initialization success, first frame, CPU/GPU frame time, dropped frames, memory, visual differences, shader/material gaps, and screenshot evidence on the supported browser/device matrix. Accept ADR-0001 only after this spike.
+
+### 9.2 Generated environment shell
+
+A `VenueEnvironmentV1` manifest registers, but never defines, the gameplay space. It records representation, source units/axes, `worldToCourt` transform, court anchors, bounds, crop/mask volume, proxy/collider/depth geometry, lighting mode, supported controls, LOD/bytes, cache group, and provenance.
+
+- **Mesh path:** cloud world → Blender registration/crop/optimization → PBR GLB/KTX2 → normal Three.js depth/shadow/lighting.
+- **Splat path:** cloud world → PLY/SPZ crop/compression + proxy mesh → registered splat renderer → exact mesh layer for court, net, opponent, ball, shadows, depth, and collisions.
+- **Never:** provider iframe, generated-world coordinates in drill data, or an interactive video world model in the simulation loop.
+
+Gaussian splats begin with lighting baked in. Proxy-based relighting can approximate live changes, but V1's complete sun/day/night controls make the optimized PBR mesh path the provisional default. See [Cloud world generation and scene reconstruction](research/world-generation-and-scene-reconstruction-2026.md) and ADR-0004.
 
 ## 10. React integration
 
@@ -306,6 +333,7 @@ MediaPipe Pose Landmarker is a plausible browser candidate because it outputs 33
 - GLB loads, has the expected skeleton/bones/clips, stays within agreed triangle/texture budgets, and contains no unlicensed embedded data.
 - Animation contact position and foot-slide thresholds.
 - Texture formats and color-space declarations.
+- Venue assets register to court anchors, respect the central mask, expose valid proxy/depth data, declare lighting limits, and contain no generated court geometry used as collision authority.
 
 ### Browser and performance tests
 
