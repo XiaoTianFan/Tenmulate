@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { COURT, type SurfaceId } from '../../domain/court';
+import type { VenueId } from '../../domain/environment';
 
 const lineMaterial = new THREE.MeshStandardMaterial({ color: 0xf5f5ee, roughness: 0.86 });
 
@@ -111,7 +112,7 @@ const createUmpireChair = (): THREE.Group => {
   return group;
 };
 
-const createBackdrop = (): THREE.Group => {
+const createOutdoorBackdrop = (): THREE.Group => {
   const group = new THREE.Group();
   const fenceMaterial = new THREE.MeshStandardMaterial({ color: 0x153b32, roughness: 0.92 });
   const standMaterial = new THREE.MeshStandardMaterial({ color: 0x164c72, roughness: 0.66 });
@@ -145,7 +146,50 @@ const createBackdrop = (): THREE.Group => {
   return group;
 };
 
-export const createCourt = (surface: SurfaceId): { group: THREE.Group; courtMaterial: THREE.MeshStandardMaterial } => {
+const createHallBackdrop = (): THREE.Group => {
+  const group = new THREE.Group();
+  const wall = new THREE.MeshStandardMaterial({ color: 0xd5d8d4, roughness: 0.9, side: THREE.DoubleSide });
+  const lowerWall = new THREE.MeshStandardMaterial({ color: 0x214a52, roughness: 0.82 });
+  const steel = new THREE.MeshStandardMaterial({ color: 0x34444b, roughness: 0.48, metalness: 0.55 });
+  const seat = new THREE.MeshStandardMaterial({ color: 0x356a82, roughness: 0.7 });
+  group.add(box(28, 7.5, 0.22, wall, 0, 3.75, 17.6));
+  group.add(box(0.22, 7.5, 42, wall, -14, 3.75, -1.2));
+  group.add(box(0.22, 7.5, 42, wall, 14, 3.75, -1.2));
+  group.add(box(27.7, 1.65, 0.25, lowerWall, 0, 0.83, 17.42));
+  for (const side of [-1, 1]) {
+    for (let tier = 0; tier < 3; tier += 1) {
+      group.add(box(2.7, 0.28, 9 - tier * 0.45, seat, side * (7.4 + tier * 0.48), 0.25 + tier * 0.3, 3));
+    }
+  }
+  for (let z = -17; z <= 17; z += 6.8) {
+    const beam = box(28, 0.13, 0.13, steel, 0, 7.1, z);
+    group.add(beam);
+  }
+  return group;
+};
+
+const createStadiumBackdrop = (): THREE.Group => {
+  const group = new THREE.Group();
+  const concrete = new THREE.MeshStandardMaterial({ color: 0x8e989b, roughness: 0.92 });
+  const seats = new THREE.MeshStandardMaterial({ color: 0x173f64, roughness: 0.7 });
+  const wall = new THREE.MeshStandardMaterial({ color: 0x171e23, roughness: 0.76, side: THREE.DoubleSide });
+  group.add(box(34, 8.5, 0.3, wall, 0, 4.25, 20));
+  group.add(box(0.3, 8.5, 46, wall, -17, 4.25, -1));
+  group.add(box(0.3, 8.5, 46, wall, 17, 4.25, -1));
+  for (const side of [-1, 1]) {
+    for (let tier = 0; tier < 7; tier += 1) {
+      group.add(box(3.2, 0.32, 16 - tier * 0.65, concrete, side * (7.4 + tier * 0.68), 0.18 + tier * 0.38, 2.2));
+      group.add(box(2.75, 0.13, 15.5 - tier * 0.65, seats, side * (7.3 + tier * 0.68), 0.42 + tier * 0.38, 2.2));
+    }
+  }
+  for (let tier = 0; tier < 5; tier += 1) {
+    group.add(box(26 - tier * 1.2, 0.3, 1.25, concrete, 0, 0.18 + tier * 0.4, 14.5 + tier * 0.72));
+    group.add(box(25.4 - tier * 1.2, 0.12, 0.9, seats, 0, 0.42 + tier * 0.4, 14.4 + tier * 0.72));
+  }
+  return group;
+};
+
+export const createCourt = (surface: SurfaceId): { group: THREE.Group; courtMaterial: THREE.MeshStandardMaterial; venueGroups: Readonly<Record<VenueId, THREE.Group>> } => {
   const group = new THREE.Group();
   const runoff = new THREE.MeshStandardMaterial({ color: 0x557d5b, roughness: 0.95 });
   const surfaceColors: Record<SurfaceId, number> = {
@@ -174,6 +218,14 @@ export const createCourt = (surface: SurfaceId): { group: THREE.Group; courtMate
   group.add(createBallMachine());
   group.add(createUmpireChair());
   group.add(createBench(6.8));
-  group.add(createBackdrop());
-  return { group, courtMaterial };
+  const venueGroups = {
+    outdoor: createOutdoorBackdrop(),
+    'club-hall': createHallBackdrop(),
+    stadium: createStadiumBackdrop(),
+  } satisfies Record<VenueId, THREE.Group>;
+  for (const [venue, venueGroup] of Object.entries(venueGroups)) {
+    venueGroup.visible = venue === 'outdoor';
+    group.add(venueGroup);
+  }
+  return { group, courtMaterial, venueGroups };
 };

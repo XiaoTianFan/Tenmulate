@@ -2,6 +2,7 @@ export type CueSound = 'countdown' | 'contact' | 'bounce' | 'complete';
 
 export class AudioCueEngine {
   private context: AudioContext | null = null;
+  private ambience: { oscillator: OscillatorNode; gain: GainNode } | null = null;
 
   unlock(): void {
     if (!this.context) this.context = new AudioContext();
@@ -28,7 +29,24 @@ export class AudioCueEngine {
     oscillator.stop(now + (sound === 'complete' ? 0.34 : 0.14));
   }
 
+  setAmbience(volume: number): void {
+    if (!this.context) return;
+    if (!this.ambience && volume > 0) {
+      const oscillator = this.context.createOscillator();
+      const gain = this.context.createGain();
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(74, this.context.currentTime);
+      gain.gain.setValueAtTime(0.0001, this.context.currentTime);
+      oscillator.connect(gain).connect(this.context.destination);
+      oscillator.start();
+      this.ambience = { oscillator, gain };
+    }
+    this.ambience?.gain.gain.setTargetAtTime(Math.min(0.018, Math.max(0.0001, volume * 0.018)), this.context.currentTime, 0.08);
+  }
+
   dispose(): void {
+    this.ambience?.oscillator.stop();
+    this.ambience = null;
     void this.context?.close();
     this.context = null;
   }

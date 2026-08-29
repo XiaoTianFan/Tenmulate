@@ -88,6 +88,29 @@ This is the evidence ledger for the code-backed V1. “Implemented” means runn
 
 ### Known stage gaps
 
-- Work/rest execution, independent audio levels, and authored rest intervals still need to join the session timeline.
-- Venue shell and lighting controls, production-grade quality adaptation, chunk splitting, install-icon raster variants, and broader responsive/browser coverage remain in the hardening stage.
+- Production-grade quality adaptation, chunk splitting, install-icon raster variants, and broader responsive/browser coverage remain in the hardening stage.
 - The opponent animation/GLB and generated-world asset layers remain explicitly pending external production assets; the functional ball machine remains the substitute.
+
+## Stage 4 — training cadence, venue shells, lighting, and comfort controls
+
+### Implemented
+
+- Deterministic work/rest scheduler with configurable repetitions per block and rest duration; session duration, repetition start times, seeking, set numbering, pause/restart, and completion all use the compiled schedule.
+- Accessible rest overlay with a remaining-seconds visual equivalent while ball/camera playback is stopped.
+- Three independently selectable procedural venue shells—outdoor complex, indoor club hall, and indoor stadium—combined with hard, clay, and grass appearances for all nine functional combinations.
+- Outdoor day, golden-hour, and floodlit-night modes; indoor neutral, warm, and bright-match modes; direction and intensity controls update presentation without entering physics or event compilation.
+- Independent countdown, contact, bounce, and optional ambience volume controls; ambience remains off by default.
+- Live camera-motion intensity from 0–100%, with zero disabling authored camera transforms and `prefers-reduced-motion` continuing to force the safe alternative.
+
+### Verification
+
+- `npm test`: 4 files, 38 tests passed, including exact work/rest timing and all venue-shell/surface construction combinations.
+- `npm run build`: production PWA build passed.
+- Playwright CLI at 1920 × 1080: outdoor/hard, club-hall/grass, and stadium/clay scenes rendered; lighting selectors updated by venue with zero console errors/warnings.
+- Browser work/rest proof: a two-repetition, one-rep-block session entered `Rest · next set follows`, froze playback, counted down, resumed set 2, and completed at the compiled 26-second duration.
+- Browser comfort/audio proof: camera motion changed to 0% and optional ambience to 30% through accessible range controls during a live set.
+
+### Known stage gaps
+
+- The three shells are intentionally procedural context stand-ins, not the pending generated or PBR production environment layer.
+- Adaptive quality, ball presentation controls, route/chunk loading, failure fallback, install-icon raster variants, and broad responsive/performance validation remain in Stage 5.

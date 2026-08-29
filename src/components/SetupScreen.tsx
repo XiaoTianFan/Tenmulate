@@ -16,6 +16,7 @@ import {
 import { DRILL_BY_CATEGORY } from '../content/bundled';
 import type { SessionCategory } from '../content/types';
 import { COURT, type SurfaceId } from '../domain/court';
+import { DEFAULT_ENVIRONMENT, VENUE_LABELS, type EnvironmentConfiguration, type LightingPreset, type VenueId } from '../domain/environment';
 import type { SceneMetrics } from '../engine/rendering/TennisScene';
 import { compileSession } from '../engine/session/compileSession';
 import { resolveTrajectory, type SpinKind } from '../engine/trajectory/physics';
@@ -75,9 +76,15 @@ export function SetupScreen({ route, savedViews, onRoute, onStart, onSaveView, o
   const [interval, setIntervalValue] = useState(3.2);
   const [repetitions, setRepetitions] = useState(12);
   const [variation, setVariation] = useState(8);
+  const [workBlockSize, setWorkBlockSize] = useState(4);
+  const [restSeconds, setRestSeconds] = useState(20);
   const [surface, setSurface] = useState<SurfaceId>('hard');
   const [spin, setSpin] = useState<'preset' | SpinKind>('preset');
   const [opponentHand, setOpponentHand] = useState<'left' | 'right'>('right');
+  const [venue, setVenue] = useState<VenueId>(DEFAULT_ENVIRONMENT.venue);
+  const [lighting, setLighting] = useState<LightingPreset>(DEFAULT_ENVIRONMENT.lighting);
+  const [lightDirection, setLightDirection] = useState(DEFAULT_ENVIRONMENT.lightDirection);
+  const [lightIntensity, setLightIntensity] = useState(DEFAULT_ENVIRONMENT.lightIntensity);
   const [seed, setSeed] = useState('18427');
   const [eyeHeight, setEyeHeight] = useState<number>(COURT.defaultEyeHeight);
   const [behindBaseline, setBehindBaseline] = useState<number>(COURT.defaultBehindBaseline);
@@ -106,6 +113,7 @@ export function SetupScreen({ route, savedViews, onRoute, onStart, onSaveView, o
   const net = trajectory.events.find((event) => event.type === 'net-crossing');
 
   const camera = useMemo(() => ({ eyeHeight, behindBaseline, lateral, yaw: 0, pitch: -1.7, fov }), [behindBaseline, eyeHeight, fov, lateral]);
+  const environment = useMemo<EnvironmentConfiguration>(() => ({ venue, lighting, lightDirection, lightIntensity }), [lightDirection, lightIntensity, lighting, venue]);
 
   const applySavedView = (id: string) => {
     setSelectedSavedView(id);
@@ -159,9 +167,12 @@ export function SetupScreen({ route, savedViews, onRoute, onStart, onSaveView, o
         seed,
         spin,
         opponentHand,
+        workBlockSize,
+        restSeconds,
       }),
       mode,
       camera,
+      environment,
     });
   };
 
@@ -199,7 +210,7 @@ export function SetupScreen({ route, savedViews, onRoute, onStart, onSaveView, o
         </aside>
 
         <section className="preview-column" aria-label="Live court preview">
-          <SceneViewport camera={camera} trajectory={trajectory} surface={surface} running resetToken={resetToken} showTrajectory={mode === 'learning'} onMetrics={onMetrics} />
+          <SceneViewport camera={camera} trajectory={trajectory} surface={surface} environment={environment} running resetToken={resetToken} showTrajectory={mode === 'learning'} onMetrics={onMetrics} />
           <div className="preview-toolbar">
             <button className={cameraPreset === 'realistic' ? 'camera-preset active' : 'camera-preset'} type="button" onClick={() => applyCameraPreset('realistic')}><Crosshair size={18} /><span>Realistic</span></button>
             <button className={cameraPreset === 'wide' ? 'camera-preset active' : 'camera-preset'} type="button" onClick={() => applyCameraPreset('wide')}><SlidersHorizontal size={18} /><span>Wide</span></button>
@@ -221,7 +232,13 @@ export function SetupScreen({ route, savedViews, onRoute, onStart, onSaveView, o
           <RangeField label="Interval" value={interval} min={1.5} max={8} step={0.1} unit="s" onChange={setIntervalValue} />
           <RangeField label="Repetitions" value={repetitions} min={1} max={50} step={1} unit="" onChange={setRepetitions} />
           <RangeField label="Variation" value={variation} min={0} max={25} step={1} unit="%" onChange={setVariation} />
+          <RangeField label="Work block" value={workBlockSize} min={1} max={20} step={1} unit="reps" onChange={setWorkBlockSize} />
+          <RangeField label="Rest" value={restSeconds} min={0} max={120} step={5} unit="s" onChange={setRestSeconds} />
           <label className="select-field"><span>Surface</span><select value={surface} onChange={(event) => setSurface(event.target.value as SurfaceId)}><option value="hard">Hard</option><option value="clay">Clay</option><option value="grass">Grass</option></select></label>
+          <label className="select-field"><span>Venue</span><select value={venue} onChange={(event) => { const next = event.target.value as VenueId; setVenue(next); setLighting(next === 'outdoor' ? 'day' : 'indoor-neutral'); }}>{(Object.entries(VENUE_LABELS) as [VenueId, string][]).map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
+          <label className="select-field"><span>Lighting</span><select value={lighting} onChange={(event) => setLighting(event.target.value as LightingPreset)}>{venue === 'outdoor' ? <><option value="day">Day</option><option value="golden-hour">Golden hour</option><option value="night">Night floodlights</option></> : <><option value="indoor-neutral">Neutral</option><option value="indoor-warm">Warm</option><option value="indoor-bright">Bright match</option></>}</select></label>
+          <RangeField label={venue === 'outdoor' ? 'Sun direction' : 'Light direction'} value={lightDirection} min={-180} max={180} step={5} unit="°" onChange={setLightDirection} />
+          <RangeField label="Light level" value={lightIntensity} min={0.35} max={1.5} step={0.05} unit="×" onChange={setLightIntensity} />
           <label className="select-field"><span>Spin</span><select value={spin} onChange={(event) => setSpin(event.target.value as 'preset' | SpinKind)}><option value="preset">Drill preset</option><option value="flat">Flat</option><option value="topspin">Topspin</option><option value="slice">Slice</option><option value="kick">Kick</option></select></label>
           <label className="select-field"><span>Opponent</span><select value={opponentHand} onChange={(event) => setOpponentHand(event.target.value as 'left' | 'right')}><option value="right">Right-handed</option><option value="left">Left-handed</option></select></label>
           <label className="text-field"><span>Seed</span><input aria-label="Seed" value={seed} inputMode="numeric" onChange={(event) => setSeed(event.target.value.replace(/\D/g, '').slice(0, 10) || '0')} /></label>

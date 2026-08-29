@@ -43,6 +43,8 @@ describe('session compiler', () => {
     seed: '18427',
     spin: 'preset' as const,
     opponentHand: 'right' as const,
+    workBlockSize: 4,
+    restSeconds: 20,
   };
 
   it('is deterministic for the same seed', () => {
@@ -61,5 +63,16 @@ describe('session compiler', () => {
       expect(Math.abs(entry.shot.target.x - source.target.x)).toBeLessThanOrEqual(0.55 * 0.08 + Number.EPSILON);
       expect(Math.abs(entry.shot.target.z - source.target.z)).toBeLessThanOrEqual(1.1 * 0.08 + Number.EPSILON);
     }
+  });
+
+  it('inserts deterministic rest periods between configured work blocks', () => {
+    const session = compileSession(drill, settings);
+    expect(session.restPeriods.map((period) => period.afterIndex)).toEqual([3, 7]);
+    expect(session.restPeriods[0]!.startTime).toBeCloseTo(15.8, 8);
+    expect(session.restPeriods[0]!.endTime).toBeCloseTo(35.8, 8);
+    expect(session.restPeriods[1]!.startTime).toBeCloseTo(48.6, 8);
+    expect(session.restPeriods[1]!.endTime).toBeCloseTo(68.6, 8);
+    expect(session.repetitions[4]!.startTime).toBe(35.8);
+    expect(session.duration).toBeCloseTo(81.4, 8);
   });
 });

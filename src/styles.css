@@ -230,6 +230,11 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .coach-overlay dl div { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-top: 1px solid var(--divider); font-size: 11px; }
 .coach-overlay dt { color: var(--muted); }
 .coach-overlay dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.rest-countdown strong { color: var(--accent); }
+.compact-range { display: grid; grid-template-columns: 88px 1fr 38px; align-items: center; gap: 8px; min-height: 34px; color: var(--muted); font-size: 10px; }
+.compact-range input { width: 100%; accent-color: var(--accent); }
+.compact-range output { color: #dbe2e5; text-align: right; font-variant-numeric: tabular-nums; }
+.diagnostic-heading { margin-top: 13px !important; padding-top: 12px; border-top: 1px solid var(--divider); }
 
 @media (max-width: 1180px) {
   body { overflow: auto; }

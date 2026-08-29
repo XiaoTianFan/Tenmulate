@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { COURT, type SurfaceId } from '../../domain/court';
+import { DEFAULT_ENVIRONMENT, type EnvironmentConfiguration, type VenueId } from '../../domain/environment';
 import type { ResolvedTrajectory } from '../trajectory/physics';
 import { sampleTrajectoryAt } from '../trajectory/physics';
 import { createCourt } from './buildCourt';
@@ -33,6 +34,10 @@ export class TennisScene {
   private readonly camera = new THREE.PerspectiveCamera(54, 16 / 9, 0.05, 140);
   private readonly ball: THREE.Mesh;
   private readonly trajectoryLine: THREE.Line;
+  private readonly hemisphere: THREE.HemisphereLight;
+  private readonly sun: THREE.DirectionalLight;
+  private readonly floodlights = new THREE.Group();
+  private readonly venueGroups: Readonly<Record<VenueId, THREE.Group>>;
   private readonly resizeObserver: ResizeObserver;
   private courtMaterial: THREE.MeshStandardMaterial;
   private trajectory: ResolvedTrajectory | null = null;
@@ -73,20 +78,30 @@ export class TennisScene {
     this.scene.background = new THREE.Color(0x8fc5eb);
     this.scene.fog = new THREE.Fog(0x8fc5eb, 47, 105);
 
-    const hemisphere = new THREE.HemisphereLight(0xd9efff, 0x426342, 2.1);
-    this.scene.add(hemisphere);
-    const sun = new THREE.DirectionalLight(0xfff5d7, 4.25);
-    sun.position.set(-12, 22, -11);
-    sun.castShadow = true;
-    sun.shadow.mapSize.set(2048, 2048);
-    sun.shadow.camera.left = -19;
-    sun.shadow.camera.right = 19;
-    sun.shadow.camera.top = 25;
-    sun.shadow.camera.bottom = -20;
-    this.scene.add(sun);
+    this.hemisphere = new THREE.HemisphereLight(0xd9efff, 0x426342, 2.1);
+    this.scene.add(this.hemisphere);
+    this.sun = new THREE.DirectionalLight(0xfff5d7, 4.25);
+    this.sun.position.set(-12, 22, -11);
+    this.sun.castShadow = true;
+    this.sun.shadow.mapSize.set(2048, 2048);
+    this.sun.shadow.camera.left = -19;
+    this.sun.shadow.camera.right = 19;
+    this.sun.shadow.camera.top = 25;
+    this.sun.shadow.camera.bottom = -20;
+    this.scene.add(this.sun);
+
+    for (const x of [-8.5, 8.5]) {
+      for (const z of [-9, 9]) {
+        const light = new THREE.PointLight(0xeaf2ff, 0, 35, 1.45);
+        light.position.set(x, 8, z);
+        this.floodlights.add(light);
+      }
+    }
+    this.scene.add(this.floodlights);
 
     const court = createCourt('hard');
     this.courtMaterial = court.courtMaterial;
+    this.venueGroups = court.venueGroups;
     this.scene.add(court.group);
 
     const ballMaterial = new THREE.MeshStandardMaterial({
@@ -106,6 +121,7 @@ export class TennisScene {
     this.scene.add(this.trajectoryLine);
 
     this.setCamera(this.cameraConfiguration);
+    this.setEnvironment(DEFAULT_ENVIRONMENT);
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(canvas);
     this.resize();
@@ -141,6 +157,34 @@ export class TennisScene {
   setSurface(surface: SurfaceId): void {
     const colors: Record<SurfaceId, number> = { hard: 0x2f6c9b, clay: 0xa9532d, grass: 0x4c793d };
     this.courtMaterial.color.setHex(colors[surface]);
+  }
+
+  setEnvironment(configuration: EnvironmentConfiguration): void {
+    for (const [venue, group] of Object.entries(this.venueGroups)) group.visible = venue === configuration.venue;
+    const angle = THREE.MathUtils.degToRad(configuration.lightDirection);
+    this.sun.position.set(Math.sin(angle) * 18, 22, Math.cos(angle) * 18);
+    const intensity = Math.min(1.5, Math.max(0.35, configuration.lightIntensity));
+    const indoor = configuration.venue !== 'outdoor';
+    const preset = configuration.lighting;
+    const isNight = preset === 'night';
+    const isGolden = preset === 'golden-hour';
+    const isWarm = preset === 'indoor-warm';
+    const isBright = preset === 'indoor-bright';
+    const background = isNight ? 0x07121d : indoor ? 0x30383d : isGolden ? 0xd58d55 : 0x8fc5eb;
+    this.scene.background = new THREE.Color(background);
+    this.scene.fog = new THREE.Fog(background, indoor ? 44 : 47, indoor ? 88 : 105);
+    this.sun.color.setHex(isNight ? 0xb8d7ff : isGolden || isWarm ? 0xffc987 : 0xfff5d7);
+    this.sun.intensity = (isNight ? 0.25 : indoor ? 0.6 : isGolden ? 2.8 : 4.25) * intensity;
+    this.hemisphere.color.setHex(isNight ? 0x42658a : indoor ? 0xe8ecef : 0xd9efff);
+    this.hemisphere.groundColor.setHex(indoor ? 0x2b3032 : 0x426342);
+    this.hemisphere.intensity = (isNight ? 0.48 : indoor ? 1.15 : 2.1) * intensity;
+    const floodIntensity = isNight ? 24 : indoor ? (isBright ? 17 : isWarm ? 12 : 14) : 0;
+    for (const child of this.floodlights.children) {
+      if (child instanceof THREE.PointLight) {
+        child.intensity = floodIntensity * intensity;
+        child.color.setHex(isWarm ? 0xffd6a3 : 0xeaf2ff);
+      }
+    }
   }
 
   setCamera(configuration: CameraConfiguration): void {

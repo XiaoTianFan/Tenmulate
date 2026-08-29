@@ -39,6 +39,8 @@ describe('versioned drill documents', () => {
       seed: '1',
       spin: 'preset',
       opponentHand: 'left',
+      workBlockSize: 4,
+      restSeconds: 20,
     });
     expect(session.repetitions[0]!.shot).toMatchObject({
       paceKmh: 101,

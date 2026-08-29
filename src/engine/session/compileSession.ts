@@ -15,6 +15,8 @@ export type SessionSettings = Readonly<{
   seed: string;
   spin: 'preset' | SpinKind;
   opponentHand: OpponentHand;
+  workBlockSize: number;
+  restSeconds: number;
 }>;
 
 export type CompiledRepetition = Readonly<{
@@ -28,6 +30,7 @@ export type CompiledSession = Readonly<{
   drill: DrillDefinitionV1;
   settings: SessionSettings;
   repetitions: readonly CompiledRepetition[];
+  restPeriods: readonly Readonly<{ afterIndex: number; startTime: number; endTime: number }>[];
   duration: number;
 }>;
 
@@ -37,6 +40,9 @@ export const compileSession = (
 ): CompiledSession => {
   const random = createSeededRandom(settings.seed);
   const repetitions: CompiledRepetition[] = [];
+  const restPeriods: { afterIndex: number; startTime: number; endTime: number }[] = [];
+  const workBlockSize = Math.max(1, Math.floor(settings.workBlockSize));
+  const restSeconds = Math.max(0, settings.restSeconds);
   const sourceEvents = drill.events?.length
     ? drill.events
     : drill.shotIds.map((shotId, index) => ({ id: `${drill.id}-${index}`, shotId }));
@@ -68,14 +74,20 @@ export const compileSession = (
       index,
       shot,
       trajectory: resolveTrajectory(shot),
-      startTime: 3 + index * settings.interval,
+      startTime: 3 + index * settings.interval + Math.floor(index / workBlockSize) * restSeconds,
     });
+  }
+
+  for (let afterIndex = workBlockSize - 1; afterIndex < settings.repetitions - 1; afterIndex += workBlockSize) {
+    const startTime = repetitions[afterIndex]!.startTime + settings.interval;
+    restPeriods.push({ afterIndex, startTime, endTime: startTime + restSeconds });
   }
 
   return {
     drill,
     settings,
     repetitions,
-    duration: 3 + settings.repetitions * settings.interval,
+    restPeriods,
+    duration: (repetitions.at(-1)?.startTime ?? 3) + settings.interval,
   };
 };

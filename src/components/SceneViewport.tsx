@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { SurfaceId } from '../domain/court';
+import { DEFAULT_ENVIRONMENT, type EnvironmentConfiguration } from '../domain/environment';
 import {
   TennisScene,
   type CameraConfiguration,
@@ -12,6 +13,7 @@ type SceneViewportProps = Readonly<{
   camera: CameraConfiguration;
   trajectory: ResolvedTrajectory;
   surface: SurfaceId;
+  environment?: EnvironmentConfiguration;
   running: boolean;
   resetToken: number;
   showTrajectory?: boolean;
@@ -26,6 +28,7 @@ export function SceneViewport({
   camera,
   trajectory,
   surface,
+  environment = DEFAULT_ENVIRONMENT,
   running,
   resetToken,
   showTrajectory = true,
@@ -52,6 +55,7 @@ export function SceneViewport({
   useEffect(() => sceneRef.current?.setCamera(camera), [camera]);
   useEffect(() => sceneRef.current?.setTrajectory(trajectory), [trajectory]);
   useEffect(() => sceneRef.current?.setSurface(surface), [surface]);
+  useEffect(() => sceneRef.current?.setEnvironment(environment), [environment]);
   useEffect(() => sceneRef.current?.setRunning(running), [running]);
   useEffect(() => sceneRef.current?.reset(), [resetToken]);
   useEffect(() => sceneRef.current?.setTrajectoryVisible(showTrajectory), [showTrajectory]);

@@ -32,6 +32,8 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
   const [playbackRate, setPlaybackRate] = useState(1);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
+  const [cameraMotionScale, setCameraMotionScale] = useState(1);
+  const [audioLevels, setAudioLevels] = useState({ countdown: 1, contact: 1, bounce: 0.72, ambience: 0 });
   const [metrics, setMetrics] = useState<SceneMetrics | null>(null);
   const [resetToken, setResetToken] = useState(0);
   const audioRef = useRef<AudioCueEngine | null>(null);
@@ -56,10 +58,12 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
     const cueKey = `${player.status}:${player.countdown ?? ''}:${player.currentIndex}`;
     if (cueKey === previousCueRef.current) return;
     previousCueRef.current = cueKey;
-    if (player.status === 'countdown') audioRef.current?.play('countdown', soundEnabled ? 1 : 0);
-    if (player.status === 'playing') audioRef.current?.play('contact', soundEnabled ? 1 : 0);
-    if (player.status === 'completed') audioRef.current?.play('complete', soundEnabled ? 1 : 0);
-  }, [player.countdown, player.currentIndex, player.status, soundEnabled]);
+    if (player.status === 'countdown') audioRef.current?.play('countdown', soundEnabled ? audioLevels.countdown : 0);
+    if (player.status === 'playing') audioRef.current?.play('contact', soundEnabled ? audioLevels.contact : 0);
+    if (player.status === 'completed') audioRef.current?.play('complete', soundEnabled ? audioLevels.countdown : 0);
+  }, [audioLevels.contact, audioLevels.countdown, player.countdown, player.currentIndex, player.status, soundEnabled]);
+
+  useEffect(() => audioRef.current?.setAmbience(soundEnabled ? audioLevels.ambience : 0), [audioLevels.ambience, soundEnabled]);
 
   useEffect(() => {
     setResetToken((value) => value + 1);
@@ -67,9 +71,9 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
 
   useEffect(() => {
     if (player.status !== 'playing' || !bounce) return;
-    const timeout = window.setTimeout(() => audioRef.current?.play('bounce', soundEnabled ? 0.72 : 0), (bounce.time / playbackRate) * 1000);
+    const timeout = window.setTimeout(() => audioRef.current?.play('bounce', soundEnabled ? audioLevels.bounce : 0), (bounce.time / playbackRate) * 1000);
     return () => window.clearTimeout(timeout);
-  }, [bounce, playbackRate, player.currentIndex, player.status, soundEnabled]);
+  }, [audioLevels.bounce, bounce, playbackRate, player.currentIndex, player.status, soundEnabled]);
 
   useEffect(() => {
     const onVisibility = () => {
@@ -101,11 +105,19 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
   }, [player, toggleFullscreen]);
 
   const cameraMotion = useMemo<CameraMotion | null>(() => {
-    if (!shot?.cameraMotion || reducedMotion) return null;
+    if (!shot?.cameraMotion || reducedMotion || cameraMotionScale === 0) return null;
     const from = { ...launch.camera, ...shot.cameraMotion.from };
-    const to = { ...launch.camera, ...shot.cameraMotion.to };
+    const target = { ...launch.camera, ...shot.cameraMotion.to };
+    const to = {
+      eyeHeight: launch.camera.eyeHeight + (target.eyeHeight - launch.camera.eyeHeight) * cameraMotionScale,
+      behindBaseline: launch.camera.behindBaseline + (target.behindBaseline - launch.camera.behindBaseline) * cameraMotionScale,
+      lateral: launch.camera.lateral + (target.lateral - launch.camera.lateral) * cameraMotionScale,
+      yaw: launch.camera.yaw + (target.yaw - launch.camera.yaw) * cameraMotionScale,
+      pitch: launch.camera.pitch + (target.pitch - launch.camera.pitch) * cameraMotionScale,
+      fov: launch.camera.fov + (target.fov - launch.camera.fov) * cameraMotionScale,
+    };
     return { from, to, duration: shot.cameraMotion.duration, delay: shot.cameraMotion.delay };
-  }, [launch.camera, reducedMotion, shot]);
+  }, [cameraMotionScale, launch.camera, reducedMotion, shot]);
 
   if (!trajectory || !shot) return null;
   const playing = player.status === 'playing';
@@ -115,11 +127,11 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
 
   return (
     <main className="rehearsal-shell">
-      <SceneViewport camera={launch.camera} trajectory={trajectory} surface={launch.session.settings.surface} running={playing} resetToken={resetToken} showTrajectory={launch.mode === 'learning' || showDiagnostics} playbackRate={playbackRate} loopTrajectory={false} cameraMotion={cameraMotion} showSight={false} onMetrics={onMetrics} />
+      <SceneViewport camera={launch.camera} trajectory={trajectory} surface={launch.session.settings.surface} environment={launch.environment} running={playing} resetToken={resetToken} showTrajectory={launch.mode === 'learning' || showDiagnostics} playbackRate={playbackRate} loopTrajectory={false} cameraMotion={cameraMotion} showSight={false} onMetrics={onMetrics} />
       <header className="rehearsal-header">
         <strong>Tenmulate</strong>
         <span className="drill-title">{launch.session.drill.title}</span>
-        <span className="rep-status">Set 1 · Rep {repetitionNumber} of {launch.session.repetitions.length}</span>
+        <span className="rep-status">Set {player.currentSet} of {player.setCount} · Rep {repetitionNumber} of {launch.session.repetitions.length}</span>
         <div>
           <button type="button" onClick={() => setShowDiagnostics((value) => !value)}><Settings size={18} /> Settings</button>
           <button type="button" onClick={() => void toggleFullscreen()}><Expand size={18} /> Full screen</button>
@@ -129,6 +141,7 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
 
       {launch.mode === 'learning' && playing ? <div className="preparation-cue"><strong>{shot.cue}</strong><span /></div> : null}
       {player.countdown ? <div className="countdown" aria-live="assertive"><strong>{player.countdown}</strong><span>Ready position</span></div> : null}
+      {player.status === 'resting' ? <div className="countdown rest-countdown" aria-live="polite"><strong>{player.restRemaining}</strong><span>Rest · next set follows</span></div> : null}
       {paused ? <div className="paused-label" aria-live="polite">Paused</div> : null}
 
       <aside className="rehearsal-mode-panel">
@@ -159,7 +172,13 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
 
       {showDiagnostics ? (
         <aside className="coach-overlay">
-          <h2>Coach view</h2>
+          <h2>Session settings</h2>
+          <label className="compact-range"><span>Camera motion</span><input aria-label="Camera motion intensity" type="range" min="0" max="1" step="0.25" value={cameraMotionScale} onChange={(event) => setCameraMotionScale(Number(event.target.value))} /><output>{Math.round(cameraMotionScale * 100)}%</output></label>
+          <label className="compact-range"><span>Countdown</span><input aria-label="Countdown volume" type="range" min="0" max="1" step="0.1" value={audioLevels.countdown} onChange={(event) => setAudioLevels((current) => ({ ...current, countdown: Number(event.target.value) }))} /><output>{Math.round(audioLevels.countdown * 100)}%</output></label>
+          <label className="compact-range"><span>Contact</span><input aria-label="Contact volume" type="range" min="0" max="1" step="0.1" value={audioLevels.contact} onChange={(event) => setAudioLevels((current) => ({ ...current, contact: Number(event.target.value) }))} /><output>{Math.round(audioLevels.contact * 100)}%</output></label>
+          <label className="compact-range"><span>Bounce</span><input aria-label="Bounce volume" type="range" min="0" max="1" step="0.1" value={audioLevels.bounce} onChange={(event) => setAudioLevels((current) => ({ ...current, bounce: Number(event.target.value) }))} /><output>{Math.round(audioLevels.bounce * 100)}%</output></label>
+          <label className="compact-range"><span>Ambience</span><input aria-label="Ambience volume" type="range" min="0" max="1" step="0.1" value={audioLevels.ambience} onChange={(event) => setAudioLevels((current) => ({ ...current, ambience: Number(event.target.value) }))} /><output>{Math.round(audioLevels.ambience * 100)}%</output></label>
+          <h2 className="diagnostic-heading">Coach diagnostics</h2>
           <dl><div><dt>Launch</dt><dd>{resolvedSpeed} km/h</dd></div><div><dt>Apex</dt><dd>{trajectory.apexHeight.toFixed(2)} m</dd></div><div><dt>Bounce</dt><dd>{bounce ? `${bounce.position.x.toFixed(2)}, ${bounce.position.z.toFixed(2)} m` : '—'}</dd></div><div><dt>Arrival</dt><dd>{receiver ? `${receiver.position.y.toFixed(2)} m · ${receiver.time.toFixed(2)} s` : '—'}</dd></div><div><dt>Renderer</dt><dd>{metrics ? `${metrics.renderer} · ${metrics.fps} fps` : 'Starting…'}</dd></div></dl>
         </aside>
       ) : null}
