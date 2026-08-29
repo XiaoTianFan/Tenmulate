@@ -197,8 +197,38 @@ export const createLightPole = (materials: SceneMaterialLibrary, x: number, z: n
     const lamp = box(0.4, 0.22, 0.16, materials.lamp, lampX, 8.88, faceZ * 0.12);
     lamp.rotation.x = faceZ * 0.18;
     group.add(lamp);
+    const light = new THREE.SpotLight(0xe7f2ff, 28, 48, 0.62, 0.66, 1.15);
+    light.name = 'fixture-aligned-floodlight';
+    light.position.set(lampX, 8.88, faceZ * 0.12);
+    light.userData.baseIntensity = 28;
+    light.target.position.set(-x, -8.88, -z);
+    group.add(light, light.target);
   }
   group.position.set(x, 0, z);
+  return group;
+};
+
+export const createCeilingFixture = (
+  materials: SceneMaterialLibrary,
+  x: number,
+  y: number,
+  z: number,
+  width = 4.8,
+  baseIntensity = 42,
+): THREE.Group => {
+  const group = new THREE.Group();
+  group.name = 'aligned-ceiling-fixture';
+  group.position.set(x, y, z);
+  group.add(box(width + 0.2, 0.16, 0.72, materials.darkMetal, 0, 0, 0));
+  const lens = box(width, 0.08, 0.58, materials.lamp, 0, -0.11, 0);
+  lens.name = 'fixture-visible-lens';
+  group.add(lens);
+  const light = new THREE.SpotLight(0xe7f2ff, baseIntensity, 38, 0.82, 0.72, 1.25);
+  light.name = 'fixture-aligned-light-source';
+  light.position.set(0, -0.12, 0);
+  light.userData.baseIntensity = baseIntensity;
+  light.target.position.set(-x, -y, -z);
+  group.add(light, light.target);
   return group;
 };
 
