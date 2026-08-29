@@ -1,0 +1,71 @@
+import { describe, expect, it } from 'vitest';
+import { DRILLS } from '../src/content/bundled';
+import { materializeEvents } from '../src/content/editing';
+import { parseDrillJson, validateDrill } from '../src/content/validation';
+import { compileSession } from '../src/engine/session/compileSession';
+
+describe('versioned drill documents', () => {
+  it('materializes bundled shot sequences into editable events', () => {
+    const events = materializeEvents(DRILLS[2]!);
+    expect(events).toHaveLength(5);
+    expect(events.map((event) => event.shotId)).toEqual(DRILLS[2]!.shotIds);
+  });
+
+  it('accepts local event overrides and compiles them exactly with variation disabled', () => {
+    const source = DRILLS[0]!;
+    const drill = {
+      ...source,
+      id: 'custom-contract-test',
+      category: 'Custom' as const,
+      events: [{
+        id: 'event-one',
+        shotId: 'fh-cross-deep',
+        paceKmh: 101,
+        spin: 'slice' as const,
+        target: { x: 1.25, z: -7.5 },
+        cue: 'MOVE NOW',
+      }],
+      shotIds: ['fh-cross-deep'],
+      defaultRepetitions: 1,
+    };
+    const validation = validateDrill(drill);
+    expect(validation.valid).toBe(true);
+    const session = compileSession(drill, {
+      repetitions: 1,
+      interval: 3,
+      variationPercent: 0,
+      paceKmh: 78,
+      surface: 'hard',
+      seed: '1',
+      spin: 'preset',
+      opponentHand: 'left',
+    });
+    expect(session.repetitions[0]!.shot).toMatchObject({
+      paceKmh: 101,
+      spin: 'slice',
+      target: { x: 1.25, z: -7.5 },
+      cue: 'MOVE NOW',
+      opponentHand: 'left',
+    });
+  });
+
+  it('rejects remote URLs, unknown primitives, invalid geometry, and unsupported schemas', () => {
+    const invalid = {
+      ...DRILLS[0],
+      schemaVersion: 2,
+      id: 'INVALID ID',
+      description: 'Load https://example.com/remote.glb',
+      events: [{ id: 'bad', shotId: 'not-a-shot', target: { x: 12, z: 1 } }],
+    };
+    const result = validateDrill(invalid);
+    expect(result.valid).toBe(false);
+    expect(result.errors.join(' ')).toMatch(/schemaVersion 1/);
+    expect(result.errors.join(' ')).toMatch(/Remote URLs/);
+    expect(result.errors.join(' ')).toMatch(/unknown shot/);
+    expect(result.errors.join(' ')).toMatch(/outside the near singles court/);
+  });
+
+  it('reports malformed JSON without exposing parser internals', () => {
+    expect(() => parseDrillJson('{bad json')).toThrow('not valid JSON');
+  });
+});

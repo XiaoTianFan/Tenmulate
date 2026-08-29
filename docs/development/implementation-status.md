@@ -65,3 +65,29 @@ This is the evidence ledger for the code-backed V1. “Implemented” means runn
 - Work/rest blocks and a visual cue-volume mixer are scheduled with the editor/persistence stage.
 - Drills and Editor navigation select correctly but their route bodies arrive in Stage 3.
 - Procedural visual stand-ins remain intentionally less detailed than the approved environment concept.
+
+## Stage 3 — local drill authoring, persistence, and offline shell
+
+### Implemented
+
+- Working drill-library route combining six immutable bundled definitions with locally saved custom drills.
+- Versioned custom-event schema with per-event shot primitive, pace, spin, landing target, camera motion, and preparation-cue overrides.
+- Three-column editor with direct Three.js preview, drag reorder, add/duplicate/delete, 50-step undo/redo, metadata editing, five typed timeline tracks, live validation, and test-play launch.
+- Size-limited JSON import/export with allowlisted schema fields, bundled-shot references, court-bound target checks, and rejection of remote URLs.
+- Local persistence for custom drills and named camera views, including save/apply/rename/delete behavior.
+- Generated service worker and manifest with real online/cache/update state in the UI.
+
+### Verification
+
+- `npm test`: 4 files, 34 tests passed, including event materialization, event-override compilation, malformed import handling, and hostile/invalid schema rejection.
+- `npm run build`: production PWA build passed and generated a seven-entry precache plus service worker.
+- Playwright CLI at 1920 × 1080: library navigation, editor rendering, title edit, duplicate, undo, local save, library reappearance, and named-view save all passed.
+- Production preview at 1280 × 820: active service-worker controller confirmed, network set offline, hard reload succeeded, and UI reported `Offline · Cached shell ready`.
+- Browser console: zero errors and zero warnings in the Stage 3 development interaction pass.
+- Direct `view_image` comparison covered the timeline-editor reference and final browser render.
+
+### Known stage gaps
+
+- Work/rest execution, independent audio levels, and authored rest intervals still need to join the session timeline.
+- Venue shell and lighting controls, production-grade quality adaptation, chunk splitting, install-icon raster variants, and broader responsive/browser coverage remain in the hardening stage.
+- The opponent animation/GLB and generated-world asset layers remain explicitly pending external production assets; the functional ball machine remains the substitute.

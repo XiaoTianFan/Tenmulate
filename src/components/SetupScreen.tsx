@@ -6,9 +6,11 @@ import {
   PencilLine,
   Play,
   RotateCcw,
+  Save,
   SlidersHorizontal,
   Target,
   TimerReset,
+  Trash2,
   Trophy,
 } from 'lucide-react';
 import { DRILL_BY_CATEGORY } from '../content/bundled';
@@ -18,8 +20,10 @@ import type { SceneMetrics } from '../engine/rendering/TennisScene';
 import { compileSession } from '../engine/session/compileSession';
 import { resolveTrajectory, type SpinKind } from '../engine/trajectory/physics';
 import type { PracticeMode, SessionLaunch } from '../app/types';
+import type { SavedViewV1 } from '../storage/appStorage';
 import { AppHeader, type AppRoute } from './AppHeader';
 import { Modal } from './Modal';
+import { OfflineStatus } from './OfflineStatus';
 import { SceneViewport } from './SceneViewport';
 
 type CameraPresetId = 'realistic' | 'wide' | 'baselineLeft' | 'baselineRight' | 'approach';
@@ -56,11 +60,15 @@ function RangeField({ label, value, min, max, step, unit, onChange }: RangeField
 
 type SetupScreenProps = Readonly<{
   route: AppRoute;
+  savedViews: readonly SavedViewV1[];
   onRoute: (route: AppRoute) => void;
   onStart: (launch: SessionLaunch) => void;
+  onSaveView: (view: SavedViewV1) => void;
+  onDeleteView: (id: string) => void;
+  onRenameView: (id: string, name: string) => void;
 }>;
 
-export function SetupScreen({ route, onRoute, onStart }: SetupScreenProps) {
+export function SetupScreen({ route, savedViews, onRoute, onStart, onSaveView, onDeleteView, onRenameView }: SetupScreenProps) {
   const [sessionCategory, setSessionCategory] = useState<SessionCategory>('Quick Rally');
   const [mode, setMode] = useState<PracticeMode>('rehearsal');
   const [pace, setPace] = useState(78);
@@ -78,10 +86,12 @@ export function SetupScreen({ route, onRoute, onStart }: SetupScreenProps) {
   const [cameraPreset, setCameraPreset] = useState<CameraPresetId>('realistic');
   const [resetToken, setResetToken] = useState(0);
   const [metrics, setMetrics] = useState<SceneMetrics | null>(null);
-  const [dialog, setDialog] = useState<'safety' | 'display' | 'help' | null>(null);
+  const [dialog, setDialog] = useState<'safety' | 'display' | 'help' | 'saveView' | 'renameView' | null>(null);
   const [safetyChecked, setSafetyChecked] = useState(false);
   const [screenWidthCm, setScreenWidthCm] = useState(120);
   const [viewDistanceCm, setViewDistanceCm] = useState(250);
+  const [selectedSavedView, setSelectedSavedView] = useState('');
+  const [viewName, setViewName] = useState('My baseline view');
   const onMetrics = useCallback((next: SceneMetrics) => setMetrics(next), []);
 
   const drill = DRILL_BY_CATEGORY.get(sessionCategory) ?? DRILL_BY_CATEGORY.get('Quick Rally')!;
@@ -96,6 +106,24 @@ export function SetupScreen({ route, onRoute, onStart }: SetupScreenProps) {
   const net = trajectory.events.find((event) => event.type === 'net-crossing');
 
   const camera = useMemo(() => ({ eyeHeight, behindBaseline, lateral, yaw: 0, pitch: -1.7, fov }), [behindBaseline, eyeHeight, fov, lateral]);
+
+  const applySavedView = (id: string) => {
+    setSelectedSavedView(id);
+    const saved = savedViews.find((view) => view.id === id);
+    if (!saved) return;
+    setEyeHeight(saved.camera.eyeHeight);
+    setBehindBaseline(saved.camera.behindBaseline);
+    setLateral(saved.camera.lateral);
+    setFov(saved.camera.fov);
+    setCameraPreset('realistic');
+  };
+
+  const saveCurrentView = () => {
+    const id = `view-${crypto.randomUUID().slice(0, 8)}`;
+    onSaveView({ id, name: viewName.trim() || 'Untitled view', camera });
+    setSelectedSavedView(id);
+    setDialog(null);
+  };
 
   const applyCameraPreset = (preset: CameraPresetId) => {
     setCameraPreset(preset);
@@ -167,7 +195,7 @@ export function SetupScreen({ route, onRoute, onStart }: SetupScreenProps) {
             <button type="button" onClick={() => selectSession('Quick Rally')}><TimerReset size={17} /> Crosscourt Rhythm</button>
             <button type="button" onClick={() => selectSession('Return Practice')}><TimerReset size={17} /> Serve Recognition</button>
           </div>
-          <div className="rail-status"><span className="status-dot" /> Local only · Ready offline</div>
+          <OfflineStatus />
         </aside>
 
         <section className="preview-column" aria-label="Live court preview">
@@ -203,6 +231,12 @@ export function SetupScreen({ route, onRoute, onStart }: SetupScreenProps) {
             <RangeField label="Behind baseline" value={behindBaseline} min={-5} max={4} step={0.05} unit="m" onChange={(value) => { setBehindBaseline(value); setCameraPreset('realistic'); }} />
             <RangeField label="FOV" value={fov} min={45} max={105} step={1} unit="° H" onChange={(value) => { setFov(value); setCameraPreset('realistic'); }} />
             <button type="button" className="text-action" onClick={() => setDialog('display')}>Use physical display measurements</button>
+            <label className="select-field"><span>Saved view</span><select value={selectedSavedView} onChange={(event) => applySavedView(event.target.value)}><option value="">Choose…</option>{savedViews.map((view) => <option key={view.id} value={view.id}>{view.name}</option>)}</select></label>
+            <div className="view-actions">
+              <button type="button" onClick={() => { setViewName('My baseline view'); setDialog('saveView'); }}><Save size={14} /> Save view</button>
+              <button type="button" disabled={!selectedSavedView} onClick={() => { const saved = savedViews.find((view) => view.id === selectedSavedView); setViewName(saved?.name ?? ''); setDialog('renameView'); }}>Rename</button>
+              <button type="button" disabled={!selectedSavedView} onClick={() => { onDeleteView(selectedSavedView); setSelectedSavedView(''); }}><Trash2 size={14} /> Delete</button>
+            </div>
           </div>
           <div className="inspector-actions">
             <button className="primary-button" type="button" onClick={requestStart}>Start practice</button>
@@ -229,6 +263,11 @@ export function SetupScreen({ route, onRoute, onStart }: SetupScreenProps) {
       {dialog === 'help' ? (
         <Modal title="Practice controls" onClose={() => setDialog(null)}>
           <dl className="shortcut-list"><div><dt>Space</dt><dd>Pause or resume</dd></div><div><dt>R</dt><dd>Restart the set</dd></div><div><dt>F</dt><dd>Enter or leave full screen</dd></div><div><dt>Esc</dt><dd>Pause before leaving</dd></div></dl>
+        </Modal>
+      ) : null}
+      {dialog === 'saveView' || dialog === 'renameView' ? (
+        <Modal title={dialog === 'saveView' ? 'Save camera view' : 'Rename camera view'} onClose={() => setDialog(null)} actions={<><button className="secondary-button" type="button" onClick={() => setDialog(null)}>Cancel</button><button className="primary-button inline" type="button" onClick={() => { if (dialog === 'saveView') saveCurrentView(); else { onRenameView(selectedSavedView, viewName.trim() || 'Untitled view'); setDialog(null); } }}>{dialog === 'saveView' ? 'Save view' : 'Rename'}</button></>}>
+          <label className="stack-field"><span>View name</span><input autoFocus maxLength={60} value={viewName} onChange={(event) => setViewName(event.target.value)} /></label>
         </Modal>
       ) : null}
     </main>

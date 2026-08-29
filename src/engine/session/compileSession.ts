@@ -37,22 +37,32 @@ export const compileSession = (
 ): CompiledSession => {
   const random = createSeededRandom(settings.seed);
   const repetitions: CompiledRepetition[] = [];
+  const sourceEvents = drill.events?.length
+    ? drill.events
+    : drill.shotIds.map((shotId, index) => ({ id: `${drill.id}-${index}`, shotId }));
 
   for (let index = 0; index < settings.repetitions; index += 1) {
-    const shotId = drill.shotIds[index % drill.shotIds.length];
+    const sourceEvent = sourceEvents[index % sourceEvents.length];
+    const shotId = sourceEvent?.shotId;
     const sourceShot = shotId ? SHOT_BY_ID.get(shotId) : undefined;
     if (!sourceShot) throw new Error(`Unknown bundled shot: ${shotId ?? '(missing)'}`);
     const variation = settings.variationPercent / 100;
     const xJitter = (random() * 2 - 1) * 0.55 * variation;
     const zJitter = (random() * 2 - 1) * 1.1 * variation;
     const paceJitter = (random() * 2 - 1) * settings.paceKmh * 0.12 * variation;
+    const eventSpin = sourceEvent && 'spin' in sourceEvent ? sourceEvent.spin : undefined;
     const shot: ShotDefinitionV1 = {
       ...sourceShot,
-      target: { x: sourceShot.target.x + xJitter, z: sourceShot.target.z + zJitter },
-      paceKmh: Math.max(25, settings.paceKmh + (sourceShot.paceKmh - 78) * 0.35 + paceJitter),
+      target: {
+        x: (sourceEvent && 'target' in sourceEvent && sourceEvent.target ? sourceEvent.target.x : sourceShot.target.x) + xJitter,
+        z: (sourceEvent && 'target' in sourceEvent && sourceEvent.target ? sourceEvent.target.z : sourceShot.target.z) + zJitter,
+      },
+      paceKmh: Math.max(25, (sourceEvent && 'paceKmh' in sourceEvent && sourceEvent.paceKmh ? sourceEvent.paceKmh : settings.paceKmh + (sourceShot.paceKmh - 78) * 0.35) + paceJitter),
       surface: settings.surface,
-      spin: settings.spin === 'preset' ? sourceShot.spin : settings.spin,
+      spin: eventSpin && eventSpin !== 'preset' ? eventSpin : settings.spin === 'preset' ? sourceShot.spin : settings.spin,
       opponentHand: settings.opponentHand,
+      cameraMotion: sourceEvent && 'cameraMotion' in sourceEvent && sourceEvent.cameraMotion !== undefined ? sourceEvent.cameraMotion ?? undefined : sourceShot.cameraMotion,
+      cue: sourceEvent && 'cue' in sourceEvent && sourceEvent.cue ? sourceEvent.cue : sourceShot.cue,
     };
     repetitions.push({
       index,

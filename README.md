@@ -1,8 +1,8 @@
 # Tenmulate
 
-Tenmulate is the working title for a browser-based, first-person tennis visualization tool. It will place a player at a calibrated on-court point of view and play realistic incoming ball trajectories for shadow swinging, return preparation, and tactical mental rehearsal.
+Tenmulate is a browser-based, first-person tennis visualization tool. It places a player at a calibrated on-court point of view and plays configurable incoming ball trajectories for shadow swinging, return preparation, and tactical mental rehearsal.
 
-The repository is currently in discovery and planning. It contains no application implementation yet. The first implementation gate is an approved V1 product scope and visual concept, followed by a renderer and trajectory proof of concept.
+The repository now contains the active V1 implementation: a deterministic Three.js court/ball simulation, complete starter shot library, rehearsal player, local drill editor, saved views, validated JSON exchange, and offline-capable app shell. The procedural venue and ball-machine opponent are temporary visual substitutes while the external 3D asset pipeline is evaluated.
 
 ## Provisional direction
 
@@ -47,5 +47,5 @@ These are proposed decisions, not irreversible commitments. The acceptance gates
 - Court environment directions: six accepted on 2026-08-29; outdoor Panel 1 selected as the product and vertical-slice baseline.
 - First opponent concept sheet: generated on 2026-08-29; owner/rigging review pending.
 - Setup, rehearsal, and timeline-editor visual concepts: generated on 2026-08-29 and adopted as the implementation reference.
-- Technical implementation: Stage 2 deterministic session player is runnable and browser-verified; local authoring/offline/hardening stages remain active.
-- Production implementation or deployment: not started.
+- Technical implementation: Stage 3 local authoring and offline shell is runnable, automated-tested, and browser-verified; work/rest, venue/lighting, performance, responsive, and release-audit stages remain active.
+- Production deployment: not started.

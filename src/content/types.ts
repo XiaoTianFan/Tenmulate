@@ -43,6 +43,17 @@ export type DrillDefinitionV1 = Readonly<{
   description: string;
   category: SessionCategory;
   shotIds: readonly string[];
+  events?: readonly DrillEventV1[];
   defaultInterval: number;
   defaultRepetitions: number;
+}>;
+
+export type DrillEventV1 = Readonly<{
+  id: string;
+  shotId: string;
+  paceKmh?: number;
+  spin?: 'preset' | SpinKind;
+  target?: Readonly<{ x: number; z: number }>;
+  cameraMotion?: CameraMotionDefinition | null;
+  cue?: string;
 }>;
