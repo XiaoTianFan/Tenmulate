@@ -26,7 +26,7 @@ These are proposed decisions, not irreversible commitments. The acceptance gates
 | [Cloud world-generation research](docs/research/world-generation-and-scene-reconstruction-2026.md) | Aholo, Marble, splat/mesh integration, coordinate registration, and the sub-US$100 experiment |
 | [Mocap-to-web character pipeline](docs/research/mocap-to-web-character-pipeline.md) | Mesh/rig/skin/animation definitions, retargeting, tennis cleanup, formats, and rights gate |
 | [Court environment concepts](docs/concepts/court-environment-concepts-2026-08.md) | Bird's-eye and player-level boards for owner art-direction review |
-| [Scene-generation prompt kit](docs/concepts/scene-generation-prompt-kit.md) | Three reusable perspective prefixes and six standalone court/environment prompts |
+| [Scene-generation prompt kit](docs/concepts/scene-generation-prompt-kit.md) | Four reusable perspective prefixes, including a 360-degree panorama, and six standalone court/environment prompts |
 | [Opponent character 01](docs/concepts/opponent-character-01.md) | First fictional right-handed male design sheet and detachable-racket production guidance |
 | [Application UI concepts](docs/concepts/application-ui-concepts-2026-08.md) | Complete setup, rehearsal, and timeline-editor implementation references |
 | [Implementation status](docs/development/implementation-status.md) | Staged V1 code coverage, verification evidence, and remaining gaps |

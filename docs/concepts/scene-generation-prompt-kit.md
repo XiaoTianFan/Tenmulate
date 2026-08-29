@@ -5,7 +5,7 @@
 - **Composition rule:** `perspective prefix + environment prompt + shared production suffix`
 - **Product baseline:** Perspective 2 + Environment 1
 
-The six environment prompts deliberately contain no camera instructions. Choose exactly one perspective prefix and one environment prompt, then append the shared suffix. This keeps the environment identity stable while producing an oblique concept, a gameplay view, or a spatial-planning view.
+The six environment prompts deliberately contain no camera instructions. Choose exactly one perspective prefix and one environment prompt, then append the shared suffix. This keeps the environment identity stable while producing an oblique concept, a gameplay view, a spatial-planning view, or a spherical world-generation input.
 
 ## Perspective prefixes
 
@@ -20,6 +20,12 @@ The six environment prompts deliberately contain no camera instructions. Choose 
 ### Perspective 3: true top-down floor plan
 
 > Perspective: true 90-degree top-down orthographic floor-plan view, camera centered directly above the court, far baseline oriented toward the top of the frame, no perspective distortion and no tilted façades, the full regulation court and all venue boundaries visible with an even perimeter margin, landscape 16:9 composition.
+
+### Perspective 4: full spherical panorama for world generation
+
+> Perspective: full 360-degree by 180-degree monoscopic spherical panorama in equirectangular latitude-longitude projection, viewed from tennis-player eye level at 1.70 meters high and 1.50 meters behind the center of the near baseline, with the center of the far baseline straight ahead. Keep the horizon level at the exact vertical midpoint and preserve coherent scale, lighting, architecture, court geometry, and environmental detail in every direction from sky or ceiling through the ground. The panorama must wrap continuously, with matching left and right edges, no visible seam, no duplicated or cut-off objects at the wrap boundary, no cropped zenith or nadir, and no flat-perspective frame or border. Use a 2:1 landscape composition suitable for an immersive 360-degree viewer and as a panorama input to world-generation services.
+
+For GPT Image 2, request a true 2:1 output such as `2048x1024` at `quality="medium"` or `quality="high"`; the prompt alone does not set the file dimensions. Review the result in a spherical panorama viewer before sending it to Marble, Aholo, or another world-generation provider. Reject outputs with a broken wrap seam, tilted or discontinuous horizon, missing poles, duplicated court features, or a merely wide rectilinear view.
 
 ## Six court and environment prompts
 
@@ -56,5 +62,6 @@ The six environment prompts deliberately contain no camera instructions. Choose 
 - **Starting product view:** Perspective 2 + Environment 1 + shared suffix.
 - **Baseline world-generation input:** Perspective 1 + Environment 1 + shared suffix.
 - **Registration and layout reference:** Perspective 3 + Environment 1 + shared suffix.
+- **Preferred panorama world-generation input:** Perspective 4 + Environment 1 + shared suffix.
 
-The three images should be treated as a coordinated visual set, not as metrically consistent reconstruction views. Regulation coordinates, camera calibration, and world-to-court registration remain code-owned.
+The four images should be treated as a coordinated visual set, not as metrically consistent reconstruction views. Regulation coordinates, camera calibration, and world-to-court registration remain code-owned. Perspective 4 is a provider input and visual shell reference, not evidence that the generated world preserves exact court dimensions.

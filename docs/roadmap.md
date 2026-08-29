@@ -12,7 +12,7 @@ This roadmap is ordered by uncertainty and integration risk. V1 is one complete 
 - Record the accepted V1/V2 boundary and public-free release model.
 - Implement from the complete game-realistic setup, rehearsal, and timeline-editor concept set; keep pause, diagnostics, and completion states in the same recorded system.
 - Use accepted outdoor Panel 1 as the first visual/technical north star; select the second indoor north star before generating that venue shell.
-- Use the modular scene prompt kit to generate matched high-oblique, player-level, and true top-down references for Panel 1.
+- Use the modular scene prompt kit to generate matched high-oblique, player-level, true top-down, and 360-degree equirectangular panorama references for Panel 1.
 - Review the first fictional right-handed male opponent sheet and convert it into a licensed, riggable 3D candidate with a separate racket prop.
 - Run the standardized opponent/animation bake-off in the AI 3D research note.
 - Run the cloud-only, sub-US$100 plan: Marble versus Aholo world shell, Tripo/Meshy/Lux3D character candidates, and Rokoko/Move/DeepMotion/Plask motion candidates.
