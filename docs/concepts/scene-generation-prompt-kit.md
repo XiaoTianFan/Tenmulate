@@ -27,7 +27,7 @@ The six environment prompts deliberately contain no camera instructions. Choose 
 
 For GPT Image 2, request a true 2:1 output such as `2048x1024` at `quality="medium"` or `quality="high"`; the prompt alone does not set the file dimensions. Review the result in a spherical panorama viewer before sending it to Marble, Aholo, or another world-generation provider. Reject outputs with a broken wrap seam, tilted or discontinuous horizon, missing poles, duplicated court features, or a merely wide rectilinear view.
 
-**Generated Environment 1 baseline:** [2:1 equirectangular panorama](court-environment-01-panorama-2026-08.png), generated on 2026-08-29 through the built-in ChatGPT image workflow. The court-line layout received one focused correction pass; spherical-viewer and provider-ingestion review remain pending.
+**Generated coordinated Environment 1 set (2026-08-29):** [true top-down](court-environment-01-top-down-2026-08.png), [player-level baseline](court-environment-01-player-view-2026-08.png), [high-oblique bird's-eye](court-environment-01-birds-eye-2026-08.png), and [2:1 equirectangular panorama](court-environment-01-panorama-2026-08.png). The top-down image established the site plan; the baseline used it as a reference; the bird's-eye view used both prior images; and the panorama used all three accepted views. The panorama's court-line layout received one focused correction pass. Spherical-viewer and provider-ingestion review remain pending.
 
 ## Six court and environment prompts
 
