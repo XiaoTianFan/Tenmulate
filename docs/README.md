@@ -47,8 +47,9 @@ This folder is the project record for product discovery, design, architecture, a
 | --- | --- | --- |
 | [0001](decisions/0001-web-rendering-and-simulation-architecture.md) | Accepted for V1 runtime | React/Vite shell, direct Three.js WebGL 2 runtime, and tennis-specific ball solver |
 | [0002](decisions/0002-v1-scope-and-release-model.md) | Accepted | Complete public-free non-tracking V1; camera-based player tracking defines V2 |
-| [0003](decisions/0003-hybrid-asset-authoring-strategy.md) | Proposed | Procedural/code-owned court plus optimized GLB opponents selected through an asset bake-off |
-| [0004](decisions/0004-generated-world-environment-layer.md) | Proposed | Generated mesh/splat venue shells registered around the exact gameplay layer |
+| [0003](decisions/0003-hybrid-asset-authoring-strategy.md) | Superseded | Historical generated-character and hybrid asset proposal |
+| [0004](decisions/0004-generated-world-environment-layer.md) | Superseded | Historical generated mesh/splat venue-shell proposal |
+| [0005](decisions/0005-canonical-threejs-scenes-and-neutral-opponent.md) | Accepted | Six canonical Three.js scenes and a neutral mocap-first humanoid opponent |
 
 ## Change discipline
 

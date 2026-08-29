@@ -4,7 +4,7 @@
 - **Last updated:** 2026-08-29
 - **Current implementation commit:** updated at each completed stage
 
-This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. Production opponent and generated venue assets are intentionally external dependencies and do not block the functional ball-machine implementation.
+This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The neutral mocap opponent remains an external asset dependency. Venue fidelity is now repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
 ## Stage 0 — application visual system
 
@@ -33,7 +33,7 @@ This is the evidence ledger for the code-backed V1. “Implemented” means runn
 
 ### Known stage gaps
 
-- Procedural environment and ball machine are intentionally low-detail stand-ins for the pending generated venue/opponent assets.
+- Procedural environment and ball machine are intentionally low-detail Stage 1 stand-ins; Stage 6 replaces the venue blockouts through canonical Three.js composition while the neutral opponent remains pending.
 - Header routes, physical-display dialog, full rehearsal mode, drill library, editor, saved views, import/export, audio, service worker, and completion flow are subsequent stages.
 - UI chrome is structurally faithful but some control type and court-preview framing still need the final 1920 × 1080 fidelity pass.
 - WebGPU versus WebGL evidence is not yet sufficient to accept ADR-0001.
@@ -89,7 +89,7 @@ This is the evidence ledger for the code-backed V1. “Implemented” means runn
 ### Known stage gaps
 
 - Production-grade quality adaptation, chunk splitting, install-icon raster variants, and broader responsive/browser coverage remain in the hardening stage.
-- The opponent animation/GLB and generated-world asset layers remain explicitly pending external production assets; the functional ball machine remains the substitute.
+- The opponent animation/GLB remains an external production asset; the functional ball machine remains the substitute. Generated-world assets have been removed from the direction.
 
 ## Stage 4 — training cadence, venue shells, lighting, and comfort controls
 
@@ -112,7 +112,7 @@ This is the evidence ledger for the code-backed V1. “Implemented” means runn
 
 ### Known stage gaps
 
-- The three shells are intentionally procedural context stand-ins, not the pending generated or PBR production environment layer.
+- The three shells are intentionally procedural context stand-ins. ADR-0005 makes their six-scene replacement code-owned rather than an imported environment layer.
 - Adaptive quality, ball presentation controls, route/chunk loading, failure fallback, install-icon raster variants, and broad responsive/performance validation remain in Stage 5.
 
 ## Stage 5 — product hardening and release audit
@@ -142,8 +142,16 @@ This is the evidence ledger for the code-backed V1. “Implemented” means runn
 ### External release gates
 
 - Replace the procedural ball machine with the licensed, game-realistic rigged opponent and reviewed tennis/general-motion clips; verify contact, blend, handedness, serve rhythm, racket socket, and appearance variants.
-- Replace or enhance the procedural venue shells with approved PBR mesh or registered splat assets while preserving the exact code-owned court/proxy authority.
+- Replace the procedural venue blockouts with the six polished canonical Three.js compositions while preserving exact court authority and live lighting.
 - Run the 30-minute mixed-session soak, named Chrome/Edge/Firefox/Safari device matrix, real TV/projector calibration, owner/coach/player observation, accessibility review, asset/license review, and public hosting/CDN/rollback validation.
 - Optional 90/120 fps stays hidden until the on-device capability benchmark passes. No camera permission or V2 body tracking exists in this build.
 
 The detailed status of every requirement is recorded in the [V1 release matrix](v1-release-matrix.md).
+
+## Stage 6 — canonical Three.js scene pivot
+
+- **Status:** Active from 2026-08-30
+- ADR-0005 replaces generated-world/splat environments with six canonical TypeScript/Three.js compositions.
+- The accepted Panel 1 player-level concept is the first fidelity target; current procedural shells are blockouts to be replaced component by component.
+- The opponent target is now one neutral rights-cleared faceless humanoid optimized for mocap retargeting, not a generated character or appearance library.
+- Visual acceptance requires repeated concept-versus-browser inspection at the player camera and an overview camera, plus material, lighting, performance, and disposal evidence.

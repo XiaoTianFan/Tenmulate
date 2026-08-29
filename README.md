@@ -2,14 +2,14 @@
 
 Tenmulate is a browser-based, first-person tennis visualization tool. It places a player at a calibrated on-court point of view and plays configurable incoming ball trajectories for shadow swinging, return preparation, and tactical mental rehearsal.
 
-The repository now contains the active V1 implementation: a deterministic Three.js court/ball simulation, complete starter shot library, rehearsal player, local drill editor, saved views, validated JSON exchange, and offline-capable app shell. The procedural venue and ball-machine opponent are temporary visual substitutes while the external 3D asset pipeline is evaluated.
+The repository contains the active V1 implementation: a deterministic Three.js court/ball simulation, complete starter shot library, rehearsal player, local drill editor, saved views, validated JSON exchange, and offline-capable app shell. Court environments now follow a canonical code-owned Three.js modeling pipeline. The ball machine remains temporary until a neutral rights-cleared humanoid is bound to the mocap pipeline.
 
 ## Implemented direction
 
 - React, TypeScript, and Vite for the application shell.
 - Three.js `WebGLRenderer` with WebGL 2 for the V1 runtime, isolated behind a typed scene adapter; WebGPU remains a later production-asset benchmark.
 - A tennis-specific, fixed-step ball-flight solver using gravity, aerodynamic drag, Magnus lift, and calibrated bounce response.
-- A layered asset pipeline: exact/procedural gameplay geometry in Three.js, cloud-generated but project-hosted venue shells where they pass the bake-off, game-realistic skinned opponents delivered as optimized GLB, and Blender as the canonical cleanup, retargeting, validation, and export environment.
+- A code-owned visual pipeline: six reusable Three.js venue compositions with PBR/procedural materials and live lighting, plus one neutral faceless humanoid delivered as an optimized GLB mocap carrier. Blender is limited to rig/animation validation, retargeting, and export where needed.
 - A complete public-free V1 with local-first settings, full drill authoring, all requested shot families, and no runtime camera capture or body tracking.
 
 The renderer and simulation decision is accepted for V1. Production 3D assets, device/browser validation, and public hosting still have explicit release gates.
@@ -23,7 +23,7 @@ The renderer and simulation decision is accepted for V1. Production 3D assets, d
 | [Technical architecture](docs/technical-architecture.md) | Simulation, rendering, animation, data, and test design |
 | [Technology research](docs/research/technology-options.md) | Current option comparison and primary-source research |
 | [AI 3D tool market map](docs/research/ai-3d-asset-tools-2026.md) | August 2026 Chinese and international asset/mocap options and bake-off plan |
-| [Cloud world-generation research](docs/research/world-generation-and-scene-reconstruction-2026.md) | Aholo, Marble, splat/mesh integration, coordinate registration, and the sub-US$100 experiment |
+| [Cloud world-generation research](docs/research/world-generation-and-scene-reconstruction-2026.md) | Historical Aholo/Marble/splat evaluation; rejected for production by ADR-0005 |
 | [Mocap-to-web character pipeline](docs/research/mocap-to-web-character-pipeline.md) | Mesh/rig/skin/animation definitions, retargeting, tennis cleanup, formats, and rights gate |
 | [Court environment concepts](docs/concepts/court-environment-concepts-2026-08.md) | Bird's-eye and player-level boards for owner art-direction review |
 | [Scene-generation prompt kit](docs/concepts/scene-generation-prompt-kit.md) | Four reusable perspective prefixes, including a 360-degree panorama, and six standalone court/environment prompts |
@@ -36,15 +36,16 @@ The renderer and simulation decision is accepted for V1. Production 3D assets, d
 | [Open questions](docs/open-questions.md) | Decisions that need owner input or prototype evidence |
 | [ADR-0001](docs/decisions/0001-web-rendering-and-simulation-architecture.md) | Accepted V1 web/rendering/simulation architecture |
 | [ADR-0002](docs/decisions/0002-v1-scope-and-release-model.md) | Accepted V1 scope, audience, release, and V2 boundary |
-| [ADR-0003](docs/decisions/0003-hybrid-asset-authoring-strategy.md) | Proposed procedural/GLB asset-authoring strategy |
-| [ADR-0004](docs/decisions/0004-generated-world-environment-layer.md) | Proposed generated-world environment-shell strategy |
+| [ADR-0003](docs/decisions/0003-hybrid-asset-authoring-strategy.md) | Superseded generated-asset strategy |
+| [ADR-0004](docs/decisions/0004-generated-world-environment-layer.md) | Superseded generated-world environment-shell strategy |
+| [ADR-0005](docs/decisions/0005-canonical-threejs-scenes-and-neutral-opponent.md) | Accepted canonical Three.js scene and neutral mocap-opponent pipeline |
 
 ## Current status
 
 - Repository initialized: complete.
 - Research and planning baseline: drafted on 2026-08-29.
 - Product-owner clarification: V1 boundary and audience accepted on 2026-08-29.
-- AI 3D, cloud mocap, and world-generation market reviews: researched on 2026-08-29; comparative bake-offs pending.
+- AI 3D and world-generation market reviews: retained as 2026-08-29 history; generated meshes/splats are no longer production candidates. Mocap-provider testing remains relevant.
 - Court environment directions: six accepted on 2026-08-29; outdoor Panel 1 selected as the product and vertical-slice baseline.
 - First opponent concept sheet: generated on 2026-08-29; owner/rigging review pending.
 - Setup, rehearsal, and timeline-editor visual concepts: generated on 2026-08-29 and adopted as the implementation reference.

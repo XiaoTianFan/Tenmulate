@@ -1,4 +1,6 @@
-# Opponent character 01: right-handed male
+# Opponent character 01: right-handed male (historical concept)
+
+> **Direction update (2026-08-30):** This sheet is no longer a production candidate. ADR-0005 replaces generated character appearance work with one neutral, faceless, rights-cleared humanoid GLB whose silhouette, rig quality, mocap behavior, and far-court readability take priority.
 
 - **Status:** Proposed visual-design baseline; not a production mesh
 - **Generated:** 2026-08-29 with the built-in OpenAI image-generation tool

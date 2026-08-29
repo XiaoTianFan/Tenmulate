@@ -1,6 +1,6 @@
 # V1 release matrix
 
-- **Snapshot:** 2026-08-29
+- **Snapshot:** 2026-08-30
 - **Scope:** Local public-free V1 ball-machine build
 - **Authority:** [Product requirements](../product-requirements.md)
 
@@ -26,9 +26,9 @@ Status meanings:
 | POV-03 | Implemented | The near-player layer is absent by design. |
 | POV-04 | Implemented | Browser fullscreen plus button/H-key HUD hiding; central transport remains available. |
 | POV-05 | Implemented | Camera presentation lives on launch/event metadata and never enters trajectory resolution. |
-| POV-06 | Implemented with procedural art | Outdoor, club-hall, and stadium shells include seating, chair/bench, access/context, and all surface combinations. Production art is pending. |
+| POV-06 | Canonical scene production active | The functional outdoor, club-hall, and stadium blockouts remain usable while six code-owned Three.js venues replace them. Outdoor Panel 1 is the fidelity baseline. |
 | POV-07 | Implemented | Venue-specific light presets, direction, and intensity alter only scene presentation. |
-| POV-08 | Implemented architecture; asset validation pending | Exact court/ball coordinates remain code-owned. Generated-shell registration/proxy evidence starts when a production asset is selected. |
+| POV-08 | Implemented architecture; visual validation active | Exact court/ball coordinates and all venue geometry, materials, props, and lights remain code-owned. No generated-world registration or proxy layer is permitted. |
 
 ## Ball simulation
 
@@ -85,7 +85,7 @@ Status meanings:
 | Browser coverage | Automated Chrome/WebGL 2 pass with zero errors/warnings | Validate current Chrome/Edge on Windows, Firefox on Windows, and Safari on macOS. |
 | Large-display fit | Physical FOV calculation and responsive setup are implemented | Observe real TV/projector scale, comfort, ball readability, and safe-space workflow. |
 | Human usefulness | No technique or medical claims are made | Owner, one coach, and at least three other target players across levels complete observed sessions. |
-| Production visual layer | Procedural court shells and ball machine preserve full functionality | Import licensed optimized opponent/environment assets and pass contact, deformation, depth, lighting, load, and provenance reviews. |
+| Production visual layer | Functional court blockouts and ball machine preserve full functionality while canonical venue production proceeds | Complete and visually approve all six Three.js venues; import the licensed neutral opponent and pass contact, deformation, depth, lighting, load, and provenance reviews. |
 | Accessibility/privacy/legal | Keyboard, reduced motion, mute/levels, visual cues, contrast ball, safety acknowledgement, and no camera request exist | Complete formal accessibility, privacy text, license/provenance, and public legal review. |
 | Hosting/operations | Production PWA build and offline shell pass locally | Validate public origin/CDN headers, immutable asset paths, monitoring, release notes, and rollback runbook. |
 

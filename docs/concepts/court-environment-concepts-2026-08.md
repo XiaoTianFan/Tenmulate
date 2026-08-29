@@ -29,7 +29,7 @@ These six panels sample the requested design space. They do **not** reduce the V
 
 ## Accepted starting point
 
-On 2026-08-29, the owner accepted all six candidate directions and selected **Panel 1, the bright outdoor blue/green hard-court complex**, as the visual and technical starting point for the product. It is the first scene for prompt generation, world-shell testing, procedural court integration, camera calibration, character placement, and the vertical slice. The other five environments remain required V1 variants, not rejected alternatives.
+On 2026-08-29, the owner accepted all six candidate directions and selected **Panel 1, the bright outdoor blue/green hard-court complex**, as the visual and technical starting point for the product. On 2026-08-30, ADR-0005 made canonical Three.js composition the implementation path. Panel 1 is therefore the first scene for component modeling, procedural/PBR material development, lighting, camera calibration, neutral-character placement, and browser fidelity review. The other five environments remain required V1 variants, not rejected alternatives.
 
 The reusable perspective prefixes and six independent environment descriptions are recorded in the [scene-generation prompt kit](scene-generation-prompt-kit.md).
 

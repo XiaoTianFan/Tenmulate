@@ -11,7 +11,7 @@
 | Users | The owner is the first player; the public product serves players at multiple levels and coaches. Pace, frequency, and other difficulty parameters are configurable. |
 | V1 breadth | All previously listed must/should/could features are V1 must-haves, including tactical camera movement, serve-and-volley, volleys, overheads, editor, JSON exchange, offline reuse, variants, and high-refresh mode on capable devices. |
 | V1/V2 boundary | V1 is the complete non-tracking product. V2 adds the real-time camera/machine-learning player-movement pipeline and synchronization. |
-| Visual style | Game-realistic, with courts as realistic as practical and game-realistic opponents. |
+| Visual style | Game-realistic, with courts as realistic as practical and a neutral faceless opponent whose motion and silhouette read clearly from the far baseline. |
 | User handedness | Irrelevant to V1 because no near-player body/swing is rendered. Use court-space targets; do not ask for it. |
 | Opponent handedness | Both left- and right-handed opponents must ship. |
 | Serve rhythms | Ship normal high-toss/deeper-trophy and compact low-toss/immediate-upward motions; keep motion rhythm independent of ball pace. |
@@ -22,7 +22,7 @@
 | Reference upload | Cloud mocap upload is allowed only for footage with explicit upload, derivative-use, likeness, and commercial rights. Public professional footage is not assumed to be cleared. |
 | Court scenes | V1 includes outdoor, indoor club-hall, and indoor-stadium shells combined with hard, clay, and grass, plus umpire/rest seating and spectator stands without crowd models. |
 | Lighting | Outdoor supports sun direction and day/night/floodlights. Indoor supports fixture controls and applicable daylight/roof influence. |
-| World generation | Aholo SpatialGen/Reality and comparable exportable world products belong in the bake-off. A generated world may be a registered visual shell, never the gameplay coordinate authority. |
+| World generation | Closed on 2026-08-30: generated worlds and Gaussian splats are not spatially usable for this product and leave the runtime. |
 | Initial court | All six concept directions remain in scope; outdoor Panel 1, the bright blue/green public-club hard court, is the product and vertical-slice baseline. |
 
 The release/scope decisions are normative in [ADR-0002](decisions/0002-v1-scope-and-release-model.md); later visual and asset choices are linked to their specific concept/research records.
@@ -42,7 +42,7 @@ The release/scope decisions are normative in [ADR-0002](decisions/0002-v1-scope-
 | --- | --- | --- |
 | 6 | Direct Three.js geometry, Blender/GLB, or both? | Hybrid: code-own exact court/net/ball/training markers; GLB for skinned opponents and complex authored props; validate in ADR-0003. |
 | 7 | Which generator/mocap chain wins the asset bake-off? | Compare at least one Chinese end-to-end route, one Chinese modular route, one international end-to-end route, and a licensed/commissioned baseline. |
-| 7a | Which environment path wins: Aholo splat, Marble splat/mesh, or procedural/PBR control? | Require metric registration, dynamic-lighting limits, 1080p/4K performance, offline caching, commercial redistribution, and cleanup cost evidence. |
+| 7a | **Closed:** canonical typed Three.js composition wins. | ADR-0005 records the decision; generated outputs remain visual references only. |
 | 8 | What should the default FOV be when no physical display measurements are entered? | Choose from real-screen perception tests; keep the value visible and provide one-action reset. |
 | 9 | Which performance tiers and quality presets are promised publicly? | Publish measured tiers after the vertical slice; do not promise universal 4K/120 fps. |
 | 10 | Is the first public host a static site plus separate object/CDN assets, or one platform for both? | Affects cache headers, egress, deploy/rollback, and asset URL versioning. | Static app plus immutable versioned object/CDN asset origin. |

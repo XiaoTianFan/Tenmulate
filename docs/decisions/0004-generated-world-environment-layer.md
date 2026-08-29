@@ -1,11 +1,13 @@
 # ADR-0004: Treat generated worlds as registered environment shells
 
-- **Status:** Proposed
+- **Status:** Superseded and rejected by ADR-0005
 - **Date:** 2026-08-29
 - **Decision owners:** Project owner and implementation lead
 - **Related:** ADR-0001, ADR-0003, cloud world-generation research
 
 ## Context
+
+> Historical note (2026-08-30): testing found generated-world and Gaussian-splat outputs spatially unsuitable even as approximate tennis-venue shells. ADR-0005 removes this path from production. This document remains only as the record of the evaluated alternative.
 
 V1 requires complete game scenes, not a floating court: outdoor, walled indoor-club, and indoor-stadium contexts; hard, clay, and grass surfaces; seating, umpire/rest chairs, and configurable lighting. Cloud world generators may create these surroundings much faster than hand-modeling everything, and Gaussian splats can retain convincing environmental detail.
 

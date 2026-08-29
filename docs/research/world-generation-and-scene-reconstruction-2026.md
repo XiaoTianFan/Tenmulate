@@ -1,5 +1,7 @@
 # Cloud world generation and scene reconstruction: August 2026
 
+> **Historical evaluation:** On 2026-08-30 the owner rejected generated worlds and Gaussian splats for production after finding their space unsuitable even as an approximate tennis-venue shell. ADR-0005 makes typed Three.js composition canonical. The market notes below remain research history, not an active bake-off.
+
 - **Status:** Research complete; hands-on bake-off pending
 - **Research date:** 2026-08-29
 - **Owner constraints:** cloud inference only, self-hostable exported runtime assets, fewer high-value iterations, total initial asset/motion/environment bake-off under US$100

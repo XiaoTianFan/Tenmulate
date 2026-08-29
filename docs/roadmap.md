@@ -1,9 +1,11 @@
 # Project roadmap
 
 - **Status:** Draft
-- **Last updated:** 2026-08-29
+- **Last updated:** 2026-08-30
 
 **Current checkpoint:** the code-owned local ball-machine product now spans the functional work in Phases 1–6. The phase exit gates remain open where they require production 3D assets, measured target hardware/browser evidence, the 30-minute soak, human observation, licensing, or public deployment. See the [V1 release matrix](development/v1-release-matrix.md).
+
+**Visual-pipeline pivot (2026-08-30):** ADR-0005 makes all six court environments canonical Three.js compositions and removes Gaussian splats/generated-world assets from the runtime. Environment work now proceeds Panel 1 first through shared geometry, PBR/procedural materials, lighting, props, planting, performance tiers, and direct browser comparison. Opponent work waits only for a neutral rights-cleared humanoid plus owner-supplied mocap clips.
 
 This roadmap is ordered by uncertainty and integration risk. V1 is one complete public-free, non-tracking product; features are not split into must/should/could or a V1.1. Calendar estimates follow the vertical slice and asset bake-off.
 
@@ -13,23 +15,23 @@ This roadmap is ordered by uncertainty and integration risk. V1 is one complete 
 
 - Record the accepted V1/V2 boundary and public-free release model.
 - Implement from the complete game-realistic setup, rehearsal, and timeline-editor concept set; keep pause, diagnostics, and completion states in the same recorded system.
-- Use accepted outdoor Panel 1 as the first visual/technical north star; select the second indoor north star before generating that venue shell.
-- Use the modular scene prompt kit to generate matched high-oblique, player-level, true top-down, and 360-degree equirectangular panorama references for Panel 1.
-- Review the first fictional right-handed male opponent sheet and convert it into a licensed, riggable 3D candidate with a separate racket prop.
-- Run the standardized opponent/animation bake-off in the AI 3D research note.
-- Run the cloud-only, sub-US$100 plan: Marble versus Aholo world shell, Tripo/Meshy/Lux3D character candidates, and Rokoko/Move/DeepMotion/Plask motion candidates.
-- Select a provisional character source, motion source, Blender cleanup workflow, commercial provenance record, and general-motion source for ready/footwork/recovery connectors.
-- Decide whether the first venue uses an optimized PBR mesh shell, a registered Gaussian splat plus proxy mesh, or the procedural/modular control.
+- Use accepted outdoor Panel 1 as the first visual/technical north star; select the second indoor north star before composing that venue.
+- Keep the matched high-oblique, player-level, and true top-down Panel 1 images as composition references only.
+- Preserve the first fictional right-handed male opponent sheet as historical concept work; do not convert it into the runtime character.
+- Run a neutral-humanoid rig, animation-retargeting, and web-optimization bake-off.
+- Preserve the completed world/character research as history; do not spend further budget on generated meshes or world shells.
+- Select a neutral rights-cleared humanoid source, motion source, Blender retarget/cleanup workflow, commercial provenance record, and general-motion source for ready/footwork/recovery connectors.
+- Build Panel 1 and the remaining five venues through the canonical shared Three.js composition system.
 - Define reference performance tiers rather than one mandatory room/display/GPU.
 - Confirm the first tennis biomechanics reviewer and initial hosting/CDN experiment.
 
 ### Exit gate
 
-The owner has accepted the visual direction, one provisional character/motion pipeline, one venue-shell path, the reference performance matrix, and the first useful-session walkthrough. Total experimental spend is recorded below US$100. Unpriced, unlicensed, or unexportable production assets cannot pass this gate.
+The owner has accepted the visual direction, one provisional neutral-humanoid/motion pipeline, the canonical scene-composition system, the reference performance matrix, and the first useful-session walkthrough. Total external asset and mocap experimentation remains below US$100. Unpriced, unlicensed, or unexportable opponent assets cannot pass this gate.
 
 ## Phase 1: Risk-reduction vertical slice
 
-Build one standards-dimension procedural court, one complete registered venue shell, camera calibration/preferences, one game-realistic animated opponent, and one ball that crosses the net, bounces, and reaches the receiver plane.
+Build one standards-dimension court, one complete canonical Three.js Panel 1 venue, camera calibration/preferences, one neutral mocap-driven humanoid opponent, and one ball that crosses the net, bounces, and reaches the receiver plane.
 
 ### Workstreams
 
@@ -40,7 +42,7 @@ Build one standards-dimension procedural court, one complete registered venue sh
 5. Synchronize one opponent contact marker to launch.
 6. Compare WebGPU, forced WebGL 2, and mature WebGLRenderer paths.
 7. Compare an optimized GLB opponent against one code-generated court on 1080p and 4K displays.
-8. Compare one optimized mesh venue with a registered splat/proxy venue where the world bake-off produces a viable result.
+8. Compare Panel 1 composition/material/lighting iterations directly against the accepted player-level and overview concepts.
 9. Measure initial bytes, parse/decode, first frame, warm cache, offline behavior, depth/occlusion, and lighting changes.
 
 ### Exit gate
@@ -50,7 +52,7 @@ Build one standards-dimension procedural court, one complete registered venue sh
 - Renderer selection has measured compatibility/performance/visual evidence.
 - Realistic default and user-adjusted physical/immersive views pass a real-screen review.
 - ADR-0001 and ADR-0003 are accepted, replaced, or narrowed using the evidence.
-- ADR-0004 is accepted, replaced, or narrowed using metric registration, lighting, and runtime evidence.
+- ADR-0004 remains superseded; ADR-0005's Panel 1 visual and runtime acceptance evidence is recorded.
 
 ## Phase 2: Baseline laboratory and core player
 
@@ -151,7 +153,7 @@ The first release is public and free. A future freemium track may add accounts, 
 - Numerical test report for every new shot/surface.
 - Browser/device/backend/display matrix.
 - Frame-time, memory, loading, and asset-byte measurements.
-- World-to-court registration error, proxy/depth/occlusion evidence, and lighting-control limits for every generated venue.
+- Player-camera corridor, geometry/material counts, lighting behavior, disposal, and concept-to-render evidence for every canonical scene.
 - Screenshots/video and animation-contact evidence where relevant.
 - Asset/model/input/output licenses and source provenance.
 - Manual owner/coach gates still outstanding.

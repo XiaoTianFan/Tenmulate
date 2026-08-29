@@ -1,5 +1,7 @@
 # AI 3D asset and animation tools: August 2026 market map
 
+> **Direction update (2026-08-30):** Character/world generation findings are retained as historical market research. Production now uses code-owned Three.js venues and a neutral, faceless, rights-cleared humanoid GLB. The cloud mocap, retargeting, rigging, cleanup, Blender, licensing, and web-optimization findings remain active.
+
 - **Status:** Research complete; hands-on bake-off pending
 - **Research date:** 2026-08-29
 - **Scope:** Chinese-developed and international text/image/video-to-3D, topology, materials, segmentation, rigging, animation, Blender, API, MCP, and Codex workflows
@@ -185,11 +187,11 @@ Three.js is the renderer and scene runtime, not a replacement for sculpting, ret
 
 ## 7. Web asset delivery and performance
 
-Hosting a large GLB on the same static deployment is technically possible, but it couples app deploys to asset churn and can waste first-load bytes. Prefer:
+Hosting a large GLB on the same static deployment is technically possible, but it couples app deploys to asset churn and can waste first-load bytes. For the remaining neutral humanoid and animation assets, prefer:
 
-- a small critical shell plus procedural court;
+- a small critical application plus the code-owned scene modules;
 - immutable hashed asset manifests;
-- separate opponent mesh, animation, and venue bundles loaded by selected drill;
+- separate opponent mesh and animation bundles loaded by selected drill;
 - KTX2/Basis GPU texture compression and measured meshopt/Draco geometry compression;
 - 1K/2K defaults with higher texture/LOD variants selected by the quality benchmark;
 - long-lived CDN/object caching and service-worker caching for user-selected offline drills;
@@ -198,10 +200,10 @@ Hosting a large GLB on the same static deployment is technically possible, but i
 Provisional spike budgets, not release promises:
 
 - critical application/UI/procedural-court route: at most 5 MiB compressed;
-- first game-realistic opponent plus one useful drill: at most 15 MiB additional transfer;
-- other appearances, venue packs, and motion families: lazy-loaded and cached, with measured cold/warm timings.
+- first neutral humanoid plus one useful drill: at most 15 MiB additional transfer;
+- additional motion families: lazy-loaded and cached, with measured cold/warm timings.
 
-glTF is designed for runtime transmission and Blender exports skinning/animation. [KTX2/Basis](https://www.khronos.org/gltf/) reduces texture transfer and GPU memory across platforms. Exact limits must come from the real opponent bake-off, not from asset-generator marketing.
+glTF is designed for runtime transmission and Blender exports skinning/animation. [KTX2/Basis](https://www.khronos.org/gltf/) reduces texture transfer and GPU memory across platforms. Exact limits must come from the real neutral-humanoid and motion bake-off, not from provider marketing.
 
 ## 8. Standardized bake-off
 

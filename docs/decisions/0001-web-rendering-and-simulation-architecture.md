@@ -4,6 +4,8 @@
 - **Date:** 2026-08-29
 - **Decision owners:** Project owner and implementation lead
 
+> **2026-08-30 refinement:** ADR-0005 removes the splat/world-shell workload assumed by parts of this decision. `WebGLRenderer` remains the V1 baseline, and future WebGPU comparison now uses the six canonical Three.js scenes plus the neutral humanoid opponent.
+
 ## Context
 
 The product needs a first-person 3D court, animated opponent, high-speed tennis ball with spin and bounce, deterministic drill timelines, large-screen performance, and a future path to body tracking. WebGPU is attractive but still uneven across devices, and Three.js documents important differences between its mature WebGL renderer and experimental WebGPU renderer. Generic rigid-body physics does not directly solve authored tennis trajectories.
@@ -22,7 +24,7 @@ The product needs a first-person 3D court, animated opponent, high-speed tennis 
 ## Rationale
 
 - Three.js directly matches the requested stack and offers a compact code-first runtime.
-- The complete code-owned V1 vertical slice initializes and runs reliably through the mature WebGL 2 path, and the researched splat integration options currently have their clearest Three.js path through `WebGLRenderer`.
+- The complete code-owned V1 vertical slice initializes and runs reliably through the mature WebGL 2 path, including the material, shadow, instancing, and animation features needed by the canonical scene pipeline.
 - React remains useful for product UI without becoming the simulation clock.
 - A tennis-specific solver can be validated against published equations, ITF bounds, landing targets, and expert perception.
 - GLB is the best-supported runtime delivery format across Blender and Three.js for skinned/animated assets.
@@ -32,7 +34,7 @@ The product needs a first-person 3D court, animated opponent, high-speed tennis 
 
 ### Three.js `WebGPURenderer` as the initial renderer
 
-Strategically attractive, but it adds a second source of uncertainty before the production GLB/splat workload exists. The option remains open behind the renderer boundary after the representative asset mix can be measured.
+Strategically attractive, but it adds a second source of uncertainty before the production scene and neutral-opponent workload is complete. The option remains open behind the renderer boundary after that representative mix can be measured.
 
 ### React Three Fiber
 

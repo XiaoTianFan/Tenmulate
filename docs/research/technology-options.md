@@ -1,5 +1,7 @@
 # Technology options research
 
+> **Direction update (2026-08-30):** ADR-0005 replaces the environment-authoring recommendation below. The production runtime now uses six canonical, typed Three.js scene compositions; generated worlds, Gaussian splats, and exported environment shells are no longer candidates. Rendering, ball physics, GLB opponent, and mocap findings remain active.
+
 - **Status:** Research baseline
 - **Research date:** 2026-08-29
 - **Scope:** Browser rendering, ball physics, animation/assets, Blender/AI tooling, and future body tracking
@@ -12,7 +14,7 @@ Do not use a general physics engine as the primary ball model. Implement a deter
 
 Use a hybrid asset strategy: exact court/net/ball/training geometry generated directly in Three.js, complex skinned opponents delivered as optimized GLB, and Blender as the canonical cleanup/export environment. For opponent motion, prioritize tennis-specific capture plus manual cleanup. Generative 3D and AI mocap tools can accelerate production, but they do not remove the need to validate topology, licensing, footwork, racket path, and contact timing. The current provider/integration comparison is in [AI 3D asset and animation tools: August 2026](ai-3d-asset-tools-2026.md).
 
-Cloud-generated whole worlds are a viable environment-authoring experiment, not a replacement for the exact gameplay layer. Compare Aholo SpatialGen/Reality and World Labs Marble as registered mesh/splat shells around the code-owned court. Prefer an optimized PBR mesh when live sun/day/night controls matter; accept a splat only after renderer, depth/proxy, relighting, transfer, and 4K evidence. See [Cloud world generation and scene reconstruction](world-generation-and-scene-reconstruction-2026.md) and ADR-0004.
+Cloud-generated whole worlds were evaluated as an environment-authoring experiment and rejected after spatial inspection. See the dated [cloud world-generation research](world-generation-and-scene-reconstruction-2026.md), superseded ADR-0004, and accepted ADR-0005 for the resulting code-owned composition direction.
 
 ## 2. Decision criteria
 

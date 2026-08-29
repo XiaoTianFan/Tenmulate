@@ -1,6 +1,6 @@
 # ADR-0003: Hybrid procedural and GLB asset-authoring strategy
 
-- **Status:** Proposed
+- **Status:** Superseded by ADR-0005
 - **Date:** 2026-08-29
 - **Decision owners:** Project owner and implementation lead
 
@@ -8,7 +8,9 @@
 
 The court must be dimensionally exact, configurable, small to deliver, and straightforward to validate. The game-realistic opponent must support skinning, left- and right-handed variants, normal/compact serve rhythms, footwork, rackets, and a large animation library. Direct Three.js geometry, Blender-authored GLB, licensed assets, generative tools, and procedural modeling each solve different parts of this problem.
 
-## Proposed decision
+## Historical proposal
+
+The owner replaced the generated-character and generated-environment bake-off direction on 2026-08-30. ADR-0005 is authoritative: court environments are canonical Three.js compositions, and the opponent is a neutral rights-cleared humanoid selected for mocap compatibility rather than generated appearance.
 
 1. Create regulation court geometry, lines, net structure/mesh, ball, targets, trajectory/debug layers, and simple modular venue primitives directly in TypeScript/Three.js from tested parameters.
 2. Deliver game-realistic opponents, rackets, complex props, and authored animations as optimized GLB assets.

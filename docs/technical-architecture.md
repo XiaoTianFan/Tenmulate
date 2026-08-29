@@ -20,7 +20,7 @@ The system should optimize for perceptual credibility and testability, not for g
 | Ball dynamics | Custom fixed-step 3D numerical solver | Tennis needs drag, spin-dependent lift, precise bounce targets, inverse authoring, and deterministic outputs more than general rigid-body contacts. |
 | General collision option | Rapier, only if later features need it | Provides WASM, CCD, SI-unit guidance, and cross-platform determinism for collision-heavy extensions. |
 | Runtime asset format | glTF/GLB | Designed for runtime delivery and carries meshes, PBR materials, skins, morphs, and animation clips. |
-| Optional world-shell format | Optimized GLB or evidence-approved SPZ/PLY-derived splat | GLB is preferred for live relighting; splats require a registered proxy/depth mesh and a renderer-specific spike. |
+| Environment format | Typed Three.js composition modules plus local procedural texture maps | ADR-0005 removes generated worlds and splats; exact geometry, materials, props, and lighting stay code-owned. |
 | Asset DCC | Blender | Canonical cleanup, scale/orientation, retargeting, animation markers, optimization, and export, regardless of whether the source was modeled, licensed, scanned, or AI-generated. |
 | Asset delivery | Hashed static manifests + object/CDN origin candidate | Keeps large optional GLB/animation/venue payloads independently cacheable and lazy-loaded; provider selection follows measured egress/caching tests. |
 | Test layers | Vitest-style unit/property tests, browser E2E, frame-time harness, visual snapshots | Separates numerical truth, sequence behavior, runtime behavior, and visual fidelity. Exact test framework is selected during scaffold. |
@@ -240,13 +240,13 @@ The full contract and provider comparison are in [Mocap to web opponent](researc
 - The renderer adapter owns initialization, resize, pixel ratio, render passes, color management, and capability reporting.
 - The scene layer owns regulation court geometry, net, ball, opponent, lighting, venue adapters, and debug overlays.
 - Standard PBR materials first. Custom effects must work on the chosen backend path or have a tested accessible fallback.
-- Asset loading is manifest-driven with explicit URL, byte size, hash, cache group, version, compatible skeleton/content versions, and a progress/error state.
-- The critical route loads UI, procedural court, ball, and the chosen drill manifest first. Opponent meshes, animation bundles, alternate appearances, and venue shells are lazy-loaded by drill and cached under immutable hashed URLs.
-- Build three venue shells—outdoor, indoor club hall, and indoor stadium—and combine them at runtime with three code-owned surfaces. Each shell supplies context, seating, walls/roof/landscape, and appropriate lighting fixtures; exact court/net and near-court props remain separately testable meshes.
+- External asset loading is manifest-driven with explicit URL, byte size, hash, cache group, version, compatible skeleton/content versions, and a progress/error state.
+- The critical route loads UI, the selected typed Three.js venue composition, court, ball, and drill first. Only the neutral opponent mesh and animation bundles are external lazy GLB assets.
+- Build six scene identities from shared composition modules and combine them with independently selected hard, clay, and grass surfaces. Each scene owns context, seating, access, architecture, landscape, and lighting fixtures; exact court/net and near-court props remain separately testable groups.
 - Outdoor lighting exposes sun azimuth/elevation plus day/night/floodlight presets. Indoor lighting exposes fixture intensity/color plus optional window/skylight/roof daylight contribution. Lighting never changes surface physics or event timing.
 - Adaptive quality can lower pixel ratio, shadow map resolution, anisotropy, texture resolution, post-processing, and venue detail. It cannot reduce simulation frequency or change shot outcomes.
 
-Provisional, benchmark-only delivery budgets are no more than 5 MiB compressed for the critical shell/court path and no more than 15 MiB additional data to start the first game-realistic opponent drill. The complete library may be much larger because it is split, lazy-loaded, and cached; measured first-use and warm-cache behavior, not total repository size, determines acceptance.
+Provisional, benchmark-only delivery budgets are no more than 5 MiB compressed for the initial application, canonical court modules, and local texture path, and no more than 15 MiB additional data to start the first neutral-opponent drill. The complete animation library may be much larger because it is split, lazy-loaded, and cached; measured first-use and warm-cache behavior, not total repository size, determines acceptance.
 
 ### 9.1 Future renderer reassessment matrix
 
@@ -255,20 +255,17 @@ After the production opponent and venue representation are selected, benchmark t
 1. Three.js `WebGPURenderer` with WebGPU.
 2. The same renderer forced to its WebGL 2 backend.
 3. Three.js `WebGLRenderer` if API/material parity allows a fair comparison.
-4. If a splat shell passes visual review, Spark with `WebGLRenderer` and the same exact court/opponent/ball layer.
-5. PlayCanvas WebGPU/WebGL GSplat only if the splat result is strong enough to justify reopening the engine choice.
+4. A production-density Three.js scene with the neutral humanoid and representative mocap clips.
 
 Capture initialization success, first frame, CPU/GPU frame time, dropped frames, memory, visual differences, shader/material gaps, and screenshot evidence on the supported browser/device matrix. Keep the accepted V1 WebGL 2 path unless another renderer produces a material, repeatable product benefit without losing browser or asset compatibility.
 
-### 9.2 Generated environment shell
+### 9.2 Canonical scene composition
 
-A `VenueEnvironmentV1` manifest registers, but never defines, the gameplay space. It records representation, source units/axes, `worldToCourt` transform, court anchors, bounds, crop/mask volume, proxy/collider/depth geometry, lighting mode, supported controls, LOD/bytes, cache group, and provenance.
+Each `SceneDefinitionV1` selects reusable TypeScript builders for ground/runoff, enclosure, seating, architecture, access, lighting fixtures, vegetation, and court furniture. Builders return owned Three.js groups plus material handles and quality tags. Surface colors/textures are applied through a separate court-material controller, while environment selection controls only venue composition and presentation lighting.
 
-- **Mesh path:** cloud world → Blender registration/crop/optimization → PBR GLB/KTX2 → normal Three.js depth/shadow/lighting.
-- **Splat path:** cloud world → PLY/SPZ crop/compression + proxy mesh → registered splat renderer → exact mesh layer for court, net, opponent, ball, shadows, depth, and collisions.
-- **Never:** provider iframe, generated-world coordinates in drill data, or an interactive video world model in the simulation loop.
+Procedural texture factories generate repeatable color/roughness/normal-scale cues locally and cache by descriptor. Repeated seating, fence posts, lamps, roof members, and planting use instancing or shared geometries/materials. Every group participates in one disposal registry so scene switching cannot leak GPU resources.
 
-Gaussian splats begin with lighting baked in. Proxy-based relighting can approximate live changes, but V1's complete sun/day/night controls make the optimized PBR mesh path the provisional default. See [Cloud world generation and scene reconstruction](research/world-generation-and-scene-reconstruction-2026.md) and ADR-0004.
+Generated-world coordinates, splat renderers, panoramas, provider iframes, and interactive world models are prohibited in the runtime. The old alternatives remain documented in the dated research note and superseded ADR-0004.
 
 ## 10. React integration
 

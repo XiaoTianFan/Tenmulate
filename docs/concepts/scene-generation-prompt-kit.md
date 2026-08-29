@@ -66,4 +66,4 @@ For GPT Image 2, request a true 2:1 output such as `2048x1024` at `quality="medi
 - **Registration and layout reference:** Perspective 3 + Environment 1 + shared suffix.
 - **Preferred panorama world-generation input:** Perspective 4 + Environment 1 + shared suffix.
 
-The four images should be treated as a coordinated visual set, not as metrically consistent reconstruction views. Regulation coordinates, camera calibration, and world-to-court registration remain code-owned. Perspective 4 is a provider input and visual shell reference, not evidence that the generated world preserves exact court dimensions.
+The four images should be treated as a coordinated visual set, not as metrically consistent reconstruction views. Under ADR-0005 they are art-direction references for canonical Three.js composition. Regulation coordinates, camera calibration, geometry, materials, and lighting remain code-owned; the panorama is composition/ambience reference only, not a provider input or runtime asset.
