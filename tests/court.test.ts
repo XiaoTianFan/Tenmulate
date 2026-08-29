@@ -26,6 +26,7 @@ describe('regulation court constants', () => {
     court.setSurface('clay');
     expect(court.courtMaterial.map).not.toBe(hardMap);
     expect(court.courtMaterial.map).toBe(court.materialBundle.surfaceMaps.clay);
+    expect(court.materialBundle.materials.runoff.map).toBe(court.materialBundle.runoffMaps.clay);
     expect(court.courtMaterial.roughness).toBeGreaterThan(0.9);
   });
 });

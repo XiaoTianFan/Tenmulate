@@ -167,21 +167,34 @@ const createClayTerrace = (materials: SceneMaterialLibrary): THREE.Group => {
   group.add(box(62, 0.18, 78, materials.clayStone, 0, -0.19, 4));
   group.add(createFenceEnclosure(materials, 22, 36.5, 3));
   for (const side of [-1, 1]) {
-    for (let tier = 0; tier < 4; tier += 1) {
+    for (let tier = 0; tier < 6; tier += 1) {
       const x = side * (8 + tier * 0.72);
-      group.add(box(0.78, 0.42 + tier * 0.36, 15.5, materials.clayStone, x, (0.42 + tier * 0.36) / 2, 3));
-      group.add(box(0.62, 0.08, 15.1, materials.terracotta, x - side * 0.05, 0.48 + tier * 0.36, 3));
+      group.add(box(0.78, 0.42 + tier * 0.36, 18.5, materials.clayStone, x, (0.42 + tier * 0.36) / 2, 2.4));
+      group.add(box(0.62, 0.08, 18.1, materials.terracotta, x - side * 0.05, 0.48 + tier * 0.36, 2.4));
     }
+    group.add(box(0.22, 3.4, 20, materials.clayStone, side * 12.3, 1.7, 3));
   }
-  group.add(box(22, 2.6, 1.2, materials.clayStone, 0, 1.3, 19));
-  group.add(box(12, 3.8, 4.2, materials.warmWall, 0, 2.05, 22.2));
-  const roof = box(13, 0.22, 5.2, materials.terracotta, 0, 4.15, 22.2);
-  roof.rotation.x = 0.03;
-  group.add(roof);
-  for (const x of [-4.2, 0, 4.2]) group.add(box(2.3, 2.3, 0.1, materials.glass, x, 1.75, 20.06));
+  group.add(box(25, 3.2, 1.2, materials.clayStone, 0, 1.6, 19));
+  group.add(box(15.5, 4.5, 5, materials.warmWall, 0, 4.85, 23));
+  group.add(box(17, 0.28, 6.1, materials.terracotta, 0, 7.18, 23));
+  for (const x of [-5.2, -1.75, 1.75, 5.2]) {
+    group.add(box(1.65, 2.25, 0.12, materials.darkWall, x, 4.55, 20.46));
+    group.add(box(0.26, 2.45, 0.34, materials.warmWall, x - 1.02, 4.58, 20.36));
+    group.add(box(0.26, 2.45, 0.34, materials.warmWall, x + 1.02, 4.58, 20.36));
+    const arch = new THREE.Mesh(new THREE.TorusGeometry(1.02, 0.14, 8, 24, Math.PI), materials.warmWall);
+    arch.position.set(x, 5.7, 20.34);
+    arch.castShadow = true;
+    group.add(arch);
+  }
+  for (let step = 0; step < 12; step += 1) {
+    group.add(box(4.8 + step * 0.3, 0.22, 0.5, materials.clayStone, 0, 0.12 + step * 0.22, 17.3 + step * 0.4));
+  }
+  group.add(createHedge(materials, 8.4, 1.15, 1.1, -8.2, 19.2));
+  group.add(createHedge(materials, 8.4, 1.15, 1.1, 8.2, 19.2));
   for (const side of [-1, 1]) {
-    for (let z = -10; z <= 25; z += 6.8) group.add(createCypressTree(materials, side * 15.2, z, 1 + ((z + 10) % 3) * 0.08));
+    for (let z = -10; z <= 28; z += 6.2) group.add(createCypressTree(materials, side * 15.2, z, 1 + ((z + 10) % 3) * 0.08));
   }
+  for (const x of [-10, -6.5, 6.5, 10]) group.add(createCypressTree(materials, x, 27.5, 1.15));
   return group;
 };
 
@@ -191,8 +204,15 @@ const createGrassParkNight = (materials: SceneMaterialLibrary): THREE.Group => {
   group.add(createSkyDome(0x101f2a, 0x030811, 0));
   group.add(box(66, 0.18, 82, materials.grass, 0, -0.2, 3));
   group.add(createFenceEnclosure(materials, 23, 37, 2.8));
-  group.add(createBleachers(materials, -1, 3, 10, 8));
-  group.add(createBleachers(materials, 1, 3, 10, 8));
+  const westStand = createBleachers(materials, -1, 7, 24, 18, materials.greenSeat, 0.9);
+  const eastStand = createBleachers(materials, 1, 7, 24, 18, materials.greenSeat, 0.9);
+  westStand.position.set(-8.25, 0, 2.5);
+  eastStand.position.set(8.25, 0, 2.5);
+  group.add(westStand, eastStand);
+  const farStand = createBleachers(materials, 1, 6, 24, 17, materials.greenSeat, 0.88);
+  farStand.position.set(0, 0, 17.4);
+  farStand.rotation.y = -Math.PI / 2;
+  group.add(farStand);
   for (const [x, z] of [[-12.8, -13], [12.8, -13], [-12.8, 13], [12.8, 13]] as const) {
     group.add(createLightPole(materials, x, z, z < 0 ? 1 : -1));
   }
@@ -225,15 +245,30 @@ const createTimberHall = (materials: SceneMaterialLibrary): THREE.Group => {
   const group = new THREE.Group();
   group.name = 'scene-timber-hall';
   group.add(box(36, 0.18, 58, materials.concrete, 0, -0.2, 1));
-  addIndoorShell(group, materials, materials.warmWall, 30, 9.4, 47);
+  addIndoorShell(group, materials, materials.warmWall, 30, 10.2, 47);
   group.add(box(29.6, 2.2, 0.3, materials.timber, 0, 1.1, 23.35));
   for (const side of [-1, 1]) {
     group.add(box(0.28, 2.2, 46.5, materials.timber, side * 14.82, 1.1, 0));
-    for (let z = -15; z <= 17; z += 5.4) group.add(box(0.12, 4.8, 0.18, materials.timber, side * 14.66, 5.5, z));
-    group.add(createBleachers(materials, side as -1 | 1, 3, 11, 8.6));
+    group.add(createBleachers(materials, side as -1 | 1, 6, 20, 16, materials.blueSeat, 0.86));
   }
-  for (let x = -10; x <= 10; x += 5) group.add(box(3.2, 2.5, 0.1, materials.glass, x, 5.6, 23.2));
-  for (let z = -18; z <= 18; z += 6) group.add(box(5.8, 0.08, 0.8, materials.lamp, 0, 8.75, z));
+  for (let z = -20; z <= 21; z += 5.4) {
+    for (const side of [-1, 1]) group.add(box(0.34, 7.2, 0.42, materials.timber, side * 14.3, 3.6, z));
+    const leftRafter = box(14.5, 0.38, 0.42, materials.timber, -7.15, 8.55, z);
+    leftRafter.rotation.z = 0.19;
+    const rightRafter = box(14.5, 0.38, 0.42, materials.timber, 7.15, 8.55, z);
+    rightRafter.rotation.z = -0.19;
+    group.add(leftRafter, rightRafter);
+    const leftRoof = box(14.4, 0.12, 5.25, materials.ceiling, -7.1, 8.72, z + 2.65);
+    leftRoof.rotation.z = 0.19;
+    const rightRoof = box(14.4, 0.12, 5.25, materials.ceiling, 7.1, 8.72, z + 2.65);
+    rightRoof.rotation.z = -0.19;
+    group.add(leftRoof, rightRoof);
+  }
+  for (let x = -11; x <= 11; x += 4.4) {
+    group.add(box(3.4, 3.2, 0.1, materials.glass, x, 5.5, 23.18));
+    group.add(box(0.12, 3.5, 0.18, materials.darkMetal, x - 1.8, 5.5, 23.08));
+  }
+  for (let z = -18; z <= 18; z += 6) group.add(box(5.8, 0.08, 0.8, materials.lamp, 0, 9.45, z));
   return group;
 };
 
@@ -242,19 +277,24 @@ const createClayStadium = (materials: SceneMaterialLibrary): THREE.Group => {
   group.name = 'scene-clay-stadium';
   group.add(box(48, 0.18, 68, materials.darkWall, 0, -0.2, 2));
   addIndoorShell(group, materials, materials.darkWall, 42, 14, 58);
-  for (const side of [-1, 1]) {
-    for (let tier = 0; tier < 9; tier += 1) {
-      const x = side * (8 + tier * 0.72);
-      const height = 0.45 + tier * 0.43;
-      group.add(box(0.82, height, 24, materials.concrete, x, height / 2, 2));
-      group.add(box(0.64, 0.1, 23.5, materials.blueSeat, x - side * 0.06, height + 0.06, 2));
-    }
+  const westStand = createBleachers(materials, -1, 10, 32, 25, materials.warmSeat, 1);
+  const eastStand = createBleachers(materials, 1, 10, 32, 25, materials.warmSeat, 1);
+  westStand.position.set(-8.2, 0, 2);
+  eastStand.position.set(8.2, 0, 2);
+  group.add(westStand, eastStand);
+  const farStand = createBleachers(materials, 1, 8, 34, 27, materials.warmSeat, 0.96);
+  farStand.position.set(0, 0, 16.5);
+  farStand.rotation.y = -Math.PI / 2;
+  group.add(farStand);
+  for (const x of [-9, 0, 9]) {
+    group.add(box(3.2, 2.7, 0.18, materials.darkWall, x, 1.35, 20.8));
+    group.add(box(3.5, 0.24, 0.5, materials.lightMetal, x, 2.75, 20.7));
   }
-  for (let tier = 0; tier < 7; tier += 1) {
-    const z = 15.8 + tier * 0.72;
-    const height = 0.45 + tier * 0.43;
-    group.add(box(28 - tier * 0.5, height, 0.82, materials.concrete, 0, height / 2, z));
-    group.add(box(27.4 - tier * 0.5, 0.1, 0.64, materials.blueSeat, 0, height + 0.06, z - 0.06));
+  group.add(box(9, 2.2, 0.3, materials.darkWall, 0, 7.8, 23.6));
+  group.add(box(6.8, 1.1, 0.12, materials.glass, 0, 7.8, 23.42));
+  for (let z = -24; z <= 25; z += 5.5) {
+    group.add(box(41, 0.22, 0.28, materials.darkMetal, 0, 13.2, z));
+    for (const x of [-18, -9, 0, 9, 18]) group.add(box(0.16, 0.16, 5.1, materials.darkMetal, x, 13.05, z + 2.55));
   }
   for (const x of [-10, 0, 10]) for (const z of [-13, 10]) group.add(box(5.5, 0.1, 1.1, materials.lamp, x, 12.6, z));
   return group;
@@ -264,25 +304,28 @@ const createCoveredGrassArena = (materials: SceneMaterialLibrary): THREE.Group =
   const group = new THREE.Group();
   group.name = 'scene-covered-grass-arena';
   group.add(box(48, 0.18, 68, materials.grass, 0, -0.2, 2));
-  for (const side of [-1, 1]) {
-    for (let tier = 0; tier < 6; tier += 1) {
-      const x = side * (8 + tier * 0.75);
-      const height = 0.4 + tier * 0.38;
-      group.add(box(0.84, height, 21, materials.paleConcrete, x, height / 2, 2));
-      group.add(box(0.64, 0.09, 20.5, materials.paleSeat, x - side * 0.06, height + 0.05, 2));
-    }
-  }
+  const westStand = createBleachers(materials, -1, 7, 28, 22, materials.greenSeat, 0.94);
+  const eastStand = createBleachers(materials, 1, 7, 28, 22, materials.greenSeat, 0.94);
+  westStand.position.set(-8.15, 0, 2);
+  eastStand.position.set(8.15, 0, 2);
+  group.add(westStand, eastStand);
   for (let z = -22; z <= 24; z += 4.6) {
     for (const side of [-1, 1]) group.add(box(0.18, 11.5, 0.18, materials.lightMetal, side * 16.5, 5.75, z));
-    const leftPanel = box(17, 0.16, 4.4, materials.roof, -8.1, 11.5, z);
+    const leftPanel = box(17, 0.16, 4.4, materials.ceiling, -8.1, 11.5, z);
     leftPanel.rotation.z = -0.12;
-    const rightPanel = box(17, 0.16, 4.4, materials.roof, 8.1, 11.5, z);
+    const rightPanel = box(17, 0.16, 4.4, materials.ceiling, 8.1, 11.5, z);
     rightPanel.rotation.z = 0.12;
     group.add(leftPanel, rightPanel);
   }
   group.add(box(0.8, 0.12, 48, materials.glass, 0, 12.45, 1));
   for (let z = -18; z <= 18; z += 6) group.add(box(5.8, 0.1, 0.9, materials.lamp, 0, 11.35, z));
   group.add(box(34, 7, 0.24, materials.glass, 0, 5.2, 28));
+  for (let x = -15; x <= 15; x += 5) group.add(box(0.14, 7.2, 0.2, materials.darkMetal, x, 5.2, 27.85));
+  for (const x of [-13, -8, 8, 13]) group.add(createBroadleafTree(materials, x, 31, 1.15, Math.round(x)));
+  const farStand = createBleachers(materials, 1, 5, 24, 18, materials.greenSeat, 0.82);
+  farStand.position.set(0, 0, 18.2);
+  farStand.rotation.y = -Math.PI / 2;
+  group.add(farStand);
   return group;
 };
 

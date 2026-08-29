@@ -8,6 +8,8 @@ export type SceneMaterialLibrary = Readonly<{
   darkMetal: THREE.MeshStandardMaterial;
   lightMetal: THREE.MeshStandardMaterial;
   blueSeat: THREE.MeshStandardMaterial;
+  greenSeat: THREE.MeshStandardMaterial;
+  warmSeat: THREE.MeshStandardMaterial;
   paleSeat: THREE.MeshStandardMaterial;
   concrete: THREE.MeshStandardMaterial;
   paleConcrete: THREE.MeshStandardMaterial;
@@ -25,11 +27,13 @@ export type SceneMaterialLibrary = Readonly<{
   trunk: THREE.MeshStandardMaterial;
   lamp: THREE.MeshStandardMaterial;
   darkWall: THREE.MeshStandardMaterial;
+  ceiling: THREE.MeshStandardMaterial;
 }>;
 
 export type SceneMaterialBundle = Readonly<{
   materials: SceneMaterialLibrary;
   surfaceMaps: Readonly<Record<SurfaceId, THREE.Texture>>;
+  runoffMaps: Readonly<Record<SurfaceId, THREE.Texture>>;
   textures: readonly THREE.Texture[];
 }>;
 
@@ -123,6 +127,7 @@ export const createSceneMaterialBundle = (surface: SurfaceId): SceneMaterialBund
   const courtNormal = createMicroNormalTexture(809, 12, 24);
   const runoffNormal = createMicroNormalTexture(907, 12, 22);
   const surfaceMaps: Readonly<Record<SurfaceId, THREE.Texture>> = { hard, clay, grass };
+  const runoffMaps: Readonly<Record<SurfaceId, THREE.Texture>> = { hard: runoff, clay, grass };
 
   const court = new THREE.MeshStandardMaterial({
     color: 0xffffff,
@@ -135,6 +140,7 @@ export const createSceneMaterialBundle = (surface: SurfaceId): SceneMaterialBund
   return {
     textures: [hard, clay, grass, runoff, concrete, timber, roof, courtNormal, runoffNormal],
     surfaceMaps,
+    runoffMaps,
     materials: {
       court,
       runoff: new THREE.MeshStandardMaterial({ color: 0xffffff, map: runoff, normalMap: runoffNormal, normalScale: new THREE.Vector2(0.12, 0.12), roughness: 0.92 }),
@@ -142,13 +148,15 @@ export const createSceneMaterialBundle = (surface: SurfaceId): SceneMaterialBund
       darkMetal: standard(0x172127, 0.42, 0.58),
       lightMetal: standard(0x718087, 0.4, 0.7),
       blueSeat: new THREE.MeshStandardMaterial({ color: 0x176ea8, roughness: 0.52, metalness: 0.08, emissive: 0x0c3450, emissiveIntensity: 0.34 }),
+      greenSeat: new THREE.MeshStandardMaterial({ color: 0x1d5944, roughness: 0.6, emissive: 0x071f17, emissiveIntensity: 0.28 }),
+      warmSeat: new THREE.MeshStandardMaterial({ color: 0x825236, roughness: 0.7, emissive: 0x28150c, emissiveIntensity: 0.22 }),
       paleSeat: standard(0xd6ddda, 0.7),
       concrete: new THREE.MeshStandardMaterial({ color: 0xffffff, map: concrete, roughness: 0.9 }),
       paleConcrete: standard(0xd8d5ca, 0.9),
       glass: new THREE.MeshPhysicalMaterial({ color: 0x90b8c6, roughness: 0.1, metalness: 0.05, transmission: 0.1, transparent: true, opacity: 0.62 }),
       fence: new THREE.LineBasicMaterial({ color: 0x4f6b60, transparent: true, opacity: 0.28 }),
       fencePost: standard(0x38544a, 0.48, 0.62),
-      timber: new THREE.MeshStandardMaterial({ color: 0xffffff, map: timber, roughness: 0.72 }),
+      timber: new THREE.MeshStandardMaterial({ color: 0xffffff, map: timber, roughness: 0.72, emissive: 0x2a160c, emissiveIntensity: 0.2 }),
       warmWall: standard(0xe3dfd0, 0.86),
       roof: new THREE.MeshStandardMaterial({ color: 0xffffff, map: roof, roughness: 0.58, metalness: 0.36, emissive: 0x1a2226, emissiveIntensity: 0.3 }),
       clayStone: standard(0xc7a273, 0.94),
@@ -159,12 +167,15 @@ export const createSceneMaterialBundle = (surface: SurfaceId): SceneMaterialBund
       trunk: standard(0x5e4935, 0.98),
       lamp: new THREE.MeshStandardMaterial({ color: 0xf2f4e9, emissive: 0xd9e8ff, emissiveIntensity: 0.38, roughness: 0.28 }),
       darkWall: standard(0x242c30, 0.82),
+      ceiling: new THREE.MeshStandardMaterial({ color: 0xdbe1df, roughness: 0.78, emissive: 0x4b5250, emissiveIntensity: 0.24 }),
     },
   };
 };
 
 export const applyCourtSurface = (bundle: SceneMaterialBundle, surface: SurfaceId): void => {
   bundle.materials.court.map = bundle.surfaceMaps[surface];
+  bundle.materials.runoff.map = bundle.runoffMaps[surface];
   bundle.materials.court.roughness = surface === 'hard' ? 0.78 : 0.94;
   bundle.materials.court.needsUpdate = true;
+  bundle.materials.runoff.needsUpdate = true;
 };

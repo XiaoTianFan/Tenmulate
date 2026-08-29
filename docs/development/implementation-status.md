@@ -174,3 +174,13 @@ The detailed status of every requirement is recorded in the [V1 release matrix](
 - Tuned court/runoff albedo, repeating scale, micro-normal response, net darkness, fence opacity, seating scale, shelter color, and umpire-chair readability from direct image comparison.
 - Replaced spherical cloud props with a procedural gradient/fBM sky shader and added instanced foliage/hedge edge detail to break the original primitive silhouettes.
 - The exact court, camera, ball, lighting controls, and surface/physics independence remain unchanged. Full build and all 53 tests pass; final 1920 × 1080 player/wide renders report zero browser console errors.
+
+### Remaining-scene fidelity slice 1 — complete
+
+- Expanded the Mediterranean clay scene with a full clay runoff, six-level stone terraces, retaining walls, cypress/hedge layers, a central stair, and an arched terracotta-roof villa.
+- Expanded the night grass scene with a full grass deck, three-sided individual green seating, dense planting, perimeter fencing, modeled light poles, and a calibrated floodlit play area.
+- Expanded the timber hall with repeated laminated portal frames, pitched pale roof panels, glazing bays, warm artificial light, lower timber wall bands, and individual blue stands.
+- Expanded the indoor clay stadium with three-sided individual warm seating, portals, media glazing, concourse rails, roof truss depth, and controlled bright-match lighting.
+- Expanded the covered grass arena with three-sided individual green seating, pale roof structure, framed end glazing, and a visible landscape/tree layer beyond the arena.
+- Corrected surface appearance so hard uses blue acrylic plus green runoff, clay uses clay across the full playable deck, and grass uses the striped grass map across the full deck; bounce physics remains an independent selection.
+- Browser iterations caught and corrected both under-lit first renders and an overexposed physical-light pass. Final player renders for all six scenes complete with zero console errors; full build and all 53 tests remain green.

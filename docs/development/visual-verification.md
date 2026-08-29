@@ -95,3 +95,15 @@ The final setup and rehearsal screenshots were inspected directly with `view_ima
 | Runtime health | No visible error and no leaked scene resources | Six-scene switch loop completed at 1920 × 1080 with zero console errors; disposal deduplicates geometry, materials, and textures | Pass for correctness. Headed-browser FPS was invalid because the OS throttled the occluded window; foreground profiling remains open. |
 
 The accepted player-level reference and all six browser outputs were inspected directly with `view_image`. Four subsequent Panel 1 comparisons corrected clubhouse elevation/roof orientation, net and fence contrast, court/runoff albedo and micro-normal scale, seating/rail proportions, sky treatment, and foliage silhouettes. The final realistic and wide player renders are now compositionally credible game-realistic views rather than the prior flat shell. Photoreal vegetation micro-detail, architectural weathering, and valid foreground performance evidence remain later refinement gates.
+
+## Stage 6: remaining five scenes — authored first pass
+
+| Scene | Reference-defining section | Final browser evidence | Result / remaining refinement |
+| --- | --- | --- | --- |
+| Mediterranean clay terrace | Sunken clay deck, pale stepped stone, hedges/cypress, stairs, arched villa | Full clay deck framed by six-level terraces and a centered four-arch terracotta-roof villa | Identity and depth pass; later add stone weathering, planted pots, and distant terrain. |
+| Grass park at night | Bright grass rectangle inside a dark landscaped amphitheater | Striped full grass deck, three-sided individual green seats, tree/hedge perimeter, four light arrays | Lighting balance pass after dark and clipped intermediate renders; later add localized spotlight falloff and aisle detail. |
+| Timber and steel hall | Warm repeated timber arches, pale roof/skylights, glass, blue seating | Repeated portal frames and pitched panels form a clear hall section above two individual-seat stands | Strong section match; later add timber joinery, acoustic panels, and skylight daylight variation. |
+| Indoor clay stadium | Dark tournament bowl, warm seats, trusses, portals, bright clay court | Three-sided individual warm seating, media box, portal/concourse elements, roof grid, full clay deck | Bowl identity pass; later add aisles, vomitories, scoreboard content, and broadcast detail. |
+| Covered grass arena | Pale covered roof, green bowl, glazed landscape end wall | Three-sided individual green seating, pale structure, framed glazing, and trees beyond the glass | Identity and lighting pass; later add roof services, glazing reflections, and aisle/railing detail. |
+
+Every scene was selected with its intended appearance and lighting family at 1920 × 1080, captured, and inspected directly with `view_image`. The same exact court/net/ball layer remained in place during every switch. The headed Playwright window remained background-throttled, so the screenshots and zero-error console are valid while its FPS readout is not accepted as performance evidence.

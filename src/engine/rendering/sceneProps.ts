@@ -159,6 +159,8 @@ export const createBleachers = (
   rows = 4,
   columns = 12,
   length = 9.4,
+  seatMaterial: THREE.Material = materials.blueSeat,
+  compactScale = 0.68,
 ): THREE.Group => {
   const group = new THREE.Group();
   group.name = side < 0 ? 'west-blue-bleachers' : 'east-blue-bleachers';
@@ -174,14 +176,14 @@ export const createBleachers = (
       backs.push({ position: [x + side * 0.2, y + 0.22, z] });
     }
   }
-  group.add(instancedBoxes(0.42, 0.08, 0.42, materials.blueSeat, seats));
-  group.add(instancedBoxes(0.08, 0.42, 0.42, materials.blueSeat, backs));
+  group.add(instancedBoxes(0.42, 0.08, 0.42, seatMaterial, seats));
+  group.add(instancedBoxes(0.08, 0.42, 0.42, seatMaterial, backs));
   const railX = -side * 0.46;
   group.add(box(0.055, 0.055, length, materials.darkMetal, railX, 1.03, 0));
   for (let z = -length / 2; z <= length / 2 + 0.01; z += 1.55) {
     group.add(box(0.055, 1.02, 0.055, materials.darkMetal, railX, 0.51, z));
   }
-  group.scale.set(0.68, 0.68, 1);
+  group.scale.set(compactScale, compactScale, 1);
   group.position.set(side * 8.65, 0, 3.1);
   return group;
 };

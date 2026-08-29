@@ -202,7 +202,7 @@ export class TennisScene {
     this.hemisphere.color.setHex(isNight ? 0x42658a : indoor ? 0xe8ecef : 0xd9efff);
     this.hemisphere.groundColor.setHex(indoor ? 0x2b3032 : 0x426342);
     this.hemisphere.intensity = (isNight ? 0.48 : indoor ? 1.15 : 2.1) * intensity;
-    const floodIntensity = isNight ? 24 : indoor ? (isBright ? 17 : isWarm ? 12 : 14) : 0;
+    const floodIntensity = isNight ? 110 : indoor ? (isBright ? 75 : isWarm ? 38 : 55) : 0;
     for (const child of this.floodlights.children) {
       if (child instanceof THREE.PointLight) {
         child.intensity = floodIntensity * intensity;
