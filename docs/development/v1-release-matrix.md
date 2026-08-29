@@ -1,7 +1,7 @@
 # V1 release matrix
 
 - **Snapshot:** 2026-08-30
-- **Scope:** Local public-free V1 ball-machine build
+- **Scope:** Local public-free V1 with canonical scenes and a neutral mocap carrier
 - **Authority:** [Product requirements](../product-requirements.md)
 
 Status meanings:
@@ -26,9 +26,9 @@ Status meanings:
 | POV-03 | Implemented | The near-player layer is absent by design. |
 | POV-04 | Implemented | Browser fullscreen plus button/H-key HUD hiding; central transport remains available. |
 | POV-05 | Implemented | Camera presentation lives on launch/event metadata and never enters trajectory resolution. |
-| POV-06 | Canonical scene production active | The functional outdoor, club-hall, and stadium blockouts remain usable while six code-owned Three.js venues replace them. Outdoor Panel 1 is the fidelity baseline. |
+| POV-06 | Implemented; owner visual approval pending | Six distinct code-owned Three.js venues render around the same exact court. Outdoor Panel 1 is the fidelity baseline; final owner/device review remains. |
 | POV-07 | Implemented | Venue-specific light presets, direction, and intensity alter only scene presentation. |
-| POV-08 | Implemented architecture; visual validation active | Exact court/ball coordinates and all venue geometry, materials, props, and lights remain code-owned. No generated-world registration or proxy layer is permitted. |
+| POV-08 | Implemented; external visual validation active | Exact court/ball coordinates and all venue geometry, materials, props, and lights remain code-owned. No generated-world registration or proxy layer is permitted; final target-display review remains. |
 
 ## Ball simulation
 
@@ -45,12 +45,12 @@ Status meanings:
 
 | ID | Status | Evidence or remaining gate |
 | --- | --- | --- |
-| OPP-01 | Production asset pending | Shot-family metadata and runtime sequence hooks exist; ball machine is the authorized temporary opponent. |
-| OPP-02 | Production asset pending | Deterministic contact/launch boundary is defined; racket contact markers require the selected mocap clips. |
-| OPP-03 | Production asset pending | Camera/ball sequence metadata exists; opponent footwork/root-motion review requires the selected rig. |
-| OPP-04 | Production asset pending | Every compiled shot accepts left/right opponent metadata; visual mirror/distinct-clip review remains. |
-| OPP-05 | Production asset pending | Eight legal serve trajectories span both hands and independent normal/compact metadata; distinct motion timing remains. |
-| OPP-06 | Production asset pending | Serve rhythm is independent of pace in schema/editor/compiler; readable preparation and playback bounds require animation review. |
+| OPP-01 | Carrier implemented; tennis motion pending | CC0 741 kB neutral GLB, 65-joint skin, 23-role adapter, ready pose, lazy animation loader, and failure fallback run in-browser. Mocap/deformation review remains. |
+| OPP-02 | Runtime boundary implemented; production asset pending | Deterministic contact/launch boundary and clip playback seam exist; separate racket plus contact markers require the selected mocap clips. |
+| OPP-03 | Runtime boundary implemented; production asset pending | Camera/ball sequence metadata and animation mixer exist; opponent footwork/root-motion review requires owner-supplied clips. |
+| OPP-04 | Metadata implemented; production asset pending | Every compiled shot accepts left/right opponent metadata and both hand sockets exist; visual mirror/distinct-clip review remains. |
+| OPP-05 | Trajectory/rhythm implemented; production asset pending | Eight legal serve trajectories span both hands and independent normal/compact metadata; distinct serve-motion timing remains. |
+| OPP-06 | Schema/runtime seam implemented; production asset pending | Serve rhythm is independent of pace in schema/editor/compiler; readable preparation and playback bounds require animation review. |
 
 ## Drills and local content
 
@@ -85,7 +85,7 @@ Status meanings:
 | Browser coverage | Automated Chrome/WebGL 2 pass with zero errors/warnings | Validate current Chrome/Edge on Windows, Firefox on Windows, and Safari on macOS. |
 | Large-display fit | Physical FOV calculation and responsive setup are implemented | Observe real TV/projector scale, comfort, ball readability, and safe-space workflow. |
 | Human usefulness | No technique or medical claims are made | Owner, one coach, and at least three other target players across levels complete observed sessions. |
-| Production visual layer | Functional court blockouts and ball machine preserve full functionality while canonical venue production proceeds | Complete and visually approve all six Three.js venues; import the licensed neutral opponent and pass contact, deformation, depth, lighting, load, and provenance reviews. |
+| Production visual layer | Six authored Three.js venues and the CC0 neutral opponent carrier render in-browser; source/runtime hashes and fallback are recorded | Complete owner visual approval, import the racket and accepted mocap, then pass contact, deformation, handedness, depth, lighting, load, and provenance reviews. |
 | Accessibility/privacy/legal | Keyboard, reduced motion, mute/levels, visual cues, contrast ball, safety acknowledgement, and no camera request exist | Complete formal accessibility, privacy text, license/provenance, and public legal review. |
 | Hosting/operations | Production PWA build and offline shell pass locally | Validate public origin/CDN headers, immutable asset paths, monitoring, release notes, and rollback runbook. |
 

@@ -2,7 +2,7 @@
 
 Tenmulate is a browser-based, first-person tennis visualization tool. It places a player at a calibrated on-court point of view and plays configurable incoming ball trajectories for shadow swinging, return preparation, and tactical mental rehearsal.
 
-The repository contains the active V1 implementation: a deterministic Three.js court/ball simulation, complete starter shot library, rehearsal player, local drill editor, saved views, validated JSON exchange, and offline-capable app shell. Court environments now follow a canonical code-owned Three.js modeling pipeline. The ball machine remains temporary until a neutral rights-cleared humanoid is bound to the mocap pipeline.
+The repository contains the active V1 implementation: a deterministic Three.js court/ball simulation, complete starter shot library, rehearsal player, local drill editor, saved views, validated JSON exchange, and offline-capable app shell. Court environments now follow a canonical code-owned Three.js modeling pipeline. A compact CC0 neutral humanoid is integrated as the mocap carrier, with the ball machine retained only as its load-failure fallback.
 
 ## Implemented direction
 
@@ -25,6 +25,7 @@ The renderer and simulation decision is accepted for V1. Production 3D assets, d
 | [AI 3D tool market map](docs/research/ai-3d-asset-tools-2026.md) | August 2026 Chinese and international asset/mocap options and bake-off plan |
 | [Cloud world-generation research](docs/research/world-generation-and-scene-reconstruction-2026.md) | Historical Aholo/Marble/splat evaluation; rejected for production by ADR-0005 |
 | [Mocap-to-web character pipeline](docs/research/mocap-to-web-character-pipeline.md) | Mesh/rig/skin/animation definitions, retargeting, tennis cleanup, formats, and rights gate |
+| [Neutral opponent asset record](docs/assets/quaternius-neutral-opponent.md) | Exact CC0 source, normalization, hashes, skeleton/socket contract, and remaining mocap gates |
 | [Court environment concepts](docs/concepts/court-environment-concepts-2026-08.md) | Bird's-eye and player-level boards for owner art-direction review |
 | [Scene-generation prompt kit](docs/concepts/scene-generation-prompt-kit.md) | Four reusable perspective prefixes, including a 360-degree panorama, and six standalone court/environment prompts |
 | [Opponent character 01](docs/concepts/opponent-character-01.md) | First fictional right-handed male design sheet and detachable-racket production guidance |
@@ -49,5 +50,5 @@ The renderer and simulation decision is accepted for V1. Production 3D assets, d
 - Court environment directions: six accepted on 2026-08-29; outdoor Panel 1 selected as the product and vertical-slice baseline.
 - First opponent concept sheet: generated on 2026-08-29; owner/rigging review pending.
 - Setup, rehearsal, and timeline-editor visual concepts: generated on 2026-08-29 and adopted as the implementation reference.
-- Technical implementation: the complete local V1 ball-machine build is runnable, automated-tested, browser-verified, offline-capable, responsive, and performance-adaptive. Production opponent/environment assets and external release validation remain open.
+- Technical implementation: the complete local V1 is runnable, automated-tested, browser-verified, offline-capable, responsive, and performance-adaptive. Six authored venues and the neutral opponent carrier now run in-browser; tennis mocap, racket/contact review, device validation, and public-release operations remain open.
 - Production deployment: not started.

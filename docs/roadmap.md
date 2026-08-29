@@ -5,7 +5,7 @@
 
 **Current checkpoint:** the code-owned local ball-machine product now spans the functional work in Phases 1–6. The phase exit gates remain open where they require production 3D assets, measured target hardware/browser evidence, the 30-minute soak, human observation, licensing, or public deployment. See the [V1 release matrix](development/v1-release-matrix.md).
 
-**Visual-pipeline pivot (2026-08-30):** ADR-0005 makes all six court environments canonical Three.js compositions and removes Gaussian splats/generated-world assets from the runtime. Environment work now proceeds Panel 1 first through shared geometry, PBR/procedural materials, lighting, props, planting, performance tiers, and direct browser comparison. Opponent work waits only for a neutral rights-cleared humanoid plus owner-supplied mocap clips.
+**Visual-pipeline pivot (2026-08-30):** ADR-0005 makes all six court environments canonical Three.js compositions and removes Gaussian splats/generated-world assets from the runtime. All six first-pass scenes and the CC0 neutral humanoid carrier are now integrated. Opponent work waits on the owner-supplied mocap clips, a separate racket, and the associated retarget/contact review.
 
 This roadmap is ordered by uncertainty and integration risk. V1 is one complete public-free, non-tracking product; features are not split into must/should/could or a V1.1. Calendar estimates follow the vertical slice and asset bake-off.
 

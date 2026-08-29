@@ -37,6 +37,7 @@ This folder is the project record for product discovery, design, architecture, a
 - [Opponent character 01](concepts/opponent-character-01.md): first fictional right-handed male design sheet and detachable-racket guidance.
 - [Application UI concepts](concepts/application-ui-concepts-2026-08.md): implementation references for setup, rehearsal, and timeline editing.
 - [Mocap-to-web pipeline](research/mocap-to-web-character-pipeline.md): custom tennis clips, open/general motion integration, licensing, retargeting, and runtime blending.
+- [Neutral opponent asset record](assets/quaternius-neutral-opponent.md): selected CC0 mesh, normalization recipe, hashes, rig/socket map, and animation acceptance gates.
 - [Implementation status](development/implementation-status.md): staged code coverage, verification, and remaining gaps.
 - [Visual verification ledger](development/visual-verification.md): concept-to-browser comparison after each implementation stage.
 - [V1 release matrix](development/v1-release-matrix.md): requirement-by-requirement code evidence and the remaining asset, device, human, and deployment gates.

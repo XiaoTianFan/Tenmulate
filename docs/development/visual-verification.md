@@ -107,3 +107,17 @@ The accepted player-level reference and all six browser outputs were inspected d
 | Covered grass arena | Pale covered roof, green bowl, glazed landscape end wall | Three-sided individual green seating, pale structure, framed glazing, and trees beyond the glass | Identity and lighting pass; later add roof services, glazing reflections, and aisle/railing detail. |
 
 Every scene was selected with its intended appearance and lighting family at 1920 × 1080, captured, and inspected directly with `view_image`. The same exact court/net/ball layer remained in place during every switch. The headed Playwright window remained background-throttled, so the screenshots and zero-error console are valid while its FPS readout is not accepted as performance evidence.
+
+## Stage 6: neutral opponent carrier — first pass
+
+| Comparison point | Target | Browser evidence | Result / remaining gate |
+| --- | --- | --- | --- |
+| Rights and payload | Rights-cleared low-detail runtime asset | CC0 source/license recorded; texture-free GLB is 741,412 bytes with an immutable SHA-256 | Pass. |
+| On-court scale | Credible adult opponent at the far baseline | Loader normalizes the rig to 1.84 m and places it 0.95 m behind the far baseline | Pass from realistic, approach, and volley cameras. |
+| Presentation | Neutral faceless silhouette; no identity work | Separate eye/eyebrow nodes and all textures are absent from the active scene; one matte navy material remains | Pass at gameplay distance; not approved for close-up use. |
+| Rest silhouette | Never expose the source T-pose | Anatomical-axis bone correction lowers/bends both arms into a compact ready stance | Pass as a non-animated fallback pose. |
+| Mocap compatibility | Stable humanoid mapping plus detachable racket sockets | 23-role adapter validates the 65-joint skin; `hand_l` and `hand_r` are exposed; lazy animation GLBs and clip cross-fades are implemented | Runtime seam passes; actual tennis clips and racket are pending. |
+| Failure behavior | A missing/invalid asset must not break practice | Opponent stays hidden until validation succeeds; ball machine remains visible on load/skeleton failure | Pass. |
+| Runtime health | No new visible or console failure | Fresh load and three camera inspections completed without new runtime warnings/errors; full build and 56 tests pass; production precache includes the GLB/license/manifest | Correctness/offline-manifest pass; target-device animation performance remains open. |
+
+The first browser render exposed the raw T-pose, which was rejected immediately. The second pass used the actual shoulder/arm bone positions to derive a neutral ready stance and was accepted for the unanimated carrier. No mocap, racket attachment, or contact synchronization is claimed by this visual pass.

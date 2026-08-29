@@ -1,10 +1,10 @@
 # V1 implementation status
 
 - **Status:** Active
-- **Last updated:** 2026-08-29
+- **Last updated:** 2026-08-30
 - **Current implementation commit:** updated at each completed stage
 
-This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The neutral mocap opponent remains an external asset dependency. Venue fidelity is now repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
+This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The neutral humanoid carrier is now integrated; its tennis mocap and racket remain owner-supplied production inputs. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
 ## Stage 0 — application visual system
 
@@ -33,7 +33,7 @@ This is the evidence ledger for the code-backed V1. “Implemented” means runn
 
 ### Known stage gaps
 
-- Procedural environment and ball machine are intentionally low-detail Stage 1 stand-ins; Stage 6 replaces the venue blockouts through canonical Three.js composition while the neutral opponent remains pending.
+- Procedural environment and ball machine were intentionally low-detail Stage 1 stand-ins; Stage 6 replaces the venue blockouts through canonical Three.js composition and makes the ball machine a neutral-opponent load fallback.
 - Header routes, physical-display dialog, full rehearsal mode, drill library, editor, saved views, import/export, audio, service worker, and completion flow are subsequent stages.
 - UI chrome is structurally faithful but some control type and court-preview framing still need the final 1920 × 1080 fidelity pass.
 - WebGPU versus WebGL evidence is not yet sufficient to accept ADR-0001.
@@ -89,7 +89,7 @@ This is the evidence ledger for the code-backed V1. “Implemented” means runn
 ### Known stage gaps
 
 - Production-grade quality adaptation, chunk splitting, install-icon raster variants, and broader responsive/browser coverage remain in the hardening stage.
-- The opponent animation/GLB remains an external production asset; the functional ball machine remains the substitute. Generated-world assets have been removed from the direction.
+- At this stage the opponent animation/GLB remained an external production asset and the ball machine was the substitute. Stage 6 later integrated the neutral GLB carrier while leaving tennis motion and the racket pending. Generated-world assets have been removed from the direction.
 
 ## Stage 4 — training cadence, venue shells, lighting, and comfort controls
 
@@ -141,7 +141,7 @@ This is the evidence ledger for the code-backed V1. “Implemented” means runn
 
 ### External release gates
 
-- Replace the procedural ball machine with the licensed, game-realistic rigged opponent and reviewed tennis/general-motion clips; verify contact, blend, handedness, serve rhythm, racket socket, and appearance variants.
+- Complete the integrated licensed neutral carrier with reviewed tennis/general-motion clips and a separate racket; verify contact, blend, handedness, serve rhythm, socket transforms, and deformation.
 - Replace the procedural venue blockouts with the six polished canonical Three.js compositions while preserving exact court authority and live lighting.
 - Run the 30-minute mixed-session soak, named Chrome/Edge/Firefox/Safari device matrix, real TV/projector calibration, owner/coach/player observation, accessibility review, asset/license review, and public hosting/CDN/rollback validation.
 - Optional 90/120 fps stays hidden until the on-device capability benchmark passes. No camera permission or V2 body tracking exists in this build.
@@ -184,3 +184,12 @@ The detailed status of every requirement is recorded in the [V1 release matrix](
 - Expanded the covered grass arena with three-sided individual green seating, pale roof structure, framed end glazing, and a visible landscape/tree layer beyond the arena.
 - Corrected surface appearance so hard uses blue acrylic plus green runoff, clay uses clay across the full playable deck, and grass uses the striped grass map across the full deck; bounce physics remains an independent selection.
 - Browser iterations caught and corrected both under-lit first renders and an overexposed physical-light pass. Final player renders for all six scenes complete with zero console errors; full build and all 53 tests remain green.
+
+### Neutral opponent carrier slice 1 — complete
+
+- Selected the free CC0 Quaternius Universal Base Characters male as a replaceable athletic motion carrier after inspecting the actual archive, glTF scene graph, 65-joint skin, bone names, material/texture dependencies, and license file.
+- Added a reproducible neutralization script that fails closed on missing canonical bones, removes all texture references, excludes eye/eyebrow scene nodes, assigns one matte material, and writes a self-contained 741,412-byte GLB.
+- Added a 23-role canonical skeleton adapter, both named hand/racket sockets, lazy GLB loading, separately loadable animation bundles, `AnimationMixer` clip playback/cross-fade hooks, scaling to 1.84 m, shadows, disposal, and a procedural neutral ready stance.
+- The temporary ball machine is now a load/skeleton-failure fallback rather than the primary opponent. The app remains functional if the external GLB cannot load.
+- Recorded the source/archive/runtime hashes, CC0 notice, limitations, and exact remaining mocap/racket/contact gates in the asset record and shipped manifest.
+- `npm run build` passes; the suite passes at 56 tests, including the exact GLB hash/header/scene-graph contract. The GLTF loader is emitted as a separate approximately 13.2 kB gzip chunk, and the GLB/license/manifest are present in the 29-entry, approximately 1.8 MiB production precache. Fresh-browser inspection at baseline, approach, and first-volley views confirmed scale, orientation, ready silhouette, fallback behavior, and no new console errors. Background-window FPS remains invalid performance evidence.

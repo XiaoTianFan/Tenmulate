@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "id": "quaternius-neutral-male-v1",
+  "role": "neutral-mocap-carrier",
+  "runtimeFile": "quaternius-neutral-male.glb",
+  "runtimeBytes": 741412,
+  "runtimeSha256": "7cea6c92d2f78b07096948f0270bb4db7340505d27da6ffa52e292da858b33c4",
+  "source": {
+    "name": "Universal Base Characters Kit, Standard FREE version",
+    "creator": "Quaternius",
+    "model": "Superhero_Male_FullBody",
+    "url": "https://quaternius.com/packs/universalbasecharacters.html",
+    "downloadUrl": "https://quaternius.itch.io/universal-base-characters",
+    "retrieved": "2026-08-30",
+    "archiveSha256": "fdbf1804c90dfc1ea03e992bff7da2dfd1a79318e13270a660180f9308455f40",
+    "license": "CC0-1.0"
+  },
+  "presentation": {
+    "nominalHeightMeters": 1.84,
+    "materialCount": 1,
+    "textureCount": 0,
+    "excludedSceneNodes": ["Eyes", "Eyebrows"],
+    "defaultPose": "procedural-neutral-ready"
+  },
+  "rig": {
+    "skinJointCount": 65,
+    "canonicalAdapterBoneCount": 23,
+    "leftRacketSocket": "hand_l",
+    "rightRacketSocket": "hand_r",
+    "bundledAnimationClips": 0
+  }
+}

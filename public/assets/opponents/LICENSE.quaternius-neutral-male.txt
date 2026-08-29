@@ -1,0 +1,19 @@
+Tenmulate runtime asset: quaternius-neutral-male.glb
+
+Source: Universal Base Characters Kit, Standard FREE version
+Creator: Quaternius (@Quaternius)
+Source page: https://quaternius.com/packs/universalbasecharacters.html
+Download page: https://quaternius.itch.io/universal-base-characters
+
+License: CC0 1.0 Universal (CC0 1.0), Public Domain Dedication
+License text: https://creativecommons.org/publicdomain/zero/1.0/
+
+The Tenmulate runtime derivative removes the source textures, excludes the
+separate eye and eyebrow presentation meshes from the scene graph, assigns a
+single neutral material, and packages the remaining rigged asset as GLB.
+
+Original source archive SHA-256:
+fdbf1804c90dfc1ea03e992bff7da2dfd1a79318e13270a660180f9308455f40
+
+Runtime GLB SHA-256:
+7cea6c92d2f78b07096948f0270bb4db7340505d27da6ffa52e292da858b33c4

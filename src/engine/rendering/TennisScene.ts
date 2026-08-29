@@ -4,6 +4,7 @@ import { DEFAULT_ENVIRONMENT, SCENE_DEFINITIONS, isOutdoorVenue, type Environmen
 import type { ResolvedTrajectory } from '../trajectory/physics';
 import { sampleTrajectoryAt } from '../trajectory/physics';
 import { createCourt } from './buildCourt';
+import { OpponentRig, OpponentRigDisposedError } from './OpponentRig';
 
 export type CameraConfiguration = Readonly<{
   eyeHeight: number;
@@ -42,6 +43,7 @@ export class TennisScene {
   private readonly hemisphere: THREE.HemisphereLight;
   private readonly sun: THREE.DirectionalLight;
   private readonly floodlights = new THREE.Group();
+  private readonly opponent = new OpponentRig();
   private readonly venueGroups: Readonly<Record<VenueId, THREE.Group>>;
   private readonly setCourtSurface: (surface: SurfaceId) => void;
   private readonly resizeObserver: ResizeObserver;
@@ -112,6 +114,15 @@ export class TennisScene {
     this.setCourtSurface = court.setSurface;
     this.venueGroups = court.venueGroups;
     this.scene.add(court.group);
+    this.scene.add(this.opponent.group);
+    const temporaryBallMachine = court.group.getObjectByName('temporary-ball-machine');
+    void this.opponent.load().then(() => {
+      if (temporaryBallMachine) temporaryBallMachine.visible = false;
+    }).catch((error: unknown) => {
+      if (error instanceof OpponentRigDisposedError) return;
+      console.warn('Neutral opponent failed to load; keeping the ball-machine fallback.', error);
+      if (temporaryBallMachine) temporaryBallMachine.visible = true;
+    });
 
     this.ballMaterial = new THREE.MeshStandardMaterial({
       color: 0xe8ef32,
@@ -258,6 +269,7 @@ export class TennisScene {
     const delta = Math.min(0.05, Math.max(0, (now - this.lastFrame) / 1000));
     this.lastFrame = now;
     if (this.running) this.elapsed += delta * this.playbackRate;
+    this.opponent.update(this.running ? delta * this.playbackRate : 0);
     if (this.trajectory) {
       const position = sampleTrajectoryAt(this.trajectory, this.elapsed, this.loopTrajectory);
       this.ball.position.set(position.x, position.y, position.z);
@@ -343,6 +355,7 @@ export class TennisScene {
     for (const geometry of geometries) geometry.dispose();
     for (const material of materials) material.dispose();
     for (const texture of textures) texture.dispose();
+    this.opponent.dispose();
     this.renderer.dispose();
   }
 }

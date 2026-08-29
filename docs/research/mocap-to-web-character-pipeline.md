@@ -75,6 +75,8 @@ opponent-v1.animations.json
 
 Use one combined GLB first because it removes skeleton-sharing ambiguity. After the contract passes, split reusable appearance and animation packs only if measured caching benefits justify it. Every split animation file must target the exact same bone names, hierarchy, rest pose, scale, and skeleton version.
 
+> **Implemented carrier update (2026-08-30):** the code now uses a 741,412-byte CC0 Quaternius base GLB with a validated 23-role adapter over its 65-joint skin, `hand_l`/`hand_r` racket sockets, and lazy animation-bundle loading. Because the owner is supplying mocap after the carrier selection, this project is intentionally starting with the split form. The base contains no animation clips; no tennis-motion acceptance is implied by the successful mesh integration. See the [asset record](../assets/quaternius-neutral-opponent.md).
+
 glTF/GLB is the runtime canonical format because it represents scenes, meshes, PBR materials, textures, skins, and animations and is designed for compact runtime delivery. FBX and BVH are interchange inputs, not public runtime contracts. Blender's exporter can bake deformation-bone animation and skinning; Three.js `GLTFLoader` exposes the clips to `AnimationMixer` and supports KTX2, Draco, and meshopt integration.
 
 ## 5. Retargeting and cleanup in practice
