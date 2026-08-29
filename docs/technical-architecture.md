@@ -20,9 +20,10 @@ The system should optimize for perceptual credibility and testability, not for g
 | Ball dynamics | Custom fixed-step 3D numerical solver | Tennis needs drag, spin-dependent lift, precise bounce targets, inverse authoring, and deterministic outputs more than general rigid-body contacts. |
 | General collision option | Rapier, only if later features need it | Provides WASM, CCD, SI-unit guidance, and cross-platform determinism for collision-heavy extensions. |
 | Runtime asset format | glTF/GLB | Designed for runtime delivery and carries meshes, PBR materials, skins, morphs, and animation clips. |
-| Asset DCC | Blender | Canonical cleanup, scale/orientation, retargeting, animation markers, optimization, and export. |
+| Asset DCC | Blender | Canonical cleanup, scale/orientation, retargeting, animation markers, optimization, and export, regardless of whether the source was modeled, licensed, scanned, or AI-generated. |
+| Asset delivery | Hashed static manifests + object/CDN origin candidate | Keeps large optional GLB/animation/venue payloads independently cacheable and lazy-loaded; provider selection follows measured egress/caching tests. |
 | Test layers | Vitest-style unit/property tests, browser E2E, frame-time harness, visual snapshots | Separates numerical truth, sequence behavior, runtime behavior, and visual fidelity. Exact test framework is selected during scaffold. |
-| V1 persistence | Versioned local JSON + browser storage | Presets and calibration need no server; keeps V1 private and deployable as static assets. |
+| V1 persistence | Versioned local JSON + browser storage + service-worker cache | Presets, calibration, custom drills, and selected offline content need no account; keeps public-free V1 deployable as a static application. |
 
 ## 3. System boundaries
 
@@ -54,7 +55,7 @@ React owns menus and low-frequency state. The session controller owns active pla
 
 - SI units everywhere: meters, seconds, kilograms, radians.
 - Right-handed coordinates:
-  - `x`: court width, positive toward the user's forehand side for a right-handed default configuration.
+  - `x`: court width, positive toward court-right as seen by the near player looking toward the opponent; this never depends on user handedness.
   - `y`: vertical, positive upward.
   - `z`: court length, positive from the near baseline toward the opponent.
 - Court center at ground level below the net: `(0, 0, 0)`.
@@ -76,9 +77,11 @@ verticalFov = 2 * atan(H / (2 * D))
 The horizontal field of view follows from aspect ratio. The product should expose:
 
 - **Physical-view mode:** geometry aligns to the user's real viewing cone. This can feel zoomed on smaller screens but preserves scale.
-- **Immersive mode:** a user-tunable wider FOV prioritizes court awareness over physical 1:1 projection.
+- **Immersive mode:** a user-tunable FOV/zoom prioritizes court awareness and preference over physical 1:1 projection.
 
-Camera location is independent of physical viewer distance. The virtual camera default is eye height 1.70 m, centered, 1.5 m behind the near baseline. Calibration settings are explicit inputs, versioned locally, and included in bug reports/QA captures.
+Physical calibration is optional because the app must also work when users do not know screen dimensions or viewing distance. Camera location is independent of physical viewer distance. The realistic reset is provisionally 1.70 m eye height, centered, 1.5 m behind the near baseline, level horizon, and a default FOV selected during real-display testing.
+
+Users can independently adjust/save eye height, lateral/longitudinal position, yaw, pitch/look target, FOV/zoom, and camera-motion intensity. A preference change cannot alter court geometry, shot coordinates, or event timing. Calibration and view settings are versioned locally and included in explicit diagnostic exports.
 
 Camera motion uses a rig with separate position and gaze/orientation tracks. It must not parent ball or court coordinates, and it should use capped velocity/acceleration plus reduced-motion alternatives.
 
@@ -160,7 +163,7 @@ One declarative timeline coordinates all domains:
 
 ```ts
 type DrillEvent =
-  | { at: number; type: "opponent.clip"; clip: string; playbackRate?: number }
+  | { at: number; type: "opponent.clip"; clip: string; playbackRate?: number; opponentHand?: "left" | "right" }
   | { at: number; type: "ball.launch"; shotId: string }
   | { at: number; type: "camera.path"; pathId: string }
   | { at: number; type: "cue.play"; cueId: string }
@@ -190,7 +193,9 @@ Pause freezes the session clock, animation mixer, ball, camera, and cues as one 
 - `AnimationMixer`/actions for clip playback, fades, warps, and recovery blends.
 - Root-motion strategy decided per clip: extract root translation into the opponent controller or keep animation in-place and animate root separately; never mix strategies accidentally.
 - Racket is attached to a named hand/socket bone and is visible for the opponent.
-- Each stroke clip has sidecar metadata or exported extras for preparation start, contact, follow-through, recoverable end, handedness, and valid playback-rate range.
+- Each stroke clip has sidecar metadata or exported extras for preparation start, contact, follow-through, recoverable end, opponent handedness, and valid playback-rate range.
+- Both opponent hands are represented by accepted distinct clips or by a mirror transform that has separately passed biomechanics, racket-hand, root-motion, and contact review.
+- Serve clips add `serveRhythm: "normal" | "compact"`, toss-release/trophy/contact markers, and rhythm-specific playback bounds. Serve rhythm is not encoded in the ball-speed field.
 
 ### 8.2 Contact quality gate
 
@@ -204,22 +209,28 @@ At the marker frame:
 
 ### 8.3 Asset pipeline
 
-1. Acquire or create a licensed base character and record provenance.
-2. Build/normalize the rig in Blender at meters scale.
-3. Capture tennis-specific motion from licensed footage or mocap; use AI motion capture only as a starting point.
-4. Retarget and hand-clean feet, hips, shoulders, racket hand, non-racket arm, contact, and follow-through.
-5. Bake one action per named clip and add contact metadata.
-6. Export GLB, validate in an independent glTF viewer, optimize geometry/textures, and run the in-app asset validator.
-7. Preserve `.blend`, source footage/license records, export preset/version, and final GLB hash.
+1. Build exact court, net, ball, target-zone, trajectory/debug, and simple modular venue primitives directly in code where parametric precision and tiny payloads are valuable.
+2. Acquire, commission, model, scan, or generate a licensed game-realistic base character; record provider/model/version, prompts/references, input rights, output terms, and provenance.
+3. Normalize topology, separate materials/parts as needed, build/normalize the rig, and set meters/axes in Blender.
+4. Capture tennis-specific motion from licensed footage or mocap. AI auto-rigging/video/text motion is candidate production tooling, not acceptance evidence.
+5. Retarget and hand-clean feet, hips, shoulders, racket hand, non-racket arm, toss, trophy position, contact, follow-through, and recovery.
+6. Bake one action per named clip and add contact/rhythm/hand metadata.
+7. Export GLB, validate in an independent glTF viewer, optimize geometry and KTX2/Basis textures, and run the in-app asset validator.
+8. Preserve `.blend`, source material/license records, generation/capture receipts, export preset/version, and final GLB/content hashes.
+
+Source selection is made through the standardized bake-off in the 2026 AI 3D research note. Blender is the canonical finishing/source-of-truth environment; Blender MCP, if used, is an isolated local productivity helper and never part of the runtime.
 
 ## 9. Rendering architecture
 
 - The renderer adapter owns initialization, resize, pixel ratio, render passes, color management, and capability reporting.
 - The scene layer owns regulation court geometry, net, ball, opponent, lighting, venue, and debug overlays.
 - Standard PBR materials first. Custom effects must work on the chosen backend path or have a tested accessible fallback.
-- Asset loading is manifest-driven with explicit size/hash/version and a progress/error state.
-- Start with one directional key light, environment contribution, baked/static shadows where practical, and a high-quality ball contact shadow. Stadium complexity is deferred.
+- Asset loading is manifest-driven with explicit URL, byte size, hash, cache group, version, compatible skeleton/content versions, and a progress/error state.
+- The critical route loads UI, procedural court, ball, and the chosen drill manifest first. Opponent meshes, animation bundles, alternate appearances, and venue ambience are lazy-loaded by drill and cached under immutable hashed URLs.
+- Start with one directional key light, environment contribution, baked/static shadows where practical, and a high-quality ball contact shadow. V1 includes multiple restrained venue/ambience variants, but they remain lower priority than ball/opponent readability.
 - Adaptive quality can lower pixel ratio, shadow map resolution, anisotropy, texture resolution, post-processing, and venue detail. It cannot reduce simulation frequency or change shot outcomes.
+
+Provisional, benchmark-only delivery budgets are no more than 5 MiB compressed for the critical shell/court path and no more than 15 MiB additional data to start the first game-realistic opponent drill. The complete library may be much larger because it is split, lazy-loaded, and cached; measured first-use and warm-cache behavior, not total repository size, determines acceptance.
 
 ### 9.1 Renderer spike matrix
 
@@ -236,7 +247,7 @@ Capture initialization success, first frame, CPU/GPU frame time, dropped frames,
 - React creates the canvas host and sends typed commands to a long-lived engine instance.
 - High-frequency transforms stay in engine-owned typed structures; React receives throttled status summaries.
 - Global product state is divided into configuration, content selection, session status, and diagnostics.
-- The drill editor, if included, edits immutable versioned definitions and compiles them before playback.
+- The V1 drill editor edits immutable versioned definitions and compiles/validates them before playback.
 - Error boundaries and a renderer boot failure screen remain usable without the canvas.
 
 ## 11. Data contracts and persistence
@@ -252,9 +263,9 @@ Proposed top-level records:
 - `DrillDefinitionV1`
 - `AssetManifestV1`
 
-All records have an explicit schema version. Bundled presets are immutable build assets; user-created drills are copies with separate IDs. Migrations are tested before enabling persistent custom content.
+All records have an explicit schema version. Bundled presets are immutable build assets; user-created drills are copies with separate IDs. Migrations are tested before enabling persistent custom content. JSON import rejects executable content, unknown remote asset references, and incompatible schema versions.
 
-V1 stores calibration, preferences, and local drills in browser storage. No personal data leaves the device unless a later, separately approved feature introduces export, analytics, or accounts.
+V1 stores calibration, preferences, custom drills, and offline-content selection locally. A service worker precaches the shell and explicitly selected drill asset groups, exposes storage/cache state, and degrades clearly when storage quota prevents an offline promise. No personal data leaves the device unless an explicitly initiated export or a later separately approved analytics/account feature does so.
 
 ## 12. Future body-tracking boundary
 
@@ -269,7 +280,7 @@ type PlayerTrackingFrame = {
 };
 ```
 
-MediaPipe Pose Landmarker is a plausible browser candidate because it outputs 33 image/world landmarks. Its web calls are synchronous and can block the main thread, so any spike should use a worker and measure contention with rendering. Camera access requires HTTPS/localhost and explicit user permission. This is a V2 investigation, not a hidden V1 dependency.
+MediaPipe Pose Landmarker is a plausible browser candidate because it outputs 33 image/world landmarks. Its web calls are synchronous and can block the main thread, so any spike should use a worker and measure contention with rendering. Camera access requires HTTPS/localhost and explicit user permission. The eventual tracking adapter can influence camera/timeline behavior only through timestamped confidence-bearing commands with bounded latency and safe fallback. This is the defining V2 investigation, not a hidden V1 dependency.
 
 ## 13. Verification strategy
 
@@ -299,7 +310,7 @@ MediaPipe Pose Landmarker is a plausible browser candidate because it outputs 33
 ### Browser and performance tests
 
 - Primary drill flow, full screen, pause/restart, settings, and renderer fallback.
-- Chrome/Edge Windows reference; Safari macOS and Firefox Windows validation.
+- Chrome/Edge Windows reference; Safari macOS and Firefox Windows validation across agreed low/mid/high device tiers rather than one universal hardware promise.
 - 1080p, 1440p, and 4K/adaptive resolution captures.
 - 30-minute soak, context loss/recovery where feasible, tab visibility pause/resume, and reduced motion.
 - Performance artifacts include frame-time percentiles and renderer/backend/hardware metadata.
@@ -324,7 +335,7 @@ src/
     camera/
     audio/
     rendering/
-  assets/              Runtime manifests and generated bindings
+  assets/              Runtime manifests, cache groups, and generated bindings
   diagnostics/         Debug overlay and evidence capture
 tests/
   numerical/
@@ -333,9 +344,10 @@ tests/
 tools/
   trajectory-authoring/
   asset-validation/
+  asset-bakeoff/
 public/
   assets/
 docs/
 ```
 
-The exact scaffold is intentionally deferred until owner answers and the visual/technical spikes prevent premature dependencies from becoming architecture.
+The exact scaffold is intentionally deferred until the visual, asset, and technical spikes prevent premature dependencies from becoming architecture.

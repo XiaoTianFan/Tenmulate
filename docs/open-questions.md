@@ -1,47 +1,57 @@
-# Open questions and proposed defaults
+# Resolved decisions and open questions
 
-- **Status:** Owner input requested
+- **Status:** Active decision queue
 - **Last updated:** 2026-08-29
 
-The project can begin a narrow technical spike with the proposed defaults, but P0 answers can materially change V1 scope, calibration, assets, and architecture.
+## Resolved by the owner on 2026-08-29
 
-## P0: answer before implementation scope is accepted
+| Topic | Decision |
+| --- | --- |
+| Displays and rooms | Support varied monitors, TVs, projectors, resolutions, computers, viewing distances, and spaces. Provide a realistic default plus adjustable camera position, angle, look target, and FOV/zoom. |
+| Users | The owner is the first player; the public product serves players at multiple levels and coaches. Pace, frequency, and other difficulty parameters are configurable. |
+| V1 breadth | All previously listed must/should/could features are V1 must-haves, including tactical camera movement, serve-and-volley, volleys, overheads, editor, JSON exchange, offline reuse, variants, and high-refresh mode on capable devices. |
+| V1/V2 boundary | V1 is the complete non-tracking product. V2 adds the real-time camera/machine-learning player-movement pipeline and synchronization. |
+| Visual style | Game-realistic, with courts as realistic as practical and game-realistic opponents. |
+| User handedness | Irrelevant to V1 because no near-player body/swing is rendered. Use court-space targets; do not ask for it. |
+| Opponent handedness | Both left- and right-handed opponents must ship. |
+| Serve rhythms | Ship normal high-toss/deeper-trophy and compact low-toss/immediate-upward motions; keep motion rhythm independent of ball pace. |
+| Release model | V1 is a public free app. Long-term direction is freemium under the same branding and rendering pipeline. |
+| Blender MCP | A local asset-production aid only, never part of the shipped browser runtime. |
+
+These decisions are normative in [ADR-0002](decisions/0002-v1-scope-and-release-model.md).
+
+## P0: answer before the vertical slice is scoped
 
 | # | Question | Why it matters | Proposed default |
 | --- | --- | --- | --- |
-| 1 | What exact display setup should V1 optimize for: TV size/resolution, projector, viewing distance, computer/GPU, and available practice space? | Determines FOV calibration, 4K budget, ball visibility, control style, and realistic QA. | Windows laptop/desktop to a 55–65 inch 4K TV, 2.5–3.5 m viewing distance, current Chrome/Edge, 1080p internal render with adaptive upscale/pixel ratio. |
-| 2 | Who is the first user: you personally, club-level adults, juniors, competitive players, or coaches? | Determines pace presets, language, content complexity, and success testing. | Self-directed adult club players, with a coach-friendly debug mode. |
-| 3 | Must V1 include all three groups—groundstrokes, serve returns, and moving tactical/serve-and-volley sequences—or can V1 ship baseline + return first? | This is the largest scope lever and affects the motion library. | V1: baseline and serve return plus limited camera-position presets; volleys/overheads in V1.1. |
-| 4 | What does “realistic” mean for the opponent: stylized-realistic, game-realistic, or near-photoreal? Is there a budget for a licensed/commissioned model and motion capture? | Character fidelity dominates asset cost, load size, and animation cleanup. | Stylized-realistic athlete with excellent silhouette/contact timing; spend effort on motion before skin/hair realism. |
-| 5 | Should a player configure physical display dimensions and viewing distance for calibrated scale, or should the app prioritize a wider, more game-like view? | A single fixed FOV cannot be physically correct across a monitor, TV, and projector. | Offer both; recommend physical-view mode during first-use calibration, with an immersive override. |
-| 6 | Which dominant-hand combinations must ship: right-handed user only initially, both users, right-handed opponent, or both opponent hands? | Changes labels, mirroring validity, contact positions, and animation volume. | Both user hands; right-handed opponent first, adding left-handed serve/stroke clips only after testing whether mirroring remains credible. |
-| 7 | Can we use cloud-based generative 3D/mocap services with uploaded reference media, or must the asset pipeline remain local/private? | Controls tool choices, licensing review, security, and source-video handling. | Local Blender as source of truth; cloud tools only for explicitly approved, non-sensitive assets/footage with reviewed terms. |
-| 8 | Is V1 a private prototype, publicly hosted free app, or the start of a commercial product? | Changes asset licensing, analytics/privacy, browser matrix, polish, legal review, and deployment. | Private prototype that preserves a clean path to commercial licensing. |
+| 1 | Which two or three existing tennis games/videos best express the desired game-realistic opponent, court, lighting, and camera feel? | Makes visual acceptance concrete without requiring photorealism. | One clean practice-court reference plus one game reference emphasizing readable ball/contact timing. |
+| 2 | What is the initial asset-production budget band for the bake-off: free/open-source only, up to US$100, up to US$500, or room for a commissioned/licensed athlete? | Changes whether we test hobby SaaS, studio services, or commissioned art/mocap. | Spend a small capped amount across Tripo, Hunyuan/VISVISE, Rodin, and Meshy before commissioning. |
+| 3 | Can owner-recorded tennis reference video be uploaded to approved cloud mocap services for the bake-off? | Cloud video-to-motion is the fastest way to compare tennis-specific clips; privacy/source rights must be explicit. | Yes for deliberately recorded, non-sensitive footage with informed participants and reviewed terms; otherwise run local or licensed alternatives. |
+| 4 | Which real devices are available for the first performance matrix? | The product supports varied hardware, but the spike still needs reproducible low/mid/high reference tiers. | One mid-tier Windows laptop, one stronger discrete-GPU PC if available, and one lower-power integrated-GPU device connected to at least one 4K display. |
+| 5 | Who can provide the first biomechanics/contact review? | An asset can look polished while serving or striking incorrectly. | Owner review plus one coach or advanced player before a motion family is marked accepted. |
 
-## P1: answer during the vertical slice
+## P1: decide during research and the vertical slice
 
 | # | Question | Proposed default |
 | --- | --- | --- |
-| 9 | Should speed be displayed as launch speed, speed at bounce, pace category, or a simple difficulty level? | Show friendly difficulty plus optional coach metrics for launch/bounce speed. |
-| 10 | Do users need to author arbitrary drills in V1, or are curated presets enough? | Curated presets first; a constrained composer only after preset quality is proven. |
-| 11 | Should surface choice change physics, visuals, or both? | Separate controls: named physics profile and visual theme, paired by default but independently testable. |
-| 12 | How much camera travel is comfortable during shadow swinging? | Conservative preset movements with reduced-motion alternative; no head bob. |
-| 13 | Should the app play racket contact, bounce, shoe, voice countdown, and ambience? | Contact/bounce/countdown on; shoe optional; ambience off by default. |
-| 14 | Is offline use required at clubs/venues with unreliable internet? | Make the static app cacheable; defer a formal installable PWA requirement until asset size is measured. |
-| 15 | Which languages must V1 support? | English-only prototype with localization-ready strings. |
-| 16 | Is there a tennis coach/advanced player available to review trajectories and opponent biomechanics? | Require at least one expert reviewer before calling a shot family realistic. |
+| 6 | Direct Three.js geometry, Blender/GLB, or both? | Hybrid: code-own exact court/net/ball/training markers; GLB for skinned opponents and complex authored props; validate in ADR-0003. |
+| 7 | Which generator/mocap chain wins the asset bake-off? | Compare at least one Chinese end-to-end route, one Chinese modular route, one international end-to-end route, and a licensed/commissioned baseline. |
+| 8 | What should the default FOV be when no physical display measurements are entered? | Choose from real-screen perception tests; keep the value visible and provide one-action reset. |
+| 9 | Which performance tiers and quality presets are promised publicly? | Publish measured tiers after the vertical slice; do not promise universal 4K/120 fps. |
+| 10 | Is the first public host a static site plus separate object/CDN assets, or one platform for both? | Affects cache headers, egress, deploy/rollback, and asset URL versioning. | Static app plus immutable versioned object/CDN asset origin. |
+| 11 | How many opponent appearances must V1 include? | “Multiple” needs a testable count and asset budget. | Two appearances sharing compatible skeleton/animation data where licensing permits. |
+| 12 | Which languages ship in V1? | Public reach and UI/voice-cue scope. | English first, architecture localization-ready; add Chinese if owner wants a bilingual launch. |
 
 ## P2: decide before public release
 
-- Brand/project name: is **Tenmulate** intentional and final?
-- Exact browser and minimum hardware support policy.
-- Analytics: none, local diagnostics only, or opt-in product analytics.
-- Accessibility targets beyond the initial keyboard, reduced-motion, audio, and contrast requirements.
-- Asset/source attribution display and license record format.
-- Hosting, domain, update cadence, and error-reporting channel.
-- Whether custom drills can be exported/imported and what compatibility guarantees they receive.
-- Whether future body-tracking data is processed strictly on-device and whether any frames may ever be stored.
+- Brand/project name: whether **Tenmulate** is final and clearable.
+- Exact minimum browser/hardware policy and unsupported-device messaging.
+- Analytics: none, local diagnostics, or explicit opt-in product analytics.
+- Public privacy, acceptable-use, accessibility, asset attribution, and support/error-reporting pages.
+- Hosting provider, domain, storage/egress budget, cache policy, deployment cadence, and rollback owner.
+- Commercialization sequencing, premium value boundary, account provider, and payment jurisdiction; none is required for public-free V1.
+- Whether V2 tracking is strictly on-device and whether frames may ever be stored or uploaded.
 
-## Suggested first response
+## Recommended next decision session
 
-The quickest way to unblock the next stage is to answer questions **1–8**, even approximately. Photos, room measurements, a TV/projector model, or a reference game/video for the desired visual realism would be especially useful. No purchase or cloud upload is needed for the initial renderer/trajectory spike.
+Bring two visual references, the available test-device list, and an approximate asset-spend ceiling. We can then approve the visual target and run the asset/renderer vertical slice without turning any cloud generator into a runtime dependency.

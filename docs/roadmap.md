@@ -3,130 +3,145 @@
 - **Status:** Draft
 - **Last updated:** 2026-08-29
 
-This roadmap is ordered by uncertainty and integration risk. It deliberately uses evidence gates instead of calendar promises. Relative estimates can be added once the target display, V1 content scope, and asset strategy are confirmed.
+This roadmap is ordered by uncertainty and integration risk. V1 is one complete public-free, non-tracking product; features are not split into must/should/could or a V1.1. Calendar estimates follow the vertical slice and asset bake-off.
 
-## Phase 0: Product and environment alignment
+## Phase 0: Product, visual, and asset alignment
 
 ### Deliverables
 
-- Resolve the priority items in [Open questions](open-questions.md).
-- Approve V1 must/should/could scope and non-goals.
-- Select reference hardware, browser, display size, viewing distance, and room setup.
-- Decide whether the initial audience is self-directed players, coaches, or both.
-- Approve the intended opponent art direction and asset budget path.
-- Generate and approve a complete visual concept for setup, drill selection, active rehearsal, pause, and completion states.
+- Record the accepted V1/V2 boundary and public-free release model.
+- Approve a complete game-realistic visual concept for setup, drill selection/editor, rehearsal, pause, diagnostics, and completion.
+- Run the standardized opponent/animation bake-off in the AI 3D research note.
+- Select a provisional character source, motion source, Blender cleanup workflow, and commercial provenance record.
+- Define reference performance tiers rather than one mandatory room/display/GPU.
+- Confirm the first tennis biomechanics reviewer and initial hosting/CDN experiment.
 
 ### Exit gate
 
-The owner can describe the first useful session, target hardware, included V1 shot families, and accepted visual direction without unresolved P0 ambiguity.
+The owner has accepted the visual direction, one provisional asset pipeline, the reference performance matrix, and the first useful-session walkthrough. Unpriced or unlicensed production assets cannot pass this gate.
 
 ## Phase 1: Risk-reduction vertical slice
 
-Build one standards-dimension court, one camera calibration screen, one animated forehand opponent clip, and one ball that crosses the net, bounces, and reaches the receiver plane.
+Build one standards-dimension procedural court, camera calibration/preferences, one game-realistic animated opponent, and one ball that crosses the net, bounces, and reaches the receiver plane.
 
 ### Workstreams
 
 1. Scaffold React/TypeScript/Vite with engine/UI boundaries.
-2. Implement regulation court coordinates and camera calibration.
-3. Implement a high-resolution reference trajectory solver and a candidate real-time fixed-step solver.
-4. Add a debug trajectory path and numerical event report.
+2. Implement regulation court coordinates and adjustable camera calibration.
+3. Implement a high-resolution reference trajectory solver and real-time fixed-step candidate.
+4. Add debug trajectory/event evidence.
 5. Synchronize one opponent contact marker to launch.
-6. Run the WebGPU/WebGL 2 renderer comparison.
-7. Test at 1080p and target 4K/display setup.
+6. Compare WebGPU, forced WebGL 2, and mature WebGLRenderer paths.
+7. Compare an optimized GLB opponent against one code-generated court on 1080p and 4K displays.
+8. Measure initial bytes, parse/decode, first frame, warm cache, and offline behavior.
 
 ### Exit gate
 
-- Ball landing, net clearance, bounce, and arrival values pass numerical tolerances.
-- Contact looks connected in frame-step and normal-speed review.
-- Renderer choice has measured startup/performance/visual evidence.
-- Physical-view and immersive FOV modes have been tested on a real target screen.
-- ADR-0001 is accepted or replaced.
+- Ball landing, net clearance, bounce, and arrival pass numerical tolerances.
+- Contact passes frame-step and normal-speed review.
+- Renderer selection has measured compatibility/performance/visual evidence.
+- Realistic default and user-adjusted physical/immersive views pass a real-screen review.
+- ADR-0001 and ADR-0003 are accepted, replaced, or narrowed using the evidence.
 
-## Phase 2: Groundstroke lab
+## Phase 2: Baseline laboratory and core player
 
 ### Deliverables
 
-- Forehand/backhand/body target zones.
-- Flat/topspin/slice families with explicit pace, depth, height, and spin controls.
-- Hard-court surface physics baseline and separate visual themes.
-- Single-shot repeat player with countdown, interval, pause, replay, and seeded variation.
-- Learning-mode trajectory/target cues and rehearsal-mode clean view.
-- Coach/debug metrics and a shot-authoring validation tool.
-- Initial opponent idle, split-step, groundstroke, and recovery clips.
+- Near-left/body/near-right targets; cross-court/down-line/inside-out/inside-in metadata.
+- Flat/topspin/slice families with explicit pace, frequency, depth, height, spin, and variation controls.
+- Hard-court physics baseline plus three independently selectable visual themes.
+- Single-shot/work-rest player with countdown, pause, replay, slow motion, exact seed replay, and learning/rehearsal modes.
+- Opponent idle, split-step, both-hand groundstrokes, footwork, and recovery clips.
+- Coach/debug metrics and authoring validation.
 
 ### Exit gate
 
-At least 12 single-shot presets pass deterministic numerical tests, contact review, and coach/user perception checks. A 30-minute soak is stable on reference hardware.
+At least 12 groundstroke presets pass deterministic tests, contact review, camera-comfort review, and owner/coach perception checks. A 30-minute baseline soak is stable.
 
-## Phase 3: Serve and return visualization
+## Phase 3: Serve and return system
 
 ### Deliverables
 
-- Serve toss/contact/recovery animations.
-- Flat, slice, and kick serve flight/bounce profiles.
-- Deuce/ad court and T/body/wide service-box zones.
-- Returner camera presets and service recognition drill.
-- Serve-specific bounce and receiver-plane validation.
+- Left- and right-handed server variants.
+- Normal high-toss/deeper-trophy and compact low-toss/immediate-upward serve rhythms.
+- Ball pace independent of motion rhythm.
+- Flat, slice, and kick profiles; deuce/ad and T/body/wide zones.
+- Return camera presets, recognition drills, and serve-specific validation.
 
 ### Exit gate
 
-At least four serve presets land legally, remain synchronized to opponent contact, and are distinguishable by target users above an agreed threshold.
+At least eight serve presets cover both hands and rhythms, land legally, stay contact-synchronized, and are perceptually distinguishable in player testing.
 
-## Phase 4: Tactical sequence engine
+## Phase 4: Tactical movement and net play
 
 ### Deliverables
 
-- Declarative timeline compiler for opponent, ball, camera, rest, and cue events.
-- Baseline sequence presets, exact replay, and bounded seeded variation.
-- Center/corner/short-forward camera paths with reduced-motion alternatives.
-- Local custom drill composition if it remains in V1.
-- Content/asset schema validation and migration tests.
+- Declarative timeline compiler for opponent, ball, camera, cues, and rest.
+- Baseline tactical combinations and bounded seeded variation.
+- Lateral recovery, advance/retreat, approach, first/second volley, lob, overhead, and recovery camera paths.
+- Approach, volley, half-volley where required, lob, and overhead animation/ball families.
+- Serve-and-volley and requested multi-ball strategic patterns.
+- Reduced-motion alternative for every moving-camera sequence.
 
 ### Exit gate
 
-Two multi-shot patterns run without timeline drift through repeated pause/resume/restart cycles and remain deterministic across render refresh rates.
+Four multi-shot patterns, including serve-and-volley and overhead movement, remain deterministic through pause/resume/restart and pass motion-comfort, animation-contact, and timing review.
 
-## Phase 5: V1 production hardening
+## Phase 5: Local authoring, variants, and offline delivery
 
 ### Deliverables
 
-- Approved opponent/court/ball production assets with provenance.
-- Adaptive 1080p–4K quality levels and loading/caching strategy.
-- Keyboard/full-screen/accessibility/safety pass.
-- Browser matrix, long soak, asset failure, and fallback testing.
-- Complete concept-to-browser visual fidelity review.
-- User/coach testing, issue triage, release notes, and deployment runbook.
+- Timeline editor with opponent, ball, camera, cue, and rest tracks.
+- Pre-play content/asset/schema validation.
+- Versioned drill JSON export/import and migrations.
+- Multiple opponent appearances and venue/ambience variants.
+- Service worker/offline UX and user-selected asset caching.
+- Lazy asset manifests, compressed GLB/textures, immutable caching, loading and error recovery.
+- Runtime capability check for optional 90/120 fps mode.
 
 ### Exit gate
 
-Every V1 release criterion in the PRD has evidence. Any deferred item is explicit and does not masquerade as implemented or deployed.
+One custom drill in every major family survives save, reload, export, import, replay, and offline use. Cold/warm loading and storage consumption are documented on the matrix.
 
-## Phase 6: V1.1 candidate work
+## Phase 6: Public V1 production hardening
 
-- Approach, volley, second volley, overhead, and serve-and-volley sequences.
-- Timeline editor improvements and drill JSON import/export.
-- Additional surface physics and venue/opponent variants.
-- Optional higher-refresh-rate mode.
+### Deliverables
 
-Each candidate returns to a product-scope gate; none is automatically included because the engine can technically support it.
+- Approved production assets with source, license, cleanup, export, and hash provenance.
+- Adaptive 1080p–4K quality levels and measured browser/device tiers.
+- Full-screen, keyboard, accessibility, safety, and reduced-motion pass.
+- Browser matrix, long soak, context loss, asset failure, and fallback testing.
+- User/coach testing across multiple levels and actual TVs/projectors.
+- Public hosting/CDN validation, privacy/legal pages, release notes, and deployment/rollback runbook.
 
-## V2 research track: body tracking
+### Exit gate
 
-This begins only after V1 is useful without a camera.
+Every V1 release criterion in the PRD has current evidence. The deployed public build and asset origins are verified; local completion is not described as deployment.
 
-1. Local webcam permission and privacy UX.
-2. Worker-isolated pose inference benchmark alongside 3D rendering.
-3. Calibration from camera landmarks to court/player coordinates.
+## V2: camera-based player tracking and synchronization
+
+V2 begins only after V1 is useful without a camera.
+
+1. Permission, capture-state, privacy, and retention UX.
+2. Worker-isolated pose/movement inference benchmark alongside rendering.
+3. Calibration from camera observations to player/court coordinates.
 4. Confidence, occlusion, latency, and lost-tracking behavior.
-5. A narrow interaction experiment such as stance/side recognition before swing grading.
-6. Safety and product-claim review before camera-driven camera motion or technique feedback.
+5. Camera/timeline synchronization with detected movement.
+6. Narrow timing/coordination feedback experiments before any technique claims.
+7. Safety, privacy, and product-claim review before release.
 
-## Cross-cutting evidence expected per milestone
+## Separate commercialization track
 
-- Requirement IDs covered.
-- Current Git commit and asset hashes.
+The first release is public and free. A future freemium track may add accounts, payments, entitlements, premium content, or cloud sync while preserving the V1 rendering, simulation, asset, and drill schemas. It is not allowed to hold the core V1 training features hostage or become an implicit V2 dependency.
+
+## Cross-cutting evidence per milestone
+
+- Requirement IDs and ADRs covered.
+- Git commit and asset hashes.
 - Numerical test report for every new shot/surface.
-- Browser/device/backend matrix used.
-- Performance measurements and screenshots/video where relevant.
-- Manual coach/owner review gates still outstanding.
-- Documentation and ADR updates committed with the work.
+- Browser/device/backend/display matrix.
+- Frame-time, memory, loading, and asset-byte measurements.
+- Screenshots/video and animation-contact evidence where relevant.
+- Asset/model/input/output licenses and source provenance.
+- Manual owner/coach gates still outstanding.
+- Documentation committed with the work.

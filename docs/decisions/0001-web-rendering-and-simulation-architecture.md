@@ -16,8 +16,8 @@ The product needs a first-person 3D court, animated opponent, high-speed tennis 
 4. Maintain a benchmark comparison with forced WebGL 2 and, if practical, `WebGLRenderer` before accepting the renderer decision.
 5. Implement the tennis ball as a custom fixed-step 3D numerical model with gravity, drag, Magnus lift, exact court/net events, and calibrated bounce response.
 6. Use Rapier only if later collision-heavy features justify a general physics world.
-7. Use Blender-authored GLB assets with explicit animation contact metadata.
-8. Keep body tracking behind a future worker-isolated adapter and out of V1.
+7. Use code-generated parametric court primitives plus Blender-validated GLB for skinned opponents and complex assets, with explicit animation contact, handedness, and serve-rhythm metadata. The source generator/model remains open until ADR-0003's bake-off.
+8. Keep camera-based player tracking behind a future worker-isolated adapter and out of V1; it is the defining V2 boundary.
 
 ## Rationale
 
@@ -61,7 +61,7 @@ Guaranteed endpoints but weak physical meaning and poor generalization. Allowed 
 - Explicit, testable boundaries among UI, timeline, simulation, animation, camera, and rendering.
 - Deterministic content definitions and replay.
 - Renderer migration remains localized.
-- V1 can deploy as a static front-end application.
+- Public-free V1 can deploy as a static front-end application with separately cached versioned assets.
 - Future camera/ML work does not contaminate initial privacy or performance.
 
 ### Negative
