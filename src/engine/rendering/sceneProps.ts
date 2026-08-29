@@ -29,7 +29,7 @@ export const createNet = (materials: SceneMaterialLibrary): THREE.Group => {
   }
   group.add(new THREE.LineSegments(
     new THREE.BufferGeometry().setFromPoints(points),
-    new THREE.LineBasicMaterial({ color: 0xbcc6c7, transparent: true, opacity: 0.5 }),
+    new THREE.LineBasicMaterial({ color: 0x34454a, transparent: true, opacity: 0.62 }),
   ));
   const tapePoints: THREE.Vector3[] = [];
   for (let index = 0; index <= 48; index += 1) {
@@ -76,7 +76,7 @@ export const createRestBench = (materials: SceneMaterialLibrary, side: -1 | 1): 
   for (const z of [-1.35, 1.35]) {
     group.add(box(0.08, 2.15, 0.08, materials.lightMetal, side * 0.5, 1.08, z));
   }
-  const canopy = box(1.65, 0.12, 3.25, materials.roof, side * 0.1, 2.18, 0);
+  const canopy = box(1.65, 0.12, 3.25, materials.blueSeat, side * 0.1, 2.18, 0);
   canopy.rotation.z = side * -0.08;
   group.add(canopy);
   group.position.set(side * 6.8, 0, 2.3);
@@ -86,8 +86,8 @@ export const createRestBench = (materials: SceneMaterialLibrary, side: -1 | 1): 
 export const createUmpireChair = (materials: SceneMaterialLibrary): THREE.Group => {
   const group = new THREE.Group();
   group.name = 'umpire-chair';
-  group.add(box(0.75, 0.12, 0.62, materials.blueSeat, 0, 1.7, 0));
-  group.add(box(0.75, 0.72, 0.1, materials.blueSeat, 0, 2.04, 0.27));
+  group.add(box(0.75, 0.12, 0.62, materials.paleSeat, 0, 1.7, 0));
+  group.add(box(0.75, 0.72, 0.1, materials.paleSeat, 0, 2.04, 0.27));
   group.add(box(0.9, 0.07, 0.74, materials.roof, 0, 2.48, 0));
   group.add(box(0.08, 1.7, 0.08, materials.lightMetal, -0.32, 0.85, 0));
   group.add(box(0.08, 1.7, 0.08, materials.lightMetal, 0.32, 0.85, 0));
@@ -176,7 +176,13 @@ export const createBleachers = (
   }
   group.add(instancedBoxes(0.42, 0.08, 0.42, materials.blueSeat, seats));
   group.add(instancedBoxes(0.08, 0.42, 0.42, materials.blueSeat, backs));
-  group.position.set(side * 8.1, 0, 3.1);
+  const railX = -side * 0.46;
+  group.add(box(0.055, 0.055, length, materials.darkMetal, railX, 1.03, 0));
+  for (let z = -length / 2; z <= length / 2 + 0.01; z += 1.55) {
+    group.add(box(0.055, 1.02, 0.055, materials.darkMetal, railX, 0.51, z));
+  }
+  group.scale.set(0.68, 0.68, 1);
+  group.position.set(side * 8.65, 0, 3.1);
   return group;
 };
 
@@ -206,16 +212,38 @@ export const createBroadleafTree = (
   group.add(cylinder(0.15 * scale, 2.8 * scale, materials.trunk, 0, 1.4 * scale, 0, 10));
   const foliage = materials.foliage[variant % materials.foliage.length];
   const clusters: readonly [number, number, number, number][] = [
-    [0, 3.25, 0, 1.35], [-0.72, 3.05, 0.12, 0.92], [0.68, 3.1, 0.22, 1], [0.1, 3.72, -0.28, 0.92],
+    [0, 3.24, 0, 1.08], [-0.82, 3.02, 0.12, 0.82], [0.78, 3.07, 0.22, 0.88],
+    [0.08, 3.86, -0.25, 0.76], [-0.5, 3.62, -0.52, 0.72], [0.52, 3.54, -0.48, 0.74],
+    [-1.02, 3.45, -0.34, 0.62], [1.02, 3.42, -0.18, 0.64], [0.02, 2.9, 0.62, 0.76],
   ];
   for (const [cx, cy, cz, radius] of clusters) {
-    const crown = new THREE.Mesh(new THREE.SphereGeometry(radius * scale, 12, 8), foliage);
+    const crown = new THREE.Mesh(new THREE.SphereGeometry(radius * scale, 14, 9), foliage);
     crown.position.set(cx * scale, cy * scale, cz * scale);
     crown.scale.y = 0.8;
     crown.castShadow = true;
     crown.receiveShadow = true;
     group.add(crown);
   }
+  const leafGeometry = new THREE.DodecahedronGeometry(0.2 * scale, 0);
+  const leafTufts = new THREE.InstancedMesh(leafGeometry, materials.foliage[(variant + 1) % materials.foliage.length], 28);
+  const helper = new THREE.Object3D();
+  for (let index = 0; index < 28; index += 1) {
+    const angle = index * 2.399963 + variant * 0.71;
+    const band = (index % 7) / 6;
+    const radius = (0.72 + (index % 5) * 0.09) * scale;
+    helper.position.set(
+      Math.cos(angle) * radius,
+      (2.72 + band * 1.34) * scale,
+      Math.sin(angle) * radius * 0.72,
+    );
+    helper.scale.setScalar(0.72 + (index % 4) * 0.14);
+    helper.rotation.set(angle * 0.17, angle, band * 0.4);
+    helper.updateMatrix();
+    leafTufts.setMatrixAt(index, helper.matrix);
+  }
+  leafTufts.castShadow = true;
+  leafTufts.receiveShadow = true;
+  group.add(leafTufts);
   group.position.set(x, 0, z);
   return group;
 };
@@ -238,8 +266,26 @@ export const createHedge = (
   depth: number,
   x: number,
   z: number,
-): THREE.Mesh => {
-  const hedge = box(width, height, depth, materials.hedge, x, height / 2, z);
-  hedge.geometry.translate(0, 0.02, 0);
-  return hedge;
+): THREE.Group => {
+  const group = new THREE.Group();
+  group.add(box(width, height * 0.88, depth, materials.hedge, 0, height * 0.44, 0));
+  const clumpCount = Math.max(3, Math.round(width / 0.65));
+  const clumps = new THREE.InstancedMesh(
+    new THREE.DodecahedronGeometry(Math.min(0.38, height * 0.3), 1),
+    materials.foliage[2],
+    clumpCount,
+  );
+  const helper = new THREE.Object3D();
+  for (let index = 0; index < clumpCount; index += 1) {
+    helper.position.set(-width / 2 + (index + 0.5) * (width / clumpCount), height * 0.86, ((index % 3) - 1) * depth * 0.16);
+    helper.scale.set(1.2, 0.62 + (index % 2) * 0.14, 1);
+    helper.rotation.y = index * 1.7;
+    helper.updateMatrix();
+    clumps.setMatrixAt(index, helper.matrix);
+  }
+  clumps.castShadow = true;
+  clumps.receiveShadow = true;
+  group.add(clumps);
+  group.position.set(x, 0, z);
+  return group;
 };

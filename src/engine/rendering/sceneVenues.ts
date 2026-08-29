@@ -12,6 +12,67 @@ import {
   createLightPole,
 } from './sceneProps';
 
+const createSkyDome = (horizon: number, zenith: number, cloudAmount = 0.38): THREE.Mesh => {
+  const material = new THREE.ShaderMaterial({
+    side: THREE.BackSide,
+    depthWrite: false,
+    fog: false,
+    uniforms: {
+      horizonColor: { value: new THREE.Color(horizon) },
+      zenithColor: { value: new THREE.Color(zenith) },
+      cloudAmount: { value: cloudAmount },
+    },
+    vertexShader: `
+      varying vec3 vDirection;
+      void main() {
+        vDirection = normalize(position);
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform vec3 horizonColor;
+      uniform vec3 zenithColor;
+      uniform float cloudAmount;
+      varying vec3 vDirection;
+      float hash(vec2 p) {
+        p = fract(p * vec2(123.34, 456.21));
+        p += dot(p, p + 45.32);
+        return fract(p.x * p.y);
+      }
+      float noise(vec2 p) {
+        vec2 i = floor(p);
+        vec2 f = fract(p);
+        f = f * f * (3.0 - 2.0 * f);
+        return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0)), f.x), f.y);
+      }
+      float fbm(vec2 p) {
+        float value = 0.0;
+        float amplitude = 0.52;
+        for (int i = 0; i < 5; i++) {
+          value += noise(p) * amplitude;
+          p = p * 2.03 + vec2(1.7, 2.4);
+          amplitude *= 0.5;
+        }
+        return value;
+      }
+      void main() {
+        float blend = pow(clamp(vDirection.y * 0.85 + 0.18, 0.0, 1.0), 0.72);
+        vec3 sky = mix(horizonColor, zenithColor, blend);
+        vec2 cloudUv = vDirection.xz * 3.4 / max(0.32, vDirection.y + 0.54);
+        float cloudNoise = fbm(cloudUv);
+        float altitudeMask = smoothstep(0.02, 0.2, vDirection.y) * (1.0 - smoothstep(0.56, 0.82, vDirection.y));
+        float clouds = smoothstep(0.61, 0.77, cloudNoise) * altitudeMask * cloudAmount;
+        vec3 cloudColor = mix(vec3(0.78, 0.84, 0.88), vec3(1.0), smoothstep(0.62, 0.88, cloudNoise));
+        gl_FragColor = vec4(mix(sky, cloudColor, clouds), 1.0);
+      }
+    `,
+  });
+  const sky = new THREE.Mesh(new THREE.SphereGeometry(96, 32, 18), material);
+  sky.name = 'procedural-sky-dome';
+  sky.renderOrder = -10;
+  return sky;
+};
+
 const createOutdoorClubhouse = (materials: SceneMaterialLibrary): THREE.Group => {
   const group = new THREE.Group();
   group.name = 'clubhouse-and-veranda';
@@ -29,10 +90,10 @@ const createOutdoorClubhouse = (materials: SceneMaterialLibrary): THREE.Group =>
     group.add(box(0.09, 2.35, 0.12, materials.darkMetal, x + 0.8, 1.65, -2.1));
   }
 
-  const leftRoof = box(16.9, 0.18, 3.3, materials.roof, 0, 4.18, -1.35);
-  leftRoof.rotation.x = -0.16;
-  const rightRoof = box(16.9, 0.18, 3.3, materials.roof, 0, 4.18, 1.85);
-  rightRoof.rotation.x = 0.16;
+  const leftRoof = box(16.9, 0.2, 4.1, materials.roof, 0, 4.16, -1.65);
+  leftRoof.rotation.x = -0.28;
+  const rightRoof = box(16.9, 0.2, 4.1, materials.roof, 0, 4.16, 2.15);
+  rightRoof.rotation.x = 0.28;
   group.add(leftRoof, rightRoof);
   group.add(box(17.1, 0.16, 0.14, materials.lightMetal, 0, 4.43, 0.25));
 
@@ -41,6 +102,33 @@ const createOutdoorClubhouse = (materials: SceneMaterialLibrary): THREE.Group =>
     group.add(planter);
     group.add(createHedge(materials, 0.92, 0.72, 0.92, x, -3.1));
   }
+  for (const x of [-6.1, -4.7, -1.2, 1.2, 4.7, 6.1]) {
+    const shrub = new THREE.Mesh(new THREE.SphereGeometry(0.38, 12, 8), materials.foliage[Math.abs(Math.round(x)) % materials.foliage.length]);
+    shrub.position.set(x, 0.72, -2.72);
+    shrub.scale.set(1, 1.35, 0.72);
+    shrub.castShadow = true;
+    group.add(shrub);
+  }
+  for (const roofX of [-7.2, -5.4, -3.6, -1.8, 0, 1.8, 3.6, 5.4, 7.2]) {
+    const frontSeam = box(0.035, 0.06, 4.02, materials.lightMetal, roofX, 4.29, -1.65);
+    frontSeam.rotation.x = -0.28;
+    const rearSeam = box(0.035, 0.06, 4.02, materials.lightMetal, roofX, 4.29, 2.15);
+    rearSeam.rotation.x = 0.28;
+    group.add(frontSeam, rearSeam);
+  }
+
+  for (const child of [...group.children]) child.position.y += 2.6;
+  group.add(box(18.6, 2.6, 7.1, materials.paleConcrete, 0, 1.3, 0));
+  group.add(box(19.4, 0.18, 7.8, materials.concrete, 0, 2.57, -0.08));
+  for (let step = 0; step < 12; step += 1) {
+    group.add(box(5.2 + step * 0.36, 0.22, 0.52, materials.paleConcrete, 0, 0.12 + step * 0.22, -6.45 + step * 0.38));
+  }
+  for (const side of [-1, 1]) {
+    group.add(box(5.1, 0.07, 0.07, materials.darkMetal, side * 5.85, 3.55, -3.35));
+    for (const xOffset of [-2.4, 0, 2.4]) {
+      group.add(box(0.06, 0.9, 0.06, materials.darkMetal, side * 5.85 + xOffset, 3.12, -3.35));
+    }
+  }
   group.position.set(0, 0, 22.25);
   return group;
 };
@@ -48,6 +136,7 @@ const createOutdoorClubhouse = (materials: SceneMaterialLibrary): THREE.Group =>
 const createOutdoorClub = (materials: SceneMaterialLibrary): THREE.Group => {
   const group = new THREE.Group();
   group.name = 'scene-outdoor-club';
+  group.add(createSkyDome(0xb9ddf2, 0x4f98d1));
   group.add(box(58, 0.16, 76, materials.grass, 0, -0.18, 3));
   group.add(createFenceEnclosure(materials));
   group.add(createBleachers(materials, -1, 4, 12, 9.4));
@@ -65,6 +154,7 @@ const createOutdoorClub = (materials: SceneMaterialLibrary): THREE.Group => {
     [-17, 13, 1.2, 0], [-14.5, 20.5, 1.45, 1], [-10.8, 25.5, 1.1, 2], [-19, 1, 1.25, 1],
     [17, 12.5, 1.3, 1], [14.8, 21.5, 1.48, 0], [10.8, 25.8, 1.05, 2], [19, 0, 1.2, 0],
     [-7.5, 28, 1.2, 1], [7.6, 28.5, 1.22, 0], [-22, 20, 1.45, 2], [22, 20, 1.4, 1],
+    [-11, 29, 1.26, 0], [-4.5, 30, 1.18, 2], [4.4, 30, 1.2, 1], [11, 29, 1.28, 2],
   ];
   for (const [x, z, scale, variant] of treePositions) group.add(createBroadleafTree(materials, x, z, scale, variant));
   return group;
@@ -73,6 +163,7 @@ const createOutdoorClub = (materials: SceneMaterialLibrary): THREE.Group => {
 const createClayTerrace = (materials: SceneMaterialLibrary): THREE.Group => {
   const group = new THREE.Group();
   group.name = 'scene-clay-terrace';
+  group.add(createSkyDome(0xe7b681, 0x739fc1, 0.16));
   group.add(box(62, 0.18, 78, materials.clayStone, 0, -0.19, 4));
   group.add(createFenceEnclosure(materials, 22, 36.5, 3));
   for (const side of [-1, 1]) {
@@ -97,6 +188,7 @@ const createClayTerrace = (materials: SceneMaterialLibrary): THREE.Group => {
 const createGrassParkNight = (materials: SceneMaterialLibrary): THREE.Group => {
   const group = new THREE.Group();
   group.name = 'scene-grass-park-night';
+  group.add(createSkyDome(0x101f2a, 0x030811, 0));
   group.add(box(66, 0.18, 82, materials.grass, 0, -0.2, 3));
   group.add(createFenceEnclosure(materials, 23, 37, 2.8));
   group.add(createBleachers(materials, -1, 3, 10, 8));

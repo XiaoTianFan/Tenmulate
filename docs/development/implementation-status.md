@@ -166,3 +166,11 @@ The detailed status of every requirement is recorded in the [V1 release matrix](
 - Built the first Panel 1 composition pass and functional identity scaffolds for the remaining five scenes. All six were switched and captured at 1920 × 1080 with zero browser console errors.
 - `npm run build` passes; the complete unit/content/storage suite passes at 53 tests.
 - Playwright's headed Chromium was OS-background-throttled to roughly 1 request-animation-frame per second, so that metric is explicitly invalid as scene-performance evidence. Foreground target-device profiling remains required.
+
+### Panel 1 fidelity slice 1 — complete
+
+- Iterated four browser renders against the accepted player-level reference, plus a separate wide-player render for enclosure and side-context inspection.
+- Raised the clubhouse on a modeled terrace with central stairs, veranda glazing/columns, planters, shrubs, railings, and a correctly camera-facing standing-seam roof.
+- Tuned court/runoff albedo, repeating scale, micro-normal response, net darkness, fence opacity, seating scale, shelter color, and umpire-chair readability from direct image comparison.
+- Replaced spherical cloud props with a procedural gradient/fBM sky shader and added instanced foliage/hedge edge detail to break the original primitive silhouettes.
+- The exact court, camera, ball, lighting controls, and surface/physics independence remain unchanged. Full build and all 53 tests pass; final 1920 × 1080 player/wide renders report zero browser console errors.

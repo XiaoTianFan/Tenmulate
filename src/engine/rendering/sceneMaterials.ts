@@ -52,7 +52,7 @@ const createSurfaceTexture = (
   repeatY: number,
   stripeStrength = 0,
 ): THREE.DataTexture => {
-  const size = 64;
+  const size = 96;
   const data = new Uint8Array(size * size * 4);
   const base = new THREE.Color(color);
   const random = seededRandom(seed);
@@ -79,45 +79,78 @@ const createSurfaceTexture = (
   return texture;
 };
 
+const createMicroNormalTexture = (seed: number, repeatX: number, repeatY: number): THREE.DataTexture => {
+  const size = 96;
+  const random = seededRandom(seed);
+  const heights = new Float32Array(size * size);
+  for (let index = 0; index < heights.length; index += 1) heights[index] = random();
+  const data = new Uint8Array(size * size * 4);
+  const sample = (x: number, y: number) => heights[((y + size) % size) * size + ((x + size) % size)];
+  for (let y = 0; y < size; y += 1) {
+    for (let x = 0; x < size; x += 1) {
+      const dx = (sample(x + 1, y) - sample(x - 1, y)) * 0.32;
+      const dy = (sample(x, y + 1) - sample(x, y - 1)) * 0.32;
+      const normal = new THREE.Vector3(-dx, -dy, 1).normalize();
+      const index = (y * size + x) * 4;
+      data[index] = Math.round((normal.x * 0.5 + 0.5) * 255);
+      data[index + 1] = Math.round((normal.y * 0.5 + 0.5) * 255);
+      data[index + 2] = Math.round((normal.z * 0.5 + 0.5) * 255);
+      data[index + 3] = 255;
+    }
+  }
+  const texture = new THREE.DataTexture(data, size, size, THREE.RGBAFormat);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(repeatX, repeatY);
+  texture.minFilter = THREE.LinearMipmapLinearFilter;
+  texture.generateMipmaps = true;
+  texture.needsUpdate = true;
+  return texture;
+};
+
 const standard = (color: number, roughness: number, metalness = 0): THREE.MeshStandardMaterial => (
   new THREE.MeshStandardMaterial({ color, roughness, metalness })
 );
 
 export const createSceneMaterialBundle = (surface: SurfaceId): SceneMaterialBundle => {
-  const hard = createSurfaceTexture(0x2a70a6, 81, 0.035, 9, 20);
+  const hard = createSurfaceTexture(0x3b83b8, 81, 0.018, 7, 15);
   const clay = createSurfaceTexture(0xb55e35, 143, 0.075, 10, 22);
   const grass = createSurfaceTexture(0x477b3d, 277, 0.04, 8, 18, 0.018);
-  const runoff = createSurfaceTexture(0x477b58, 391, 0.035, 10, 18);
+  const runoff = createSurfaceTexture(0x6f965f, 391, 0.018, 8, 14);
   const concrete = createSurfaceTexture(0xb3b4ae, 503, 0.045, 8, 8);
   const timber = createSurfaceTexture(0x9a6742, 631, 0.045, 2, 10, 0.012);
-  const roof = createSurfaceTexture(0x66757d, 719, 0.028, 14, 2, 0.014);
+  const roof = createSurfaceTexture(0x87939a, 719, 0.026, 14, 2, 0.014);
+  const courtNormal = createMicroNormalTexture(809, 12, 24);
+  const runoffNormal = createMicroNormalTexture(907, 12, 22);
   const surfaceMaps: Readonly<Record<SurfaceId, THREE.Texture>> = { hard, clay, grass };
 
   const court = new THREE.MeshStandardMaterial({
     color: 0xffffff,
     map: surfaceMaps[surface],
+    normalMap: courtNormal,
+    normalScale: new THREE.Vector2(0.16, 0.16),
     roughness: surface === 'hard' ? 0.78 : 0.94,
   });
 
   return {
-    textures: [hard, clay, grass, runoff, concrete, timber, roof],
+    textures: [hard, clay, grass, runoff, concrete, timber, roof, courtNormal, runoffNormal],
     surfaceMaps,
     materials: {
       court,
-      runoff: new THREE.MeshStandardMaterial({ color: 0xffffff, map: runoff, roughness: 0.92 }),
+      runoff: new THREE.MeshStandardMaterial({ color: 0xffffff, map: runoff, normalMap: runoffNormal, normalScale: new THREE.Vector2(0.12, 0.12), roughness: 0.92 }),
       line: standard(0xf5f4e9, 0.78),
       darkMetal: standard(0x172127, 0.42, 0.58),
       lightMetal: standard(0x718087, 0.4, 0.7),
-      blueSeat: standard(0x176398, 0.52, 0.08),
+      blueSeat: new THREE.MeshStandardMaterial({ color: 0x176ea8, roughness: 0.52, metalness: 0.08, emissive: 0x0c3450, emissiveIntensity: 0.34 }),
       paleSeat: standard(0xd6ddda, 0.7),
       concrete: new THREE.MeshStandardMaterial({ color: 0xffffff, map: concrete, roughness: 0.9 }),
       paleConcrete: standard(0xd8d5ca, 0.9),
       glass: new THREE.MeshPhysicalMaterial({ color: 0x90b8c6, roughness: 0.1, metalness: 0.05, transmission: 0.1, transparent: true, opacity: 0.62 }),
-      fence: new THREE.LineBasicMaterial({ color: 0x718b80, transparent: true, opacity: 0.42 }),
+      fence: new THREE.LineBasicMaterial({ color: 0x4f6b60, transparent: true, opacity: 0.28 }),
       fencePost: standard(0x38544a, 0.48, 0.62),
       timber: new THREE.MeshStandardMaterial({ color: 0xffffff, map: timber, roughness: 0.72 }),
       warmWall: standard(0xe3dfd0, 0.86),
-      roof: new THREE.MeshStandardMaterial({ color: 0xffffff, map: roof, roughness: 0.58, metalness: 0.36 }),
+      roof: new THREE.MeshStandardMaterial({ color: 0xffffff, map: roof, roughness: 0.58, metalness: 0.36, emissive: 0x1a2226, emissiveIntensity: 0.3 }),
       clayStone: standard(0xc7a273, 0.94),
       terracotta: standard(0xa94f2d, 0.88),
       grass: standard(0x3e7041, 0.96),
