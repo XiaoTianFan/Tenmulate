@@ -80,3 +80,18 @@ The club-hall/grass and stadium/clay browser screenshots were inspected directly
 | Runtime health | No console or renderer error in the final interaction path | 1920 × 1080 setup and live rest/diagnostic state showed zero console errors/warnings | Pass. |
 
 The final setup and rehearsal screenshots were inspected directly with `view_image`. The procedural opponent and venue are explicitly functional stand-ins and were not judged as production-asset fidelity.
+
+## Stage 6: canonical scene composition — first pass
+
+| Comparison point | Accepted Panel 1 / pivot target | Browser evidence | Result / next action |
+| --- | --- | --- | --- |
+| Spatial authority | Every visible venue element is editable Three.js geometry around the exact court | Six typed code-owned scene groups; no environment mesh, panorama, splat, iframe, or remote texture | Pass. |
+| Court material scale | Fine blue acrylic with matte green runoff | Deterministic repeating acrylic/runoff maps show fine grain and remain dynamically relightable | Strong first pass; reduce visible repetition during polish. |
+| Enclosure | Dark framed chain link with far-court windscreen | Cross-hatched line enclosure, posts/rails, and deep-green far windscreen | Pass structurally; soften the fence's screen-space dominance. |
+| Seating and furniture | Long low blue stands, two shaded benches, umpire chair | Individual instanced blue chairs on stepped concrete plus two shelters and a roofed umpire chair | Pass structurally; side seating remains too large/close compared with the reference. |
+| Far-court anchor | Centered clubhouse, veranda/steps, glazing, planters, hedges | Code-built facade, glazing bays, columns, roof, terraces, planters, hedge bands | Clear hierarchy match; add facade/landscape depth and roof detail. |
+| Landscape and light | Layered hedges/trees, four slim light poles, crisp daylight shadows | Multi-cluster trees, hedge bands, four modeled poles/arrays, directional shadows | Improved from blob trees; crown silhouettes and sky still read stylized. |
+| Remaining scenes | Five distinct court/environment identities | Clay terrace, grass park night, timber hall, clay stadium, and covered grass arena all render and select with their target surface/lighting family | Functional composition scaffolds only; each needs its own fidelity pass. |
+| Runtime health | No visible error and no leaked scene resources | Six-scene switch loop completed at 1920 × 1080 with zero console errors; disposal deduplicates geometry, materials, and textures | Pass for correctness. Headed-browser FPS was invalid because the OS throttled the occluded window; foreground profiling remains open. |
+
+The accepted player-level reference and all six browser outputs were inspected directly with `view_image`. The Panel 1 result is now a compositionally credible first pass rather than the prior flat shell, but it has not reached the target's photoreal material, vegetation, sky, and architectural finish.

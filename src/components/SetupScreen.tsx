@@ -16,7 +16,7 @@ import {
 import { DRILL_BY_CATEGORY } from '../content/bundled';
 import type { SessionCategory } from '../content/types';
 import { COURT, type SurfaceId } from '../domain/court';
-import { VENUE_LABELS, type EnvironmentConfiguration, type LightingPreset, type VenueId } from '../domain/environment';
+import { SCENE_DEFINITIONS, VENUE_LABELS, isOutdoorVenue, type EnvironmentConfiguration, type LightingPreset, type VenueId } from '../domain/environment';
 import type { QualityMode, SceneMetrics } from '../engine/rendering/TennisScene';
 import { compileSession } from '../engine/session/compileSession';
 import { resolveTrajectory, type SpinKind } from '../engine/trajectory/physics';
@@ -276,9 +276,9 @@ export function SetupScreen({ route, savedViews, initialPreferences, onRoute, on
           <RangeField label="Rest" value={restSeconds} min={0} max={120} step={5} unit="s" onChange={setRestSeconds} />
           <label className="select-field"><span>Court appearance</span><select value={visualSurface} onChange={(event) => setVisualSurface(event.target.value as SurfaceId)}><option value="hard">Hard</option><option value="clay">Clay</option><option value="grass">Grass</option></select></label>
           <label className="select-field"><span>Bounce profile</span><select value={physicsSurface} onChange={(event) => setPhysicsSurface(event.target.value as SurfaceId)}><option value="hard">Hard</option><option value="clay">Clay</option><option value="grass">Grass</option></select></label>
-          <label className="select-field"><span>Venue</span><select value={venue} onChange={(event) => { const next = event.target.value as VenueId; setVenue(next); setLighting(next === 'outdoor' ? 'day' : 'indoor-neutral'); }}>{(Object.entries(VENUE_LABELS) as [VenueId, string][]).map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
-          <label className="select-field"><span>Lighting</span><select value={lighting} onChange={(event) => setLighting(event.target.value as LightingPreset)}>{venue === 'outdoor' ? <><option value="day">Day</option><option value="golden-hour">Golden hour</option><option value="night">Night floodlights</option></> : <><option value="indoor-neutral">Neutral</option><option value="indoor-warm">Warm</option><option value="indoor-bright">Bright match</option></>}</select></label>
-          <RangeField label={venue === 'outdoor' ? 'Sun direction' : 'Light direction'} value={lightDirection} min={-180} max={180} step={5} unit="°" onChange={setLightDirection} />
+          <label className="select-field"><span>Venue</span><select value={venue} onChange={(event) => { const next = event.target.value as VenueId; setVenue(next); setLighting(SCENE_DEFINITIONS[next].defaultLighting); }}>{(Object.entries(VENUE_LABELS) as [VenueId, string][]).map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
+          <label className="select-field"><span>Lighting</span><select value={lighting} onChange={(event) => setLighting(event.target.value as LightingPreset)}>{isOutdoorVenue(venue) ? <><option value="day">Day</option><option value="golden-hour">Golden hour</option><option value="night">Night floodlights</option></> : <><option value="indoor-neutral">Neutral</option><option value="indoor-warm">Warm</option><option value="indoor-bright">Bright match</option></>}</select></label>
+          <RangeField label={isOutdoorVenue(venue) ? 'Sun direction' : 'Light direction'} value={lightDirection} min={-180} max={180} step={5} unit="°" onChange={setLightDirection} />
           <RangeField label="Light level" value={lightIntensity} min={0.35} max={1.5} step={0.05} unit="×" onChange={setLightIntensity} />
           <label className="select-field"><span>Spin</span><select value={spin} onChange={(event) => setSpin(event.target.value as 'preset' | SpinKind)}><option value="preset">Drill preset</option><option value="flat">Flat</option><option value="topspin">Topspin</option><option value="slice">Slice</option><option value="kick">Kick</option><option value="sidespin">Sidespin</option></select></label>
           <RangeField label="Net clearance" value={netClearanceM} min={0.08} max={1.5} step={0.02} unit="m" onChange={setNetClearanceM} />

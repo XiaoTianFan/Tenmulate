@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { COURT, type SurfaceId } from '../../domain/court';
-import { DEFAULT_ENVIRONMENT, type EnvironmentConfiguration, type VenueId } from '../../domain/environment';
+import { DEFAULT_ENVIRONMENT, SCENE_DEFINITIONS, isOutdoorVenue, type EnvironmentConfiguration, type VenueId } from '../../domain/environment';
 import type { ResolvedTrajectory } from '../trajectory/physics';
 import { sampleTrajectoryAt } from '../trajectory/physics';
 import { createCourt } from './buildCourt';
@@ -43,8 +43,8 @@ export class TennisScene {
   private readonly sun: THREE.DirectionalLight;
   private readonly floodlights = new THREE.Group();
   private readonly venueGroups: Readonly<Record<VenueId, THREE.Group>>;
+  private readonly setCourtSurface: (surface: SurfaceId) => void;
   private readonly resizeObserver: ResizeObserver;
-  private courtMaterial: THREE.MeshStandardMaterial;
   private trajectory: ResolvedTrajectory | null = null;
   private elapsed = 0;
   private running = true;
@@ -79,7 +79,7 @@ export class TennisScene {
     });
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.05;
+    this.renderer.toneMappingExposure = 1.08;
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer.setPixelRatio(this.adaptivePixelRatio);
@@ -109,7 +109,7 @@ export class TennisScene {
     this.scene.add(this.floodlights);
 
     const court = createCourt('hard');
-    this.courtMaterial = court.courtMaterial;
+    this.setCourtSurface = court.setSurface;
     this.venueGroups = court.venueGroups;
     this.scene.add(court.group);
 
@@ -179,8 +179,7 @@ export class TennisScene {
   }
 
   setSurface(surface: SurfaceId): void {
-    const colors: Record<SurfaceId, number> = { hard: 0x2f6c9b, clay: 0xa9532d, grass: 0x4c793d };
-    this.courtMaterial.color.setHex(colors[surface]);
+    this.setCourtSurface(surface);
   }
 
   setEnvironment(configuration: EnvironmentConfiguration): void {
@@ -188,15 +187,16 @@ export class TennisScene {
     const angle = THREE.MathUtils.degToRad(configuration.lightDirection);
     this.sun.position.set(Math.sin(angle) * 18, 22, Math.cos(angle) * 18);
     const intensity = Math.min(1.5, Math.max(0.35, configuration.lightIntensity));
-    const indoor = configuration.venue !== 'outdoor';
+    const definition = SCENE_DEFINITIONS[configuration.venue];
+    const indoor = !isOutdoorVenue(configuration.venue);
     const preset = configuration.lighting;
     const isNight = preset === 'night';
     const isGolden = preset === 'golden-hour';
     const isWarm = preset === 'indoor-warm';
     const isBright = preset === 'indoor-bright';
-    const background = isNight ? 0x07121d : indoor ? 0x30383d : isGolden ? 0xd58d55 : 0x8fc5eb;
+    const background = isNight ? 0x07121d : indoor ? definition.background : isGolden ? 0xd58d55 : definition.background;
     this.scene.background = new THREE.Color(background);
-    this.scene.fog = new THREE.Fog(background, indoor ? 44 : 47, indoor ? 88 : 105);
+    this.scene.fog = new THREE.Fog(background, definition.fogNear, definition.fogFar);
     this.sun.color.setHex(isNight ? 0xb8d7ff : isGolden || isWarm ? 0xffc987 : 0xfff5d7);
     this.sun.intensity = (isNight ? 0.25 : indoor ? 0.6 : isGolden ? 2.8 : 4.25) * intensity;
     this.hemisphere.color.setHex(isNight ? 0x42658a : indoor ? 0xe8ecef : 0xd9efff);
@@ -324,13 +324,25 @@ export class TennisScene {
   dispose(): void {
     this.resizeObserver.disconnect();
     this.renderer.setAnimationLoop(null);
+    const geometries = new Set<THREE.BufferGeometry>();
+    const materials = new Set<THREE.Material>();
+    const textures = new Set<THREE.Texture>();
     this.scene.traverse((object) => {
       if (object instanceof THREE.Mesh || object instanceof THREE.Line || object instanceof THREE.LineSegments) {
-        object.geometry.dispose();
-        const materials = Array.isArray(object.material) ? object.material : [object.material];
-        for (const material of materials) material.dispose();
+        geometries.add(object.geometry);
+        const objectMaterials = Array.isArray(object.material) ? object.material : [object.material];
+        for (const material of objectMaterials) materials.add(material);
       }
     });
+    for (const material of materials) {
+      for (const property of ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'aoMap', 'alphaMap', 'emissiveMap'] as const) {
+        const texture = (material as THREE.MeshStandardMaterial)[property];
+        if (texture instanceof THREE.Texture) textures.add(texture);
+      }
+    }
+    for (const geometry of geometries) geometry.dispose();
+    for (const material of materials) material.dispose();
+    for (const texture of textures) texture.dispose();
     this.renderer.dispose();
   }
 }

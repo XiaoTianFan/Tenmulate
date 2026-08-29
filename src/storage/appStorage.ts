@@ -3,7 +3,7 @@ import type { QualityMode } from '../engine/rendering/TennisScene';
 import type { DrillDefinitionV1 } from '../content/types';
 import { validateDrill } from '../content/validation';
 import type { SurfaceId } from '../domain/court';
-import { DEFAULT_ENVIRONMENT, type EnvironmentConfiguration } from '../domain/environment';
+import { DEFAULT_ENVIRONMENT, normalizeVenueId, type EnvironmentConfiguration } from '../domain/environment';
 import type { PracticeMode } from '../app/types';
 import type { SpinKind } from '../engine/trajectory/physics';
 
@@ -76,7 +76,12 @@ export const loadAppData = (): AppDataV1 => {
       : [];
     const candidate: Record<string, unknown> = isRecord(parsed.preferences) ? parsed.preferences : {};
     const camera = isRecord(candidate.camera) ? { ...DEFAULT_PREFERENCES.camera, ...candidate.camera } : DEFAULT_PREFERENCES.camera;
-    const environment = isRecord(candidate.environment) ? { ...DEFAULT_PREFERENCES.environment, ...candidate.environment } : DEFAULT_PREFERENCES.environment;
+    const environmentCandidate = isRecord(candidate.environment) ? candidate.environment : {};
+    const environment: EnvironmentConfiguration = {
+      ...DEFAULT_PREFERENCES.environment,
+      ...environmentCandidate,
+      venue: normalizeVenueId(environmentCandidate.venue),
+    };
     const legacySurface = candidate.surface === 'hard' || candidate.surface === 'clay' || candidate.surface === 'grass'
       ? candidate.surface
       : undefined;

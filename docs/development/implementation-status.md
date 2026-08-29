@@ -155,3 +155,14 @@ The detailed status of every requirement is recorded in the [V1 release matrix](
 - The accepted Panel 1 player-level concept is the first fidelity target; current procedural shells are blockouts to be replaced component by component.
 - The opponent target is now one neutral rights-cleared faceless humanoid optimized for mocap retargeting, not a generated character or appearance library.
 - Visual acceptance requires repeated concept-versus-browser inspection at the player camera and an overview camera, plus material, lighting, performance, and disposal evidence.
+
+### Composition-system slice 1 — complete
+
+- Replaced the three hard-coded shell identifiers with six typed scene definitions covering outdoor club, clay terrace, grass park night, timber hall, clay stadium, and covered grass arena.
+- Added saved-preference migration from the legacy `outdoor`, `club-hall`, and `stadium` identifiers.
+- Split rendering construction into deterministic procedural materials, shared primitives, reusable court/venue props, and scene compositions.
+- Added local color/scale texture maps for acrylic, clay, grass, runoff, concrete, timber, and roofing without introducing runtime asset downloads.
+- Added shared fence, bleacher, shelter, umpire-chair, light-pole, vegetation, and architecture builders plus unique-material/geometry/texture disposal.
+- Built the first Panel 1 composition pass and functional identity scaffolds for the remaining five scenes. All six were switched and captured at 1920 × 1080 with zero browser console errors.
+- `npm run build` passes; the complete unit/content/storage suite passes at 53 tests.
+- Playwright's headed Chromium was OS-background-throttled to roughly 1 request-animation-frame per second, so that metric is explicitly invalid as scene-performance evidence. Foreground target-device profiling remains required.
