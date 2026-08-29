@@ -1,7 +1,7 @@
 # Technical architecture
 
 - **Status:** Proposed
-- **Last updated:** 2026-08-29
+- **Last updated:** 2026-08-30
 
 ## 1. Architectural objective
 
@@ -16,11 +16,11 @@ The system should optimize for perceptual credibility and testability, not for g
 | App shell | React + TypeScript + Vite | Suitable for setup, drill selection, controls, local editor states, and a static deployment. |
 | 3D runtime | Direct Three.js integration behind a typed engine adapter | Keeps the fixed-step simulation and frame lifecycle explicit; avoids sending high-frequency state through React. |
 | Renderer | Three.js `WebGLRenderer` with WebGL 2 as the accepted V1 baseline behind a typed scene adapter | This is the verified implementation path; WebGPU remains a later production-asset benchmark rather than a release dependency. |
-| Shader/material path | Standard Three.js materials; avoid unnecessary renderer-specific hooks | Keeps the production surface modest and leaves a bounded future WebGPU migration path. |
+| Shader/material path | Procedural GLSL layered onto Three.js physical materials | Keeps every venue surface compact, deterministic, dynamically relightable, and compatible with the accepted WebGL 2 baseline. |
 | Ball dynamics | Custom fixed-step 3D numerical solver | Tennis needs drag, spin-dependent lift, precise bounce targets, inverse authoring, and deterministic outputs more than general rigid-body contacts. |
 | General collision option | Rapier, only if later features need it | Provides WASM, CCD, SI-unit guidance, and cross-platform determinism for collision-heavy extensions. |
 | Runtime asset format | glTF/GLB | Designed for runtime delivery and carries meshes, PBR materials, skins, morphs, and animation clips. |
-| Environment format | Typed Three.js composition modules plus local procedural texture maps | ADR-0005 removes generated worlds and splats; exact geometry, materials, props, and lighting stay code-owned. |
+| Environment format | Typed Three.js composition modules plus shader-generated material detail | ADR-0005/0006 remove generated worlds and splats; exact geometry, materials, props, atmosphere, and lighting stay code-owned. |
 | Asset DCC | Blender | Canonical cleanup, scale/orientation, retargeting, animation markers, optimization, and export, regardless of whether the source was modeled, licensed, scanned, or AI-generated. |
 | Asset delivery | Hashed static manifests + object/CDN origin candidate | Keeps large optional GLB/animation/venue payloads independently cacheable and lazy-loaded; provider selection follows measured egress/caching tests. |
 | Test layers | Vitest-style unit/property tests, browser E2E, frame-time harness, visual snapshots | Separates numerical truth, sequence behavior, runtime behavior, and visual fidelity. Exact test framework is selected during scaffold. |
@@ -108,7 +108,9 @@ The provisional solver applies:
 - gravity `m * g`;
 - drag opposite the velocity vector, proportional to `0.5 * Cd * rho * A * v²`;
 - Magnus lift perpendicular to velocity and spin axes, proportional to `0.5 * Cl * rho * A * v²`;
-- optional wind only after the no-wind model is validated.
+- quadratic drag and Magnus force relative to the configured world-space wind velocity; calm air remains the compatibility default.
+
+Wind direction is stored in the player-facing court frame: `0 degrees` moves air toward `+z` and `90 degrees` toward `+x`. The authoring solver finds the calm-air launch required for the intended target, then runtime air-relative forces apply the configured wind. This deliberately makes wind move the visible bounce/arrival instead of silently re-aiming every opponent shot.
 
 The current research supports treating drag coefficient as constant over one arc and lift coefficient as a function of spin parameter for the normal tennis range. Those values must be calibration data, not scattered magic constants.
 
@@ -242,8 +244,10 @@ The full contract and provider comparison are in [Mocap to web opponent](researc
 - Standard PBR materials first. Custom effects must work on the chosen backend path or have a tested accessible fallback.
 - External asset loading is manifest-driven with explicit URL, byte size, hash, cache group, version, compatible skeleton/content versions, and a progress/error state.
 - The critical route loads UI, the selected typed Three.js venue composition, court, ball, and drill first. Only the neutral opponent mesh and animation bundles are external lazy GLB assets.
-- Build six scene identities from shared composition modules and combine them with independently selected hard, clay, and grass surfaces. Each scene owns context, seating, access, architecture, landscape, and lighting fixtures; exact court/net and near-court props remain separately testable groups.
-- Outdoor lighting exposes sun azimuth/elevation plus day/night/floodlight presets. Indoor lighting exposes fixture intensity/color plus optional window/skylight/roof daylight contribution. Lighting never changes surface physics or event timing.
+- Build nine scene identities from shared composition modules: six complete outdoor club/park/arena environments and three simple indoor halls. Each scene owns context, access, architecture, landscape, and aligned lighting fixtures; outdoor arenas additionally own seating bowls, ad boards, aisles, and roof/canopy massing. Exact court/net and near-court props remain separately testable groups.
+- One renderer-owned atmosphere uses Three.js `Sky`, directional sun, hemispheric fill, fog, and a PMREM environment map. Time of day and light direction drive the solar state; clear/overcast/rain weather drives scattering, diffusion, fog, precipitation, and procedural wetness. Indoor halls hide that atmosphere and use only venue-local lights positioned at their visible lenses.
+- Court, runoff, ground, seating, wall, roof, timber, concrete, planting, and ad-board appearance comes from deterministic procedural GLSL attached to physically based materials. Runtime time/wind/wetness values update uniforms rather than recreating geometry.
+- Weather does not change bounce physics in V1. Wind changes air-relative drag and Magnus force; lighting and wetness remain presentation-only. Any future wet-court physics must be an explicit, calibrated surface profile.
 - Adaptive quality can lower pixel ratio, shadow map resolution, anisotropy, texture resolution, post-processing, and venue detail. It cannot reduce simulation frequency or change shot outcomes.
 
 Provisional, benchmark-only delivery budgets are no more than 5 MiB compressed for the initial application, canonical court modules, and local texture path, and no more than 15 MiB additional data to start the first neutral-opponent drill. The complete animation library may be much larger because it is split, lazy-loaded, and cached; measured first-use and warm-cache behavior, not total repository size, determines acceptance.

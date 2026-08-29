@@ -51,6 +51,7 @@ This folder is the project record for product discovery, design, architecture, a
 | [0003](decisions/0003-hybrid-asset-authoring-strategy.md) | Superseded | Historical generated-character and hybrid asset proposal |
 | [0004](decisions/0004-generated-world-environment-layer.md) | Superseded | Historical generated mesh/splat venue-shell proposal |
 | [0005](decisions/0005-canonical-threejs-scenes-and-neutral-opponent.md) | Accepted | Six canonical Three.js scenes and a neutral mocap-first humanoid opponent |
+| [0006](decisions/0006-nine-venue-atmosphere-weather-and-wind.md) | Accepted | Nine venues, dynamic atmosphere/weather, procedural shader materials, aligned fixtures, and physical wind |
 
 ## Change discipline
 

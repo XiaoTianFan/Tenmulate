@@ -4,6 +4,7 @@
 - **Date:** 2026-08-30
 - **Decision owners:** Project owner and implementation lead
 - **Supersedes:** ADR-0003's generated-environment and generated-character assumptions; ADR-0004
+- **Extended by:** ADR-0006, which expands the venue catalogue to nine and replaces local texture maps/static skies with procedural shader materials and one dynamic atmosphere
 
 ## Context
 
@@ -13,7 +14,7 @@ The opponent is normally distant. Its job is to communicate preparation, handedn
 
 ## Decision
 
-1. Make code-owned TypeScript/Three.js composition the canonical source for all six V1 court environments.
+1. Make code-owned TypeScript/Three.js composition the canonical source for the V1 court environments. ADR-0006 expands the original six-scene set to nine venue identities.
 2. Keep regulation court coordinates independent from venue decoration, but model the visible venue itself from reusable typed components: acrylic/clay/grass surfaces, runoff, fences, walls, seating, access paths, club buildings, roof structures, lights, planting, furniture, and court equipment.
 3. Use physically based Three.js materials, locally generated texture maps, instancing, authored profiles, layered geometry, calibrated lights, fog/sky treatment, and explicit level-of-detail/quality switches. Do not use Gaussian splats, generated-world meshes, panoramas, or provider-hosted worlds in the runtime.
 4. Treat the six accepted concept scenes as art-direction references only:

@@ -2,7 +2,7 @@
 
 - **Status:** Draft, with V1 boundary accepted in ADR-0002
 - **Working title:** Tenmulate
-- **Last updated:** 2026-08-29
+- **Last updated:** 2026-08-30
 - **Target release:** Public-free V1 tennis visualization product
 
 ## 1. Product summary
@@ -75,7 +75,7 @@ No single TV/projector, viewing distance, room, or GPU defines the product. Refe
 ### Environment and view
 
 - Standards-dimension singles court and net, with selectable hard/clay/grass-inspired visual themes and separately selectable surface-physics profiles.
-- Three complete venue shells: outdoor court complex, enclosed indoor club hall, and indoor stadium. Each shell combines with hard, clay, and grass appearances, yielding all nine venue/surface combinations without requiring nine duplicated scene packages.
+- Nine complete venue identities: six outdoor club/park/arena environments and three simple indoor halls. Surface appearance and bounce physics remain independently selectable without duplicating regulation court geometry.
 - Every venue includes an umpire chair, player rest chair/bench, spectator seating without required crowd models, believable access/context, and appropriate perimeter fencing, walls, or stadium structure.
 - Outdoor venues expose sun direction plus daytime/night presets and floodlights. Indoor venues expose artificial-light intensity/color presets and, where windows/skylights/roof openings exist, optional daylight influence.
 - Venue architecture and seating preserve an uncluttered opponent preparation, contact, ball-flight, and bounce visibility corridor from every required player camera.
@@ -150,9 +150,10 @@ Accounts, premium entitlements, cloud content, and payments belong to a separate
 | POV-03 | Keep the near player absent. | No near-player limb, body, or racket appears during V1 playback. |
 | POV-04 | Provide full-screen rehearsal. | Controls hide and restore with one keyboard-accessible action and pause remains discoverable. |
 | POV-05 | Keep camera motion independent. | Camera transforms never alter shot coordinates, event timing, or deterministic replay. |
-| POV-06 | Supply complete venue context. | Outdoor, indoor-hall, and indoor-stadium shells each include seating, umpire/rest chairs, access/context, and all three surface appearances. |
-| POV-07 | Configure lighting without corrupting play. | Outdoor sun/day/night and indoor lighting controls change presentation only; ball physics, court coordinates, and replay remain identical. |
-| POV-08 | Keep every environment code-owned. | All six visible scenes are composed from typed Three.js geometry/material modules; no generated mesh, splat, panorama, iframe, or world-model output participates in runtime rendering or spatial authority. |
+| POV-06 | Supply complete venue context. | All six outdoor scenes include perimeter/environment context; the three arena scenes add seating bowls, aisles, ad boards, roof/canopy massing, and open sky. The three indoor scenes are simple halls without audience seating. Every scene retains umpire/rest furniture and safe gameplay corridors. |
+| POV-07 | Configure one coherent atmosphere. | Outdoor time of day and clear/overcast/rain settings alter sky scattering, sun, ambient diffusion, fog, reflections, precipitation, and procedural wetness together. Indoor visible fixtures align with their real light sources. Lighting never changes court coordinates or replay. |
+| POV-08 | Keep every environment code-owned. | All nine visible scenes are composed from typed Three.js geometry, shader-material, atmosphere, and weather modules; no generated mesh, splat, panorama, iframe, or world-model output participates in runtime rendering or spatial authority. |
+| POV-09 | Make every visible venue surface procedural. | Court, ground, seats, walls, roofs, metal, timber, planting, and ad-board materials derive their visual variation from deterministic custom shaders without downloaded venue textures. |
 
 ### 9.3 Ball simulation
 
@@ -164,6 +165,7 @@ Accounts, premium entitlements, cloud content, and payments belong to a separate
 | BALL-04 | Prevent tunneling and refresh-rate drift. | The solver finds the first court/net event within a step and produces the same outcome under 30/60/90/120 Hz rendering. |
 | BALL-05 | Keep fast balls visible without changing physics. | Optional blur/trail/halo affects presentation only; the debug path always shows the computed centroid trajectory. |
 | BALL-06 | Validate legality and authored intent. | Invalid service boxes, unintended net contacts, and landing/clearance failures block a preset from shipping. |
+| BALL-07 | Apply configurable physical wind. | Direction and speed produce deterministic world-space air velocity; drag and Magnus use air-relative velocity, non-zero side wind measurably shifts the bounce, and calm-air results remain compatible. |
 
 ### 9.4 Opponent and serve motion
 
@@ -291,7 +293,7 @@ Each reusable shot describes independent axes:
 - Calibration and core drill flow pass observed testing with the owner, at least one coach, and at least three additional target players across more than one skill level.
 - Safety, accessibility, asset-license/provenance, privacy, browser fallback, and public-hosting reviews are complete.
 - Visual concept-to-browser fidelity and actual large-display reviews are accepted.
-- All nine venue/surface combinations load, preserve regulation gameplay geometry, and meet their documented lighting-control and opponent/ball-readability criteria.
+- All nine venue identities load, preserve regulation gameplay geometry, and meet their documented atmosphere, shader-material, fixture-alignment, and opponent/ball-readability criteria.
 
 ## 17. Success measures
 
