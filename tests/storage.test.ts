@@ -42,6 +42,18 @@ describe('local application data', () => {
     expect(loadAppData().preferences.physicsSurface).toBe('clay');
   });
 
+  it('normalizes legacy and invalid environment weather and wind fields', () => {
+    localStorage.setItem('tenmulate.appData.v1', JSON.stringify({
+      schemaVersion: 1,
+      customDrills: [],
+      savedViews: [],
+      preferences: { environment: { venue: 'outdoor-club', lightIntensity: 99, weather: 'hail', windSpeedMps: -4 } },
+    }));
+    expect(loadAppData().preferences.environment).toMatchObject({
+      venue: 'outdoor-club', weather: 'clear', weatherIntensity: 0, windSpeedMps: 0, timeOfDay: 14, lightIntensity: 1.5,
+    });
+  });
+
   it('fails closed on corrupt storage', () => {
     localStorage.setItem('tenmulate.appData.v1', '{broken');
     expect(loadAppData()).toEqual(DEFAULT_APP_DATA);

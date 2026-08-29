@@ -5,6 +5,7 @@ import type { OpponentHand, ServeRhythm } from '../../content/types';
 import type { ResolvedTrajectory } from '../trajectory/physics';
 import { resolveTrajectory, type SpinKind } from '../trajectory/physics';
 import { createSeededRandom } from '../random/seeded';
+import type { Vec3 } from '../../domain/vector';
 
 export type SessionSettings = Readonly<{
   repetitions: number;
@@ -20,6 +21,7 @@ export type SessionSettings = Readonly<{
   restSeconds: number;
   serveRhythm: 'preset' | ServeRhythm;
   netClearanceM: number;
+  windVelocity?: Vec3;
 }>;
 
 export type CompiledRepetition = Readonly<{
@@ -30,7 +32,7 @@ export type CompiledRepetition = Readonly<{
 }>;
 
 export type CompiledSession = Readonly<{
-  solverVersion: 'ball-v1';
+  solverVersion: 'ball-v2-wind';
   contentVersion: '2026.08.29';
   drill: DrillDefinitionV1;
   settings: SessionSettings;
@@ -88,7 +90,7 @@ export const compileSession = (
     repetitions.push({
       index,
       shot,
-      trajectory: resolveTrajectory(shot),
+      trajectory: resolveTrajectory({ ...shot, windVelocity: settings.windVelocity }),
       startTime,
     });
     const timingVariation = Math.min(0.5, Math.max(0, settings.timingVariationPercent / 100));
@@ -102,7 +104,7 @@ export const compileSession = (
   }
 
   return {
-    solverVersion: 'ball-v1',
+    solverVersion: 'ball-v2-wind',
     contentVersion: '2026.08.29',
     drill,
     settings,

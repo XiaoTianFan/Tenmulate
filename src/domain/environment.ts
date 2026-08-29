@@ -12,6 +12,7 @@ export const VENUE_IDS = [
 export type VenueId = (typeof VENUE_IDS)[number];
 export type VenueSetting = 'outdoor' | 'indoor';
 export type LightingPreset = 'day' | 'golden-hour' | 'night' | 'indoor-neutral' | 'indoor-warm' | 'indoor-bright';
+export type WeatherCondition = 'clear' | 'overcast' | 'rain';
 
 export type SceneDefinition = Readonly<{
   id: VenueId;
@@ -57,6 +58,11 @@ export type EnvironmentConfiguration = Readonly<{
   lighting: LightingPreset;
   lightDirection: number;
   lightIntensity: number;
+  timeOfDay: number;
+  weather: WeatherCondition;
+  weatherIntensity: number;
+  windDirection: number;
+  windSpeedMps: number;
 }>;
 
 export const DEFAULT_ENVIRONMENT: EnvironmentConfiguration = Object.freeze({
@@ -64,6 +70,11 @@ export const DEFAULT_ENVIRONMENT: EnvironmentConfiguration = Object.freeze({
   lighting: 'day',
   lightDirection: -35,
   lightIntensity: 1,
+  timeOfDay: 14,
+  weather: 'clear',
+  weatherIntensity: 0,
+  windDirection: 0,
+  windSpeedMps: 0,
 });
 
 export const VENUE_LABELS: Readonly<Record<VenueId, string>> = Object.freeze(
@@ -78,4 +89,35 @@ export const normalizeVenueId = (value: unknown): VenueId => {
   if (value === 'club-hall') return 'timber-hall';
   if (value === 'stadium') return 'clay-stadium';
   return DEFAULT_ENVIRONMENT.venue;
+};
+
+const clampNumber = (value: unknown, fallback: number, min: number, max: number): number =>
+  typeof value === 'number' && Number.isFinite(value) ? Math.min(max, Math.max(min, value)) : fallback;
+
+export const normalizeEnvironmentConfiguration = (value: unknown): EnvironmentConfiguration => {
+  const candidate = typeof value === 'object' && value !== null ? value as Record<string, unknown> : {};
+  const weather = candidate.weather === 'overcast' || candidate.weather === 'rain' ? candidate.weather : 'clear';
+  return {
+    venue: normalizeVenueId(candidate.venue),
+    lighting: candidate.lighting === 'day' || candidate.lighting === 'golden-hour' || candidate.lighting === 'night'
+      || candidate.lighting === 'indoor-neutral' || candidate.lighting === 'indoor-warm' || candidate.lighting === 'indoor-bright'
+      ? candidate.lighting
+      : DEFAULT_ENVIRONMENT.lighting,
+    lightDirection: clampNumber(candidate.lightDirection, DEFAULT_ENVIRONMENT.lightDirection, -180, 180),
+    lightIntensity: clampNumber(candidate.lightIntensity, DEFAULT_ENVIRONMENT.lightIntensity, 0.35, 1.5),
+    timeOfDay: clampNumber(candidate.timeOfDay, DEFAULT_ENVIRONMENT.timeOfDay, 0, 24),
+    weather,
+    weatherIntensity: clampNumber(candidate.weatherIntensity, weather === 'clear' ? 0 : 0.6, 0, 1),
+    windDirection: clampNumber(candidate.windDirection, DEFAULT_ENVIRONMENT.windDirection, -180, 180),
+    windSpeedMps: clampNumber(candidate.windSpeedMps, DEFAULT_ENVIRONMENT.windSpeedMps, 0, 20),
+  };
+};
+
+export const windVelocityFromEnvironment = (configuration: EnvironmentConfiguration) => {
+  const radians = configuration.windDirection * Math.PI / 180;
+  return Object.freeze({
+    x: Math.sin(radians) * configuration.windSpeedMps,
+    y: 0,
+    z: Math.cos(radians) * configuration.windSpeedMps,
+  });
 };

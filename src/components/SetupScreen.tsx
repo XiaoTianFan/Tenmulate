@@ -16,7 +16,7 @@ import {
 import { DRILL_BY_CATEGORY } from '../content/bundled';
 import type { SessionCategory } from '../content/types';
 import { COURT, type SurfaceId } from '../domain/court';
-import { SCENE_DEFINITIONS, VENUE_LABELS, isOutdoorVenue, type EnvironmentConfiguration, type LightingPreset, type VenueId } from '../domain/environment';
+import { SCENE_DEFINITIONS, VENUE_LABELS, isOutdoorVenue, windVelocityFromEnvironment, type EnvironmentConfiguration, type LightingPreset, type VenueId, type WeatherCondition } from '../domain/environment';
 import type { QualityMode, SceneMetrics } from '../engine/rendering/TennisScene';
 import { compileSession } from '../engine/session/compileSession';
 import { resolveTrajectory, type SpinKind } from '../engine/trajectory/physics';
@@ -39,6 +39,12 @@ const sessions: ReadonlyArray<{ label: SessionCategory; icon: typeof Activity }>
   { label: 'Net & Overhead', icon: Gauge },
   { label: 'Custom', icon: PencilLine },
 ];
+
+const OUTDOOR_TIME_BY_LIGHTING: Readonly<Record<'day' | 'golden-hour' | 'night', number>> = {
+  day: 14,
+  'golden-hour': 18.5,
+  night: 21.5,
+};
 
 type RangeFieldProps = Readonly<{
   label: string;
@@ -93,6 +99,11 @@ export function SetupScreen({ route, savedViews, initialPreferences, onRoute, on
   const [lighting, setLighting] = useState<LightingPreset>(initialPreferences.environment.lighting);
   const [lightDirection, setLightDirection] = useState(initialPreferences.environment.lightDirection);
   const [lightIntensity, setLightIntensity] = useState(initialPreferences.environment.lightIntensity);
+  const [timeOfDay, setTimeOfDay] = useState(initialPreferences.environment.timeOfDay);
+  const [weather, setWeather] = useState<WeatherCondition>(initialPreferences.environment.weather);
+  const [weatherIntensity, setWeatherIntensity] = useState(initialPreferences.environment.weatherIntensity);
+  const [windDirection, setWindDirection] = useState(initialPreferences.environment.windDirection);
+  const [windSpeedMps, setWindSpeedMps] = useState(initialPreferences.environment.windSpeedMps);
   const [seed, setSeed] = useState('18427');
   const [eyeHeight, setEyeHeight] = useState<number>(initialPreferences.camera.eyeHeight);
   const [behindBaseline, setBehindBaseline] = useState<number>(initialPreferences.camera.behindBaseline);
@@ -114,6 +125,10 @@ export function SetupScreen({ route, savedViews, initialPreferences, onRoute, on
   const onMetrics = useCallback((next: SceneMetrics) => setMetrics(next), []);
 
   const drill = DRILL_BY_CATEGORY.get(sessionCategory) ?? DRILL_BY_CATEGORY.get('Quick Rally')!;
+  const environment = useMemo<EnvironmentConfiguration>(() => ({
+    venue, lighting, lightDirection, lightIntensity, timeOfDay, weather, weatherIntensity, windDirection, windSpeedMps,
+  }), [lightDirection, lightIntensity, lighting, timeOfDay, venue, weather, weatherIntensity, windDirection, windSpeedMps]);
+  const windVelocity = useMemo(() => windVelocityFromEnvironment(environment), [environment]);
   const trajectory = useMemo(() => resolveTrajectory({
     source: { x: 0, y: 1.15, z: COURT.halfLength - 0.65 },
     target: { x: -2.35, z: -8.9 },
@@ -121,13 +136,12 @@ export function SetupScreen({ route, savedViews, initialPreferences, onRoute, on
     spin: spin === 'preset' ? 'topspin' : spin,
     surface: physicsSurface,
     netClearanceM,
-  }), [netClearanceM, pace, physicsSurface, spin]);
+    windVelocity,
+  }), [netClearanceM, pace, physicsSurface, spin, windVelocity]);
   const bounce = trajectory.events.find((event) => event.type === 'bounce');
   const net = trajectory.events.find((event) => event.type === 'net-crossing');
 
   const camera = useMemo(() => ({ eyeHeight, behindBaseline, lateral, yaw, pitch, fov }), [behindBaseline, eyeHeight, fov, lateral, pitch, yaw]);
-  const environment = useMemo<EnvironmentConfiguration>(() => ({ venue, lighting, lightDirection, lightIntensity }), [lightDirection, lightIntensity, lighting, venue]);
-
   useEffect(() => {
     const timeout = window.setTimeout(() => onPreferencesChange({
       sessionCategory, mode, pace, interval, repetitions, variation, timingVariation, workBlockSize, restSeconds, visualSurface, physicsSurface, spin,
@@ -201,6 +215,7 @@ export function SetupScreen({ route, savedViews, initialPreferences, onRoute, on
         restSeconds,
         serveRhythm,
         netClearanceM,
+        windVelocity,
       }),
       mode,
       camera,
@@ -260,7 +275,7 @@ export function SetupScreen({ route, savedViews, initialPreferences, onRoute, on
           </div>
           <div className="preview-diagnostics" aria-live="polite">
             <span>{metrics ? `${metrics.renderer} · ${metrics.fps} fps · ${metrics.frameMs.toFixed(1)} ms · ${metrics.pixelRatio.toFixed(2)}× ${metrics.quality}` : 'Starting renderer…'}</span>
-            <span>{net ? `Net ${net.position.y.toFixed(2)} m` : 'No net crossing'} · {bounce ? `Bounce ${bounce.position.x.toFixed(2)}, ${bounce.position.z.toFixed(2)} m` : 'No bounce'}</span>
+            <span>{net ? `Net ${net.position.y.toFixed(2)} m` : 'No net crossing'} · {bounce ? `Bounce ${bounce.position.x.toFixed(2)}, ${bounce.position.z.toFixed(2)} m` : 'No bounce'} · Wind {windSpeedMps.toFixed(1)} m/s</span>
           </div>
         </section>
 
@@ -276,10 +291,17 @@ export function SetupScreen({ route, savedViews, initialPreferences, onRoute, on
           <RangeField label="Rest" value={restSeconds} min={0} max={120} step={5} unit="s" onChange={setRestSeconds} />
           <label className="select-field"><span>Court appearance</span><select value={visualSurface} onChange={(event) => setVisualSurface(event.target.value as SurfaceId)}><option value="hard">Hard</option><option value="clay">Clay</option><option value="grass">Grass</option></select></label>
           <label className="select-field"><span>Bounce profile</span><select value={physicsSurface} onChange={(event) => setPhysicsSurface(event.target.value as SurfaceId)}><option value="hard">Hard</option><option value="clay">Clay</option><option value="grass">Grass</option></select></label>
-          <label className="select-field"><span>Venue</span><select value={venue} onChange={(event) => { const next = event.target.value as VenueId; setVenue(next); setLighting(SCENE_DEFINITIONS[next].defaultLighting); }}>{(Object.entries(VENUE_LABELS) as [VenueId, string][]).map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
-          <label className="select-field"><span>Lighting</span><select value={lighting} onChange={(event) => setLighting(event.target.value as LightingPreset)}>{isOutdoorVenue(venue) ? <><option value="day">Day</option><option value="golden-hour">Golden hour</option><option value="night">Night floodlights</option></> : <><option value="indoor-neutral">Neutral</option><option value="indoor-warm">Warm</option><option value="indoor-bright">Bright match</option></>}</select></label>
+          <label className="select-field"><span>Venue</span><select value={venue} onChange={(event) => { const next = event.target.value as VenueId; const preset = SCENE_DEFINITIONS[next].defaultLighting; setVenue(next); setLighting(preset); if (preset === 'day' || preset === 'golden-hour' || preset === 'night') setTimeOfDay(OUTDOOR_TIME_BY_LIGHTING[preset]); }}>{(Object.entries(VENUE_LABELS) as [VenueId, string][]).map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
+          <label className="select-field"><span>Lighting</span><select value={lighting} onChange={(event) => { const next = event.target.value as LightingPreset; setLighting(next); if (next === 'day' || next === 'golden-hour' || next === 'night') setTimeOfDay(OUTDOOR_TIME_BY_LIGHTING[next]); }}>{isOutdoorVenue(venue) ? <><option value="day">Day</option><option value="golden-hour">Golden hour</option><option value="night">Night floodlights</option></> : <><option value="indoor-neutral">Neutral</option><option value="indoor-warm">Warm</option><option value="indoor-bright">Bright match</option></>}</select></label>
+          {isOutdoorVenue(venue) ? <>
+            <RangeField label="Time of day" value={timeOfDay} min={5} max={23} step={0.25} unit="h" onChange={setTimeOfDay} />
+            <label className="select-field"><span>Weather</span><select value={weather} onChange={(event) => { const next = event.target.value as WeatherCondition; setWeather(next); setWeatherIntensity(next === 'clear' ? 0 : Math.max(0.45, weatherIntensity)); }}><option value="clear">Clear</option><option value="overcast">Overcast</option><option value="rain">Rain</option></select></label>
+            {weather !== 'clear' ? <RangeField label="Weather level" value={weatherIntensity} min={0.1} max={1} step={0.05} unit="×" onChange={setWeatherIntensity} /> : null}
+          </> : null}
           <RangeField label={isOutdoorVenue(venue) ? 'Sun direction' : 'Light direction'} value={lightDirection} min={-180} max={180} step={5} unit="°" onChange={setLightDirection} />
           <RangeField label="Light level" value={lightIntensity} min={0.35} max={1.5} step={0.05} unit="×" onChange={setLightIntensity} />
+          <RangeField label="Wind direction" value={windDirection} min={-180} max={180} step={5} unit="°" onChange={setWindDirection} />
+          <RangeField label="Wind speed" value={windSpeedMps} min={0} max={15} step={0.5} unit="m/s" onChange={setWindSpeedMps} />
           <label className="select-field"><span>Spin</span><select value={spin} onChange={(event) => setSpin(event.target.value as 'preset' | SpinKind)}><option value="preset">Drill preset</option><option value="flat">Flat</option><option value="topspin">Topspin</option><option value="slice">Slice</option><option value="kick">Kick</option><option value="sidespin">Sidespin</option></select></label>
           <RangeField label="Net clearance" value={netClearanceM} min={0.08} max={1.5} step={0.02} unit="m" onChange={setNetClearanceM} />
           <label className="select-field"><span>Opponent</span><select value={opponentHand} onChange={(event) => setOpponentHand(event.target.value as 'left' | 'right')}><option value="right">Right-handed</option><option value="left">Left-handed</option></select></label>

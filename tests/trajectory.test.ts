@@ -68,4 +68,27 @@ describe('fixed-step trajectory solver', () => {
     expect(sidespin.launchVelocity.x).not.toBeCloseTo(flat.launchVelocity.x, 3);
     expect(sidespin.events.find((event) => event.type === 'bounce')?.position.x).toBeCloseTo(1.4, 1);
   });
+
+  it('uses air-relative forces so side wind shifts the authored calm-air landing', () => {
+    const intent = {
+      source: { x: 0, y: 1.15, z: COURT.halfLength - 0.65 },
+      target: { x: 0, z: -8.5 },
+      paceKmh: 78,
+      spin: 'topspin' as const,
+      surface: 'hard' as const,
+    };
+    const calm = resolveTrajectory(intent);
+    const windy = resolveTrajectory({ ...intent, windVelocity: { x: 8, y: 0, z: 0 } });
+    const calmBounce = calm.events.find((event) => event.type === 'bounce')!;
+    const windyBounce = windy.events.find((event) => event.type === 'bounce')!;
+    expect(windyBounce.position.x).toBeGreaterThan(calmBounce.position.x + 0.1);
+  });
+
+  it('replays the same wind configuration deterministically', () => {
+    const intent = {
+      source: { x: 0, y: 1.15, z: COURT.halfLength - 0.65 }, target: { x: -1, z: -8.2 }, paceKmh: 80,
+      spin: 'slice' as const, surface: 'clay' as const, windVelocity: { x: -4, y: 0, z: 3 },
+    };
+    expect(resolveTrajectory(intent).events).toEqual(resolveTrajectory(intent).events);
+  });
 });

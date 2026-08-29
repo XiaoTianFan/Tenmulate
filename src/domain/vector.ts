@@ -9,6 +9,9 @@ export const vec3 = (x = 0, y = 0, z = 0): Vec3 => ({ x, y, z });
 export const add = (a: Vec3, b: Vec3): Vec3 =>
   vec3(a.x + b.x, a.y + b.y, a.z + b.z);
 
+export const subtract = (a: Vec3, b: Vec3): Vec3 =>
+  vec3(a.x - b.x, a.y - b.y, a.z - b.z);
+
 export const scale = (value: Vec3, scalar: number): Vec3 =>
   vec3(value.x * scalar, value.y * scalar, value.z * scalar);
 

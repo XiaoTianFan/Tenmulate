@@ -1,5 +1,5 @@
 import { COURT, type SurfaceId } from '../../domain/court';
-import { add, cross, magnitude, scale, vec3, type Vec3 } from '../../domain/vector';
+import { add, cross, magnitude, scale, subtract, vec3, type Vec3 } from '../../domain/vector';
 
 const GRAVITY = vec3(0, -9.81, 0);
 const FIXED_STEP = 1 / 240;
@@ -29,6 +29,7 @@ export type ShotIntent = Readonly<{
   surface: SurfaceId;
   receiverZ?: number;
   netClearanceM?: number;
+  windVelocity?: Vec3;
 }>;
 
 export type FlightSample = Readonly<{
@@ -69,10 +70,11 @@ const spinVector = (kind: SpinKind): Vec3 => {
   }
 };
 
-const acceleration = (velocity: Vec3, spin: Vec3): Vec3 => {
-  const speed = magnitude(velocity);
-  const drag = scale(velocity, -DRAG_FACTOR * speed);
-  const magnus = scale(cross(spin, velocity), MAGNUS_FACTOR);
+const acceleration = (velocity: Vec3, spin: Vec3, windVelocity = vec3()): Vec3 => {
+  const airVelocity = subtract(velocity, windVelocity);
+  const speed = magnitude(airVelocity);
+  const drag = scale(airVelocity, -DRAG_FACTOR * speed);
+  const magnus = scale(cross(spin, airVelocity), MAGNUS_FACTOR);
   return add(GRAVITY, add(drag, magnus));
 };
 
@@ -188,7 +190,7 @@ export const resolveTrajectory = (intent: ShotIntent): ResolvedTrajectory => {
 
   for (let index = 1; index <= 6 / FIXED_STEP; index += 1) {
     const time = index * FIXED_STEP;
-    velocity = add(velocity, scale(acceleration(velocity, spin), FIXED_STEP));
+    velocity = add(velocity, scale(acceleration(velocity, spin, intent.windVelocity), FIXED_STEP));
     position = add(position, scale(velocity, FIXED_STEP));
     apexHeight = Math.max(apexHeight, position.y);
 
