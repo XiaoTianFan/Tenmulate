@@ -67,7 +67,7 @@ This ADR becomes Accepted only when:
 
 - the code-generated court passes dimension and visual review;
 - at least Tripo, Meshy, Lux3D, one Hunyuan/VISVISE path, and a licensed/commissioned baseline have comparable results or a documented reason they could not be evaluated;
-- one opponent with forehand plus normal and compact serve clips passes rig, skin, contact, and Blender-to-GLB round-trip review;
+- one opponent with right-handed forehand, backhand, normal serve, and ready/footwork/recovery connector clips passes rig, skin, contact, blending, and Blender-to-GLB round-trip review; compact serve remains the next V1 motion-family test;
 - the first-drill cold/warm byte, load, decode, memory, and frame-time budgets pass in WebGPU and WebGL fallback paths;
 - asset provenance and license records are complete;
 - any proposed MCP/plugin has a recorded publisher, source/version, credentials, network/telemetry, arbitrary-code, and cost-confirmation review.

@@ -29,6 +29,13 @@ This folder is the project record for product discovery, design, architecture, a
 6. Implement one vertical slice at a time, updating requirements and technical notes with each slice.
 7. Verify ball behavior numerically and the visible experience in supported browsers and target display sizes.
 
+## Current visual-development records
+
+- [Court environment boards](concepts/court-environment-concepts-2026-08.md): the six accepted venue directions and initial Panel 1 baseline.
+- [Scene-generation prompt kit](concepts/scene-generation-prompt-kit.md): three reusable camera prefixes and six independent environment prompts.
+- [Opponent character 01](concepts/opponent-character-01.md): first fictional right-handed male design sheet and detachable-racket guidance.
+- [Mocap-to-web pipeline](research/mocap-to-web-character-pipeline.md): custom tennis clips, open/general motion integration, licensing, retargeting, and runtime blending.
+
 ## Decision index
 
 | ADR | Status | Decision |

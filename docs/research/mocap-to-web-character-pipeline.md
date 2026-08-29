@@ -65,7 +65,7 @@ Recommended first vertical slice:
 ```text
 opponent-v1.glb
   mesh + PBR materials + armature + skin weights
-  idle + forehand + normal serve + compact serve clips
+  ready + forehand + backhand + normal serve + connector clips
 racket-v1.glb
   rigid prop attached to handed socket
 opponent-v1.animations.json
@@ -125,13 +125,26 @@ Therefore:
 
 This is a project risk gate, not legal advice; production use should be reviewed for the chosen footage, provider terms, and release jurisdiction.
 
-## 8. Tennis-specific bake-off
+## 8. Starter custom-motion pack
 
-Use three short rights-cleared clips:
+The owner's initial three custom captures are the right starting point:
 
-1. open-stance forehand with lateral recovery;
-2. normal serve with high toss and deeper trophy position;
-3. compact serve with low toss and immediate upward swing.
+1. right-handed forehand, initially semi-open or open stance;
+2. right-handed backhand, with one-handed versus two-handed form explicitly selected before capture;
+3. normal right-handed serve with high toss and deeper trophy position.
+
+These are enough to prove the custom capture, retarget, contact, and export chain. They are not enough to make the opponent move continuously. Add a small connector set before calling the vertical slice visually complete:
+
+- athletic ready/idle loop;
+- split-step into a decision state;
+- one-to-two-step lateral adjustment left and right;
+- crossover or short run for a wider ball;
+- stroke-end recovery to the shared ready pose;
+- short forward and backward adjustment steps.
+
+The ready, split-step, and recovery boundaries matter more than adding a fourth spectacular stroke: without them, otherwise good clips visibly snap together. A compact serve, volley, overhead, slice, and additional stance/contact variants remain mandatory for the complete V1 library, but they do not need to block the first end-to-end proof.
+
+Each custom source should include a brief stable ready pose before movement and a recoverable finish after it. Keep the racket and both feet in frame. A single clip may contain approach, stroke, and recovery for the solve, then be segmented after cleanup.
 
 Score each provider on:
 
@@ -148,7 +161,59 @@ Score each provider on:
 
 The winner is the lowest total cost to an accepted clip, not the prettiest raw preview.
 
-## 9. Primary sources
+## 9. Combining open/general motion with custom tennis strokes
+
+Yes: generic locomotion and custom tennis captures can share one character. The common denominator is not the provider or file type; it is Tenmulate's versioned canonical skeleton and a common set of boundary poses.
+
+```text
+Mixamo/CMU/general source clip       Rokoko/DeepMotion/custom tennis clip
+                 \                    /
+              retarget both to canonical skeleton
+                            |
+          normalize meters, axes, rest pose, FPS, and root policy
+                            |
+       foot-lock + tennis-ready boundary poses + transition cleanup
+                            |
+            Blender NLA review, then bake named Actions
+                            |
+         GLB clips + semantic markers + Three.js cross-fades
+```
+
+Practical rules:
+
+1. Retarget every source to the same target armature; never make runtime gameplay depend on a Mixamo, CMU, or mocap-provider skeleton.
+2. Normalize coordinate axes, meter scale, frame rate, bone orientation, rest pose, root-motion policy, and floor height before blending.
+3. Trim or pose-match clips around a small set of shared states such as `ready`, `split-land`, `stroke-contact`, and `recovered`.
+4. Use Blender NLA strips to arrange, repeat, layer, and transition actions; use a short hand-authored transition when two boundary poses do not match.
+5. Bake the accepted result onto deform bones and export named actions to GLB. At runtime, Three.js `AnimationMixer`/`AnimationAction` can cross-fade clips, but a cross-fade cannot repair wrong feet, root travel, racket grip, or incompatible poses.
+6. Preserve tennis-specific root movement and foot plants. A generic jog can supply locomotion material, but it normally needs shorter strides, lower center of gravity, lateral facing, and a transition into the stroke.
+7. Do not mirror a motion merely to satisfy left-handed coverage. Mirroring is a candidate starting point that still needs racket-hand, stance, contact, root, and biomechanics review.
+
+### Candidate general-motion sources
+
+| Source | Rights status for this product | Practical use | Decision |
+| --- | --- | --- | --- |
+| **CMU Graphics Lab Motion Capture Database** | The official site labels the dataset free for all uses and requests acknowledgment. Record the exact source subject/trial and attribution with each imported clip. | Large collection of walking, running, turning, jumping, and other motion. Older ASF/AMC/C3D data and community BVH conversions need skeleton cleanup; the site warns that hand/toe data can be noisy. | Best open/free prototype source for generic movement, subject to per-file provenance verification. |
+| **Adobe Mixamo** | Adobe currently permits its characters and animations royalty-free in personal, commercial, and non-profit projects, including games. It is free with an Adobe ID but is not open-source. Adobe says Mixamo is unavailable to Adobe IDs whose country code is China. | Fastest practical source for clean biped idle/walk/run/turn placeholders and auto-rig trials. Download and preserve the chosen animation locally because Mixamo does not retain a character history. | Use if account access is available; otherwise CMU or commissioned/hand-authored connectors. |
+| **Ubisoft LaFAN1** | CC BY-NC-ND 4.0: non-commercial and no derivatives. That conflicts with a future freemium product and retarget/edit workflow. | Excellent research/benchmark reference for motion transitions, not a shipping animation source. | Exclude from production assets. |
+
+“Free,” “open dataset,” and “royalty-free” are different legal categories. Every motion clip needs a provenance record containing source URL, license snapshot/date, subject/trial or animation ID, any required credit, processing history, and the final baked-action hash. Recheck terms before public release.
+
+## 10. Recommended first animation build
+
+Use one fictional right-handed opponent and a separate right-hand racket prop. Capture or extract the three custom clips, then obtain or hand-author the connector set. For the provisional backhand, a two-handed backhand is the safest default because it covers a common modern silhouette and makes the non-dominant arm important enough to test the retarget. Confirm this choice before the source footage is recorded.
+
+Build a deterministic sequence to expose blend problems quickly:
+
+```text
+ready -> split step -> move right -> forehand -> recover
+      -> split step -> move left  -> backhand -> recover
+      -> normal serve -> recover
+```
+
+Test it from the accepted Panel 1 player-level camera, at normal speed and frame-by-frame. The compact serve is the next custom capture after this chain passes; it remains a V1 requirement.
+
+## 11. Primary sources
 
 - [Khronos glTF runtime asset format](https://www.khronos.org/gltf/)
 - [Blender glTF 2.0 exporter](https://docs.blender.org/manual/en/latest/addons/import_export/scene_gltf2.html)
@@ -162,5 +227,11 @@ The winner is the lowest total cost to an accepted clip, not the prettiest raw p
 - [Plask pricing](https://plask.ai/en-US/pricing)
 - [Plask terms](https://plask.ai/en-US/docs/100002)
 - [YouTube terms](https://www.youtube.com/t/terms)
+- [Adobe Mixamo FAQ and usage terms](https://helpx.adobe.com/creative-cloud/faq/mixamo-faq.html)
+- [CMU Graphics Lab Motion Capture Database](https://mocap.cs.cmu.edu/)
+- [CMU motion subject/trial index](https://mocap.cs.cmu.edu/subjects.php)
+- [Ubisoft LaFAN1 repository and license](https://github.com/ubisoft/ubisoft-laforge-animation-dataset)
+- [Blender NLA strips](https://docs.blender.org/manual/en/latest/editors/nla/strips.html)
+- [Three.js animation system](https://threejs.org/docs/#api/en/animation/AnimationAction)
 
 Provider pricing, terms, and features can change. Recheck them at account signup, at each paid test, and before a clip enters a public build.

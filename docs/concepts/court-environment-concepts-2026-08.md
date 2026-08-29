@@ -1,6 +1,6 @@
 # Court environment concept boards: August 2026
 
-- **Status:** Owner review requested
+- **Status:** Six directions accepted; Panel 1 accepted as the initial product baseline
 - **Generated:** 2026-08-29 with the built-in OpenAI image-generation tool
 - **Purpose:** art direction and venue/surface comparison, not geometry or implementation reference
 
@@ -27,6 +27,12 @@ Every candidate includes an umpire chair, player rest seating, and spectator sea
 
 These six panels sample the requested design space. They do **not** reduce the V1 matrix, which comprises outdoor, indoor club-hall, and indoor-stadium shells combined with hard, clay, and grass surfaces.
 
+## Accepted starting point
+
+On 2026-08-29, the owner accepted all six candidate directions and selected **Panel 1, the bright outdoor blue/green hard-court complex**, as the visual and technical starting point for the product. It is the first scene for prompt generation, world-shell testing, procedural court integration, camera calibration, character placement, and the vertical slice. The other five environments remain required V1 variants, not rejected alternatives.
+
+The reusable perspective prefixes and six independent environment descriptions are recorded in the [scene-generation prompt kit](scene-generation-prompt-kit.md).
+
 ## Initial observations
 
 - Candidate 1 is the clearest default training environment: high ball contrast, modest visual complexity, and plausible public-app neutrality.
@@ -38,12 +44,10 @@ These six panels sample the requested design space. They do **not** reduce the V
 
 Generated line markings, net details, chair placement, architecture, and scale contain visual inconsistencies. Implementation must use regulation code-owned geometry and verified safety/clearance dimensions.
 
-## Owner review prompts
+## Remaining owner review prompts
 
-1. Which outdoor panel should define the default launch venue: 1, 2, or 3?
-2. Which indoor language should lead: intimate club hall (4) or tournament stadium (5/6)?
-3. Should the default feel like a public practice facility, a private club, or an empty professional tournament venue?
-4. Is the seating density appropriately restrained, or should the player's view be even quieter?
+1. Which indoor language should be implemented second: intimate club hall (4) or tournament stadium (5/6)?
+2. Is the baseline seating density appropriately restrained, or should the player's view be even quieter?
 
 ## Generation prompts
 

@@ -23,14 +23,14 @@
 | Court scenes | V1 includes outdoor, indoor club-hall, and indoor-stadium shells combined with hard, clay, and grass, plus umpire/rest seating and spectator stands without crowd models. |
 | Lighting | Outdoor supports sun direction and day/night/floodlights. Indoor supports fixture controls and applicable daylight/roof influence. |
 | World generation | Aholo SpatialGen/Reality and comparable exportable world products belong in the bake-off. A generated world may be a registered visual shell, never the gameplay coordinate authority. |
+| Initial court | All six concept directions remain in scope; outdoor Panel 1, the bright blue/green public-club hard court, is the product and vertical-slice baseline. |
 
-These decisions are normative in [ADR-0002](decisions/0002-v1-scope-and-release-model.md).
+The release/scope decisions are normative in [ADR-0002](decisions/0002-v1-scope-and-release-model.md); later visual and asset choices are linked to their specific concept/research records.
 
 ## P0: answer before the vertical slice is scoped
 
 | # | Question | Why it matters | Proposed default |
 | --- | --- | --- | --- |
-| 1 | Which outdoor concept panel should be the visual north star: bright public hard court, golden-hour clay club, or floodlit night grass? | Selects the first image-to-world input and lighting stress case. | Start with the bright public hard court because it maximizes ball/opponent readability. |
 | 2 | Which indoor language leads: intimate timber/steel club hall or empty tournament stadium? | Selects architecture, seating density, acoustics, and the second venue-shell experiment. | Club hall first for training clarity; stadium remains a required V1 shell. |
 | 3 | Which real devices are available for the first performance matrix? | The product supports varied hardware, but the spike still needs reproducible low/mid/high reference tiers. | One mid-tier Windows laptop, one stronger discrete-GPU PC if available, and one lower-power integrated-GPU device connected to at least one 4K display. |
 | 4 | Who can provide the first biomechanics/contact review? | An asset can look polished while serving or striking incorrectly. | Owner review plus one coach or advanced player before a motion family is marked accepted. |
@@ -48,6 +48,7 @@ These decisions are normative in [ADR-0002](decisions/0002-v1-scope-and-release-
 | 10 | Is the first public host a static site plus separate object/CDN assets, or one platform for both? | Affects cache headers, egress, deploy/rollback, and asset URL versioning. | Static app plus immutable versioned object/CDN asset origin. |
 | 11 | How many opponent appearances must V1 include? | “Multiple” needs a testable count and asset budget. | Two appearances sharing compatible skeleton/animation data where licensing permits. |
 | 12 | Which languages ship in V1? | Public reach and UI/voice-cue scope. | English first, architecture localization-ready; add Chinese if owner wants a bilingual launch. |
+| 13 | Is the first right-handed opponent's backhand one-handed or two-handed? | It changes the custom reference clip, retarget review, off-hand fidelity, and silhouette. | Two-handed for the first pipeline test; add one-handed as a later distinct V1 clip. |
 
 ## P2: decide before public release
 

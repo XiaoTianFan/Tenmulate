@@ -80,6 +80,7 @@ No single TV/projector, viewing distance, room, or GPU defines the product. Refe
 - Outdoor venues expose sun direction plus daytime/night presets and floodlights. Indoor venues expose artificial-light intensity/color presets and, where windows/skylights/roof openings exist, optional daylight influence.
 - Venue architecture and seating preserve an uncluttered opponent preparation, contact, ball-flight, and bounce visibility corridor from every required player camera.
 - Game-realistic visual direction: courts as physically and materially credible as the performance budget permits; opponents with credible athlete proportions, silhouette, apparel, and motion.
+- The initial product and vertical-slice visual baseline is the accepted bright outdoor blue/green hard-court public-club environment (concept Panel 1). This establishes implementation order, not an exclusive final theme.
 - Default camera at 1.70 m eye height, centered 1.5 m behind the near baseline, with a one-action realistic reset.
 - User controls for eye height, lateral/longitudinal position, camera yaw/pitch/look target, FOV/zoom, and physical-view versus immersive mode.
 - Center, both baseline corners, approach, first-volley, second-volley, and overhead camera presets plus forward/back/lateral authored paths.
@@ -98,6 +99,7 @@ No single TV/projector, viewing distance, room, or GPU defines the product. Refe
   - **Compact:** low toss and immediate upward swing with shorter preparation and a faster visual rhythm.
 - Serve-motion rhythm and ball pace are independent; choosing compact cannot silently force a faster ball.
 - Opponent production prioritizes motion silhouette, footwork, racket path, contact, and clean deformation over facial close-up detail; the normal opponent distance does not justify expensive high-resolution facial assets.
+- Opponent rackets are reusable rigid props attached to named left/right hand sockets; they are not fused into the base character mesh.
 
 ### Drills, editor, and feedback
 

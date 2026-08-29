@@ -227,7 +227,8 @@ The accepted authoring constraint is cloud inference only: no local 3D or mocap 
 
 - A shippable opponent is a skinned mesh: topology + UV/PBR materials + canonical armature + skin weights.
 - Cloud mocap output is source-skeleton animation data, normally FBX/BVH and sometimes GLB. It is retargeted and baked onto the canonical target armature; the source skeleton is not a runtime dependency.
-- The first slice uses one combined opponent GLB with idle, forehand, normal-serve, and compact-serve actions. Split appearance/animation bundles only after a measured caching benefit and exact skeleton-version checks.
+- The first slice uses one combined opponent GLB with ready, right-handed forehand, right-handed backhand, normal-serve, and essential footwork/recovery connector actions. Compact serve follows once this retarget/blend chain passes and remains mandatory for V1. Split appearance/animation bundles only after a measured caching benefit and exact skeleton-version checks.
+- The racket is a separate rigid GLB prop attached to a named right- or left-hand socket; it is not fused into or skin-weighted with the character body.
 - Rackets are rigid props attached to named left/right hand sockets. A serve ball follows a kinematic toss through the toss/contact markers, then transfers to the deterministic trajectory solver at contact.
 - Root motion, foot plants, toss, trophy, contact, and recovery are explicitly authored metadata. Normal-speed and frame-step tennis review are both required.
 - Professional match footage may be used as view-only reference. Cloud motion extraction requires documented download, upload, derivative-use, likeness, and commercial rights; public availability alone does not satisfy that gate.
