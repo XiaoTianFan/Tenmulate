@@ -11,6 +11,7 @@ This folder is the project record for product discovery, design, architecture, a
 - `decisions/`: architecture decision records (ADRs). ADRs are append-only once accepted; later changes should supersede them with a new ADR.
 - `roadmap.md`: milestone order and validation gates, not a promise of calendar dates.
 - `open-questions.md`: unresolved owner choices and research spikes.
+- `development/`: implementation status, verification evidence, and operational development notes.
 
 ## Status language
 
@@ -36,6 +37,8 @@ This folder is the project record for product discovery, design, architecture, a
 - [Opponent character 01](concepts/opponent-character-01.md): first fictional right-handed male design sheet and detachable-racket guidance.
 - [Application UI concepts](concepts/application-ui-concepts-2026-08.md): implementation references for setup, rehearsal, and timeline editing.
 - [Mocap-to-web pipeline](research/mocap-to-web-character-pipeline.md): custom tennis clips, open/general motion integration, licensing, retargeting, and runtime blending.
+- [Implementation status](development/implementation-status.md): staged code coverage, verification, and remaining gaps.
+- [Visual verification ledger](development/visual-verification.md): concept-to-browser comparison after each implementation stage.
 
 ## Decision index
 

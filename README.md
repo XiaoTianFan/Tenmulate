@@ -29,6 +29,8 @@ These are proposed decisions, not irreversible commitments. The acceptance gates
 | [Scene-generation prompt kit](docs/concepts/scene-generation-prompt-kit.md) | Three reusable perspective prefixes and six standalone court/environment prompts |
 | [Opponent character 01](docs/concepts/opponent-character-01.md) | First fictional right-handed male design sheet and detachable-racket production guidance |
 | [Application UI concepts](docs/concepts/application-ui-concepts-2026-08.md) | Complete setup, rehearsal, and timeline-editor implementation references |
+| [Implementation status](docs/development/implementation-status.md) | Staged V1 code coverage, verification evidence, and remaining gaps |
+| [Visual verification](docs/development/visual-verification.md) | Concept-to-browser fidelity ledger for each implementation stage |
 | [Roadmap](docs/roadmap.md) | Milestones, gates, deliverables, and validation order |
 | [Open questions](docs/open-questions.md) | Decisions that need owner input or prototype evidence |
 | [ADR-0001](docs/decisions/0001-web-rendering-and-simulation-architecture.md) | Proposed initial web/rendering/simulation architecture |
@@ -45,5 +47,5 @@ These are proposed decisions, not irreversible commitments. The acceptance gates
 - Court environment directions: six accepted on 2026-08-29; outdoor Panel 1 selected as the product and vertical-slice baseline.
 - First opponent concept sheet: generated on 2026-08-29; owner/rigging review pending.
 - Setup, rehearsal, and timeline-editor visual concepts: generated on 2026-08-29 and adopted as the implementation reference.
-- Technical proof of concept: not started.
+- Technical implementation: Stage 1 renderer/trajectory/setup foundation is runnable; later V1 stages remain active.
 - Production implementation or deployment: not started.
