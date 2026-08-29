@@ -36,7 +36,13 @@ describe('regulation court constants', () => {
   it('keeps arenas outdoors and all indoor venues free of audience seating', () => {
     const court = createCourt('hard');
     for (const arena of ['hard-open-arena', 'clay-sunset-arena', 'grass-center-court'] as const) {
-      expect(court.venueGroups[arena].getObjectByName('four-sided-arena-seating-bowl')).toBeDefined();
+      const bowl = court.venueGroups[arena].getObjectByName('four-sided-arena-seating-bowl')!;
+      expect(bowl).toBeDefined();
+      const standNames: string[] = [];
+      bowl.traverse((object) => {
+        if (object.name.includes('multi-tier-stadium-stand')) standNames.push(object.name);
+      });
+      expect(standNames).toHaveLength(8);
       expect(court.venueGroups[arena].getObjectByName('unbranded-procedural-ad-ring')).toBeDefined();
       expect(court.venueGroups[arena].getObjectByName('open-roof-arena-canopy')).toBeDefined();
     }

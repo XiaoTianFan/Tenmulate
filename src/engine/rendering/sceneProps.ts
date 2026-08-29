@@ -188,6 +188,85 @@ export const createBleachers = (
   return group;
 };
 
+export type StadiumStandOptions = Readonly<{
+  rows: number;
+  columns: number;
+  length: number;
+  seatMaterial: THREE.Material;
+  rowDepth?: number;
+  rowRise?: number;
+  aisleCount?: number;
+  seatScale?: number;
+}>;
+
+export const createStadiumStand = (
+  materials: SceneMaterialLibrary,
+  side: -1 | 1,
+  options: StadiumStandOptions,
+): THREE.Group => {
+  const group = new THREE.Group();
+  group.name = side < 0 ? 'west-multi-tier-stadium-stand' : 'east-multi-tier-stadium-stand';
+  const rowDepth = options.rowDepth ?? 0.62;
+  const rowRise = options.rowRise ?? 0.38;
+  const seatScale = options.seatScale ?? 1;
+  const aisleCount = options.aisleCount ?? 2;
+  const columnSpacing = options.length / options.columns;
+  const aisleColumns = new Set<number>();
+  for (let aisle = 1; aisle <= aisleCount; aisle += 1) {
+    const center = Math.round((options.columns * aisle) / (aisleCount + 1));
+    aisleColumns.add(center - 1);
+    aisleColumns.add(center);
+  }
+
+  const seats: BoxTransform[] = [];
+  const backs: BoxTransform[] = [];
+  const stepTransforms: BoxTransform[] = [];
+  const aisleTransforms: BoxTransform[] = [];
+  for (let row = 0; row < options.rows; row += 1) {
+    const x = side * row * rowDepth;
+    const rise = 0.34 + row * rowRise;
+    stepTransforms.push({
+      position: [x, rise / 2, 0],
+      scale: [1, rise, 1],
+    });
+    for (let column = 0; column < options.columns; column += 1) {
+      const z = -options.length / 2 + (column + 0.5) * columnSpacing;
+      if (aisleColumns.has(column)) {
+        if (column % 2 === 0) aisleTransforms.push({ position: [x - side * 0.02, rise + 0.045, z] });
+        continue;
+      }
+      seats.push({
+        position: [x - side * 0.08, rise + 0.12, z],
+        rotation: [0, 0, side * -0.035],
+      });
+      backs.push({
+        position: [x + side * 0.19, rise + 0.38, z],
+        rotation: [0, 0, side * -0.08],
+      });
+    }
+  }
+
+  group.add(instancedBoxes(rowDepth + 0.08, 1, options.length, materials.concrete, stepTransforms));
+  group.add(instancedBoxes(0.46 * seatScale, 0.09, 0.46 * seatScale, options.seatMaterial, seats));
+  group.add(instancedBoxes(0.09, 0.46 * seatScale, 0.46 * seatScale, options.seatMaterial, backs));
+  if (aisleTransforms.length > 0) {
+    group.add(instancedBoxes(rowDepth * 0.9, 0.09, columnSpacing * 2.05, materials.paleConcrete, aisleTransforms));
+  }
+
+  const frontX = -side * 0.38;
+  group.add(box(0.07, 0.07, options.length, materials.darkMetal, frontX, 1.02, 0));
+  for (let z = -options.length / 2; z <= options.length / 2 + 0.01; z += 2.1) {
+    group.add(box(0.065, 1.02, 0.065, materials.darkMetal, frontX, 0.51, z));
+  }
+  for (const aisle of Array.from({ length: aisleCount }, (_, index) => index + 1)) {
+    const z = -options.length / 2 + options.length * aisle / (aisleCount + 1);
+    const rail = box(options.rows * rowDepth, 0.055, 0.055, materials.lightMetal, side * (options.rows - 1) * rowDepth / 2, 0.95 + (options.rows - 1) * rowRise / 2, z);
+    rail.rotation.z = side * Math.atan2((options.rows - 1) * rowRise, Math.max(0.1, (options.rows - 1) * rowDepth));
+    group.add(rail);
+  }
+  return group;
+};
+
 export const createLightPole = (materials: SceneMaterialLibrary, x: number, z: number, faceZ: number): THREE.Group => {
   const group = new THREE.Group();
   group.name = 'court-light-pole';

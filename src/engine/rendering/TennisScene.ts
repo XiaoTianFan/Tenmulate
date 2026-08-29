@@ -200,6 +200,15 @@ export class TennisScene {
     for (const [venue, group] of Object.entries(this.venueGroups)) group.visible = venue === configuration.venue;
     const intensity = Math.min(1.5, Math.max(0.35, configuration.lightIntensity));
     const definition = SCENE_DEFINITIONS[configuration.venue];
+    if (isOutdoorVenue(configuration.venue)) {
+      const solarDaylight = Math.sin(THREE.MathUtils.clamp((configuration.timeOfDay - 5.5) / 15, 0, 1) * Math.PI);
+      const lowLightLift = (1 - solarDaylight) * 0.06;
+      const weatherLift = configuration.weather === 'clear' ? 0 : 0.04 * configuration.weatherIntensity;
+      this.renderer.toneMappingExposure = (0.52 + lowLightLift + weatherLift) * THREE.MathUtils.lerp(0.9, 1.06, intensity / 1.5);
+    } else {
+      this.renderer.toneMappingExposure = (configuration.lighting === 'indoor-bright' ? 0.68 : configuration.lighting === 'indoor-warm' ? 0.63 : 0.6)
+        * THREE.MathUtils.lerp(0.88, 1.08, intensity / 1.5);
+    }
     this.skySystem.apply(configuration, definition);
     this.weatherSystem.apply(configuration);
     const activeVenue = this.venueGroups[configuration.venue];
@@ -348,7 +357,11 @@ export class TennisScene {
     const materials = new Set<THREE.Material>();
     const textures = new Set<THREE.Texture>();
     this.scene.traverse((object) => {
-      if (object.name === 'dynamic-physical-sky' || object.name === 'procedural-wind-driven-rain') return;
+      if (
+        object.name === 'dynamic-physical-sky'
+        || object.name === 'procedural-responsive-cloud-dome'
+        || object.name === 'procedural-wind-driven-rain'
+      ) return;
       if (object instanceof THREE.Mesh || object instanceof THREE.Line || object instanceof THREE.LineSegments) {
         geometries.add(object.geometry);
         const objectMaterials = Array.isArray(object.material) ? object.material : [object.material];
