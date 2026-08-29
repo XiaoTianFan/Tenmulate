@@ -142,7 +142,7 @@ This is the evidence ledger for the code-backed V1. “Implemented” means runn
 ### External release gates
 
 - Complete the integrated licensed neutral carrier with reviewed tennis/general-motion clips and a separate racket; verify contact, blend, handedness, serve rhythm, socket transforms, and deformation.
-- Replace the procedural venue blockouts with the six polished canonical Three.js compositions while preserving exact court authority and live lighting.
+- Continue owner-led visual polish of the nine canonical Three.js venues while preserving exact court authority, atmosphere coherence, and procedural-material rules.
 - Run the 30-minute mixed-session soak, named Chrome/Edge/Firefox/Safari device matrix, real TV/projector calibration, owner/coach/player observation, accessibility review, asset/license review, and public hosting/CDN/rollback validation.
 - Optional 90/120 fps stays hidden until the on-device capability benchmark passes. No camera permission or V2 body tracking exists in this build.
 
@@ -193,3 +193,19 @@ The detailed status of every requirement is recorded in the [V1 release matrix](
 - The temporary ball machine is now a load/skeleton-failure fallback rather than the primary opponent. The app remains functional if the external GLB cannot load.
 - Recorded the source/archive/runtime hashes, CC0 notice, limitations, and exact remaining mocap/racket/contact gates in the asset record and shipped manifest.
 - `npm run build` passes; the suite passes at 56 tests, including the exact GLB hash/header/scene-graph contract. The GLTF loader is emitted as a separate approximately 13.2 kB gzip chunk, and the GLB/license/manifest are present in the 29-entry, approximately 1.8 MiB production precache. Fresh-browser inspection at baseline, approach, and first-volley views confirmed scale, orientation, ready silhouette, fallback behavior, and no new console errors. Background-window FPS remains invalid performance evidence.
+
+## Stage 7 — nine venues, dynamic atmosphere, weather, and wind
+
+- **Status:** Implemented locally on 2026-08-30; owner and target-device visual approval remain open
+- ADR-0006 expands the catalogue to exactly six outdoor venues and three simple indoor halls.
+- Added owner-reference-calibrated outdoor arena identities for a blue hard open-roof arena, sunset clay bowl, and open-roof grass center court. Each has four-sided stepped/instanced seating, aisles/concourse masses, unbranded procedural ad boards, score-display forms, canopy/roof massing, trusses, and an open sky aperture.
+- Reworked the three original outdoor scenes with larger ground/context extents, access paths, hedges/planting layers, pavilions/club buildings, retaining structure, perimeter architecture, and venue-local floodlight poles.
+- Removed audience seating from all three indoor scenes. Replaced the covered-grass roof with an upright 18-panel semicircular barrel vault and repeated structural ribs.
+- Replaced detached global point lights with fixture-local spotlights. Every indoor fixture and outdoor lamp array now owns an actual light source at its visible lens transform; outdoor fixtures remain off in daylight and rise after dusk.
+- Replaced all CPU `DataTexture` venue maps with deterministic GLSL layered onto physical materials. Court, runoff, line, ground, seats, concrete, timber, metal, roof, wall, planting, glass, and ad-board materials expose procedural pattern, time, wind, and wetness uniforms; the venue texture bundle is empty.
+- Added one renderer-owned Three.js `Sky`, continuous solar elevation/azimuth, directional sun, hemispheric diffusion, weather-driven fog/scattering, throttled PMREM environment generation, and clear/overcast/rain states.
+- Added an 850-drop procedural shader rain field. Precipitation direction responds to the same configured world-space wind as foliage shader sway.
+- Added locally persisted time, weather, weather intensity, wind direction, and wind speed controls. Wind converts to court-frame air velocity and affects drag/Magnus in the deterministic `ball-v2-wind` solver; weather remains visual-only.
+- Calm and wind trajectory tests, legacy storage normalization, nine-venue registry, no-seating indoor contract, arena-component contract, procedural-surface switching, fixture/lens alignment, and upright roof coverage bring the full suite to 61 passing tests.
+- `npm run build` passes. The renderer chunk is approximately 161.8 kB gzip and the full generated PWA precache remains approximately 1.82 MiB with no external venue texture/model payload added.
+- In-app browser verification exercised outdoor club, all three arena identities, rain, and the barrel-vault hall. Exposure calibration and the 18:30 solar window were corrected during the loop. Final switching produced zero browser console errors; a harmless driver precision warning remains non-blocking. Foreground reference-device profiling and owner visual review are still required.

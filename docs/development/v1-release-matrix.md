@@ -26,9 +26,10 @@ Status meanings:
 | POV-03 | Implemented | The near-player layer is absent by design. |
 | POV-04 | Implemented | Browser fullscreen plus button/H-key HUD hiding; central transport remains available. |
 | POV-05 | Implemented | Camera presentation lives on launch/event metadata and never enters trajectory resolution. |
-| POV-06 | Implemented; owner visual approval pending | Six distinct code-owned Three.js venues render around the same exact court. Outdoor Panel 1 is the fidelity baseline; final owner/device review remains. |
-| POV-07 | Implemented | Venue-specific light presets, direction, and intensity alter only scene presentation. |
-| POV-08 | Implemented; external visual validation active | Exact court/ball coordinates and all venue geometry, materials, props, and lights remain code-owned. No generated-world registration or proxy layer is permitted; final target-display review remains. |
+| POV-06 | Implemented; owner visual approval pending | Nine distinct code-owned venues render around the same exact court: six complete outdoor club/park/arena contexts and three seating-free indoor halls. Arena seating/ad/canopy contracts and the no-indoor-seating contract are automated; final owner/device review remains. |
+| POV-07 | Implemented; external visual validation | One Three.js physical sky drives sun, ambient fill, fog, PMREM reflections, and weather. Clear/overcast/rain were switched in browser. Actual indoor/flood lights live at visible fixture lenses. Target-display review remains. |
+| POV-08 | Implemented; external visual validation active | Exact court/ball coordinates and all venue geometry, shader materials, props, atmosphere, weather, and lights remain code-owned. No generated-world registration or proxy layer is permitted. |
+| POV-09 | Implemented; external visual validation active | All venue PBR materials use custom deterministic shader variation and share time/wind/wetness uniforms. The venue texture bundle contains zero raster/DataTextures. Owner material-fidelity review remains. |
 
 ## Ball simulation
 
@@ -40,6 +41,7 @@ Status meanings:
 | BALL-04 | Implemented | Fixed-step simulation is independent of render refresh and records the first net, bounce, and receiver crossing. Multi-refresh device evidence remains part of the browser matrix. |
 | BALL-05 | Implemented | High-contrast scale/material and short trail are renderer-only; diagnostic centroid samples remain unchanged. |
 | BALL-06 | Implemented | Every bundled shot must cross the net and land in bounds in the content-wide test; imported targets/clearance/enums are bounded and invalid content is rejected. |
+| BALL-07 | Implemented; external calibration | Persisted direction/speed controls produce court-frame wind velocity; drag and Magnus use air-relative velocity. Side-wind displacement and deterministic replay are automated; measured wind calibration remains external. |
 
 ## Opponent and serve motion
 
