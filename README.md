@@ -47,5 +47,5 @@ These are proposed decisions, not irreversible commitments. The acceptance gates
 - Court environment directions: six accepted on 2026-08-29; outdoor Panel 1 selected as the product and vertical-slice baseline.
 - First opponent concept sheet: generated on 2026-08-29; owner/rigging review pending.
 - Setup, rehearsal, and timeline-editor visual concepts: generated on 2026-08-29 and adopted as the implementation reference.
-- Technical implementation: Stage 1 renderer/trajectory/setup foundation is runnable; later V1 stages remain active.
+- Technical implementation: Stage 2 deterministic session player is runnable and browser-verified; local authoring/offline/hardening stages remain active.
 - Production implementation or deployment: not started.

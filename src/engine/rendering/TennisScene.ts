@@ -20,6 +20,13 @@ export type SceneMetrics = Readonly<{
   renderer: string;
 }>;
 
+export type CameraMotion = Readonly<{
+  from: CameraConfiguration;
+  to: CameraConfiguration;
+  duration: number;
+  delay?: number;
+}>;
+
 export class TennisScene {
   private readonly renderer: THREE.WebGLRenderer;
   private readonly scene = new THREE.Scene();
@@ -31,6 +38,9 @@ export class TennisScene {
   private trajectory: ResolvedTrajectory | null = null;
   private elapsed = 0;
   private running = true;
+  private playbackRate = 1;
+  private loopTrajectory = true;
+  private cameraMotion: CameraMotion | null = null;
   private lastFrame = performance.now();
   private metricStartedAt = performance.now();
   private metricFrames = 0;
@@ -112,6 +122,22 @@ export class TennisScene {
     this.trajectoryLine.geometry = new THREE.BufferGeometry().setFromPoints(points);
   }
 
+  setTrajectoryVisible(visible: boolean): void {
+    this.trajectoryLine.visible = visible;
+  }
+
+  setPlaybackRate(rate: number): void {
+    this.playbackRate = Math.min(2, Math.max(0.2, rate));
+  }
+
+  setLoopTrajectory(loop: boolean): void {
+    this.loopTrajectory = loop;
+  }
+
+  setCameraMotion(motion: CameraMotion | null): void {
+    this.cameraMotion = motion;
+  }
+
   setSurface(surface: SurfaceId): void {
     const colors: Record<SurfaceId, number> = { hard: 0x2f6c9b, clay: 0xa9532d, grass: 0x4c793d };
     this.courtMaterial.color.setHex(colors[surface]);
@@ -151,10 +177,26 @@ export class TennisScene {
   private readonly animate = (now: number): void => {
     const delta = Math.min(0.05, Math.max(0, (now - this.lastFrame) / 1000));
     this.lastFrame = now;
-    if (this.running) this.elapsed += delta;
+    if (this.running) this.elapsed += delta * this.playbackRate;
     if (this.trajectory) {
-      const position = sampleTrajectoryAt(this.trajectory, this.elapsed);
+      const position = sampleTrajectoryAt(this.trajectory, this.elapsed, this.loopTrajectory);
       this.ball.position.set(position.x, position.y, position.z);
+    }
+    if (this.cameraMotion) {
+      const delay = this.cameraMotion.delay ?? 0;
+      const raw = Math.min(1, Math.max(0, (this.elapsed - delay) / Math.max(0.001, this.cameraMotion.duration)));
+      const alpha = raw * raw * (3 - 2 * raw);
+      const from = this.cameraMotion.from;
+      const to = this.cameraMotion.to;
+      this.cameraConfiguration = {
+        eyeHeight: THREE.MathUtils.lerp(from.eyeHeight, to.eyeHeight, alpha),
+        behindBaseline: THREE.MathUtils.lerp(from.behindBaseline, to.behindBaseline, alpha),
+        lateral: THREE.MathUtils.lerp(from.lateral, to.lateral, alpha),
+        yaw: THREE.MathUtils.lerp(from.yaw, to.yaw, alpha),
+        pitch: THREE.MathUtils.lerp(from.pitch, to.pitch, alpha),
+        fov: THREE.MathUtils.lerp(from.fov, to.fov, alpha),
+      };
+      this.applyCamera();
     }
     this.renderer.render(this.scene, this.camera);
     this.metricFrames += 1;

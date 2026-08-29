@@ -117,16 +117,49 @@ const firstBounce = (intent: ShotIntent, initialVelocity: Vec3): FlightSample =>
   return { time: 5, position, velocity, bounced: false };
 };
 
+const firstNetCrossing = (intent: ShotIntent, initialVelocity: Vec3): FlightSample | null => {
+  let position = intent.source;
+  let velocity = initialVelocity;
+  const spin = spinVector(intent.spin);
+
+  for (let index = 1; index < 3 / FIXED_STEP; index += 1) {
+    const nextVelocity = add(velocity, scale(acceleration(velocity, spin), FIXED_STEP));
+    const nextPosition = add(position, scale(nextVelocity, FIXED_STEP));
+    if (position.z > 0 && nextPosition.z <= 0) {
+      return {
+        time: index * FIXED_STEP,
+        position: nextPosition,
+        velocity: nextVelocity,
+        bounced: false,
+      };
+    }
+    position = nextPosition;
+    velocity = nextVelocity;
+  }
+  return null;
+};
+
+const netHeightAt = (x: number): number => {
+  const postX = COURT.doublesWidth / 2 + 0.15;
+  const normalized = Math.min(1, Math.abs(x) / postX);
+  return COURT.netCenterHeight + (COURT.netPostHeight - COURT.netCenterHeight) * normalized ** 1.7;
+};
+
 const targetAdjustedVelocity = (intent: ShotIntent): Vec3 => {
   let velocity = lowArcVelocity(intent);
-  for (let iteration = 0; iteration < 8; iteration += 1) {
+  for (let iteration = 0; iteration < 14; iteration += 1) {
     const bounce = firstBounce(intent, velocity);
     const time = Math.max(0.2, bounce.time);
     const errorX = intent.target.x - bounce.position.x;
     const errorZ = intent.target.z - bounce.position.z;
+    const net = firstNetCrossing(intent, velocity);
+    const requiredNetY = net ? netHeightAt(net.position.x) + 0.12 : COURT.netCenterHeight + 0.12;
+    const verticalCorrection = net && net.position.y < requiredNetY
+      ? ((requiredNetY - net.position.y) / Math.max(0.18, net.time)) * 1.08
+      : 0;
     velocity = vec3(
       velocity.x + (errorX / time) * 0.72,
-      velocity.y,
+      velocity.y + verticalCorrection,
       velocity.z + (errorZ / time) * 0.72,
     );
   }
@@ -185,11 +218,19 @@ export const resolveTrajectory = (intent: ShotIntent): ResolvedTrajectory => {
   return { intent, launchVelocity, samples, events, apexHeight };
 };
 
-export const sampleTrajectoryAt = (trajectory: ResolvedTrajectory, time: number): Vec3 => {
+export const sampleTrajectoryAt = (
+  trajectory: ResolvedTrajectory,
+  time: number,
+  loop = true,
+): Vec3 => {
   const samples = trajectory.samples;
   if (samples.length === 0) return trajectory.intent.source;
   const duration = samples[samples.length - 1]?.time ?? 0;
-  const wrapped = duration > 0 ? ((time % duration) + duration) % duration : 0;
+  const wrapped = duration > 0
+    ? loop
+      ? ((time % duration) + duration) % duration
+      : Math.min(Math.max(time, 0), duration)
+    : 0;
 
   for (let index = 1; index < samples.length; index += 1) {
     const right = samples[index];

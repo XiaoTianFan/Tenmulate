@@ -1,0 +1,48 @@
+import type { SurfaceId } from '../domain/court';
+import type { CameraConfiguration } from '../engine/rendering/TennisScene';
+import type { SpinKind } from '../engine/trajectory/physics';
+
+export type OpponentHand = 'left' | 'right';
+export type ShotFamily = 'groundstroke' | 'serve' | 'volley' | 'half-volley' | 'lob' | 'overhead';
+export type SessionCategory =
+  | 'Quick Rally'
+  | 'Return Practice'
+  | 'Tactical Pattern'
+  | 'Serve & Volley'
+  | 'Net & Overhead'
+  | 'Custom';
+
+export type CameraMotionDefinition = Readonly<{
+  from?: Partial<CameraConfiguration>;
+  to: Partial<CameraConfiguration>;
+  duration: number;
+  delay?: number;
+}>;
+
+export type ShotDefinitionV1 = Readonly<{
+  schemaVersion: 1;
+  id: string;
+  label: string;
+  cue: string;
+  family: ShotFamily;
+  source: Readonly<{ x: number; y: number; z: number }>;
+  target: Readonly<{ x: number; z: number }>;
+  paceKmh: number;
+  spin: SpinKind;
+  surface: SurfaceId;
+  opponentHand: OpponentHand;
+  direction: 'Near left' | 'Body' | 'Near right';
+  depth: 'Short' | 'Mid' | 'Deep' | 'Service box';
+  cameraMotion?: CameraMotionDefinition;
+}>;
+
+export type DrillDefinitionV1 = Readonly<{
+  schemaVersion: 1;
+  id: string;
+  title: string;
+  description: string;
+  category: SessionCategory;
+  shotIds: readonly string[];
+  defaultInterval: number;
+  defaultRepetitions: number;
+}>;

@@ -1,6 +1,11 @@
 import { useEffect, useRef } from 'react';
 import type { SurfaceId } from '../domain/court';
-import { TennisScene, type CameraConfiguration, type SceneMetrics } from '../engine/rendering/TennisScene';
+import {
+  TennisScene,
+  type CameraConfiguration,
+  type CameraMotion,
+  type SceneMetrics,
+} from '../engine/rendering/TennisScene';
 import type { ResolvedTrajectory } from '../engine/trajectory/physics';
 
 type SceneViewportProps = Readonly<{
@@ -9,6 +14,11 @@ type SceneViewportProps = Readonly<{
   surface: SurfaceId;
   running: boolean;
   resetToken: number;
+  showTrajectory?: boolean;
+  playbackRate?: number;
+  loopTrajectory?: boolean;
+  cameraMotion?: CameraMotion | null;
+  showSight?: boolean;
   onMetrics: (metrics: SceneMetrics) => void;
 }>;
 
@@ -18,6 +28,11 @@ export function SceneViewport({
   surface,
   running,
   resetToken,
+  showTrajectory = true,
+  playbackRate = 1,
+  loopTrajectory = true,
+  cameraMotion = null,
+  showSight = true,
   onMetrics,
 }: SceneViewportProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -39,13 +54,15 @@ export function SceneViewport({
   useEffect(() => sceneRef.current?.setSurface(surface), [surface]);
   useEffect(() => sceneRef.current?.setRunning(running), [running]);
   useEffect(() => sceneRef.current?.reset(), [resetToken]);
+  useEffect(() => sceneRef.current?.setTrajectoryVisible(showTrajectory), [showTrajectory]);
+  useEffect(() => sceneRef.current?.setPlaybackRate(playbackRate), [playbackRate]);
+  useEffect(() => sceneRef.current?.setLoopTrajectory(loopTrajectory), [loopTrajectory]);
+  useEffect(() => sceneRef.current?.setCameraMotion(cameraMotion), [cameraMotion]);
 
   return (
     <div className="scene-viewport">
       <canvas ref={canvasRef} aria-label="Live first-person tennis court preview" />
-      <div className="scene-sight" aria-hidden="true">
-        <span />
-      </div>
+      {showSight ? <div className="scene-sight" aria-hidden="true"><span /></div> : null}
     </div>
   );
 }
