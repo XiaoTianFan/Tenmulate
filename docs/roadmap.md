@@ -10,7 +10,7 @@ This roadmap is ordered by uncertainty and integration risk. V1 is one complete 
 ### Deliverables
 
 - Record the accepted V1/V2 boundary and public-free release model.
-- Approve a complete game-realistic visual concept for setup, drill selection/editor, rehearsal, pause, diagnostics, and completion.
+- Implement from the complete game-realistic setup, rehearsal, and timeline-editor concept set; keep pause, diagnostics, and completion states in the same recorded system.
 - Use accepted outdoor Panel 1 as the first visual/technical north star; select the second indoor north star before generating that venue shell.
 - Use the modular scene prompt kit to generate matched high-oblique, player-level, and true top-down references for Panel 1.
 - Review the first fictional right-handed male opponent sheet and convert it into a licensed, riggable 3D candidate with a separate racket prop.

@@ -28,6 +28,7 @@ These are proposed decisions, not irreversible commitments. The acceptance gates
 | [Court environment concepts](docs/concepts/court-environment-concepts-2026-08.md) | Bird's-eye and player-level boards for owner art-direction review |
 | [Scene-generation prompt kit](docs/concepts/scene-generation-prompt-kit.md) | Three reusable perspective prefixes and six standalone court/environment prompts |
 | [Opponent character 01](docs/concepts/opponent-character-01.md) | First fictional right-handed male design sheet and detachable-racket production guidance |
+| [Application UI concepts](docs/concepts/application-ui-concepts-2026-08.md) | Complete setup, rehearsal, and timeline-editor implementation references |
 | [Roadmap](docs/roadmap.md) | Milestones, gates, deliverables, and validation order |
 | [Open questions](docs/open-questions.md) | Decisions that need owner input or prototype evidence |
 | [ADR-0001](docs/decisions/0001-web-rendering-and-simulation-architecture.md) | Proposed initial web/rendering/simulation architecture |
@@ -43,6 +44,6 @@ These are proposed decisions, not irreversible commitments. The acceptance gates
 - AI 3D, cloud mocap, and world-generation market reviews: researched on 2026-08-29; comparative bake-offs pending.
 - Court environment directions: six accepted on 2026-08-29; outdoor Panel 1 selected as the product and vertical-slice baseline.
 - First opponent concept sheet: generated on 2026-08-29; owner/rigging review pending.
-- Interaction and primary-screen visual design: pending.
+- Setup, rehearsal, and timeline-editor visual concepts: generated on 2026-08-29 and adopted as the implementation reference.
 - Technical proof of concept: not started.
 - Production implementation or deployment: not started.
