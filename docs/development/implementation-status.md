@@ -114,3 +114,36 @@ This is the evidence ledger for the code-backed V1. “Implemented” means runn
 
 - The three shells are intentionally procedural context stand-ins, not the pending generated or PBR production environment layer.
 - Adaptive quality, ball presentation controls, route/chunk loading, failure fallback, install-icon raster variants, and broad responsive/performance validation remain in Stage 5.
+
+## Stage 5 — product hardening and release audit
+
+### Implemented
+
+- Full camera calibration across eye height, longitudinal/lateral position, yaw, pitch, and 20–105° horizontal FOV; physical screen width/height plus viewing distance calculate both horizontal and vertical FOV and preserve exact court geometry.
+- Eight built-in camera views covering realistic, wide, both baseline sides, approach, first volley, second volley, and overhead, plus locally persisted named views and complete preference persistence/migration.
+- Independent court appearance and bounce-physics selectors, three venue shells, venue-correct lighting controls, and a sub-900px large-display practice recommendation.
+- Seeded, bounded shot and timing variation; configurable interval, work/rest cadence, spin, net clearance, opponent hand, serve rhythm, and render quality.
+- Expanded 26-shot/16-drill content floor: 12 groundstrokes, 8 serves across both hands/rhythms, approach, half-volley, volleys, lob, overhead, four Quick Rally drills, four Return drills, and four Tactical drills.
+- Adaptive quality modes with automatic pixel-ratio reduction after sustained low frame rate, route-level lazy loading, production chunk splitting, renderer failure fallback, and raster 192/512 PWA icons.
+- High-contrast ball and short-trail presentation options that do not change physics; one-action/H-key HUD hiding leaves transport available.
+- Independent countdown, contact, bounce, footwork, and optional ambience audio levels, with persistent visual equivalents for timing-critical cues.
+- Coach diagnostics now include launch speed, apex, true net clearance at the crossing x-coordinate, landing coordinates, pre/post-bounce speed, and receiver-plane height/time/speed.
+- Completion summary records the run configuration; drill import validation rejects unknown fields, duplicate IDs, invalid geometry, unsupported enums, and remote references.
+
+### Verification
+
+- `npm test`: 5 files, 49 tests passed, including content-wide legal trajectories, seeded shot/timing replay, work/rest timing, surface behavior, pre/post-bounce diagnostics, storage migration, and hostile import rejection.
+- `npm run build`: production PWA build passed with route chunks separated from the app shell and Three.js scene; main application code is approximately 63 kB gzip and the lazy scene chunk approximately 137 kB gzip.
+- Playwright CLI at 1920 × 1080: independent clay appearance/grass physics selection, 27° calculated physical FOV, persisted quality/camera preferences, live work/rest state, footwork volume, complete coach diagnostics, and zero console errors/warnings.
+- Playwright CLI at 1280 × 820 and 820 × 1000: no horizontal overflow; setup stacks at the compact breakpoint and the large-display practice recommendation is visible below 900 px.
+- Production preview offline hard reload: active service worker retained the application shell and reported cached offline readiness.
+- Concept and final browser images were inspected directly after the setup and rehearsal passes.
+
+### External release gates
+
+- Replace the procedural ball machine with the licensed, game-realistic rigged opponent and reviewed tennis/general-motion clips; verify contact, blend, handedness, serve rhythm, racket socket, and appearance variants.
+- Replace or enhance the procedural venue shells with approved PBR mesh or registered splat assets while preserving the exact code-owned court/proxy authority.
+- Run the 30-minute mixed-session soak, named Chrome/Edge/Firefox/Safari device matrix, real TV/projector calibration, owner/coach/player observation, accessibility review, asset/license review, and public hosting/CDN/rollback validation.
+- Optional 90/120 fps stays hidden until the on-device capability benchmark passes. No camera permission or V2 body tracking exists in this build.
+
+The detailed status of every requirement is recorded in the [V1 release matrix](v1-release-matrix.md).

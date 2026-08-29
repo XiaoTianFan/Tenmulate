@@ -15,8 +15,8 @@ The system should optimize for perceptual credibility and testability, not for g
 | --- | --- | --- |
 | App shell | React + TypeScript + Vite | Suitable for setup, drill selection, controls, local editor states, and a static deployment. |
 | 3D runtime | Direct Three.js integration behind a typed engine adapter | Keeps the fixed-step simulation and frame lifecycle explicit; avoids sending high-frequency state through React. |
-| Renderer | Spike `WebGPURenderer` with automatic WebGL 2 backend; retain a `WebGLRenderer` comparison build | WebGPU is strategically useful, but Three.js still labels its renderer experimental. Acceptance is measured, not assumed. |
-| Shader/material path | Standard/node materials first; TSL only where a verified effect needs it | Keeps WebGPU/WebGL 2 backend parity and avoids unsupported `ShaderMaterial`/`onBeforeCompile` paths. |
+| Renderer | Three.js `WebGLRenderer` with WebGL 2 as the accepted V1 baseline behind a typed scene adapter | This is the verified implementation path; WebGPU remains a later production-asset benchmark rather than a release dependency. |
+| Shader/material path | Standard Three.js materials; avoid unnecessary renderer-specific hooks | Keeps the production surface modest and leaves a bounded future WebGPU migration path. |
 | Ball dynamics | Custom fixed-step 3D numerical solver | Tennis needs drag, spin-dependent lift, precise bounce targets, inverse authoring, and deterministic outputs more than general rigid-body contacts. |
 | General collision option | Rapier, only if later features need it | Provides WASM, CCD, SI-unit guidance, and cross-platform determinism for collision-heavy extensions. |
 | Runtime asset format | glTF/GLB | Designed for runtime delivery and carries meshes, PBR materials, skins, morphs, and animation clips. |
@@ -248,9 +248,9 @@ The full contract and provider comparison are in [Mocap to web opponent](researc
 
 Provisional, benchmark-only delivery budgets are no more than 5 MiB compressed for the critical shell/court path and no more than 15 MiB additional data to start the first game-realistic opponent drill. The complete library may be much larger because it is split, lazy-loaded, and cached; measured first-use and warm-cache behavior, not total repository size, determines acceptance.
 
-### 9.1 Renderer spike matrix
+### 9.1 Future renderer reassessment matrix
 
-Benchmark the same vertical slice using:
+After the production opponent and venue representation are selected, benchmark the same representative scene using:
 
 1. Three.js `WebGPURenderer` with WebGPU.
 2. The same renderer forced to its WebGL 2 backend.
@@ -258,7 +258,7 @@ Benchmark the same vertical slice using:
 4. If a splat shell passes visual review, Spark with `WebGLRenderer` and the same exact court/opponent/ball layer.
 5. PlayCanvas WebGPU/WebGL GSplat only if the splat result is strong enough to justify reopening the engine choice.
 
-Capture initialization success, first frame, CPU/GPU frame time, dropped frames, memory, visual differences, shader/material gaps, and screenshot evidence on the supported browser/device matrix. Accept ADR-0001 only after this spike.
+Capture initialization success, first frame, CPU/GPU frame time, dropped frames, memory, visual differences, shader/material gaps, and screenshot evidence on the supported browser/device matrix. Keep the accepted V1 WebGL 2 path unless another renderer produces a material, repeatable product benefit without losing browser or asset compatibility.
 
 ### 9.2 Generated environment shell
 

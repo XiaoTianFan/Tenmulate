@@ -6,7 +6,7 @@ const FIXED_STEP = 1 / 240;
 const DRAG_FACTOR = 0.0018;
 const MAGNUS_FACTOR = 0.00028;
 
-export type SpinKind = 'flat' | 'topspin' | 'slice' | 'kick';
+export type SpinKind = 'flat' | 'topspin' | 'slice' | 'kick' | 'sidespin';
 
 export type SurfaceProfile = Readonly<{
   id: SurfaceId;
@@ -28,6 +28,7 @@ export type ShotIntent = Readonly<{
   spin: SpinKind;
   surface: SurfaceId;
   receiverZ?: number;
+  netClearanceM?: number;
 }>;
 
 export type FlightSample = Readonly<{
@@ -42,6 +43,7 @@ export type TrajectoryEvent = Readonly<{
   time: number;
   position: Vec3;
   speedKmh: number;
+  postSpeedKmh?: number;
 }>;
 
 export type ResolvedTrajectory = Readonly<{
@@ -60,6 +62,8 @@ const spinVector = (kind: SpinKind): Vec3 => {
       return vec3(45, 0, 28);
     case 'kick':
       return vec3(-125, 0, 42);
+    case 'sidespin':
+      return vec3(0, 0, 95);
     default:
       return vec3(0, 0, 0);
   }
@@ -139,7 +143,7 @@ const firstNetCrossing = (intent: ShotIntent, initialVelocity: Vec3): FlightSamp
   return null;
 };
 
-const netHeightAt = (x: number): number => {
+export const netHeightAt = (x: number): number => {
   const postX = COURT.doublesWidth / 2 + 0.15;
   const normalized = Math.min(1, Math.abs(x) / postX);
   return COURT.netCenterHeight + (COURT.netPostHeight - COURT.netCenterHeight) * normalized ** 1.7;
@@ -153,7 +157,8 @@ const targetAdjustedVelocity = (intent: ShotIntent): Vec3 => {
     const errorX = intent.target.x - bounce.position.x;
     const errorZ = intent.target.z - bounce.position.z;
     const net = firstNetCrossing(intent, velocity);
-    const requiredNetY = net ? netHeightAt(net.position.x) + 0.12 : COURT.netCenterHeight + 0.12;
+    const clearance = Math.min(1.8, Math.max(0.08, intent.netClearanceM ?? 0.12));
+    const requiredNetY = net ? netHeightAt(net.position.x) + clearance : COURT.netCenterHeight + clearance;
     const verticalCorrection = net && net.position.y < requiredNetY
       ? ((requiredNetY - net.position.y) / Math.max(0.18, net.time)) * 1.08
       : 0;
@@ -200,7 +205,7 @@ export const resolveTrajectory = (intent: ShotIntent): ResolvedTrajectory => {
         velocity.z * surface.horizontalRetention - spin.x * surface.spinCoupling * 0.01,
       );
       bounced = true;
-      events.push({ type: 'bounce', time, position, speedKmh: preBounceSpeed });
+      events.push({ type: 'bounce', time, position, speedKmh: preBounceSpeed, postSpeedKmh: magnitude(velocity) * 3.6 });
     }
 
     if (bounced && previousZ > receiverZ && position.z <= receiverZ) {

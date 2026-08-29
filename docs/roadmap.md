@@ -3,6 +3,8 @@
 - **Status:** Draft
 - **Last updated:** 2026-08-29
 
+**Current checkpoint:** the code-owned local ball-machine product now spans the functional work in Phases 1–6. The phase exit gates remain open where they require production 3D assets, measured target hardware/browser evidence, the 30-minute soak, human observation, licensing, or public deployment. See the [V1 release matrix](development/v1-release-matrix.md).
+
 This roadmap is ordered by uncertainty and integration risk. V1 is one complete public-free, non-tracking product; features are not split into must/should/could or a V1.1. Calendar estimates follow the vertical slice and asset bake-off.
 
 ## Phase 0: Product, visual, and asset alignment

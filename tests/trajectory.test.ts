@@ -35,4 +35,37 @@ describe('fixed-step trajectory solver', () => {
     expect(grassArrival).toBeDefined();
     expect(grassArrival?.position.y).not.toBeCloseTo(hardArrival?.position.y ?? 0, 3);
   });
+
+  it('reports both pre-bounce and post-bounce speeds for coach diagnostics', () => {
+    const trajectory = resolveTrajectory({
+      source: { x: 0, y: 1.15, z: COURT.halfLength - 0.65 },
+      target: { x: 0.8, z: -8.4 },
+      paceKmh: 82,
+      spin: 'topspin',
+      surface: 'hard',
+    });
+    const bounce = trajectory.events.find((event) => event.type === 'bounce');
+    expect(bounce?.postSpeedKmh).toBeGreaterThan(0);
+    expect(bounce?.postSpeedKmh ?? Infinity).toBeLessThan(bounce?.speedKmh ?? 0);
+  });
+
+  it('supports authored net clearance without changing the landing target contract', () => {
+    const target = { x: -1.2, z: -8.4 };
+    const trajectory = resolveTrajectory({
+      source: { x: 0, y: 1.15, z: COURT.halfLength - 0.65 }, target, paceKmh: 76, spin: 'topspin', surface: 'hard', netClearanceM: 1.1,
+    });
+    const net = trajectory.events.find((event) => event.type === 'net-crossing')!;
+    const bounce = trajectory.events.find((event) => event.type === 'bounce')!;
+    expect(net.position.y).toBeGreaterThanOrEqual(COURT.netCenterHeight + 1.05);
+    expect(bounce.position.x).toBeCloseTo(target.x, 1);
+    expect(bounce.position.z).toBeCloseTo(target.z, 1);
+  });
+
+  it('models sidespin as a distinct curved launch solution', () => {
+    const base = { source: { x: 0, y: 1.15, z: COURT.halfLength - 0.65 }, target: { x: 1.4, z: -8.1 }, paceKmh: 74, surface: 'hard' as const };
+    const flat = resolveTrajectory({ ...base, spin: 'flat' });
+    const sidespin = resolveTrajectory({ ...base, spin: 'sidespin' });
+    expect(sidespin.launchVelocity.x).not.toBeCloseTo(flat.launchVelocity.x, 3);
+    expect(sidespin.events.find((event) => event.type === 'bounce')?.position.x).toBeCloseTo(1.4, 1);
+  });
 });

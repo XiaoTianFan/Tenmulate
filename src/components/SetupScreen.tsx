@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Activity,
   Crosshair,
@@ -16,18 +16,20 @@ import {
 import { DRILL_BY_CATEGORY } from '../content/bundled';
 import type { SessionCategory } from '../content/types';
 import { COURT, type SurfaceId } from '../domain/court';
-import { DEFAULT_ENVIRONMENT, VENUE_LABELS, type EnvironmentConfiguration, type LightingPreset, type VenueId } from '../domain/environment';
-import type { SceneMetrics } from '../engine/rendering/TennisScene';
+import { VENUE_LABELS, type EnvironmentConfiguration, type LightingPreset, type VenueId } from '../domain/environment';
+import type { QualityMode, SceneMetrics } from '../engine/rendering/TennisScene';
 import { compileSession } from '../engine/session/compileSession';
 import { resolveTrajectory, type SpinKind } from '../engine/trajectory/physics';
+import { practiceAudio } from '../engine/audio/AudioCueEngine';
 import type { PracticeMode, SessionLaunch } from '../app/types';
-import type { SavedViewV1 } from '../storage/appStorage';
+import type { PracticePreferencesV1, SavedViewV1 } from '../storage/appStorage';
 import { AppHeader, type AppRoute } from './AppHeader';
 import { Modal } from './Modal';
 import { OfflineStatus } from './OfflineStatus';
 import { SceneViewport } from './SceneViewport';
 
-type CameraPresetId = 'realistic' | 'wide' | 'baselineLeft' | 'baselineRight' | 'approach';
+type BuiltInCameraPresetId = 'realistic' | 'wide' | 'baselineLeft' | 'baselineRight' | 'approach' | 'firstVolley' | 'secondVolley' | 'overhead';
+type CameraPresetId = BuiltInCameraPresetId | 'custom';
 
 const sessions: ReadonlyArray<{ label: SessionCategory; icon: typeof Activity }> = [
   { label: 'Quick Rally', icon: Activity },
@@ -62,41 +64,51 @@ function RangeField({ label, value, min, max, step, unit, onChange }: RangeField
 type SetupScreenProps = Readonly<{
   route: AppRoute;
   savedViews: readonly SavedViewV1[];
+  initialPreferences: PracticePreferencesV1;
   onRoute: (route: AppRoute) => void;
   onStart: (launch: SessionLaunch) => void;
   onSaveView: (view: SavedViewV1) => void;
   onDeleteView: (id: string) => void;
   onRenameView: (id: string, name: string) => void;
+  onPreferencesChange: (preferences: PracticePreferencesV1) => void;
 }>;
 
-export function SetupScreen({ route, savedViews, onRoute, onStart, onSaveView, onDeleteView, onRenameView }: SetupScreenProps) {
-  const [sessionCategory, setSessionCategory] = useState<SessionCategory>('Quick Rally');
-  const [mode, setMode] = useState<PracticeMode>('rehearsal');
-  const [pace, setPace] = useState(78);
-  const [interval, setIntervalValue] = useState(3.2);
-  const [repetitions, setRepetitions] = useState(12);
-  const [variation, setVariation] = useState(8);
-  const [workBlockSize, setWorkBlockSize] = useState(4);
-  const [restSeconds, setRestSeconds] = useState(20);
-  const [surface, setSurface] = useState<SurfaceId>('hard');
-  const [spin, setSpin] = useState<'preset' | SpinKind>('preset');
-  const [opponentHand, setOpponentHand] = useState<'left' | 'right'>('right');
-  const [venue, setVenue] = useState<VenueId>(DEFAULT_ENVIRONMENT.venue);
-  const [lighting, setLighting] = useState<LightingPreset>(DEFAULT_ENVIRONMENT.lighting);
-  const [lightDirection, setLightDirection] = useState(DEFAULT_ENVIRONMENT.lightDirection);
-  const [lightIntensity, setLightIntensity] = useState(DEFAULT_ENVIRONMENT.lightIntensity);
+export function SetupScreen({ route, savedViews, initialPreferences, onRoute, onStart, onSaveView, onDeleteView, onRenameView, onPreferencesChange }: SetupScreenProps) {
+  const [sessionCategory, setSessionCategory] = useState<SessionCategory>(initialPreferences.sessionCategory as SessionCategory);
+  const [mode, setMode] = useState<PracticeMode>(initialPreferences.mode);
+  const [pace, setPace] = useState(initialPreferences.pace);
+  const [interval, setIntervalValue] = useState(initialPreferences.interval);
+  const [repetitions, setRepetitions] = useState(initialPreferences.repetitions);
+  const [variation, setVariation] = useState(initialPreferences.variation);
+  const [timingVariation, setTimingVariation] = useState(initialPreferences.timingVariation);
+  const [workBlockSize, setWorkBlockSize] = useState(initialPreferences.workBlockSize);
+  const [restSeconds, setRestSeconds] = useState(initialPreferences.restSeconds);
+  const [visualSurface, setVisualSurface] = useState<SurfaceId>(initialPreferences.visualSurface);
+  const [physicsSurface, setPhysicsSurface] = useState<SurfaceId>(initialPreferences.physicsSurface);
+  const [spin, setSpin] = useState<'preset' | SpinKind>(initialPreferences.spin);
+  const [opponentHand, setOpponentHand] = useState<'left' | 'right'>(initialPreferences.opponentHand);
+  const [serveRhythm, setServeRhythm] = useState<'preset' | 'normal' | 'compact'>(initialPreferences.serveRhythm);
+  const [netClearanceM, setNetClearanceM] = useState(initialPreferences.netClearanceM);
+  const [venue, setVenue] = useState<VenueId>(initialPreferences.environment.venue);
+  const [lighting, setLighting] = useState<LightingPreset>(initialPreferences.environment.lighting);
+  const [lightDirection, setLightDirection] = useState(initialPreferences.environment.lightDirection);
+  const [lightIntensity, setLightIntensity] = useState(initialPreferences.environment.lightIntensity);
   const [seed, setSeed] = useState('18427');
-  const [eyeHeight, setEyeHeight] = useState<number>(COURT.defaultEyeHeight);
-  const [behindBaseline, setBehindBaseline] = useState<number>(COURT.defaultBehindBaseline);
-  const [lateral, setLateral] = useState(0);
-  const [fov, setFov] = useState(70);
+  const [eyeHeight, setEyeHeight] = useState<number>(initialPreferences.camera.eyeHeight);
+  const [behindBaseline, setBehindBaseline] = useState<number>(initialPreferences.camera.behindBaseline);
+  const [lateral, setLateral] = useState(initialPreferences.camera.lateral);
+  const [yaw, setYaw] = useState(initialPreferences.camera.yaw);
+  const [pitch, setPitch] = useState(initialPreferences.camera.pitch);
+  const [fov, setFov] = useState(initialPreferences.camera.fov);
+  const [quality, setQuality] = useState<QualityMode>(initialPreferences.quality);
   const [cameraPreset, setCameraPreset] = useState<CameraPresetId>('realistic');
   const [resetToken, setResetToken] = useState(0);
   const [metrics, setMetrics] = useState<SceneMetrics | null>(null);
   const [dialog, setDialog] = useState<'safety' | 'display' | 'help' | 'saveView' | 'renameView' | null>(null);
   const [safetyChecked, setSafetyChecked] = useState(false);
-  const [screenWidthCm, setScreenWidthCm] = useState(120);
-  const [viewDistanceCm, setViewDistanceCm] = useState(250);
+  const [screenWidthCm, setScreenWidthCm] = useState(initialPreferences.screenWidthCm);
+  const [screenHeightCm, setScreenHeightCm] = useState(initialPreferences.screenHeightCm);
+  const [viewDistanceCm, setViewDistanceCm] = useState(initialPreferences.viewDistanceCm);
   const [selectedSavedView, setSelectedSavedView] = useState('');
   const [viewName, setViewName] = useState('My baseline view');
   const onMetrics = useCallback((next: SceneMetrics) => setMetrics(next), []);
@@ -107,13 +119,22 @@ export function SetupScreen({ route, savedViews, onRoute, onStart, onSaveView, o
     target: { x: -2.35, z: -8.9 },
     paceKmh: pace,
     spin: spin === 'preset' ? 'topspin' : spin,
-    surface,
-  }), [pace, spin, surface]);
+    surface: physicsSurface,
+    netClearanceM,
+  }), [netClearanceM, pace, physicsSurface, spin]);
   const bounce = trajectory.events.find((event) => event.type === 'bounce');
   const net = trajectory.events.find((event) => event.type === 'net-crossing');
 
-  const camera = useMemo(() => ({ eyeHeight, behindBaseline, lateral, yaw: 0, pitch: -1.7, fov }), [behindBaseline, eyeHeight, fov, lateral]);
+  const camera = useMemo(() => ({ eyeHeight, behindBaseline, lateral, yaw, pitch, fov }), [behindBaseline, eyeHeight, fov, lateral, pitch, yaw]);
   const environment = useMemo<EnvironmentConfiguration>(() => ({ venue, lighting, lightDirection, lightIntensity }), [lightDirection, lightIntensity, lighting, venue]);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => onPreferencesChange({
+      sessionCategory, mode, pace, interval, repetitions, variation, timingVariation, workBlockSize, restSeconds, visualSurface, physicsSurface, spin,
+      opponentHand, serveRhythm, netClearanceM, camera, environment, quality, screenWidthCm, screenHeightCm, viewDistanceCm,
+    }), 180);
+    return () => window.clearTimeout(timeout);
+  }, [camera, environment, interval, mode, netClearanceM, onPreferencesChange, opponentHand, pace, physicsSurface, quality, repetitions, restSeconds, screenHeightCm, screenWidthCm, serveRhythm, sessionCategory, spin, timingVariation, variation, viewDistanceCm, visualSurface, workBlockSize]);
 
   const applySavedView = (id: string) => {
     setSelectedSavedView(id);
@@ -122,8 +143,10 @@ export function SetupScreen({ route, savedViews, onRoute, onStart, onSaveView, o
     setEyeHeight(saved.camera.eyeHeight);
     setBehindBaseline(saved.camera.behindBaseline);
     setLateral(saved.camera.lateral);
+    setYaw(saved.camera.yaw);
+    setPitch(saved.camera.pitch);
     setFov(saved.camera.fov);
-    setCameraPreset('realistic');
+    setCameraPreset('custom');
   };
 
   const saveCurrentView = () => {
@@ -133,17 +156,23 @@ export function SetupScreen({ route, savedViews, onRoute, onStart, onSaveView, o
     setDialog(null);
   };
 
-  const applyCameraPreset = (preset: CameraPresetId) => {
+  const applyCameraPreset = (preset: BuiltInCameraPresetId) => {
     setCameraPreset(preset);
     const values = {
-      realistic: { lateral: 0, behind: 1.5, fov: 70 },
-      wide: { lateral: 0, behind: 2.2, fov: 84 },
-      baselineLeft: { lateral: -2.6, behind: 1.4, fov: 74 },
-      baselineRight: { lateral: 2.6, behind: 1.4, fov: 74 },
-      approach: { lateral: 0, behind: -4.68, fov: 76 },
+      realistic: { eye: 1.7, lateral: 0, behind: 1.5, yaw: 0, pitch: -1.7, fov: 70 },
+      wide: { eye: 1.72, lateral: 0, behind: 2.2, yaw: 0, pitch: -1.7, fov: 84 },
+      baselineLeft: { eye: 1.68, lateral: -2.6, behind: 1.4, yaw: 7, pitch: -1.7, fov: 74 },
+      baselineRight: { eye: 1.68, lateral: 2.6, behind: 1.4, yaw: -7, pitch: -1.7, fov: 74 },
+      approach: { eye: 1.67, lateral: 0, behind: -4.68, yaw: 0, pitch: -1.2, fov: 76 },
+      firstVolley: { eye: 1.66, lateral: -0.8, behind: -6.7, yaw: 3, pitch: -0.8, fov: 78 },
+      secondVolley: { eye: 1.65, lateral: 0.8, behind: -8.4, yaw: -4, pitch: -0.4, fov: 80 },
+      overhead: { eye: 1.7, lateral: 0, behind: -3.2, yaw: 0, pitch: 4, fov: 82 },
     }[preset];
+    setEyeHeight(values.eye);
     setLateral(values.lateral);
     setBehindBaseline(values.behind);
+    setYaw(values.yaw);
+    setPitch(values.pitch);
     setFov(values.fov);
   };
 
@@ -162,29 +191,35 @@ export function SetupScreen({ route, savedViews, onRoute, onStart, onSaveView, o
         repetitions,
         interval,
         variationPercent: variation,
+        timingVariationPercent: timingVariation,
         paceKmh: pace,
-        surface,
+        surface: physicsSurface,
         seed,
         spin,
         opponentHand,
         workBlockSize,
         restSeconds,
+        serveRhythm,
+        netClearanceM,
       }),
       mode,
       camera,
       environment,
+      visualSurface,
+      quality,
     });
   };
 
   const requestStart = () => {
+    practiceAudio.unlock();
     if (localStorage.getItem('tenmulate.safetyAcknowledged') === 'true') launch();
     else setDialog('safety');
   };
 
   const applyPhysicalFov = () => {
     const nextFov = (2 * Math.atan(screenWidthCm / (2 * viewDistanceCm)) * 180) / Math.PI;
-    setFov(Math.min(105, Math.max(45, Math.round(nextFov))));
-    setCameraPreset('realistic');
+    setFov(Math.min(105, Math.max(20, Math.round(nextFov))));
+    setCameraPreset('custom');
     setDialog(null);
   };
 
@@ -194,6 +229,7 @@ export function SetupScreen({ route, savedViews, onRoute, onStart, onSaveView, o
       <section className="practice-layout">
         <aside className="session-rail" aria-label="Session types">
           <h1>Choose a session</h1>
+          <p className="compact-display-notice">Setup works here. For safe physical shadow-swing practice, use a larger display with a cleared practice area.</p>
           <div className="session-list">
             {sessions.map(({ label, icon: Icon }) => (
               <button type="button" key={label} className={sessionCategory === label ? 'session-row selected' : 'session-row'} onClick={() => selectSession(label)}>
@@ -210,17 +246,20 @@ export function SetupScreen({ route, savedViews, onRoute, onStart, onSaveView, o
         </aside>
 
         <section className="preview-column" aria-label="Live court preview">
-          <SceneViewport camera={camera} trajectory={trajectory} surface={surface} environment={environment} running resetToken={resetToken} showTrajectory={mode === 'learning'} onMetrics={onMetrics} />
+          <SceneViewport camera={camera} trajectory={trajectory} surface={visualSurface} environment={environment} quality={quality} running resetToken={resetToken} showTrajectory={mode === 'learning'} onMetrics={onMetrics} />
           <div className="preview-toolbar">
             <button className={cameraPreset === 'realistic' ? 'camera-preset active' : 'camera-preset'} type="button" onClick={() => applyCameraPreset('realistic')}><Crosshair size={18} /><span>Realistic</span></button>
             <button className={cameraPreset === 'wide' ? 'camera-preset active' : 'camera-preset'} type="button" onClick={() => applyCameraPreset('wide')}><SlidersHorizontal size={18} /><span>Wide</span></button>
             <button className={cameraPreset === 'baselineLeft' ? 'camera-preset active' : 'camera-preset'} type="button" onClick={() => applyCameraPreset('baselineLeft')}><span>Baseline L</span></button>
             <button className={cameraPreset === 'baselineRight' ? 'camera-preset active' : 'camera-preset'} type="button" onClick={() => applyCameraPreset('baselineRight')}><span>Baseline R</span></button>
             <button className={cameraPreset === 'approach' ? 'camera-preset active' : 'camera-preset'} type="button" onClick={() => applyCameraPreset('approach')}><span>Approach</span></button>
+            <button className={cameraPreset === 'firstVolley' ? 'camera-preset active' : 'camera-preset'} type="button" onClick={() => applyCameraPreset('firstVolley')}><span>First volley</span></button>
+            <button className={cameraPreset === 'secondVolley' ? 'camera-preset active' : 'camera-preset'} type="button" onClick={() => applyCameraPreset('secondVolley')}><span>Second volley</span></button>
+            <button className={cameraPreset === 'overhead' ? 'camera-preset active' : 'camera-preset'} type="button" onClick={() => applyCameraPreset('overhead')}><span>Overhead</span></button>
             <button className="reset-link" type="button" onClick={() => applyCameraPreset('realistic')}><RotateCcw size={15} /> Reset view</button>
           </div>
           <div className="preview-diagnostics" aria-live="polite">
-            <span>{metrics ? `${metrics.renderer} · ${metrics.fps} fps · ${metrics.frameMs.toFixed(1)} ms` : 'Starting renderer…'}</span>
+            <span>{metrics ? `${metrics.renderer} · ${metrics.fps} fps · ${metrics.frameMs.toFixed(1)} ms · ${metrics.pixelRatio.toFixed(2)}× ${metrics.quality}` : 'Starting renderer…'}</span>
             <span>{net ? `Net ${net.position.y.toFixed(2)} m` : 'No net crossing'} · {bounce ? `Bounce ${bounce.position.x.toFixed(2)}, ${bounce.position.z.toFixed(2)} m` : 'No bounce'}</span>
           </div>
         </section>
@@ -231,22 +270,30 @@ export function SetupScreen({ route, savedViews, onRoute, onStart, onSaveView, o
           <RangeField label="Pace" value={pace} min={35} max={165} step={1} unit="km/h" onChange={setPace} />
           <RangeField label="Interval" value={interval} min={1.5} max={8} step={0.1} unit="s" onChange={setIntervalValue} />
           <RangeField label="Repetitions" value={repetitions} min={1} max={50} step={1} unit="" onChange={setRepetitions} />
-          <RangeField label="Variation" value={variation} min={0} max={25} step={1} unit="%" onChange={setVariation} />
+          <RangeField label="Shot variation" value={variation} min={0} max={25} step={1} unit="%" onChange={setVariation} />
+          <RangeField label="Timing variation" value={timingVariation} min={0} max={30} step={1} unit="%" onChange={setTimingVariation} />
           <RangeField label="Work block" value={workBlockSize} min={1} max={20} step={1} unit="reps" onChange={setWorkBlockSize} />
           <RangeField label="Rest" value={restSeconds} min={0} max={120} step={5} unit="s" onChange={setRestSeconds} />
-          <label className="select-field"><span>Surface</span><select value={surface} onChange={(event) => setSurface(event.target.value as SurfaceId)}><option value="hard">Hard</option><option value="clay">Clay</option><option value="grass">Grass</option></select></label>
+          <label className="select-field"><span>Court appearance</span><select value={visualSurface} onChange={(event) => setVisualSurface(event.target.value as SurfaceId)}><option value="hard">Hard</option><option value="clay">Clay</option><option value="grass">Grass</option></select></label>
+          <label className="select-field"><span>Bounce profile</span><select value={physicsSurface} onChange={(event) => setPhysicsSurface(event.target.value as SurfaceId)}><option value="hard">Hard</option><option value="clay">Clay</option><option value="grass">Grass</option></select></label>
           <label className="select-field"><span>Venue</span><select value={venue} onChange={(event) => { const next = event.target.value as VenueId; setVenue(next); setLighting(next === 'outdoor' ? 'day' : 'indoor-neutral'); }}>{(Object.entries(VENUE_LABELS) as [VenueId, string][]).map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
           <label className="select-field"><span>Lighting</span><select value={lighting} onChange={(event) => setLighting(event.target.value as LightingPreset)}>{venue === 'outdoor' ? <><option value="day">Day</option><option value="golden-hour">Golden hour</option><option value="night">Night floodlights</option></> : <><option value="indoor-neutral">Neutral</option><option value="indoor-warm">Warm</option><option value="indoor-bright">Bright match</option></>}</select></label>
           <RangeField label={venue === 'outdoor' ? 'Sun direction' : 'Light direction'} value={lightDirection} min={-180} max={180} step={5} unit="°" onChange={setLightDirection} />
           <RangeField label="Light level" value={lightIntensity} min={0.35} max={1.5} step={0.05} unit="×" onChange={setLightIntensity} />
-          <label className="select-field"><span>Spin</span><select value={spin} onChange={(event) => setSpin(event.target.value as 'preset' | SpinKind)}><option value="preset">Drill preset</option><option value="flat">Flat</option><option value="topspin">Topspin</option><option value="slice">Slice</option><option value="kick">Kick</option></select></label>
+          <label className="select-field"><span>Spin</span><select value={spin} onChange={(event) => setSpin(event.target.value as 'preset' | SpinKind)}><option value="preset">Drill preset</option><option value="flat">Flat</option><option value="topspin">Topspin</option><option value="slice">Slice</option><option value="kick">Kick</option><option value="sidespin">Sidespin</option></select></label>
+          <RangeField label="Net clearance" value={netClearanceM} min={0.08} max={1.5} step={0.02} unit="m" onChange={setNetClearanceM} />
           <label className="select-field"><span>Opponent</span><select value={opponentHand} onChange={(event) => setOpponentHand(event.target.value as 'left' | 'right')}><option value="right">Right-handed</option><option value="left">Left-handed</option></select></label>
+          <label className="select-field"><span>Serve rhythm</span><select value={serveRhythm} onChange={(event) => setServeRhythm(event.target.value as 'preset' | 'normal' | 'compact')}><option value="preset">Drill preset</option><option value="normal">Normal · high toss</option><option value="compact">Compact · quick toss</option></select></label>
+          <label className="select-field"><span>Render quality</span><select value={quality} onChange={(event) => setQuality(event.target.value as QualityMode)}><option value="auto">Auto adaptive</option><option value="performance">Performance</option><option value="quality">Quality</option></select></label>
           <label className="text-field"><span>Seed</span><input aria-label="Seed" value={seed} inputMode="numeric" onChange={(event) => setSeed(event.target.value.replace(/\D/g, '').slice(0, 10) || '0')} /></label>
           <div className="inspector-section">
             <h2>View calibration</h2>
-            <RangeField label="Eye height" value={eyeHeight} min={1.2} max={2.1} step={0.01} unit="m" onChange={setEyeHeight} />
-            <RangeField label="Behind baseline" value={behindBaseline} min={-5} max={4} step={0.05} unit="m" onChange={(value) => { setBehindBaseline(value); setCameraPreset('realistic'); }} />
-            <RangeField label="FOV" value={fov} min={45} max={105} step={1} unit="° H" onChange={(value) => { setFov(value); setCameraPreset('realistic'); }} />
+            <RangeField label="Eye height" value={eyeHeight} min={1.2} max={2.1} step={0.01} unit="m" onChange={(value) => { setEyeHeight(value); setCameraPreset('custom'); }} />
+            <RangeField label="Behind baseline" value={behindBaseline} min={-5} max={4} step={0.05} unit="m" onChange={(value) => { setBehindBaseline(value); setCameraPreset('custom'); }} />
+            <RangeField label="Lateral" value={lateral} min={-5} max={5} step={0.05} unit="m" onChange={(value) => { setLateral(value); setCameraPreset('custom'); }} />
+            <RangeField label="Yaw" value={yaw} min={-25} max={25} step={0.5} unit="°" onChange={(value) => { setYaw(value); setCameraPreset('custom'); }} />
+            <RangeField label="Pitch" value={pitch} min={-12} max={12} step={0.1} unit="°" onChange={(value) => { setPitch(value); setCameraPreset('custom'); }} />
+            <RangeField label="FOV" value={fov} min={20} max={105} step={1} unit="° H" onChange={(value) => { setFov(value); setCameraPreset('custom'); }} />
             <button type="button" className="text-action" onClick={() => setDialog('display')}>Use physical display measurements</button>
             <label className="select-field"><span>Saved view</span><select value={selectedSavedView} onChange={(event) => applySavedView(event.target.value)}><option value="">Choose…</option>{savedViews.map((view) => <option key={view.id} value={view.id}>{view.name}</option>)}</select></label>
             <div className="view-actions">
@@ -271,10 +318,12 @@ export function SetupScreen({ route, savedViews, onRoute, onStart, onSaveView, o
       ) : null}
       {dialog === 'display' ? (
         <Modal title="Physical display view" onClose={() => setDialog(null)} actions={<button className="primary-button inline" type="button" onClick={applyPhysicalFov}>Apply calculated FOV</button>}>
-          <p>Enter the visible screen width and your eye-to-screen distance. This calculates horizontal FOV without changing court geometry.</p>
+          <p>Enter the visible screen width and height plus your eye-to-screen distance. This calculates physical horizontal and vertical FOV without changing court geometry.</p>
           <label className="dialog-field"><span>Screen width</span><input type="number" min="30" max="1000" value={screenWidthCm} onChange={(event) => setScreenWidthCm(Number(event.target.value))} /><small>cm</small></label>
+          <label className="dialog-field"><span>Screen height</span><input type="number" min="20" max="1000" value={screenHeightCm} onChange={(event) => setScreenHeightCm(Number(event.target.value))} /><small>cm</small></label>
           <label className="dialog-field"><span>Viewing distance</span><input type="number" min="30" max="1500" value={viewDistanceCm} onChange={(event) => setViewDistanceCm(Number(event.target.value))} /><small>cm</small></label>
-          <p className="calculation">Calculated horizontal FOV: {Math.round((2 * Math.atan(screenWidthCm / (2 * viewDistanceCm)) * 180) / Math.PI)}°</p>
+          <p className="calculation">Calculated FOV: {Math.round((2 * Math.atan(screenWidthCm / (2 * viewDistanceCm)) * 180) / Math.PI)}° horizontal · {Math.round((2 * Math.atan(screenHeightCm / (2 * viewDistanceCm)) * 180) / Math.PI)}° vertical</p>
+          <p className="scale-check">Scale check: singles court 8.23 m wide · center net 0.914 m · tennis ball 6.7 cm diameter.</p>
         </Modal>
       ) : null}
       {dialog === 'help' ? (

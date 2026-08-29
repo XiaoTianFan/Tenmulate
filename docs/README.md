@@ -39,12 +39,13 @@ This folder is the project record for product discovery, design, architecture, a
 - [Mocap-to-web pipeline](research/mocap-to-web-character-pipeline.md): custom tennis clips, open/general motion integration, licensing, retargeting, and runtime blending.
 - [Implementation status](development/implementation-status.md): staged code coverage, verification, and remaining gaps.
 - [Visual verification ledger](development/visual-verification.md): concept-to-browser comparison after each implementation stage.
+- [V1 release matrix](development/v1-release-matrix.md): requirement-by-requirement code evidence and the remaining asset, device, human, and deployment gates.
 
 ## Decision index
 
 | ADR | Status | Decision |
 | --- | --- | --- |
-| [0001](decisions/0001-web-rendering-and-simulation-architecture.md) | Proposed | React/Vite shell, direct Three.js runtime, benchmarked WebGPU path, and tennis-specific ball solver |
+| [0001](decisions/0001-web-rendering-and-simulation-architecture.md) | Accepted for V1 runtime | React/Vite shell, direct Three.js WebGL 2 runtime, and tennis-specific ball solver |
 | [0002](decisions/0002-v1-scope-and-release-model.md) | Accepted | Complete public-free non-tracking V1; camera-based player tracking defines V2 |
 | [0003](decisions/0003-hybrid-asset-authoring-strategy.md) | Proposed | Procedural/code-owned court plus optimized GLB opponents selected through an asset bake-off |
 | [0004](decisions/0004-generated-world-environment-layer.md) | Proposed | Generated mesh/splat venue shells registered around the exact gameplay layer |

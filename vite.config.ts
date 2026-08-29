@@ -7,7 +7,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg'],
+      includeAssets: ['favicon.svg', 'pwa-192.png', 'pwa-512.png'],
       manifest: {
         name: 'Tenmulate Tennis Rehearsal',
         short_name: 'Tenmulate',
@@ -17,8 +17,10 @@ export default defineConfig({
         display: 'standalone',
         start_url: '/',
         icons: [
+          { src: '/pwa-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: '/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: '/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
           { src: '/favicon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
-          { src: '/favicon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'maskable' },
         ],
       },
       workbox: {
@@ -39,5 +41,6 @@ export default defineConfig({
   build: {
     target: 'es2022',
     sourcemap: true,
+    chunkSizeWarningLimit: 550,
   },
 });

@@ -9,7 +9,7 @@ describe('bundled V1 content floor', () => {
     expect(SHOTS.filter((shot) => shot.family === 'groundstroke')).toHaveLength(12);
     expect(SHOTS.filter((shot) => shot.family === 'serve')).toHaveLength(8);
     expect(SHOTS.filter((shot) => ['volley', 'lob', 'overhead'].includes(shot.family))).toHaveLength(4);
-    expect(DRILLS.map((drill) => drill.category)).toEqual([
+    expect([...new Set(DRILLS.map((drill) => drill.category))]).toEqual([
       'Quick Rally',
       'Return Practice',
       'Tactical Pattern',
@@ -17,6 +17,12 @@ describe('bundled V1 content floor', () => {
       'Net & Overhead',
       'Custom',
     ]);
+    expect(DRILLS.filter((drill) => drill.category === 'Quick Rally')).toHaveLength(4);
+    expect(DRILLS.filter((drill) => drill.category === 'Return Practice')).toHaveLength(4);
+    expect(DRILLS.filter((drill) => drill.category === 'Tactical Pattern')).toHaveLength(4);
+    expect(SHOTS.some((shot) => shot.family === 'approach')).toBe(true);
+    expect(SHOTS.some((shot) => shot.family === 'half-volley')).toBe(true);
+    expect(new Set(SHOTS.filter((shot) => shot.family === 'serve').map((shot) => shot.serveRhythm))).toEqual(new Set(['normal', 'compact']));
   });
 
   it.each(SHOTS.map((shot) => [shot.id, shot] as const))('%s resolves across the net and bounces on the near court', (_id, shot) => {
@@ -38,6 +44,7 @@ describe('session compiler', () => {
     repetitions: 12,
     interval: 3.2,
     variationPercent: 8,
+    timingVariationPercent: 0,
     paceKmh: 78,
     surface: 'hard' as const,
     seed: '18427',
@@ -45,6 +52,8 @@ describe('session compiler', () => {
     opponentHand: 'right' as const,
     workBlockSize: 4,
     restSeconds: 20,
+    serveRhythm: 'preset' as const,
+    netClearanceM: 0.24,
   };
 
   it('is deterministic for the same seed', () => {
@@ -74,5 +83,15 @@ describe('session compiler', () => {
     expect(session.restPeriods[1]!.endTime).toBeCloseTo(68.6, 8);
     expect(session.repetitions[4]!.startTime).toBe(35.8);
     expect(session.duration).toBeCloseTo(81.4, 8);
+  });
+
+  it('applies seeded timing variation without changing the three-second countdown or rest duration', () => {
+    const varied = compileSession(drill, { ...settings, timingVariationPercent: 20 });
+    const replay = compileSession(drill, { ...settings, timingVariationPercent: 20 });
+    expect(varied.repetitions.map((entry) => entry.startTime)).toEqual(replay.repetitions.map((entry) => entry.startTime));
+    expect(varied.repetitions[0]!.startTime).toBe(3);
+    expect(varied.repetitions[1]!.startTime).toBeGreaterThanOrEqual(3 + settings.interval * 0.8);
+    expect(varied.repetitions[1]!.startTime).toBeLessThanOrEqual(3 + settings.interval * 1.2);
+    expect(varied.restPeriods[0]!.endTime - varied.restPeriods[0]!.startTime).toBeCloseTo(20, 8);
   });
 });

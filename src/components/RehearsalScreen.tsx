@@ -3,6 +3,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Expand,
+  EyeOff,
   LogOut,
   Pause,
   Play,
@@ -14,9 +15,10 @@ import {
   VolumeX,
 } from 'lucide-react';
 import type { SessionLaunch } from '../app/types';
-import { AudioCueEngine } from '../engine/audio/AudioCueEngine';
+import { practiceAudio } from '../engine/audio/AudioCueEngine';
 import type { CameraMotion, SceneMetrics } from '../engine/rendering/TennisScene';
 import { useSessionPlayer } from '../hooks/useSessionPlayer';
+import { netHeightAt } from '../engine/trajectory/physics';
 import { Modal } from './Modal';
 import { SceneViewport } from './SceneViewport';
 
@@ -33,25 +35,26 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [cameraMotionScale, setCameraMotionScale] = useState(1);
-  const [audioLevels, setAudioLevels] = useState({ countdown: 1, contact: 1, bounce: 0.72, ambience: 0 });
+  const [audioLevels, setAudioLevels] = useState({ countdown: 1, contact: 1, bounce: 0.7, footwork: 0.6, ambience: 0 });
+  const [highContrastBall, setHighContrastBall] = useState(false);
+  const [showBallTrail, setShowBallTrail] = useState(false);
+  const [hudHidden, setHudHidden] = useState(false);
   const [metrics, setMetrics] = useState<SceneMetrics | null>(null);
   const [resetToken, setResetToken] = useState(0);
-  const audioRef = useRef<AudioCueEngine | null>(null);
+  const audioRef = useRef(practiceAudio);
   const previousCueRef = useRef('');
   const player = useSessionPlayer(launch.session, playbackRate);
   const repetition = launch.session.repetitions[player.currentIndex] ?? launch.session.repetitions[0];
   const trajectory = repetition?.trajectory;
   const shot = repetition?.shot;
   const bounce = trajectory?.events.find((event) => event.type === 'bounce');
+  const net = trajectory?.events.find((event) => event.type === 'net-crossing');
   const receiver = trajectory?.events.find((event) => event.type === 'receiver-plane');
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const onMetrics = useCallback((next: SceneMetrics) => setMetrics(next), []);
 
   useEffect(() => {
-    const audio = new AudioCueEngine();
-    audio.unlock();
-    audioRef.current = audio;
-    return () => audio.dispose();
+    return () => audioRef.current.setAmbience(0);
   }, []);
 
   useEffect(() => {
@@ -76,6 +79,13 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
   }, [audioLevels.bounce, bounce, playbackRate, player.currentIndex, player.status, soundEnabled]);
 
   useEffect(() => {
+    if (player.status !== 'playing' || !receiver) return;
+    const cueTime = Math.max(0.08, receiver.time - 0.55);
+    const timeout = window.setTimeout(() => audioRef.current?.play('footwork', soundEnabled ? audioLevels.footwork : 0), (cueTime / playbackRate) * 1000);
+    return () => window.clearTimeout(timeout);
+  }, [audioLevels.footwork, playbackRate, player.currentIndex, player.status, receiver, soundEnabled]);
+
+  useEffect(() => {
     const onVisibility = () => {
       if (document.hidden && player.status === 'playing') player.pause();
     };
@@ -97,6 +107,8 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
       }
       if (event.key.toLowerCase() === 'r') player.restart();
       if (event.key.toLowerCase() === 'f') void toggleFullscreen();
+      if (event.key.toLowerCase() === 'h') setHudHidden((value) => !value);
+      if (event.key === 'Escape') player.pause();
       if (event.key === 'ArrowLeft') player.previous();
       if (event.key === 'ArrowRight') player.next();
     };
@@ -126,14 +138,15 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
   const resolvedSpeed = Math.round(Math.hypot(trajectory.launchVelocity.x, trajectory.launchVelocity.y, trajectory.launchVelocity.z) * 3.6);
 
   return (
-    <main className="rehearsal-shell">
-      <SceneViewport camera={launch.camera} trajectory={trajectory} surface={launch.session.settings.surface} environment={launch.environment} running={playing} resetToken={resetToken} showTrajectory={launch.mode === 'learning' || showDiagnostics} playbackRate={playbackRate} loopTrajectory={false} cameraMotion={cameraMotion} showSight={false} onMetrics={onMetrics} />
+    <main className={hudHidden ? 'rehearsal-shell hud-hidden' : 'rehearsal-shell'} onMouseMove={() => { if (hudHidden) setHudHidden(false); }}>
+      <SceneViewport camera={launch.camera} trajectory={trajectory} surface={launch.visualSurface} environment={launch.environment} quality={launch.quality} running={playing} resetToken={resetToken} showTrajectory={launch.mode === 'learning' || showDiagnostics} playbackRate={playbackRate} loopTrajectory={false} cameraMotion={cameraMotion} showSight={false} highContrastBall={highContrastBall} showBallTrail={showBallTrail} onMetrics={onMetrics} />
       <header className="rehearsal-header">
         <strong>Tenmulate</strong>
         <span className="drill-title">{launch.session.drill.title}</span>
         <span className="rep-status">Set {player.currentSet} of {player.setCount} · Rep {repetitionNumber} of {launch.session.repetitions.length}</span>
         <div>
           <button type="button" onClick={() => setShowDiagnostics((value) => !value)}><Settings size={18} /> Settings</button>
+          <button type="button" onClick={() => setHudHidden(true)}><EyeOff size={18} /> Hide UI</button>
           <button type="button" onClick={() => void toggleFullscreen()}><Expand size={18} /> Full screen</button>
           <button type="button" onClick={onExit}><LogOut size={18} /> Exit</button>
         </div>
@@ -166,7 +179,7 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
       <aside className="shot-readout">
         <strong>{resolvedSpeed} <small>km/h</small></strong>
         <span>{shot.spin[0]?.toUpperCase()}{shot.spin.slice(1)}</span>
-        <span>{shot.direction} · {shot.depth}</span>
+        <span>{shot.direction} · {shot.depth}{shot.serveRhythm ? ` · ${shot.serveRhythm}` : ''}</span>
         <button type="button" aria-label={soundEnabled ? 'Mute cues' : 'Unmute cues'} onClick={() => setSoundEnabled((value) => !value)}>{soundEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}</button>
       </aside>
 
@@ -177,15 +190,19 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
           <label className="compact-range"><span>Countdown</span><input aria-label="Countdown volume" type="range" min="0" max="1" step="0.1" value={audioLevels.countdown} onChange={(event) => setAudioLevels((current) => ({ ...current, countdown: Number(event.target.value) }))} /><output>{Math.round(audioLevels.countdown * 100)}%</output></label>
           <label className="compact-range"><span>Contact</span><input aria-label="Contact volume" type="range" min="0" max="1" step="0.1" value={audioLevels.contact} onChange={(event) => setAudioLevels((current) => ({ ...current, contact: Number(event.target.value) }))} /><output>{Math.round(audioLevels.contact * 100)}%</output></label>
           <label className="compact-range"><span>Bounce</span><input aria-label="Bounce volume" type="range" min="0" max="1" step="0.1" value={audioLevels.bounce} onChange={(event) => setAudioLevels((current) => ({ ...current, bounce: Number(event.target.value) }))} /><output>{Math.round(audioLevels.bounce * 100)}%</output></label>
+          <label className="compact-range"><span>Footwork</span><input aria-label="Footwork cue volume" type="range" min="0" max="1" step="0.1" value={audioLevels.footwork} onChange={(event) => setAudioLevels((current) => ({ ...current, footwork: Number(event.target.value) }))} /><output>{Math.round(audioLevels.footwork * 100)}%</output></label>
           <label className="compact-range"><span>Ambience</span><input aria-label="Ambience volume" type="range" min="0" max="1" step="0.1" value={audioLevels.ambience} onChange={(event) => setAudioLevels((current) => ({ ...current, ambience: Number(event.target.value) }))} /><output>{Math.round(audioLevels.ambience * 100)}%</output></label>
+          <label className="compact-check"><input type="checkbox" checked={highContrastBall} onChange={(event) => setHighContrastBall(event.target.checked)} /><span>High-contrast ball</span></label>
+          <label className="compact-check"><input type="checkbox" checked={showBallTrail} onChange={(event) => setShowBallTrail(event.target.checked)} /><span>Short ball trail</span></label>
           <h2 className="diagnostic-heading">Coach diagnostics</h2>
-          <dl><div><dt>Launch</dt><dd>{resolvedSpeed} km/h</dd></div><div><dt>Apex</dt><dd>{trajectory.apexHeight.toFixed(2)} m</dd></div><div><dt>Bounce</dt><dd>{bounce ? `${bounce.position.x.toFixed(2)}, ${bounce.position.z.toFixed(2)} m` : '—'}</dd></div><div><dt>Arrival</dt><dd>{receiver ? `${receiver.position.y.toFixed(2)} m · ${receiver.time.toFixed(2)} s` : '—'}</dd></div><div><dt>Renderer</dt><dd>{metrics ? `${metrics.renderer} · ${metrics.fps} fps` : 'Starting…'}</dd></div></dl>
+          <dl><div><dt>Launch</dt><dd>{resolvedSpeed} km/h</dd></div><div><dt>Apex</dt><dd>{trajectory.apexHeight.toFixed(2)} m</dd></div><div><dt>Net clearance</dt><dd>{net ? `${(net.position.y - netHeightAt(net.position.x)).toFixed(2)} m` : '—'}</dd></div><div><dt>Bounce point</dt><dd>{bounce ? `${bounce.position.x.toFixed(2)}, ${bounce.position.z.toFixed(2)} m` : '—'}</dd></div><div><dt>Bounce speed</dt><dd>{bounce ? `${Math.round(bounce.speedKmh)} → ${Math.round(bounce.postSpeedKmh ?? 0)} km/h` : '—'}</dd></div><div><dt>Arrival</dt><dd>{receiver ? `${receiver.position.y.toFixed(2)} m · ${receiver.time.toFixed(2)} s · ${Math.round(receiver.speedKmh)} km/h` : '—'}</dd></div><div><dt>Scale</dt><dd>8.23 m court · 0.914 m net · 6.7 cm ball</dd></div><div><dt>Renderer</dt><dd>{metrics ? `${metrics.renderer} · ${metrics.fps} fps · ${metrics.pixelRatio.toFixed(2)}×` : 'Starting…'}</dd></div></dl>
         </aside>
       ) : null}
 
       {player.status === 'completed' ? (
         <Modal title="Set complete" actions={<><button className="secondary-button" type="button" onClick={onExit}>Back to setup</button><button className="secondary-button" type="button" onClick={onRandomize}>New variation</button><button className="primary-button inline" type="button" onClick={player.restart}>Replay same seed</button></>}>
           <p>{launch.session.drill.title}: {launch.session.repetitions.length} repetition{launch.session.repetitions.length === 1 ? '' : 's'} completed in {Math.round(launch.session.duration)} seconds.</p>
+          <dl className="session-summary"><div><dt>Mode</dt><dd>{launch.mode}</dd></div><div><dt>Venue</dt><dd>{launch.environment.venue}</dd></div><div><dt>Appearance</dt><dd>{launch.visualSurface}</dd></div><div><dt>Bounce profile</dt><dd>{launch.session.settings.surface}</dd></div><div><dt>Base pace</dt><dd>{launch.session.settings.paceKmh} km/h</dd></div><div><dt>Interval</dt><dd>{launch.session.settings.interval.toFixed(1)} s ± {launch.session.settings.timingVariationPercent}%</dd></div></dl>
           <p>The same seed reproduces the same shot order and bounded landing variation.</p>
         </Modal>
       ) : null}

@@ -4,15 +4,15 @@ Tenmulate is a browser-based, first-person tennis visualization tool. It places 
 
 The repository now contains the active V1 implementation: a deterministic Three.js court/ball simulation, complete starter shot library, rehearsal player, local drill editor, saved views, validated JSON exchange, and offline-capable app shell. The procedural venue and ball-machine opponent are temporary visual substitutes while the external 3D asset pipeline is evaluated.
 
-## Provisional direction
+## Implemented direction
 
 - React, TypeScript, and Vite for the application shell.
-- Three.js for the 3D runtime, starting with a benchmark of `WebGPURenderer` and its WebGL 2 backend against the mature `WebGLRenderer` path.
+- Three.js `WebGLRenderer` with WebGL 2 for the V1 runtime, isolated behind a typed scene adapter; WebGPU remains a later production-asset benchmark.
 - A tennis-specific, fixed-step ball-flight solver using gravity, aerodynamic drag, Magnus lift, and calibrated bounce response.
 - A layered asset pipeline: exact/procedural gameplay geometry in Three.js, cloud-generated but project-hosted venue shells where they pass the bake-off, game-realistic skinned opponents delivered as optimized GLB, and Blender as the canonical cleanup, retargeting, validation, and export environment.
 - A complete public-free V1 with local-first settings, full drill authoring, all requested shot families, and no runtime camera capture or body tracking.
 
-These are proposed decisions, not irreversible commitments. The acceptance gates are recorded in the architecture decision record.
+The renderer and simulation decision is accepted for V1. Production 3D assets, device/browser validation, and public hosting still have explicit release gates.
 
 ## Documentation
 
@@ -31,9 +31,10 @@ These are proposed decisions, not irreversible commitments. The acceptance gates
 | [Application UI concepts](docs/concepts/application-ui-concepts-2026-08.md) | Complete setup, rehearsal, and timeline-editor implementation references |
 | [Implementation status](docs/development/implementation-status.md) | Staged V1 code coverage, verification evidence, and remaining gaps |
 | [Visual verification](docs/development/visual-verification.md) | Concept-to-browser fidelity ledger for each implementation stage |
+| [V1 release matrix](docs/development/v1-release-matrix.md) | Requirement-by-requirement implementation evidence and external release gates |
 | [Roadmap](docs/roadmap.md) | Milestones, gates, deliverables, and validation order |
 | [Open questions](docs/open-questions.md) | Decisions that need owner input or prototype evidence |
-| [ADR-0001](docs/decisions/0001-web-rendering-and-simulation-architecture.md) | Proposed initial web/rendering/simulation architecture |
+| [ADR-0001](docs/decisions/0001-web-rendering-and-simulation-architecture.md) | Accepted V1 web/rendering/simulation architecture |
 | [ADR-0002](docs/decisions/0002-v1-scope-and-release-model.md) | Accepted V1 scope, audience, release, and V2 boundary |
 | [ADR-0003](docs/decisions/0003-hybrid-asset-authoring-strategy.md) | Proposed procedural/GLB asset-authoring strategy |
 | [ADR-0004](docs/decisions/0004-generated-world-environment-layer.md) | Proposed generated-world environment-shell strategy |
@@ -47,5 +48,5 @@ These are proposed decisions, not irreversible commitments. The acceptance gates
 - Court environment directions: six accepted on 2026-08-29; outdoor Panel 1 selected as the product and vertical-slice baseline.
 - First opponent concept sheet: generated on 2026-08-29; owner/rigging review pending.
 - Setup, rehearsal, and timeline-editor visual concepts: generated on 2026-08-29 and adopted as the implementation reference.
-- Technical implementation: Stage 4 training cadence and procedural venue/lighting controls is runnable, automated-tested, and browser-verified; performance, responsive, resilience, and release-audit work remains active.
+- Technical implementation: the complete local V1 ball-machine build is runnable, automated-tested, browser-verified, offline-capable, responsive, and performance-adaptive. Production opponent/environment assets and external release validation remain open.
 - Production deployment: not started.

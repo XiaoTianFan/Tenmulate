@@ -34,6 +34,7 @@ describe('versioned drill documents', () => {
       repetitions: 1,
       interval: 3,
       variationPercent: 0,
+      timingVariationPercent: 0,
       paceKmh: 78,
       surface: 'hard',
       seed: '1',
@@ -41,6 +42,8 @@ describe('versioned drill documents', () => {
       opponentHand: 'left',
       workBlockSize: 4,
       restSeconds: 20,
+      serveRhythm: 'preset',
+      netClearanceM: 0.24,
     });
     expect(session.repetitions[0]!.shot).toMatchObject({
       paceKmh: 101,
@@ -69,5 +72,17 @@ describe('versioned drill documents', () => {
 
   it('reports malformed JSON without exposing parser internals', () => {
     expect(() => parseDrillJson('{bad json')).toThrow('not valid JSON');
+  });
+
+  it('rejects unsafe or unknown nested camera transforms', () => {
+    const source = DRILLS[0]!;
+    const result = validateDrill({
+      ...source,
+      id: 'unsafe-camera',
+      events: [{ id: 'event-one', shotId: source.shotIds[0], cameraMotion: { to: { lateral: 999, roll: 20 }, duration: 0.01 } }],
+      shotIds: [source.shotIds[0]],
+    });
+    expect(result.valid).toBe(false);
+    expect(result.errors.join(' ')).toMatch(/camera motion is invalid/);
   });
 });

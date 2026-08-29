@@ -1,4 +1,4 @@
-export type CueSound = 'countdown' | 'contact' | 'bounce' | 'complete';
+export type CueSound = 'countdown' | 'contact' | 'bounce' | 'footwork' | 'complete';
 
 export class AudioCueEngine {
   private context: AudioContext | null = null;
@@ -18,10 +18,11 @@ export class AudioCueEngine {
       countdown: 520,
       contact: 760,
       bounce: 240,
+      footwork: 430,
       complete: 920,
     };
     oscillator.frequency.setValueAtTime(frequencies[sound], now);
-    oscillator.type = sound === 'bounce' ? 'triangle' : 'sine';
+    oscillator.type = sound === 'bounce' || sound === 'footwork' ? 'triangle' : 'sine';
     gain.gain.setValueAtTime(Math.min(0.12, volume * 0.12), now);
     gain.gain.exponentialRampToValueAtTime(0.0001, now + (sound === 'complete' ? 0.32 : 0.12));
     oscillator.connect(gain).connect(this.context.destination);
@@ -51,3 +52,7 @@ export class AudioCueEngine {
     this.context = null;
   }
 }
+
+// Shared so setup can unlock the audio context inside the user's Start action
+// before the rehearsal route begins its automatic countdown.
+export const practiceAudio = new AudioCueEngine();

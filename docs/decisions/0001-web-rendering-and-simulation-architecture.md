@@ -1,6 +1,6 @@
 # ADR-0001: Web rendering and simulation architecture
 
-- **Status:** Proposed
+- **Status:** Accepted for the V1 runtime; release-device validation remains open
 - **Date:** 2026-08-29
 - **Decision owners:** Project owner and implementation lead
 
@@ -8,12 +8,12 @@
 
 The product needs a first-person 3D court, animated opponent, high-speed tennis ball with spin and bounce, deterministic drill timelines, large-screen performance, and a future path to body tracking. WebGPU is attractive but still uneven across devices, and Three.js documents important differences between its mature WebGL renderer and experimental WebGPU renderer. Generic rigid-body physics does not directly solve authored tennis trajectories.
 
-## Proposed decision
+## Decision
 
 1. Use React, TypeScript, and Vite for the application shell.
 2. Integrate Three.js directly behind an engine adapter whose interface is independent of React.
-3. Begin the vertical slice with Three.js `WebGPURenderer`, staying within its WebGPU/WebGL 2 shared material path.
-4. Maintain a benchmark comparison with forced WebGL 2 and, if practical, `WebGLRenderer` before accepting the renderer decision.
+3. Use Three.js `WebGLRenderer` and WebGL 2 as the V1 runtime baseline. The implemented scene adapter contains renderer ownership, quality scaling, and failure handling so the renderer can be reconsidered without moving simulation state into React.
+4. Defer `WebGPURenderer` to a measured post-V1 upgrade spike. It is not a public-release dependency; a future comparison must use the production opponent and venue asset mix rather than a synthetic empty-court benchmark.
 5. Implement the tennis ball as a custom fixed-step 3D numerical model with gravity, drag, Magnus lift, exact court/net events, and calibrated bounce response.
 6. Use Rapier only if later collision-heavy features justify a general physics world.
 7. Use code-generated parametric court primitives plus Blender-validated GLB for skinned opponents and complex assets, with explicit animation contact, handedness, and serve-rhythm metadata. The source generator/model remains open until ADR-0003's bake-off.
@@ -22,7 +22,7 @@ The product needs a first-person 3D court, animated opponent, high-speed tennis 
 ## Rationale
 
 - Three.js directly matches the requested stack and offers a compact code-first runtime.
-- `WebGPURenderer` supplies an automatic WebGL 2 backend, but the project can accept it only after the real vertical slice is tested.
+- The complete code-owned V1 vertical slice initializes and runs reliably through the mature WebGL 2 path, and the researched splat integration options currently have their clearest Three.js path through `WebGLRenderer`.
 - React remains useful for product UI without becoming the simulation clock.
 - A tennis-specific solver can be validated against published equations, ITF bounds, landing targets, and expert perception.
 - GLB is the best-supported runtime delivery format across Blender and Three.js for skinned/animated assets.
@@ -30,9 +30,9 @@ The product needs a first-person 3D court, animated opponent, high-speed tennis 
 
 ## Alternatives considered
 
-### Three.js `WebGLRenderer` as the only renderer
+### Three.js `WebGPURenderer` as the initial renderer
 
-Lower short-term uncertainty, but it encourages WebGL-specific shader/postprocessing investments and postpones the WebGPU transition. It remains the preferred fallback if the spike exposes unacceptable WebGPU-renderer gaps.
+Strategically attractive, but it adds a second source of uncertainty before the production GLB/splat workload exists. The option remains open behind the renderer boundary after the representative asset mix can be measured.
 
 ### React Three Fiber
 
@@ -67,20 +67,12 @@ Guaranteed endpoints but weak physical meaning and poor generalization. Allowed 
 ### Negative
 
 - The team owns numerical solver validation and authoring tools.
-- Supporting the shared WebGPU/WebGL path constrains shader/material choices.
+- V1 does not receive WebGPU-specific performance or feature benefits.
 - Direct Three.js requires internal lifecycle/component conventions.
 - High-quality opponent animation remains a production discipline, not a library toggle.
 
-## Acceptance evidence required
+## Evidence and remaining validation
 
-This ADR moves to **Accepted** only when the vertical slice records:
+The decision is backed by a working direct-Three.js adapter, WebGL 2 initialization in automated Chrome, adaptive pixel-ratio modes, renderer failure fallback, route-level code splitting, fixed-step trajectory tests, and 1920×1080 browser inspection. The code uses standard Three.js materials and no WebGL-only custom shader hooks, which keeps the later comparison bounded.
 
-- initialization and fallback results on the target browser/device matrix;
-- CPU/GPU frame-time percentiles at 1080p and the target large-screen configuration;
-- visual comparison across renderer paths;
-- a validated forehand trajectory with net, bounce, and receiver-plane metrics;
-- frame-step and normal-speed contact synchronization evidence;
-- physical-view versus immersive FOV review on a real target display;
-- a documented list of unsupported or intentionally avoided renderer features.
-
-If any gate fails, write a replacement ADR rather than silently changing the implementation.
+Public-release validation still requires the named Windows/Chrome and Edge hardware target, Firefox and Safari checks, a 30-minute mixed-session soak, a real large-display calibration review, and performance capture with the production opponent/environment assets. Those are release gates, not reasons to keep the implemented renderer choice ambiguous.

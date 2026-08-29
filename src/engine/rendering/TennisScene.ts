@@ -19,7 +19,10 @@ export type SceneMetrics = Readonly<{
   frameMs: number;
   pixelRatio: number;
   renderer: string;
+  quality: QualityMode;
 }>;
+
+export type QualityMode = 'auto' | 'performance' | 'quality';
 
 export type CameraMotion = Readonly<{
   from: CameraConfiguration;
@@ -33,7 +36,9 @@ export class TennisScene {
   private readonly scene = new THREE.Scene();
   private readonly camera = new THREE.PerspectiveCamera(54, 16 / 9, 0.05, 140);
   private readonly ball: THREE.Mesh;
+  private readonly ballMaterial: THREE.MeshStandardMaterial;
   private readonly trajectoryLine: THREE.Line;
+  private readonly ballTrail: THREE.Line;
   private readonly hemisphere: THREE.HemisphereLight;
   private readonly sun: THREE.DirectionalLight;
   private readonly floodlights = new THREE.Group();
@@ -45,10 +50,14 @@ export class TennisScene {
   private running = true;
   private playbackRate = 1;
   private loopTrajectory = true;
+  private showBallTrail = false;
   private cameraMotion: CameraMotion | null = null;
   private lastFrame = performance.now();
   private metricStartedAt = performance.now();
   private metricFrames = 0;
+  private qualityMode: QualityMode = 'auto';
+  private adaptivePixelRatio = Math.min(window.devicePixelRatio, 1.75);
+  private slowMetricWindows = 0;
   private cameraConfiguration: CameraConfiguration = {
     eyeHeight: 1.7,
     behindBaseline: 1.5,
@@ -73,7 +82,7 @@ export class TennisScene {
     this.renderer.toneMappingExposure = 1.05;
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
+    this.renderer.setPixelRatio(this.adaptivePixelRatio);
 
     this.scene.background = new THREE.Color(0x8fc5eb);
     this.scene.fog = new THREE.Fog(0x8fc5eb, 47, 105);
@@ -104,13 +113,13 @@ export class TennisScene {
     this.venueGroups = court.venueGroups;
     this.scene.add(court.group);
 
-    const ballMaterial = new THREE.MeshStandardMaterial({
+    this.ballMaterial = new THREE.MeshStandardMaterial({
       color: 0xe8ef32,
       emissive: 0x697214,
       emissiveIntensity: 0.28,
       roughness: 0.62,
     });
-    this.ball = new THREE.Mesh(new THREE.SphereGeometry(COURT.ballRadius * 1.34, 24, 16), ballMaterial);
+    this.ball = new THREE.Mesh(new THREE.SphereGeometry(COURT.ballRadius * 1.34, 24, 16), this.ballMaterial);
     this.ball.castShadow = true;
     this.scene.add(this.ball);
 
@@ -119,6 +128,12 @@ export class TennisScene {
       new THREE.LineBasicMaterial({ color: 0xf2df21, transparent: true, opacity: 0.56 }),
     );
     this.scene.add(this.trajectoryLine);
+    this.ballTrail = new THREE.Line(
+      new THREE.BufferGeometry(),
+      new THREE.LineBasicMaterial({ color: 0xf5f77b, transparent: true, opacity: 0.52 }),
+    );
+    this.ballTrail.visible = false;
+    this.scene.add(this.ballTrail);
 
     this.setCamera(this.cameraConfiguration);
     this.setEnvironment(DEFAULT_ENVIRONMENT);
@@ -140,6 +155,15 @@ export class TennisScene {
 
   setTrajectoryVisible(visible: boolean): void {
     this.trajectoryLine.visible = visible;
+  }
+
+  setBallPresentation(highContrast: boolean, showTrail: boolean): void {
+    this.showBallTrail = showTrail;
+    this.ballTrail.visible = showTrail;
+    this.ball.scale.setScalar(highContrast ? 1.24 : 1);
+    this.ballMaterial.color.setHex(highContrast ? 0xf8ff24 : 0xe8ef32);
+    this.ballMaterial.emissive.setHex(highContrast ? 0xb0bd1a : 0x697214);
+    this.ballMaterial.emissiveIntensity = highContrast ? 0.62 : 0.28;
   }
 
   setPlaybackRate(rate: number): void {
@@ -187,6 +211,18 @@ export class TennisScene {
     }
   }
 
+  setQualityMode(mode: QualityMode): void {
+    this.qualityMode = mode;
+    this.slowMetricWindows = 0;
+    this.adaptivePixelRatio = mode === 'performance'
+      ? Math.min(window.devicePixelRatio, 1)
+      : mode === 'quality'
+        ? Math.min(window.devicePixelRatio, 1.75)
+        : Math.min(window.devicePixelRatio, 1.5);
+    this.renderer.setPixelRatio(this.adaptivePixelRatio);
+    this.resize();
+  }
+
   setCamera(configuration: CameraConfiguration): void {
     this.cameraConfiguration = configuration;
     this.applyCamera();
@@ -225,6 +261,15 @@ export class TennisScene {
     if (this.trajectory) {
       const position = sampleTrajectoryAt(this.trajectory, this.elapsed, this.loopTrajectory);
       this.ball.position.set(position.x, position.y, position.z);
+      if (this.showBallTrail) {
+        const points: THREE.Vector3[] = [];
+        for (let index = 9; index >= 0; index -= 1) {
+          const trailPosition = sampleTrajectoryAt(this.trajectory, Math.max(0, this.elapsed - index * 0.018), this.loopTrajectory);
+          points.push(new THREE.Vector3(trailPosition.x, trailPosition.y, trailPosition.z));
+        }
+        this.ballTrail.geometry.dispose();
+        this.ballTrail.geometry = new THREE.BufferGeometry().setFromPoints(points);
+      }
     }
     if (this.cameraMotion) {
       const delay = this.cameraMotion.delay ?? 0;
@@ -251,7 +296,18 @@ export class TennisScene {
         frameMs: metricElapsed / this.metricFrames,
         pixelRatio: this.renderer.getPixelRatio(),
         renderer: this.renderer.capabilities.isWebGL2 ? 'WebGL 2' : 'WebGL 1',
+        quality: this.qualityMode,
       });
+      const fps = (this.metricFrames * 1000) / metricElapsed;
+      if (this.qualityMode === 'auto') {
+        this.slowMetricWindows = fps < 52 ? this.slowMetricWindows + 1 : Math.max(0, this.slowMetricWindows - 1);
+        if (this.slowMetricWindows >= 3 && this.adaptivePixelRatio > 0.8) {
+          this.adaptivePixelRatio = Math.max(0.8, this.adaptivePixelRatio - 0.2);
+          this.renderer.setPixelRatio(this.adaptivePixelRatio);
+          this.resize();
+          this.slowMetricWindows = 0;
+        }
+      }
       this.metricFrames = 0;
       this.metricStartedAt = now;
     }

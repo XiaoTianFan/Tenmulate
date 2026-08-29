@@ -65,3 +65,18 @@ The editor concept and final browser screenshot were inspected directly with `vi
 | Readability | Ball/court remain primary in every shell | Ball remains bright and central; indoor placeholder walls are deliberately spare | Pass for functional shell; revisit after production environment import. |
 
 The club-hall/grass and stadium/clay browser screenshots were inspected directly with `view_image`. The large simple wall/roof fields are recognized as placeholder art rather than a target visual finish.
+
+## Stage 5: calibration, responsiveness, and final rehearsal instrumentation
+
+| Comparison point | Intended behavior | Browser evidence | Result / action |
+| --- | --- | --- | --- |
+| Physical calibration | Real display measurements produce a usable physical view | 120 × 67.5 cm at 250 cm reported 27° horizontal / 15° vertical and applied 27° without clamping | Pass; corrected the earlier 45° lower-bound mismatch. |
+| Appearance/physics independence | Visual court may differ from bounce profile | Clay appearance and grass bounce profile remained independently selected; the rendered court was clay | Pass. |
+| Camera coverage | Baseline, transition, net, and overhead views | Eight presets and six continuous camera axes are present; reset restores the documented realistic view | Pass. |
+| Rehearsal instrumentation | Quiet primary view with optional detailed diagnostics | Settings panel shows five audio channels, ball options, net clearance, pre/post-bounce speed, arrival, and renderer metrics | Pass. |
+| Ball accessibility | Visibility help cannot alter the physical path | High-contrast scale/material and ten-sample trail are renderer-only settings | Architectural and interaction pass. |
+| Responsive setup | Compact devices configure safely without pretending to be ideal practice displays | 1280 × 820 remained usable; 820 × 1000 stacked cleanly with no horizontal overflow and showed the large-display recommendation | Pass. |
+| Performance behavior | 60 fps target with adaptive quality, no unearned high-refresh claim | Auto/performance/quality controls report actual pixel ratio; 90/120 option remains hidden | Pass for local browser; reference-device profiling remains external. |
+| Runtime health | No console or renderer error in the final interaction path | 1920 × 1080 setup and live rest/diagnostic state showed zero console errors/warnings | Pass. |
+
+The final setup and rehearsal screenshots were inspected directly with `view_image`. The procedural opponent and venue are explicitly functional stand-ins and were not judged as production-asset fidelity.

@@ -3,7 +3,8 @@ import type { CameraConfiguration } from '../engine/rendering/TennisScene';
 import type { SpinKind } from '../engine/trajectory/physics';
 
 export type OpponentHand = 'left' | 'right';
-export type ShotFamily = 'groundstroke' | 'serve' | 'volley' | 'half-volley' | 'lob' | 'overhead';
+export type ServeRhythm = 'normal' | 'compact';
+export type ShotFamily = 'groundstroke' | 'serve' | 'approach' | 'volley' | 'half-volley' | 'lob' | 'overhead';
 export type SessionCategory =
   | 'Quick Rally'
   | 'Return Practice'
@@ -31,6 +32,10 @@ export type ShotDefinitionV1 = Readonly<{
   spin: SpinKind;
   surface: SurfaceId;
   opponentHand: OpponentHand;
+  serveRhythm?: ServeRhythm;
+  backhandStyle?: 'one-handed' | 'two-handed';
+  netClearanceM?: number;
+  receiverZ?: number;
   direction: 'Near left' | 'Body' | 'Near right';
   depth: 'Short' | 'Mid' | 'Deep' | 'Service box';
   cameraMotion?: CameraMotionDefinition;
@@ -56,4 +61,6 @@ export type DrillEventV1 = Readonly<{
   target?: Readonly<{ x: number; z: number }>;
   cameraMotion?: CameraMotionDefinition | null;
   cue?: string;
+  serveRhythm?: 'preset' | ServeRhythm;
+  netClearanceM?: number;
 }>;

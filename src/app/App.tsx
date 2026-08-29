@@ -1,16 +1,19 @@
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { DRILLS } from '../content/bundled';
 import { createEditableCopy } from '../content/editing';
 import type { DrillDefinitionV1 } from '../content/types';
-import { DrillEditorScreen } from '../components/DrillEditorScreen';
-import { DrillLibraryScreen } from '../components/DrillLibraryScreen';
-import { SetupScreen } from '../components/SetupScreen';
-import { RehearsalScreen } from '../components/RehearsalScreen';
 import type { AppRoute } from '../components/AppHeader';
 import { compileSession } from '../engine/session/compileSession';
 import { useAppData } from '../hooks/useAppData';
 import { createDefaultLaunch } from './defaults';
 import type { SessionLaunch } from './types';
+
+const SetupScreen = lazy(() => import('../components/SetupScreen').then((module) => ({ default: module.SetupScreen })));
+const RehearsalScreen = lazy(() => import('../components/RehearsalScreen').then((module) => ({ default: module.RehearsalScreen })));
+const DrillLibraryScreen = lazy(() => import('../components/DrillLibraryScreen').then((module) => ({ default: module.DrillLibraryScreen })));
+const DrillEditorScreen = lazy(() => import('../components/DrillEditorScreen').then((module) => ({ default: module.DrillEditorScreen })));
+
+const LoadingScreen = () => <main className="route-loading" aria-live="polite"><strong>Tenmulate</strong><span>Preparing court…</span></main>;
 
 export function App() {
   const [route, setRoute] = useState<AppRoute>('practice');
@@ -19,7 +22,7 @@ export function App() {
   const appData = useAppData();
 
   if (launch) {
-    return (
+    return <Suspense fallback={<LoadingScreen />}>
       <RehearsalScreen
         launch={launch}
         onExit={() => setLaunch(null)}
@@ -31,7 +34,7 @@ export function App() {
           }),
         } : current)}
       />
-    );
+    </Suspense>;
   }
 
   const editDrill = (drill: DrillDefinitionV1) => {
@@ -40,7 +43,7 @@ export function App() {
   };
 
   if (route === 'drills') {
-    return (
+    return <Suspense fallback={<LoadingScreen />}>
       <DrillLibraryScreen
         route={route}
         customDrills={appData.data.customDrills}
@@ -50,11 +53,11 @@ export function App() {
         onSave={appData.saveDrill}
         onDelete={appData.deleteDrill}
       />
-    );
+    </Suspense>;
   }
 
   if (route === 'editor') {
-    return (
+    return <Suspense fallback={<LoadingScreen />}>
       <DrillEditorScreen
         key={editorDrill.id}
         route={route}
@@ -63,18 +66,20 @@ export function App() {
         onSave={(drill) => { appData.saveDrill(drill); setEditorDrill(drill); }}
         onTest={(drill) => setLaunch(createDefaultLaunch(drill))}
       />
-    );
+    </Suspense>;
   }
 
-  return (
+  return <Suspense fallback={<LoadingScreen />}>
     <SetupScreen
       route={route}
       savedViews={appData.data.savedViews}
+      initialPreferences={appData.data.preferences}
       onRoute={setRoute}
       onStart={setLaunch}
       onSaveView={appData.saveView}
       onDeleteView={appData.deleteView}
       onRenameView={appData.renameView}
+      onPreferencesChange={appData.savePreferences}
     />
-  );
+  </Suspense>;
 }

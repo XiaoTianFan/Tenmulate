@@ -1,10 +1,11 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { SurfaceId } from '../domain/court';
 import { DEFAULT_ENVIRONMENT, type EnvironmentConfiguration } from '../domain/environment';
 import {
   TennisScene,
   type CameraConfiguration,
   type CameraMotion,
+  type QualityMode,
   type SceneMetrics,
 } from '../engine/rendering/TennisScene';
 import type { ResolvedTrajectory } from '../engine/trajectory/physics';
@@ -14,6 +15,7 @@ type SceneViewportProps = Readonly<{
   trajectory: ResolvedTrajectory;
   surface: SurfaceId;
   environment?: EnvironmentConfiguration;
+  quality?: QualityMode;
   running: boolean;
   resetToken: number;
   showTrajectory?: boolean;
@@ -21,6 +23,8 @@ type SceneViewportProps = Readonly<{
   loopTrajectory?: boolean;
   cameraMotion?: CameraMotion | null;
   showSight?: boolean;
+  highContrastBall?: boolean;
+  showBallTrail?: boolean;
   onMetrics: (metrics: SceneMetrics) => void;
 }>;
 
@@ -29,6 +33,7 @@ export function SceneViewport({
   trajectory,
   surface,
   environment = DEFAULT_ENVIRONMENT,
+  quality = 'auto',
   running,
   resetToken,
   showTrajectory = true,
@@ -36,16 +41,26 @@ export function SceneViewport({
   loopTrajectory = true,
   cameraMotion = null,
   showSight = true,
+  highContrastBall = false,
+  showBallTrail = false,
   onMetrics,
 }: SceneViewportProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sceneRef = useRef<TennisScene | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const scene = new TennisScene(canvas, onMetrics);
-    sceneRef.current = scene;
+    let scene: TennisScene;
+    try {
+      scene = new TennisScene(canvas, onMetrics);
+      sceneRef.current = scene;
+      setError(null);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'The 3D renderer could not start.');
+      return;
+    }
     return () => {
       scene.dispose();
       sceneRef.current = null;
@@ -56,16 +71,19 @@ export function SceneViewport({
   useEffect(() => sceneRef.current?.setTrajectory(trajectory), [trajectory]);
   useEffect(() => sceneRef.current?.setSurface(surface), [surface]);
   useEffect(() => sceneRef.current?.setEnvironment(environment), [environment]);
+  useEffect(() => sceneRef.current?.setQualityMode(quality), [quality]);
   useEffect(() => sceneRef.current?.setRunning(running), [running]);
   useEffect(() => sceneRef.current?.reset(), [resetToken]);
   useEffect(() => sceneRef.current?.setTrajectoryVisible(showTrajectory), [showTrajectory]);
   useEffect(() => sceneRef.current?.setPlaybackRate(playbackRate), [playbackRate]);
   useEffect(() => sceneRef.current?.setLoopTrajectory(loopTrajectory), [loopTrajectory]);
   useEffect(() => sceneRef.current?.setCameraMotion(cameraMotion), [cameraMotion]);
+  useEffect(() => sceneRef.current?.setBallPresentation(highContrastBall, showBallTrail), [highContrastBall, showBallTrail]);
 
   return (
     <div className="scene-viewport">
       <canvas ref={canvasRef} aria-label="Live first-person tennis court preview" />
+      {error ? <div className="renderer-error" role="alert"><strong>3D renderer unavailable</strong><span>{error}</span><small>WebGL 2 and hardware acceleration are required. Setup and local drills remain available.</small></div> : null}
       {showSight ? <div className="scene-sight" aria-hidden="true"><span /></div> : null}
     </div>
   );
