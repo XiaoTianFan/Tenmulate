@@ -299,3 +299,25 @@ The detailed status of every requirement is recorded in the [V1 release matrix](
 
 - Coach/player review of whether Landing depth should use metric distance, named zones, or both, and whether the 68 km/h Groundstroke and 52 km/h Lob defaults feel appropriate on the target display.
 - Instrumented comparison of the chosen low/high angle branches, particularly recreational topspin and lob apex, before labeling the profiles measured rather than research-calibrated.
+
+## Stage 11 — continuous spin target practice and trajectory inspection
+
+- **Status:** Implemented locally on 2026-08-31; instrumented spin-decay calibration and owner tooltip readability review remain open
+- Replaced the Quick Practice `pace` contract with explicit Launch speed while retaining km/h as the scalar magnitude. Removed Net clearance from the user-facing contract; shot profiles retain a minimum obstacle constraint inside the solver.
+- Added persisted shot-aware Spin rate in rpm beside Spin type. Groundstroke, Serve, and Lob use bounded type-specific ranges/defaults; Volley remains zero-spin. Legacy `pace` preferences migrate to Launch speed and stale clearance values are discarded.
+- Upgraded to `ball-v6-spin-target`. Spin axes now rotate with the shot heading, continuous rpm sets the normalized angular magnitude, and free-flight spin decays by about 2% per 6.4 m before surface impulse coupling.
+- Landing depth now applies to Serve as well as Groundstroke, Volley, and Lob; service targets remain clamped to the diagonally opposite regulation box. Quick Practice exposes only target intent and does not add a raw-angle/manual-ballistics mode.
+- Removed fixed calculated diagnostics from setup/rehearsal panels. Hovering any visible trajectory segment projects and interpolates the nearest physical sample and displays time, height, current speed, launch speed, rpm, solved angle, apex, real net clearance, landing/error, bounce speeds, and receiver state directly over the court.
+
+### Verification
+
+- Implementation commit: `ffa03d7`.
+- `npm test -- --run`: 10 files, 99 tests passed. Added continuous-rpm preservation/target solving, profile clamping, and screen-space segment interpolation to the existing legality, surface, wind, bounce, persistence, and post-contact coverage.
+- `npm run build`: production PWA build passed; Setup is approximately 7.52 kB gzip, SceneViewport approximately 174.27 kB gzip, and the 29-entry precache approximately 1.88 MiB. The existing large-scene-chunk warning remains.
+- In-app Browser at 1280 × 720 verified a clean target-practice panel with Launch speed, Spin type/rate, Landing depth, and no exposed Net clearance or calculated readout. Hovering Groundstroke/Topspin showed 1,814 rpm and a zero landing error; selecting Slice recomputed the tooltip to 1,253 rpm, 17.4° launch, and a 2.81 m apex.
+- Selecting Lob applied 52 km/h, 1,199 rpm topspin, and a 9.3 m target. Hovering its high arc reported a 54.2° solved launch, 6.53 m apex, 5.31 m actual net clearance, 0.12 m target error, bounce speeds, and arrival state. The final browser console contained zero warnings or errors.
+
+### Remaining review gates
+
+- Fit spin decay, type-specific axes, and RPM ranges against instrumented ball tracking before describing them as measured rather than research-calibrated.
+- Coach/player review of tooltip density/readability and whether the selected launch-speed, spin-rate, and depth ranges feel natural on the target display.

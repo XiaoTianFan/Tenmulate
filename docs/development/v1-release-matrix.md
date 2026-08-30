@@ -36,19 +36,20 @@ Status meanings:
 
 | ID | Status | Evidence or remaining gate |
 | --- | --- | --- |
-| BALL-01 | Implemented; external calibration | `ball-v5-depth-intent` uses source-backed ball mass/diameter, quadratic drag, spin-dependent Magnus force, and a fixed 240 Hz step. Instrumented trajectory calibration remains external. |
+| BALL-01 | Implemented; external calibration | `ball-v6-spin-target` uses source-backed ball mass/diameter, quadratic drag, shot-local continuous-rpm Magnus force, distance-based spin decay, and a fixed 240 Hz step. Instrumented trajectory calibration remains external. |
 | BALL-02 | Implemented; external calibration | Hard/clay/grass use separate restitution, Coulomb friction, spin transfer, and rolling resistance; tests prove clay loses more horizontal rebound speed than grass. Measured court profiles remain external. |
-| BALL-03 | Implemented | Shots author source/contact, landing or aim, pace, compatible spin, net clearance, surface, and receiver plane; launch vectors are solved internally. |
+| BALL-03 | Implemented | Quick Practice authors source/contact profile, launch speed, compatible spin type/rpm, target depth/direction, surface, and receiver plane; launch angle is solved internally and no manual-ballistics mode is exposed. |
 | BALL-04 | Implemented | Fixed-step simulation is independent of render refresh and records the first net, bounce, and receiver crossing. Multi-refresh device evidence remains part of the browser matrix. |
 | BALL-05 | Implemented | High-contrast scale/material and short trail are renderer-only; diagnostic centroid samples remain unchanged. |
 | BALL-06 | Implemented | Bundled shots must cross and land in bounds; Quick Practice flat/slice/kick serves must clear the net and first-bounce inside the diagonally opposite service box. |
 | BALL-07 | Implemented; external calibration | Persisted direction/speed controls produce court-frame wind velocity; drag and Magnus use air-relative velocity. Side-wind displacement and deterministic replay are automated; measured wind calibration remains external. |
-| BALL-08 | Implemented | Right-button court dragging changes player-view azimuth; pace remains launch speed and net clearance constrains elevation while live metadata reports the resulting bounce. |
+| BALL-08 | Implemented | Right-button court dragging changes player-view azimuth; launch speed, spin rpm, landing depth, and an internal profile clearance constraint solve elevation and the resulting bounce. |
 | BALL-09 | Implemented | Receiver-plane and baseline crossing are non-terminal; samples and overlapping preview balls continue for at least three seconds after first contact. |
 | BALL-10 | Implemented; owner calibration pending | Groundstroke and Lob offer flat/topspin/slice, Serve offers flat/slice/kick from a 2.75 m contact, and Volley is spin-free with the opponent at the net; automated and browser evidence covers each family. |
 | BALL-11 | Implemented; owner calibration pending | A persisted 0.60×–1.40× factor changes only the first post-impact normal velocity; 1.00× preserves the natural surface response and pre-bounce samples are invariant. |
 | BALL-12 | Implemented; owner calibration pending | Persisted Landing depth is independent from pace and minimum clearance. A fixed-speed angle-envelope solve matches attainable targets and visibly reports the closest physical result for impossible combinations. |
 | BALL-13 | Implemented; owner calibration pending | Lob is a first-class high-arc profile with distinct contact/origin/pace/clearance/spin defaults; the Overhead rail preset selects it. |
+| BALL-14 | Implemented; owner readability review pending | Hovering a visible trajectory interpolates the nearest screen-space physical sample and renders the resolved launch, spin, angle, apex, clearance, landing/error, bounce, and arrival metadata as an in-scene tooltip; the setup panel contains intent controls only. |
 
 ## Opponent and serve motion
 

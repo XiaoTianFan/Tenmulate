@@ -89,7 +89,7 @@ No single TV/projector, viewing distance, room, or GPU defines the product. Refe
 ### Ball and opponent
 
 - Incoming forehands, one- and two-handed backhands where content calls for them, serves, approach feeds, volleys, half-volleys where needed, lobs, and overhead feeds.
-- Configurable pace, frequency/interval, spin, flight height, net clearance, depth, landing target, post-bounce arrival, and bounded location/timing variation.
+- Target-practice controls for launch speed, frequency/interval, shot-aware spin type and rpm, landing depth/direction, post-bounce arrival, and bounded location/timing variation. Net clearance is a profile-owned safety constraint, not a parallel manual-ballistics control.
 - Cross-court, middle/body, down-the-line, inside-out, inside-in, short-angle, defensive, neutral, approach, and finishing intentions.
 - Opponent idle, split-step, footwork, recovery, forehand, backhand, serve, volley, and overhead clips synchronized to exact ball contact.
 - Both left- and right-handed opponents. Mirrored clips may ship only where biomechanical and visual review passes; otherwise use distinct motion.
@@ -109,7 +109,7 @@ No single TV/projector, viewing distance, room, or GPU defines the product. Refe
 - A local timeline editor with opponent, ball, camera, cue, and rest tracks, constrained to validated content primitives.
 - JSON drill export/import with schema versioning and pre-play validation.
 - A direct trajectory-line on/off control; no separate mode label for the same visual choice.
-- Coach/debug overlay for launch speed, spin, net clearance, landing coordinates, pre/post-bounce speed, bounce height, and receiver-plane arrival time.
+- A trajectory-hover tooltip rendered over the court for launch speed, spin rate, solved angle, apex, actual net clearance, landing/error, pre/post-bounce speed, and receiver-plane arrival; calculated metadata does not occupy the setup panel.
 - One neutral faceless opponent carrier for V1, with both handedness modes and mocap-driven clip families; venue ambience is optional and off by default. Additional appearances are a later content concern, not a V1 dependency.
 - Contact, bounce, countdown, footwork cue, and ambience audio with independent controls and text/visual equivalents where needed.
 - Offline application reuse and cached selected drills/assets after the first successful online load.
@@ -162,12 +162,13 @@ Accounts, premium entitlements, cloud content, and payments belong to a separate
 | --- | --- | --- |
 | BALL-01 | Model gravity, quadratic drag, and spin-dependent Magnus lift in 3D. | Flat, topspin/kick, slice, and sidespin samples match checked-in numerical goldens within agreed tolerances. |
 | BALL-02 | Model impact separately from free flight. | Surface profiles affect normal restitution, horizontal velocity loss, and spin coupling; every shot reports pre/post-bounce state. |
-| BALL-03 | Author by meaningful outcomes. | A shot specifies source/contact, landing zone, pace/spin/flight intent, and post-bounce arrival rather than opaque raw vectors alone. |
+| BALL-03 | Author by meaningful outcomes. | Quick Practice specifies source/contact profile, launch speed, spin type/rpm, landing depth/direction, and post-bounce arrival rather than opaque raw vectors or a manual-ballistics mode. |
 | BALL-04 | Prevent tunneling and refresh-rate drift. | The solver finds the first court/net event within a step and produces the same outcome under 30/60/90/120 Hz rendering. |
 | BALL-05 | Keep fast balls visible without changing physics. | Optional blur/trail/halo affects presentation only; the debug path always shows the computed centroid trajectory. |
 | BALL-06 | Validate legality and authored intent. | Invalid service boxes, unintended net contacts, and landing/clearance failures block a preset from shipping. |
 | BALL-07 | Apply configurable physical wind. | Direction and speed produce deterministic world-space air velocity; drag and Magnus use air-relative velocity, non-zero side wind measurably shifts the bounce, and calm-air results remain compatible. |
-| BALL-08 | Configure physical landing interactively. | Right-click, hold, and drag directly on the FPV court to change shot azimuth; pace supplies launch speed and net clearance supplies the elevation constraint, with the resulting first bounce shown in live diagnostics. |
+| BALL-08 | Configure physical landing interactively. | Right-click, hold, and drag directly on the FPV court to change shot azimuth; launch speed, spin rate, landing depth, and the profile safety constraint determine the solved elevation and first bounce. |
+| BALL-14 | Inspect derived physics on demand. | With Trajectory enabled, hovering any rendered path segment shows the interpolated time/height/speed plus launch, spin, angle, apex, net, landing, bounce, and arrival metadata in the scene; leaving the path removes it. |
 | BALL-09 | Preserve the complete post-bounce simulation. | Receiver-plane or baseline crossing does not terminate samples; the trajectory and each launched ball remain active through at least three seconds after first ground contact, including when launch intervals overlap. |
 | BALL-10 | Keep Quick Practice shot and spin choices physically compatible. | Groundstroke exposes flat/topspin/slice, serve exposes flat/slice/kick from serve contact height into the diagonal service box, volley moves the opponent near the net and is spin-free, and lob exposes flat/topspin/slice on a high arc for Overhead practice; changing either control changes the rendered trajectory. |
 | BALL-11 | Separate perceptual bounce adjustment from natural surface physics. | A 0.60×–1.40× first-bounce-height factor defaults to 1.00×, affects only the first post-impact normal velocity, persists locally, and leaves launch, pre-bounce flight, landing, wind, and the selected surface profile unchanged. |

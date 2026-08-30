@@ -101,11 +101,11 @@ type BallState = {
 
 Shot definitions store an authoring intent and a resolved launch solution. This lets content authors say “land deep cross-court and arrive shoulder-high” while tests preserve the exact resolved parameters.
 
-The runtime supports two explicit authoring paths. Bundled and editor-authored drills retain inverse target correction to preserve exact checked-in landing points. Quick Practice selects a Groundstroke, Serve, Volley, or Lob profile before resolving pace, compatible spin, contact height, opponent origin, minimum net clearance, landing depth, surface, and wind. A right-button drag is raycast from the current FPV camera onto the regulation court plane and converted through the shared player-view horizontal convention. For non-serves, pace remains the exact launch-speed magnitude while landing depth is a separate target measured from the net. `ball-v5-depth-intent` samples the valid fixed-speed launch-angle envelope, rejects candidates that bounce before crossing or miss the requested minimum clearance, then refines the closest depth solution. Groundstroke/Volley prefer the lower matching branch; Lob prefers the high branch. If the requested combination is impossible, the physical closest result is retained and the setup UI reports the mismatch rather than changing pace or fabricating a target hit. Serves retain their diagonally opposite service-box clamp and fixed-speed legality solve. Both authoring paths use the same forces, bounce profiles, and event reporting.
+Quick Practice exposes only a target-practice authoring path: Groundstroke, Serve, Volley, or Lob; launch speed; compatible spin type and continuous rpm; landing depth; direction; surface; and cadence. There is no user-facing raw-angle or manual-ballistics mode. A right-button drag is raycast from the current FPV camera onto the regulation court plane and converted through the shared player-view horizontal convention. `ball-v6-spin-target` treats launch speed as an exact magnitude, retains shot-profile net clearance as an internal safety constraint, samples the valid fixed-speed launch-angle envelope, and refines the closest first-bounce target. Groundstroke/Volley prefer the lower matching branch; Lob prefers the high branch; Serve clamps depth and direction inside the diagonally opposite service box. If the selected combination is impossible, the physical closest result is retained without changing speed or fabricating a target hit. Bundled/editor-authored V1 content retains its validated compatibility fields internally, but does not add a second Quick Practice control mode. Both paths use the same forces, bounce profiles, and event reporting.
 
 ### 6.2 Free-flight forces
 
-The `ball-v5-depth-intent` solver applies:
+The `ball-v6-spin-target` solver applies:
 
 - gravity `m * g`;
 - drag opposite the velocity vector, proportional to `0.5 * Cd * rho * A * v²`;
@@ -114,7 +114,7 @@ The `ball-v5-depth-intent` solver applies:
 
 Wind direction is stored in the player-facing court frame: `0 degrees` moves air toward `+z` and `90 degrees` toward `+x`. The authoring solver finds the calm-air launch required for the intended target, then runtime air-relative forces apply the configured wind. This deliberately makes wind move the visible bounce/arrival instead of silently re-aiming every opponent shot.
 
-The implementation uses a 57.7 g, 67 mm ball, `Cd = 0.55`, and `Cl = min(0.35, 0.6 S)`, where `S = Rω/v`. Flat, slice, and kick serve profiles use distinct three-dimensional axes and approximate measured magnitudes of 123, 232, and 337 rad/s. Volley spin is always zero; Lob uses a lower-spin high-arc family so it does not inherit the ordinary groundstroke spin magnitude. These constants, their source evidence, and remaining calibration limits are recorded in [Ball flight and impact calibration](research/ball-flight-impact-calibration.md).
+The implementation uses a 57.7 g, 67 mm ball, `Cd = 0.55`, and `Cl = min(0.35, 0.6 S)`, where `S = Rω/v`. Spin type supplies shot-local topspin and side-spin axes that rotate with launch heading; continuous rpm supplies their normalized magnitude. Flat, slice, and kick serve defaults approximate measured magnitudes of 123, 232, and 337 rad/s. Volley spin is always zero; Lob uses a lower-spin high-arc family so it does not inherit the ordinary groundstroke spin magnitude. Free-flight angular speed currently decays about 2% per 6.4 m. These constants, their source evidence, and remaining calibration limits are recorded in [Ball flight and impact calibration](research/ball-flight-impact-calibration.md).
 
 ### 6.3 Integration and events
 
@@ -123,7 +123,8 @@ The implementation uses a 57.7 g, 67 mm ball, `Cd = 0.55`, and `Cl = min(0.35, 0
 - Court and net intersections are solved within a step instead of waiting for a sampled point to cross a plane.
 - Ball launch, net crossing/contact, court bounce, receiver-plane crossing, and shot completion are timestamped events.
 - Receiver-plane crossing is diagnostic, not terminal. Samples continue through repeated bounce/ground motion for at least three seconds after first ground contact; interval-based preview launches use a small shared-geometry ball pool so a new launch never truncates an earlier ball.
-- Spin decay can initially be constant per flight arc, then refined from validation evidence.
+- Spin decays continuously with distance before impact; the current 2% per 6.4 m coefficient remains an instrumented-calibration gate.
+- The renderer projects immutable trajectory samples into screen space for hover hit-testing. The tooltip interpolates the nearest sample and derives angle, apex, net clearance, landing error, bounce speeds, and receiver state without changing the simulation clock or React becoming the source of ball truth.
 
 The 2026 trajectory paper used 0.0001 s for research fitting and found increased fit error at 0.001 s. A consumer runtime can use a coarser step only after endpoint and timing error are measured against the reference solver.
 
