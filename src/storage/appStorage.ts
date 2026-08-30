@@ -5,7 +5,7 @@ import { validateDrill } from '../content/validation';
 import type { SurfaceId } from '../domain/court';
 import { DEFAULT_ENVIRONMENT, normalizeEnvironmentConfiguration, type EnvironmentConfiguration } from '../domain/environment';
 import type { SpinKind } from '../engine/trajectory/physics';
-import { isPracticeShotType, spinForPracticeShot, type PracticeShotType } from '../engine/trajectory/practiceProfiles';
+import { PRACTICE_SHOT_PROFILES, isPracticeShotType, spinForPracticeShot, type PracticeShotType } from '../engine/trajectory/practiceProfiles';
 
 const STORAGE_KEY = 'tenmulate.appData.v1';
 
@@ -58,6 +58,7 @@ export type PracticePreferencesV1 = Readonly<{
   opponentHand: 'left' | 'right';
   serveRhythm: 'preset' | 'normal' | 'compact';
   netClearanceM: number;
+  landingDepthM: number;
   aimDirectionDeg: number;
   opponentPosition: Readonly<{ x: number; z: number }>;
   camera: CameraConfiguration;
@@ -69,9 +70,9 @@ export type PracticePreferencesV1 = Readonly<{
 }>;
 
 export const DEFAULT_PREFERENCES: PracticePreferencesV1 = {
-  sessionCategory: 'Quick Rally', trajectoryEnabled: false, pace: 78, interval: 3.2, repetitions: 12, variation: 8, timingVariation: 0,
+  sessionCategory: 'Quick Rally', trajectoryEnabled: false, pace: 68, interval: 3.2, repetitions: 12, variation: 8, timingVariation: 0,
   workBlockSize: 4, restSeconds: 20, surface: 'hard', shotType: 'groundstroke', spin: 'topspin', bounceFactor: 1,
-  opponentHand: 'right', serveRhythm: 'preset', netClearanceM: 0.36,
+  opponentHand: 'right', serveRhythm: 'preset', netClearanceM: 0.36, landingDepthM: 9.5,
   aimDirectionDeg: 0, opponentPosition: { x: 0, z: 11.235 },
   camera: { eyeHeight: 1.7, behindBaseline: 1.5, lateral: 0, yaw: 0, pitch: -1.7, fov: 70 },
   environment: DEFAULT_ENVIRONMENT, quality: 'auto', screenWidthCm: 120, screenHeightCm: 67.5, viewDistanceCm: 250,
@@ -136,9 +137,13 @@ export const loadAppData = (): AppDataV1 => {
       ? candidate.shotType
       : candidate.sessionCategory === 'Return Practice'
         ? 'serve'
-        : candidate.sessionCategory === 'Serve & Volley' || candidate.sessionCategory === 'Net & Overhead'
+        : candidate.sessionCategory === 'Serve & Volley'
           ? 'volley'
+          : candidate.sessionCategory === 'Net & Overhead'
+            ? 'lob'
           : DEFAULT_PREFERENCES.shotType;
+    const shotProfile = PRACTICE_SHOT_PROFILES[shotType];
+    const depthRange = shotProfile.landingDepthRangeM;
     const preferences = {
       ...DEFAULT_PREFERENCES,
       ...canonicalCandidate,
@@ -146,9 +151,18 @@ export const loadAppData = (): AppDataV1 => {
       surface: savedSurface,
       shotType,
       spin: spinForPracticeShot(shotType, candidate.spin),
+      pace: typeof candidate.pace === 'number'
+        ? Math.min(shotProfile.paceRangeKmh.max, Math.max(shotProfile.paceRangeKmh.min, candidate.pace))
+        : shotProfile.defaultPaceKmh,
+      netClearanceM: typeof candidate.netClearanceM === 'number'
+        ? Math.min(shotProfile.netClearanceRangeM.max, Math.max(shotProfile.netClearanceRangeM.min, candidate.netClearanceM))
+        : shotProfile.defaultNetClearanceM,
       bounceFactor: typeof candidate.bounceFactor === 'number'
         ? Math.min(1.4, Math.max(0.6, candidate.bounceFactor))
         : DEFAULT_PREFERENCES.bounceFactor,
+      landingDepthM: typeof candidate.landingDepthM === 'number'
+        ? Math.min(depthRange.max, Math.max(depthRange.min, candidate.landingDepthM))
+        : shotProfile.defaultLandingDepthM,
       camera,
       environment,
     } as PracticePreferencesV1;

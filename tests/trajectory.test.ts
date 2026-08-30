@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { COURT } from '../src/domain/court';
-import { POST_BOUNCE_SIMULATION_SECONDS, aimDirectionToCourtPoint, resolveTrajectory } from '../src/engine/trajectory/physics';
-import { PRACTICE_SHOT_PROFILES, legalServeTarget } from '../src/engine/trajectory/practiceProfiles';
+import { POST_BOUNCE_SIMULATION_SECONDS, aimDirectionToCourtPoint, netHeightAt, resolveTrajectory } from '../src/engine/trajectory/physics';
+import { PRACTICE_SHOT_PROFILES, legalServeTarget, practiceLandingTarget } from '../src/engine/trajectory/practiceProfiles';
 
 describe('fixed-step trajectory solver', () => {
   it('clears the net and lands near the authored target', () => {
@@ -113,7 +113,7 @@ describe('fixed-step trajectory solver', () => {
     expect(resolveTrajectory(intent).events).toEqual(resolveTrajectory(intent).events);
   });
 
-  it('derives a physical landing point from direction, pace, and net clearance', () => {
+  it('keeps an attainable landing depth independent from pace and minimum net clearance', () => {
     const source = { x: 0, y: 1.15, z: COURT.halfLength - 0.65 };
     const base = {
       source,
@@ -129,9 +129,14 @@ describe('fixed-step trajectory solver', () => {
     const fasterBounce = faster.events.find((event) => event.type === 'bounce')!;
     const higherBounce = higher.events.find((event) => event.type === 'bounce')!;
 
-    expect(faster.events.find((event) => event.type === 'net-crossing')?.position.y ?? 0).toBeGreaterThan(COURT.netCenterHeight + 0.2);
-    expect(fasterBounce.position.z).toBeLessThan(slowerBounce.position.z);
-    expect(higherBounce.position.z).toBeLessThan(fasterBounce.position.z);
+    const fasterNet = faster.events.find((event) => event.type === 'net-crossing')!;
+    const higherNet = higher.events.find((event) => event.type === 'net-crossing')!;
+    expect(fasterNet.position.y).toBeGreaterThan(COURT.netCenterHeight + 0.2);
+    expect(Math.abs(slowerBounce.position.z + 8)).toBeLessThan(0.25);
+    expect(Math.abs(fasterBounce.position.z + 8)).toBeLessThan(0.25);
+    expect(Math.abs(higherBounce.position.z + 8)).toBeLessThan(0.25);
+    expect(higherNet.position.y).toBeGreaterThanOrEqual(netHeightAt(higherNet.position.x) + 0.85);
+    expect(higherNet.position.y).toBeGreaterThan(fasterNet.position.y + 0.03);
   });
 
   it('uses right-left aim direction to move the calculated landing point', () => {
@@ -169,6 +174,53 @@ describe('fixed-step trajectory solver', () => {
     expect(topspin.launchVelocity.y).not.toBeCloseTo(flat.launchVelocity.y, 2);
     expect(slice.launchVelocity.y).not.toBeCloseTo(flat.launchVelocity.y, 2);
     expect(topspin.events.find((event) => event.type === 'bounce')?.position.z).not.toBeCloseTo(slice.events.find((event) => event.type === 'bounce')?.position.z ?? 0, 1);
+  });
+
+  it('uses landing depth independently from recreational groundstroke pace and minimum net clearance', () => {
+    const profile = PRACTICE_SHOT_PROFILES.groundstroke;
+    const source = { ...profile.opponentPosition, y: profile.contactHeight };
+    const target = practiceLandingTarget(source, 0, 10);
+    const trajectory = resolveTrajectory({
+      source,
+      target,
+      aimDirectionDeg: 0,
+      paceKmh: 68,
+      netClearanceM: 0.36,
+      spin: 'flat',
+      shotType: 'groundstroke',
+      surface: 'hard',
+    });
+    const bounce = trajectory.events.find((event) => event.type === 'bounce')!;
+    const net = trajectory.events.find((event) => event.type === 'net-crossing')!;
+
+    expect(net.time).toBeLessThan(bounce.time);
+    expect(net.position.y).toBeGreaterThanOrEqual(netHeightAt(net.position.x) + 0.35);
+    expect(bounce.position.z).toBeCloseTo(target.z, 1);
+    expect(Math.hypot(...Object.values(trajectory.launchVelocity))).toBeCloseTo(68 / 3.6, 6);
+  });
+
+  it('resolves a lob as a high arc to a separately selected deep landing', () => {
+    const profile = PRACTICE_SHOT_PROFILES.lob;
+    const source = { ...profile.opponentPosition, y: profile.contactHeight };
+    const target = practiceLandingTarget(source, -5, profile.defaultLandingDepthM);
+    const trajectory = resolveTrajectory({
+      source,
+      target,
+      aimDirectionDeg: -5,
+      paceKmh: profile.defaultPaceKmh,
+      netClearanceM: profile.defaultNetClearanceM,
+      spin: profile.defaultSpin,
+      shotType: 'lob',
+      surface: 'hard',
+    });
+    const bounce = trajectory.events.find((event) => event.type === 'bounce')!;
+    const net = trajectory.events.find((event) => event.type === 'net-crossing')!;
+
+    expect(net.time).toBeLessThan(bounce.time);
+    expect(net.position.y).toBeGreaterThanOrEqual(netHeightAt(net.position.x) + 3.15);
+    expect(trajectory.apexHeight).toBeGreaterThan(5);
+    expect(trajectory.apexHeight).toBeLessThan(8.5);
+    expect(bounce.position.z).toBeCloseTo(target.z, 1);
   });
 
   it('derives aim direction in the same player-view horizontal coordinate system', () => {

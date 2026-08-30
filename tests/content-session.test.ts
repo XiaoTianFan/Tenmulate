@@ -116,4 +116,27 @@ describe('session compiler', () => {
     expect(bounce.position.z).toBeLessThan(0);
     expect(bounce.position.x).toBeLessThan(0);
   });
+
+  it('compiles overhead practice as a high lob to the selected landing depth', () => {
+    const session = compileSession(drill, {
+      ...settings,
+      repetitions: 1,
+      practiceShotType: 'lob',
+      spin: 'topspin',
+      paceKmh: 52,
+      netClearanceM: 3.2,
+      landingDepthM: 9.3,
+      opponentPosition: { x: 1.1, z: 6 },
+      aimDirectionDeg: 0,
+    });
+    const repetition = session.repetitions[0]!;
+    const bounce = repetition.trajectory.events.find((event) => event.type === 'bounce')!;
+    const net = repetition.trajectory.events.find((event) => event.type === 'net-crossing')!;
+    expect(repetition.shot.family).toBe('lob');
+    expect(repetition.shot.source.y).toBe(1.05);
+    expect(repetition.shot.depth).toBe('Deep');
+    expect(net.time).toBeLessThan(bounce.time);
+    expect(repetition.trajectory.apexHeight).toBeGreaterThan(5);
+    expect(bounce.position.z).toBeCloseTo(-9.3, 1);
+  });
 });

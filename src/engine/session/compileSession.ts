@@ -9,6 +9,7 @@ import type { Vec3 } from '../../domain/vector';
 import {
   PRACTICE_SHOT_PROFILES,
   legalServeTarget,
+  practiceLandingTarget,
   spinForPracticeShot,
   type PracticeShotType,
 } from '../trajectory/practiceProfiles';
@@ -29,6 +30,7 @@ export type SessionSettings = Readonly<{
   restSeconds: number;
   serveRhythm: 'preset' | ServeRhythm;
   netClearanceM: number;
+  landingDepthM?: number;
   aimDirectionDeg?: number;
   opponentPosition?: Readonly<{ x: number; z: number }>;
   windVelocity?: Vec3;
@@ -42,7 +44,7 @@ export type CompiledRepetition = Readonly<{
 }>;
 
 export type CompiledSession = Readonly<{
-  solverVersion: 'ball-v4-shot-profiles';
+  solverVersion: 'ball-v5-depth-intent';
   contentVersion: '2026.08.29';
   drill: DrillDefinitionV1;
   settings: SessionSettings;
@@ -105,13 +107,19 @@ export const compileSession = (
     };
     const target = settings.practiceShotType === 'serve'
       ? legalServeTarget(source, settings.aimDirectionDeg ?? 0, paceKmh, settings.netClearanceM, selectedSpin)
-      : authoredTarget;
+      : practiceProfile
+        ? practiceLandingTarget(source, settings.aimDirectionDeg ?? 0, settings.landingDepthM ?? practiceProfile.defaultLandingDepthM)
+        : authoredTarget;
     const shot: ShotDefinitionV1 = {
       ...sourceShot,
       family: settings.practiceShotType ?? sourceShot.family,
       source,
       target,
-      depth: settings.practiceShotType === 'serve' ? 'Service box' : sourceShot.depth,
+      depth: settings.practiceShotType === 'serve'
+        ? 'Service box'
+        : practiceProfile
+          ? Math.abs(target.z) >= 8.5 ? 'Deep' : Math.abs(target.z) >= 4.5 ? 'Mid' : 'Short'
+          : sourceShot.depth,
       paceKmh,
       surface: settings.surface,
       spin: selectedSpin,
@@ -150,7 +158,7 @@ export const compileSession = (
   }
 
   return {
-    solverVersion: 'ball-v4-shot-profiles',
+    solverVersion: 'ball-v5-depth-intent',
     contentVersion: '2026.08.29',
     drill,
     settings,

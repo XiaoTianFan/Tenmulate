@@ -74,6 +74,7 @@ const trajectoryShotType = (intent: Pick<ShotIntent, 'shotType' | 'family'>): Pr
   if (intent.shotType) return intent.shotType;
   if (intent.family === 'serve') return 'serve';
   if (intent.family === 'volley') return 'volley';
+  if (intent.family === 'lob' || intent.family === 'overhead') return 'lob';
   return 'groundstroke';
 };
 
@@ -92,6 +93,17 @@ const spinVector = (intent: Pick<ShotIntent, 'spin' | 'shotType' | 'family' | 'o
         return vec3(-285, handDirection * 180, 0);
       default:
         return vec3(0, handDirection * 190, 0);
+    }
+  }
+  if (shotType === 'lob') {
+    switch (intent.spin) {
+      case 'topspin':
+      case 'kick':
+        return vec3(-125, handDirection * 12, 0);
+      case 'slice':
+        return vec3(85, handDirection * 12, 0);
+      default:
+        return vec3();
     }
   }
   switch (intent.spin) {
@@ -191,38 +203,86 @@ const firstNetCrossing = (intent: ShotIntent, initialVelocity: Vec3): FlightSamp
   return null;
 };
 
+const firstFlight = (intent: ShotIntent, initialVelocity: Vec3): Readonly<{
+  bounce: FlightSample;
+  netCrossing: FlightSample | null;
+}> => {
+  let position = intent.source;
+  let velocity = initialVelocity;
+  const spin = spinVector(intent);
+  let netCrossing: FlightSample | null = null;
+
+  for (let index = 1; index < 5 / FIXED_STEP; index += 1) {
+    const nextVelocity = add(velocity, scale(acceleration(velocity, spin), FIXED_STEP));
+    const nextPosition = add(position, scale(nextVelocity, FIXED_STEP));
+    if (!netCrossing && position.z > 0 && nextPosition.z <= 0) {
+      netCrossing = { time: index * FIXED_STEP, position: nextPosition, velocity: nextVelocity, bounced: false };
+    }
+    if (nextPosition.y <= COURT.ballRadius && nextVelocity.y < 0) {
+      return {
+        bounce: { time: index * FIXED_STEP, position: vec3(nextPosition.x, COURT.ballRadius, nextPosition.z), velocity: nextVelocity, bounced: true },
+        netCrossing,
+      };
+    }
+    position = nextPosition;
+    velocity = nextVelocity;
+  }
+  return { bounce: { time: 5, position, velocity, bounced: false }, netCrossing };
+};
+
 const directedVelocity = (intent: ShotIntent): Vec3 => {
   const direction = Math.min(35, Math.max(-35, intent.aimDirectionDeg ?? 0)) * Math.PI / 180;
   const speed = Math.max(8, intent.paceKmh / 3.6);
-  const directionX = Math.sin(direction);
-  const directionZ = -Math.cos(direction);
-  const clearance = Math.min(1.8, Math.max(0.08, intent.netClearanceM ?? 0.12));
-  let lowerAngle = -5 * Math.PI / 180;
-  let upperAngle = 48 * Math.PI / 180;
+  const shotType = trajectoryShotType(intent);
+  const clearance = Math.min(shotType === 'lob' ? 6 : 1.8, Math.max(0.08, intent.netClearanceM ?? 0.12));
+  const minimumAngle = (shotType === 'lob' ? 25 : shotType === 'volley' ? -14 : -5) * Math.PI / 180;
+  const maximumAngle = (shotType === 'lob' ? 78 : shotType === 'volley' ? 52 : 58) * Math.PI / 180;
+  const calmIntent = { ...intent, windVelocity: undefined };
+  const sampleCount = 48;
+  const angleStep = (maximumAngle - minimumAngle) / sampleCount;
+  type Candidate = Readonly<{ angle: number; velocity: Vec3; score: number; bounceZ: number }>;
+  let best: Candidate | null = null;
+  let fallback: Candidate | null = null;
 
-  for (let iteration = 0; iteration < 24; iteration += 1) {
-    const angle = (lowerAngle + upperAngle) / 2;
-    const horizontalSpeed = speed * Math.cos(angle);
-    const velocity = vec3(
-      directionX * horizontalSpeed,
-      speed * Math.sin(angle),
-      directionZ * horizontalSpeed,
-    );
-    const crossing = firstNetCrossing({ ...intent, windVelocity: undefined }, velocity);
-    const requiredHeight = crossing
-      ? netHeightAt(crossing.position.x) + clearance
-      : COURT.netCenterHeight + clearance;
-    if (crossing && crossing.position.y >= requiredHeight) upperAngle = angle;
-    else lowerAngle = angle;
+  const candidateAt = (angle: number, requireNetClearance: boolean): Candidate | null => {
+    const velocity = velocityForDirectionAndAngle(speed, direction, angle);
+    const { bounce, netCrossing } = firstFlight(calmIntent, velocity);
+    const score = Math.hypot(bounce.position.x - intent.target.x, bounce.position.z - intent.target.z);
+    if (!fallback || bounce.position.z < fallback.bounceZ) {
+      fallback = { angle, velocity, score, bounceZ: bounce.position.z };
+    }
+    if (!requireNetClearance) return { angle, velocity, score, bounceZ: bounce.position.z };
+    const crossing = netCrossing;
+    if (!crossing || crossing.time >= bounce.time) return null;
+    if (crossing.position.y < netHeightAt(crossing.position.x) + clearance) return null;
+    return { angle, velocity, score, bounceZ: bounce.position.z };
+  };
+
+  const prefer = (candidate: Candidate, current: Candidate | null): boolean => {
+    if (!current || candidate.score < current.score - 0.001) return true;
+    return shotType === 'lob' && Math.abs(candidate.score - current.score) <= 0.03 && candidate.angle > current.angle;
+  };
+
+  for (let index = 0; index <= sampleCount; index += 1) {
+    const candidate = candidateAt(minimumAngle + angleStep * index, true);
+    if (candidate && prefer(candidate, best)) best = candidate;
   }
 
-  const launchAngle = upperAngle;
-  const horizontalSpeed = speed * Math.cos(launchAngle);
-  return vec3(
-    directionX * horizontalSpeed,
-    speed * Math.sin(launchAngle),
-    directionZ * horizontalSpeed,
-  );
+  if (!best) return (fallback as Candidate | null)?.velocity ?? velocityForDirectionAndAngle(speed, direction, maximumAngle);
+
+  let lowerAngle = Math.max(minimumAngle, best.angle - angleStep);
+  let upperAngle = Math.min(maximumAngle, best.angle + angleStep);
+  for (let iteration = 0; iteration < 14; iteration += 1) {
+    const lowerThird = lowerAngle + (upperAngle - lowerAngle) / 3;
+    const upperThird = upperAngle - (upperAngle - lowerAngle) / 3;
+    const lowerCandidate = candidateAt(lowerThird, true);
+    const upperCandidate = candidateAt(upperThird, true);
+    if (lowerCandidate && prefer(lowerCandidate, best)) best = lowerCandidate;
+    if (upperCandidate && prefer(upperCandidate, best)) best = upperCandidate;
+    if (!upperCandidate || (lowerCandidate && lowerCandidate.score <= upperCandidate.score)) upperAngle = upperThird;
+    else lowerAngle = lowerThird;
+  }
+  return best.velocity;
 };
 
 const velocityForDirectionAndAngle = (speed: number, direction: number, angle: number): Vec3 => {

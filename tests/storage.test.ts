@@ -41,6 +41,21 @@ describe('local application data', () => {
     expect(loadAppData().preferences).toMatchObject({ shotType: 'serve', spin: 'flat', bounceFactor: 1.4 });
   });
 
+  it('migrates overhead practice to a bounded lob profile with independent landing depth', () => {
+    localStorage.setItem('tenmulate.appData.v1', JSON.stringify({
+      schemaVersion: 1,
+      customDrills: [],
+      preferences: { sessionCategory: 'Net & Overhead', pace: 999, netClearanceM: -2, landingDepthM: 999 },
+    }));
+    expect(loadAppData().preferences).toMatchObject({
+      shotType: 'lob',
+      spin: 'topspin',
+      pace: 105,
+      netClearanceM: 1.2,
+      landingDepthM: 11.635,
+    });
+  });
+
   it('migrates coupled saved views into independent position and perspective presets', () => {
     localStorage.setItem('tenmulate.appData.v1', JSON.stringify({
       schemaVersion: 1,
