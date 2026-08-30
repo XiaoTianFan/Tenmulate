@@ -76,7 +76,8 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .preset-group header { min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; color: #dbe3e6; font-size: 11px; }
 .preset-group header span { display: flex; align-items: center; gap: 6px; font-weight: 650; }
 .preset-group header small { overflow: hidden; color: var(--muted); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
-.preset-group > div { min-width: 0; display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 5px; }
+.preset-group > div { min-width: 0; display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 5px; scrollbar-width: none; }
+.preset-group > div::-webkit-scrollbar { display: none; }
 .preset-chip, .preset-add { flex: 0 0 auto; min-height: 47px; padding: 0 13px; border: 1px solid var(--divider); border-radius: 6px; background: #0c1419; color: #c6d0d4; font-size: 11px; cursor: pointer; }
 .preset-chip.active { border-color: var(--blue); background: #102237; color: white; box-shadow: inset 0 -2px var(--blue); }
 .preset-add { width: 42px; padding: 0; display: grid; place-items: center; color: var(--blue); }
@@ -145,7 +146,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .dialog-field small { color: var(--muted); }
 .calculation { color: var(--accent); font-variant-numeric: tabular-nums; }
 .scale-check { padding-top: 12px; border-top: 1px solid var(--divider); color: var(--muted); font-size: 12px; }
-.court-plan { display: block; width: min(100%, 390px); max-height: 47vh; margin: 14px auto; touch-action: none; user-select: none; }
+.court-plan { display: block; width: min(100%, 390px); max-height: min(36vh, 360px); margin: 14px auto; touch-action: none; user-select: none; }
 .court-plan-surround { fill: #071016; stroke: #2e424e; stroke-width: 2; }
 .court-plan-surface { fill: #27583f; stroke: #edf3ed; stroke-width: 2; }
 .court-plan-line { fill: none; stroke: rgb(255 255 255 / 74%); stroke-width: 1.5; }

@@ -82,7 +82,7 @@ The horizontal field of view follows from aspect ratio. The product should expos
 
 Physical calibration is optional because the app must also work when users do not know screen dimensions or viewing distance. Camera location is independent of physical viewer distance. The realistic reset is provisionally 1.70 m eye height, centered, 1.5 m behind the near baseline, level horizon, and a default FOV selected during real-display testing.
 
-Users can independently adjust/save eye height, lateral/longitudinal position, yaw, pitch/look target, FOV/zoom, and camera-motion intensity. A preference change cannot alter court geometry, shot coordinates, or event timing. Calibration and view settings are versioned locally and included in explicit diagnostic exports.
+Camera positions (eye height plus lateral/longitudinal location) and perspectives (yaw, pitch, and FOV) are separate locally versioned preset collections. Users can combine either collection freely, move the setup camera with WASD, update an existing preset in place, or create a new preset. Reset applies the first position plus the first perspective; a preference change cannot alter court geometry, shot coordinates, or event timing.
 
 Camera motion uses a rig with separate position and gaze/orientation tracks. It must not parent ball or court coordinates, and it should use capped velocity/acceleration plus reduced-motion alternatives.
 
@@ -100,6 +100,8 @@ type BallState = {
 ```
 
 Shot definitions store an authoring intent and a resolved launch solution. This lets content authors say “land deep cross-court and arrive shoulder-high” while tests preserve the exact resolved parameters.
+
+The runtime supports two explicit authoring paths. Bundled and editor-authored drills retain inverse target correction to preserve exact checked-in landing points. Quick Practice can instead provide an opponent floor origin plus an azimuth; the solver derives launch elevation from required net clearance while pace remains the launch-speed magnitude, so the first bounce is a physical result rather than a forced target. Both paths use the same fixed-step forces, bounce profiles, and event reporting.
 
 ### 6.2 Free-flight forces
 
@@ -166,7 +168,7 @@ One declarative timeline coordinates all domains:
 
 ```ts
 type DrillEvent =
-  | { at: number; type: "opponent.clip"; clip: string; playbackRate?: number; opponentHand?: "left" | "right" }
+  | { at: number; type: "opponent.clip"; clip: string; position?: { x: number; z: number }; playbackRate?: number; opponentHand?: "left" | "right" }
   | { at: number; type: "ball.launch"; shotId: string }
   | { at: number; type: "camera.path"; pathId: string }
   | { at: number; type: "cue.play"; cueId: string }
@@ -292,7 +294,7 @@ Proposed top-level records:
 - `DrillDefinitionV1`
 - `AssetManifestV1`
 
-All records have an explicit schema version. Bundled presets are immutable build assets; user-created drills are copies with separate IDs. Migrations are tested before enabling persistent custom content. JSON import rejects executable content, unknown remote asset references, and incompatible schema versions.
+All records have an explicit schema version. Bundled content definitions are immutable build assets; camera-position and perspective preset instances are locally customizable. Legacy coupled saved views migrate into the two independent preset collections. User-created drills are copies with separate IDs, and each event may store a validated opponent floor position. JSON import rejects executable content, unknown remote asset references, out-of-court positions, and incompatible schema versions.
 
 V1 stores calibration, preferences, custom drills, and offline-content selection locally. A service worker precaches the shell and explicitly selected drill asset groups, exposes storage/cache state, and degrades clearly when storage quota prevents an offline promise. No personal data leaves the device unless an explicitly initiated export or a later separately approved analytics/account feature does so.
 
