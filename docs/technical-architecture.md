@@ -82,7 +82,7 @@ The horizontal field of view follows from aspect ratio. The product should expos
 
 Physical calibration is optional because the app must also work when users do not know screen dimensions or viewing distance. Camera location is independent of physical viewer distance. The realistic reset is provisionally 1.70 m eye height, centered, 1.5 m behind the near baseline, level horizon, and a default FOV selected during real-display testing.
 
-Camera positions (eye height plus lateral/longitudinal location) and perspectives (yaw, pitch, and FOV) are separate locally versioned preset collections. Users can combine either collection freely, move the setup camera with WASD, update an existing preset in place, or create a new preset. Reset applies the first position plus the first perspective; a preference change cannot alter court geometry, shot coordinates, or event timing.
+Camera positions (eye height plus lateral/longitudinal location) and perspectives (yaw, pitch, and FOV) are separate locally versioned preset collections. Users can combine either collection freely, move the setup camera with WASD, update an existing preset in place, or create a new preset. Because the FPV camera faces from negative z toward positive z, player-view horizontal coordinates mirror world x: A increments world x to move left and D decrements it to move right. The top-down opponent planner uses the same conversion. Reset applies the first position plus the first perspective; a preference change cannot alter court geometry, shot coordinates, or event timing.
 
 Camera motion uses a rig with separate position and gaze/orientation tracks. It must not parent ball or court coordinates, and it should use capped velocity/acceleration plus reduced-motion alternatives.
 
@@ -101,7 +101,7 @@ type BallState = {
 
 Shot definitions store an authoring intent and a resolved launch solution. This lets content authors say “land deep cross-court and arrive shoulder-high” while tests preserve the exact resolved parameters.
 
-The runtime supports two explicit authoring paths. Bundled and editor-authored drills retain inverse target correction to preserve exact checked-in landing points. Quick Practice can instead provide an opponent floor origin plus an azimuth; the solver derives launch elevation from required net clearance while pace remains the launch-speed magnitude, so the first bounce is a physical result rather than a forced target. Both paths use the same fixed-step forces, bounce profiles, and event reporting.
+The runtime supports two explicit authoring paths. Bundled and editor-authored drills retain inverse target correction to preserve exact checked-in landing points. Quick Practice can instead provide an opponent floor origin plus an azimuth; a right-button drag is raycast from the current FPV camera onto the regulation court plane and converted through the shared player-view horizontal convention. The solver derives launch elevation from required net clearance while pace remains the launch-speed magnitude, so the first bounce is a physical result rather than a forced target. Both paths use the same fixed-step forces, bounce profiles, and event reporting.
 
 ### 6.2 Free-flight forces
 
@@ -122,6 +122,7 @@ The current research supports treating drag coefficient as constant over one arc
 - Rendering interpolates between simulation states and does not advance the physics clock directly.
 - Court and net intersections are solved within a step instead of waiting for a sampled point to cross a plane.
 - Ball launch, net crossing/contact, court bounce, receiver-plane crossing, and shot completion are timestamped events.
+- Receiver-plane crossing is diagnostic, not terminal. Samples continue through repeated bounce/ground motion for at least three seconds after first ground contact; interval-based preview launches use a small shared-geometry ball pool so a new launch never truncates an earlier ball.
 - Spin decay can initially be constant per flight arc, then refined from validation evidence.
 
 The 2026 trajectory paper used 0.0001 s for research fitting and found increased fit error at 0.001 s. A consumer runtime can use a coarser step only after endpoint and timing error are measured against the reference solver.

@@ -220,22 +220,24 @@ The detailed status of every requirement is recorded in the [V1 release matrix](
 - Reduced the Practice rail to Rally, Return, Volley, and Overhead setup presets. Each preset selects an incoming-ball origin, source height, drill cadence, and starting camera position.
 - Replaced the learning/rehearsal selector with one trajectory on/off switch and removed the second hidden cue behavior so the label matches the actual contract.
 - Split the right configuration surface into collapsible Ball & rhythm, Practice set, Opponent, Venue, Perspective, and System sections. Venue follows the ball/practice/opponent controls, and net clearance now sits beside pace and interval.
-- Bound setup playback to the configured interval. The renderer now relaunches or hides its single preview ball from the interval cycle instead of looping immediately at trajectory duration.
-- Replaced coupled saved views with independent local camera-position and perspective preset collections. Legacy views migrate into both collections; clicking applies one side, right-click updates it in place, plus creates a new preset, WASD provides free camera movement, and Reset applies the first item from each collection.
-- Added a reusable interactive court plan. Ball landing uses right-click aiming plus the `ball-v3-directed-aim` solver, where pace is launch speed and net clearance solves launch elevation; Quick Practice opponent positioning supports presets and free dragging.
+- Bound setup playback to the configured interval. Overlapping launches now use shared-geometry ball meshes so a new interval can start without cutting off an earlier ball's physical trajectory.
+- Replaced coupled saved views with independent local camera-position and perspective preset collections. Legacy views migrate into both collections; clicking applies one side, right-click updates it in place, plus creates a new preset, WASD provides free camera movement, and Reset applies the first item from each collection. The player-view coordinate correction makes A move left and D move right and migrates the legacy built-in Left corner preset.
+- Added a reusable interactive court plan for opponent positioning, with player-view-correct dragging plus baseline, corner, deuce/ad serve, service-line, and net presets shared by Quick Practice and the drill editor.
+- Removed the ball-landing modal. Right-click, hold, and drag now raycasts directly from the FPV camera onto the court; `ball-v3-directed-aim` converts that point to azimuth while pace remains launch speed and net clearance solves elevation.
 - Added validated per-event `opponentPosition` overrides in the drill editor, including court presets, free dragging, live preview, timeline labels, JSON round-trip, and compile precedence over the session-wide position.
-- The renderer moves both the neutral opponent rig and its ball-machine fallback to the active trajectory origin.
+- The renderer moves both the neutral opponent rig and its ball-machine fallback to the active trajectory origin. Receiver-plane crossing no longer ends the solver; repeated bounce/ground samples continue for at least three seconds after first contact.
 
 ### Verification
 
 - Commit: `f97ffb7`.
-- `npm test`: 8 files, 66 tests passed, including directed pace/clearance landing, left/right aiming, interval-cycle playback, split-preset migration, and per-event opponent-origin compilation.
-- `npm run build`: production PWA build passed; the scene chunk remains approximately 164.6 kB gzip and the generated precache approximately 1.84 MiB.
-- In-app browser at 1440 × 900 verified the four-item Practice rail, collapsible configuration hierarchy, decoupled bottom presets, right-click landing change from center to 3.58 m right, opponent preset and free-drag updates, and a selected editor event moved to the service line.
+- Direction/lifetime follow-up commit: `2d93e6c`.
+- `npm test`: 9 files, 76 tests passed, including player-view A/D mapping, mirrored opponent coordinates, deuce/ad serving presets, direct aim direction, overlapping interval playback, legacy Left corner migration, and three-second post-bounce sampling.
+- `npm run build`: production PWA build passed; the scene chunk is approximately 172.8 kB gzip and the 30-entry generated precache approximately 1.82 MiB.
+- In-app browser at 1280 × 720 verified opposite A/D viewpoint movement, removal of the landing modal, the deuce-serve opponent at `1.25, 11.71 m` on the visible left, and a real right-button hold-and-drag that changed landing from `-1.08 m` to `+1.33 m`; the final console had zero errors or warnings.
 - The Browser loop caught and fixed an in-place legacy-state crash during hot replacement. A fresh 1280 × 720 load then rendered the WebGL practice screen with the four presets, split bottom controls, collapsible sections, and zero console errors or warnings.
 - At 820 × 1000 the stacked setup had no horizontal overflow, retained both preset groups and the safety notice, and kept the complete landing planner inside the viewport with zero console errors or warnings. The court map also scales down at the 720 px default height so the Done action remains visible without modal scrolling.
 
 ### Remaining review gates
 
-- Owner/manual review of WASD feel, right-click discoverability, preset naming volume, and physically useful pace/clearance ranges.
-- Target-device foreground performance review during continuous court-map dragging.
+- Owner/manual review of WASD movement speed, FPV right-drag discoverability, preset naming volume, and physically useful pace/clearance ranges.
+- Target-device foreground performance review during continuous FPV aiming and overlapping-ball playback.

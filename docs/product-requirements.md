@@ -140,7 +140,7 @@ Accounts, premium entitlements, cloud content, and payments belong to a separate
 | CAL-04 | Save decoupled view presets locally. | Camera position and perspective are separate collections; users can combine them, create presets, and right-click an existing preset to update it. |
 | CAL-05 | Run a visual scale check. | Court-width/net-height and ball-size checks can be revisited without restarting a drill. |
 | CAL-06 | Confirm a clear practice area. | First use presents a short safety acknowledgement and never claims to measure the room. |
-| CAL-07 | Support free setup movement. | WASD moves the camera around the court without changing the selected ball or opponent configuration. |
+| CAL-07 | Support free setup movement. | WASD moves the camera around the court without changing the selected ball or opponent configuration; A is player-view left and D is player-view right. |
 
 ### 9.2 Court and point of view
 
@@ -167,7 +167,8 @@ Accounts, premium entitlements, cloud content, and payments belong to a separate
 | BALL-05 | Keep fast balls visible without changing physics. | Optional blur/trail/halo affects presentation only; the debug path always shows the computed centroid trajectory. |
 | BALL-06 | Validate legality and authored intent. | Invalid service boxes, unintended net contacts, and landing/clearance failures block a preset from shipping. |
 | BALL-07 | Apply configurable physical wind. | Direction and speed produce deterministic world-space air velocity; drag and Magnus use air-relative velocity, non-zero side wind measurably shifts the bounce, and calm-air results remain compatible. |
-| BALL-08 | Configure physical landing interactively. | Right-drag changes shot azimuth; pace supplies launch speed and net clearance supplies the elevation constraint, with the resulting first bounce shown on a court plan. |
+| BALL-08 | Configure physical landing interactively. | Right-click, hold, and drag directly on the FPV court to change shot azimuth; pace supplies launch speed and net clearance supplies the elevation constraint, with the resulting first bounce shown in live diagnostics. |
+| BALL-09 | Preserve the complete post-bounce simulation. | Receiver-plane or baseline crossing does not terminate samples; the trajectory and each launched ball remain active through at least three seconds after first ground contact, including when launch intervals overlap. |
 
 ### 9.4 Opponent and serve motion
 
@@ -179,7 +180,7 @@ Accounts, premium entitlements, cloud content, and payments belong to a separate
 | OPP-04 | Ship both opponent hands. | All required drill families work with a left- and right-handed opponent; each mirrored use has a recorded acceptance review. |
 | OPP-05 | Ship normal and compact serves. | Both rhythms have distinct toss/loading/contact timing, remain readable at normal speed, and can drive the same legal ball-pace preset. |
 | OPP-06 | Preserve readable preparation. | Preparation and contact timing are authored independently of ball flight speed and expose valid playback-rate bounds. |
-| OPP-07 | Position the opponent on court. | Quick Practice offers position presets and free floor-plan dragging; every editor event can store and preview its own validated opponent floor position. |
+| OPP-07 | Position the opponent on court. | Quick Practice and editor events share player-view-correct position presets, including deuce/ad serving positions, plus free floor-plan dragging; every event can store and preview its own validated opponent floor position. |
 
 ### 9.5 Drills, timeline, and local content
 
