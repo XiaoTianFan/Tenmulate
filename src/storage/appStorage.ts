@@ -4,7 +4,6 @@ import type { DrillDefinitionV1 } from '../content/types';
 import { validateDrill } from '../content/validation';
 import type { SurfaceId } from '../domain/court';
 import { DEFAULT_ENVIRONMENT, normalizeEnvironmentConfiguration, type EnvironmentConfiguration } from '../domain/environment';
-import type { PracticeMode } from '../app/types';
 import type { SpinKind } from '../engine/trajectory/physics';
 
 const STORAGE_KEY = 'tenmulate.appData.v1';
@@ -15,16 +14,35 @@ export type SavedViewV1 = Readonly<{
   camera: CameraConfiguration;
 }>;
 
+export type CameraPosition = Readonly<Pick<CameraConfiguration, 'eyeHeight' | 'behindBaseline' | 'lateral'>>;
+export type PerspectiveConfiguration = Readonly<Pick<CameraConfiguration, 'yaw' | 'pitch' | 'fov'>>;
+export type CameraPositionPresetV1 = Readonly<{ id: string; name: string; position: CameraPosition }>;
+export type PerspectivePresetV1 = Readonly<{ id: string; name: string; perspective: PerspectiveConfiguration }>;
+
+export const DEFAULT_CAMERA_POSITION_PRESETS: readonly CameraPositionPresetV1[] = [
+  { id: 'position-baseline', name: 'Baseline', position: { eyeHeight: 1.7, behindBaseline: 1.5, lateral: 0 } },
+  { id: 'position-left', name: 'Left corner', position: { eyeHeight: 1.68, behindBaseline: 1.4, lateral: -2.6 } },
+  { id: 'position-net', name: 'At the net', position: { eyeHeight: 1.66, behindBaseline: -6.7, lateral: -0.4 } },
+  { id: 'position-overhead', name: 'Overhead', position: { eyeHeight: 1.7, behindBaseline: -3.2, lateral: 0 } },
+];
+
+export const DEFAULT_PERSPECTIVE_PRESETS: readonly PerspectivePresetV1[] = [
+  { id: 'perspective-natural', name: 'Natural', perspective: { yaw: 0, pitch: -1.7, fov: 70 } },
+  { id: 'perspective-wide', name: 'Wide', perspective: { yaw: 0, pitch: -1.7, fov: 84 } },
+  { id: 'perspective-focus', name: 'Focused', perspective: { yaw: 0, pitch: -0.8, fov: 58 } },
+];
+
 export type AppDataV1 = Readonly<{
   schemaVersion: 1;
   customDrills: readonly DrillDefinitionV1[];
-  savedViews: readonly SavedViewV1[];
+  cameraPositionPresets: readonly CameraPositionPresetV1[];
+  perspectivePresets: readonly PerspectivePresetV1[];
   preferences: PracticePreferencesV1;
 }>;
 
 export type PracticePreferencesV1 = Readonly<{
   sessionCategory: string;
-  mode: PracticeMode;
+  trajectoryEnabled: boolean;
   pace: number;
   interval: number;
   repetitions: number;
@@ -38,6 +56,8 @@ export type PracticePreferencesV1 = Readonly<{
   opponentHand: 'left' | 'right';
   serveRhythm: 'preset' | 'normal' | 'compact';
   netClearanceM: number;
+  aimDirectionDeg: number;
+  opponentPosition: Readonly<{ x: number; z: number }>;
   camera: CameraConfiguration;
   environment: EnvironmentConfiguration;
   quality: QualityMode;
@@ -47,8 +67,9 @@ export type PracticePreferencesV1 = Readonly<{
 }>;
 
 export const DEFAULT_PREFERENCES: PracticePreferencesV1 = {
-  sessionCategory: 'Quick Rally', mode: 'rehearsal', pace: 78, interval: 3.2, repetitions: 12, variation: 8, timingVariation: 0,
+  sessionCategory: 'Quick Rally', trajectoryEnabled: false, pace: 78, interval: 3.2, repetitions: 12, variation: 8, timingVariation: 0,
   workBlockSize: 4, restSeconds: 20, visualSurface: 'hard', physicsSurface: 'hard', spin: 'preset', opponentHand: 'right', serveRhythm: 'preset', netClearanceM: 0.24,
+  aimDirectionDeg: 0, opponentPosition: { x: 0, z: 11.235 },
   camera: { eyeHeight: 1.7, behindBaseline: 1.5, lateral: 0, yaw: 0, pitch: -1.7, fov: 70 },
   environment: DEFAULT_ENVIRONMENT, quality: 'auto', screenWidthCm: 120, screenHeightCm: 67.5, viewDistanceCm: 250,
 };
@@ -56,7 +77,8 @@ export const DEFAULT_PREFERENCES: PracticePreferencesV1 = {
 export const DEFAULT_APP_DATA: AppDataV1 = {
   schemaVersion: 1,
   customDrills: [],
-  savedViews: [],
+  cameraPositionPresets: DEFAULT_CAMERA_POSITION_PRESETS,
+  perspectivePresets: DEFAULT_PERSPECTIVE_PRESETS,
   preferences: DEFAULT_PREFERENCES,
 };
 
@@ -71,9 +93,19 @@ export const loadAppData = (): AppDataV1 => {
     const customDrills = Array.isArray(parsed.customDrills)
       ? parsed.customDrills.filter((drill) => validateDrill(drill).valid)
       : [];
-    const savedViews = Array.isArray(parsed.savedViews)
-      ? parsed.savedViews.filter((view): view is SavedViewV1 => Boolean(view && typeof view.id === 'string' && typeof view.name === 'string' && view.camera))
+    const legacyViews = Array.isArray((parsed as Partial<AppDataV1> & { savedViews?: unknown }).savedViews)
+      ? ((parsed as Partial<AppDataV1> & { savedViews?: unknown[] }).savedViews ?? []).filter((view): view is SavedViewV1 => Boolean(view && typeof view === 'object' && 'id' in view && 'name' in view && 'camera' in view))
       : [];
+    const cameraPositionPresets = Array.isArray(parsed.cameraPositionPresets) && parsed.cameraPositionPresets.length
+      ? parsed.cameraPositionPresets
+      : legacyViews.length
+        ? legacyViews.map((view) => ({ id: `position-${view.id}`, name: view.name, position: { eyeHeight: view.camera.eyeHeight, behindBaseline: view.camera.behindBaseline, lateral: view.camera.lateral } }))
+        : DEFAULT_CAMERA_POSITION_PRESETS;
+    const perspectivePresets = Array.isArray(parsed.perspectivePresets) && parsed.perspectivePresets.length
+      ? parsed.perspectivePresets
+      : legacyViews.length
+        ? legacyViews.map((view) => ({ id: `perspective-${view.id}`, name: view.name, perspective: { yaw: view.camera.yaw, pitch: view.camera.pitch, fov: view.camera.fov } }))
+        : DEFAULT_PERSPECTIVE_PRESETS;
     const candidate: Record<string, unknown> = isRecord(parsed.preferences) ? parsed.preferences : {};
     const camera = isRecord(candidate.camera) ? { ...DEFAULT_PREFERENCES.camera, ...candidate.camera } : DEFAULT_PREFERENCES.camera;
     const environment = normalizeEnvironmentConfiguration(candidate.environment);
@@ -83,12 +115,13 @@ export const loadAppData = (): AppDataV1 => {
     const preferences = {
       ...DEFAULT_PREFERENCES,
       ...candidate,
+      trajectoryEnabled: typeof candidate.trajectoryEnabled === 'boolean' ? candidate.trajectoryEnabled : candidate.mode === 'learning',
       visualSurface: candidate.visualSurface ?? legacySurface ?? DEFAULT_PREFERENCES.visualSurface,
       physicsSurface: candidate.physicsSurface ?? legacySurface ?? DEFAULT_PREFERENCES.physicsSurface,
       camera,
       environment,
     } as PracticePreferencesV1;
-    return { schemaVersion: 1, customDrills, savedViews, preferences };
+    return { schemaVersion: 1, customDrills, cameraPositionPresets, perspectivePresets, preferences };
   } catch {
     return DEFAULT_APP_DATA;
   }

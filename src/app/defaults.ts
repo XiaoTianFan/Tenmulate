@@ -28,7 +28,7 @@ export const createDefaultLaunch = (drill: DrillDefinitionV1): SessionLaunch => 
     serveRhythm: 'preset',
     netClearanceM: 0.24,
   }),
-  mode: 'rehearsal',
+  trajectoryEnabled: false,
   camera: DEFAULT_CAMERA,
   environment: DEFAULT_ENVIRONMENT,
   visualSurface: 'hard',

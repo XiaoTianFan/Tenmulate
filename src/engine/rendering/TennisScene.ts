@@ -35,6 +35,18 @@ export type CameraMotion = Readonly<{
   delay?: number;
 }>;
 
+export const trajectoryPlaybackState = (
+  elapsed: number,
+  duration: number,
+  loop: boolean,
+  interval: number | null,
+): Readonly<{ sampleTime: number; visible: boolean }> => {
+  if (!loop || interval === null) return { sampleTime: elapsed, visible: true };
+  const cycle = Math.max(0.25, interval);
+  const sampleTime = ((elapsed % cycle) + cycle) % cycle;
+  return { sampleTime, visible: sampleTime <= duration };
+};
+
 export class TennisScene {
   private readonly renderer: THREE.WebGLRenderer;
   private readonly scene = new THREE.Scene();
@@ -46,6 +58,7 @@ export class TennisScene {
   private readonly hemisphere: THREE.HemisphereLight;
   private readonly sun: THREE.DirectionalLight;
   private readonly opponent = new OpponentRig();
+  private readonly fallbackBallMachine: THREE.Object3D | undefined;
   private readonly venueGroups: Readonly<Record<VenueId, THREE.Group>>;
   private readonly setCourtSurface: (surface: SurfaceId) => void;
   private readonly materialBundle: SceneMaterialBundle;
@@ -57,6 +70,7 @@ export class TennisScene {
   private running = true;
   private playbackRate = 1;
   private loopTrajectory = true;
+  private trajectoryInterval: number | null = null;
   private showBallTrail = false;
   private cameraMotion: CameraMotion | null = null;
   private lastFrame = performance.now();
@@ -117,13 +131,13 @@ export class TennisScene {
     this.venueGroups = court.venueGroups;
     this.scene.add(court.group);
     this.scene.add(this.opponent.group);
-    const temporaryBallMachine = court.group.getObjectByName('temporary-ball-machine');
+    this.fallbackBallMachine = court.group.getObjectByName('temporary-ball-machine');
     void this.opponent.load().then(() => {
-      if (temporaryBallMachine) temporaryBallMachine.visible = false;
+      if (this.fallbackBallMachine) this.fallbackBallMachine.visible = false;
     }).catch((error: unknown) => {
       if (error instanceof OpponentRigDisposedError) return;
       console.warn('Neutral opponent failed to load; keeping the ball-machine fallback.', error);
-      if (temporaryBallMachine) temporaryBallMachine.visible = true;
+      if (this.fallbackBallMachine) this.fallbackBallMachine.visible = true;
     });
 
     this.ballMaterial = new THREE.MeshStandardMaterial({
@@ -159,6 +173,11 @@ export class TennisScene {
   setTrajectory(trajectory: ResolvedTrajectory): void {
     this.trajectory = trajectory;
     this.elapsed = 0;
+    this.opponent.group.position.set(trajectory.intent.source.x, 0, trajectory.intent.source.z);
+    if (this.fallbackBallMachine) {
+      this.fallbackBallMachine.position.x = trajectory.intent.source.x;
+      this.fallbackBallMachine.position.z = trajectory.intent.source.z;
+    }
     const points = trajectory.samples.map(
       (sample) => new THREE.Vector3(sample.position.x, sample.position.y, sample.position.z),
     );
@@ -185,6 +204,11 @@ export class TennisScene {
 
   setLoopTrajectory(loop: boolean): void {
     this.loopTrajectory = loop;
+  }
+
+  setTrajectoryInterval(seconds: number | null): void {
+    this.trajectoryInterval = seconds === null ? null : Math.max(0.25, seconds);
+    this.elapsed = 0;
   }
 
   setCameraMotion(motion: CameraMotion | null): void {
@@ -288,17 +312,30 @@ export class TennisScene {
       wind.z,
     );
     if (this.trajectory) {
-      const position = sampleTrajectoryAt(this.trajectory, this.elapsed, this.loopTrajectory);
+      const duration = this.trajectory.samples.at(-1)?.time ?? 0;
+      const playback = trajectoryPlaybackState(this.elapsed, duration, this.loopTrajectory, this.trajectoryInterval);
+      const cycleTime = playback.sampleTime;
+      const ballActive = playback.visible;
+      const position = sampleTrajectoryAt(
+        this.trajectory,
+        cycleTime,
+        this.loopTrajectory && this.trajectoryInterval === null,
+      );
       this.ball.position.set(position.x, position.y, position.z);
-      if (this.showBallTrail) {
+      this.ball.visible = ballActive;
+      this.ballTrail.visible = this.showBallTrail && ballActive;
+      if (this.showBallTrail && ballActive) {
         const points: THREE.Vector3[] = [];
         for (let index = 9; index >= 0; index -= 1) {
-          const trailPosition = sampleTrajectoryAt(this.trajectory, Math.max(0, this.elapsed - index * 0.018), this.loopTrajectory);
+          const trailPosition = sampleTrajectoryAt(this.trajectory, Math.max(0, cycleTime - index * 0.018), false);
           points.push(new THREE.Vector3(trailPosition.x, trailPosition.y, trailPosition.z));
         }
         this.ballTrail.geometry.dispose();
         this.ballTrail.geometry = new THREE.BufferGeometry().setFromPoints(points);
       }
+    } else {
+      this.ball.visible = false;
+      this.ballTrail.visible = false;
     }
     if (this.cameraMotion) {
       const delay = this.cameraMotion.delay ?? 0;

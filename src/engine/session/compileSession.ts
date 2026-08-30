@@ -21,6 +21,8 @@ export type SessionSettings = Readonly<{
   restSeconds: number;
   serveRhythm: 'preset' | ServeRhythm;
   netClearanceM: number;
+  aimDirectionDeg?: number;
+  opponentPosition?: Readonly<{ x: number; z: number }>;
   windVelocity?: Vec3;
 }>;
 
@@ -32,7 +34,7 @@ export type CompiledRepetition = Readonly<{
 }>;
 
 export type CompiledSession = Readonly<{
-  solverVersion: 'ball-v2-wind';
+  solverVersion: 'ball-v3-directed-aim';
   contentVersion: '2026.08.29';
   drill: DrillDefinitionV1;
   settings: SessionSettings;
@@ -68,6 +70,15 @@ export const compileSession = (
     const eventSpin = sourceEvent && 'spin' in sourceEvent ? sourceEvent.spin : undefined;
     const shot: ShotDefinitionV1 = {
       ...sourceShot,
+      source: {
+        ...sourceShot.source,
+        x: sourceEvent && 'opponentPosition' in sourceEvent && sourceEvent.opponentPosition
+          ? sourceEvent.opponentPosition.x
+          : settings.opponentPosition?.x ?? sourceShot.source.x,
+        z: sourceEvent && 'opponentPosition' in sourceEvent && sourceEvent.opponentPosition
+          ? sourceEvent.opponentPosition.z
+          : settings.opponentPosition?.z ?? sourceShot.source.z,
+      },
       target: {
         x: (sourceEvent && 'target' in sourceEvent && sourceEvent.target ? sourceEvent.target.x : sourceShot.target.x) + xJitter,
         z: (sourceEvent && 'target' in sourceEvent && sourceEvent.target ? sourceEvent.target.z : sourceShot.target.z) + zJitter,
@@ -90,7 +101,7 @@ export const compileSession = (
     repetitions.push({
       index,
       shot,
-      trajectory: resolveTrajectory({ ...shot, windVelocity: settings.windVelocity }),
+      trajectory: resolveTrajectory({ ...shot, aimDirectionDeg: settings.aimDirectionDeg, windVelocity: settings.windVelocity }),
       startTime,
     });
     const timingVariation = Math.min(0.5, Math.max(0, settings.timingVariationPercent / 100));
@@ -104,7 +115,7 @@ export const compileSession = (
   }
 
   return {
-    solverVersion: 'ball-v2-wind',
+    solverVersion: 'ball-v3-directed-aim',
     contentVersion: '2026.08.29',
     drill,
     settings,

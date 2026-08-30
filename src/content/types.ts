@@ -59,6 +59,7 @@ export type DrillEventV1 = Readonly<{
   paceKmh?: number;
   spin?: 'preset' | SpinKind;
   target?: Readonly<{ x: number; z: number }>;
+  opponentPosition?: Readonly<{ x: number; z: number }>;
   cameraMotion?: CameraMotionDefinition | null;
   cue?: string;
   serveRhythm?: 'preset' | ServeRhythm;

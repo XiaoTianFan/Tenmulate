@@ -20,7 +20,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const allowedDrillKeys = new Set(['schemaVersion', 'id', 'title', 'description', 'category', 'shotIds', 'events', 'defaultInterval', 'defaultRepetitions']);
-const allowedEventKeys = new Set(['id', 'shotId', 'paceKmh', 'spin', 'target', 'cameraMotion', 'cue', 'serveRhythm', 'netClearanceM']);
+const allowedEventKeys = new Set(['id', 'shotId', 'paceKmh', 'spin', 'target', 'opponentPosition', 'cameraMotion', 'cue', 'serveRhythm', 'netClearanceM']);
 const allowedCameraMotionKeys = new Set(['from', 'to', 'duration', 'delay']);
 const allowedCameraKeys = new Set(['eyeHeight', 'behindBaseline', 'lateral', 'yaw', 'pitch', 'fov']);
 
@@ -48,6 +48,10 @@ const validateEvent = (value: unknown, index: number, errors: string[]): value i
   if (value.target !== undefined) {
     if (!isRecord(value.target) || typeof value.target.x !== 'number' || typeof value.target.z !== 'number') errors.push(`Event ${index + 1} target is invalid.`);
     else if (Math.abs(value.target.x) > 4.115 || value.target.z >= 0 || value.target.z < -11.885) errors.push(`Event ${index + 1} target is outside the near singles court.`);
+  }
+  if (value.opponentPosition !== undefined) {
+    if (!isRecord(value.opponentPosition) || typeof value.opponentPosition.x !== 'number' || typeof value.opponentPosition.z !== 'number') errors.push(`Event ${index + 1} opponent position is invalid.`);
+    else if (Math.abs(value.opponentPosition.x) > 5.485 || Math.abs(value.opponentPosition.z) > 11.885) errors.push(`Event ${index + 1} opponent position is outside the court.`);
   }
   if (value.cameraMotion !== undefined && value.cameraMotion !== null) {
     const motion = value.cameraMotion;

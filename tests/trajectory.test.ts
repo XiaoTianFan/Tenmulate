@@ -91,4 +91,40 @@ describe('fixed-step trajectory solver', () => {
     };
     expect(resolveTrajectory(intent).events).toEqual(resolveTrajectory(intent).events);
   });
+
+  it('derives a physical landing point from direction, pace, and net clearance', () => {
+    const source = { x: 0, y: 1.15, z: COURT.halfLength - 0.65 };
+    const base = {
+      source,
+      target: { x: 0, z: -8 },
+      aimDirectionDeg: 0,
+      spin: 'topspin' as const,
+      surface: 'hard' as const,
+    };
+    const slower = resolveTrajectory({ ...base, paceKmh: 62, netClearanceM: 0.24 });
+    const faster = resolveTrajectory({ ...base, paceKmh: 96, netClearanceM: 0.24 });
+    const higher = resolveTrajectory({ ...base, paceKmh: 96, netClearanceM: 0.9 });
+    const slowerBounce = slower.events.find((event) => event.type === 'bounce')!;
+    const fasterBounce = faster.events.find((event) => event.type === 'bounce')!;
+    const higherBounce = higher.events.find((event) => event.type === 'bounce')!;
+
+    expect(faster.events.find((event) => event.type === 'net-crossing')?.position.y ?? 0).toBeGreaterThan(COURT.netCenterHeight + 0.2);
+    expect(fasterBounce.position.z).toBeLessThan(slowerBounce.position.z);
+    expect(higherBounce.position.z).toBeLessThan(fasterBounce.position.z);
+  });
+
+  it('uses right-left aim direction to move the calculated landing point', () => {
+    const base = {
+      source: { x: 0, y: 1.15, z: COURT.halfLength - 0.65 },
+      target: { x: 0, z: -8 },
+      paceKmh: 78,
+      netClearanceM: 0.35,
+      spin: 'flat' as const,
+      surface: 'hard' as const,
+    };
+    const left = resolveTrajectory({ ...base, aimDirectionDeg: -12 });
+    const right = resolveTrajectory({ ...base, aimDirectionDeg: 12 });
+    expect(left.events.find((event) => event.type === 'bounce')!.position.x).toBeLessThan(0);
+    expect(right.events.find((event) => event.type === 'bounce')!.position.x).toBeGreaterThan(0);
+  });
 });

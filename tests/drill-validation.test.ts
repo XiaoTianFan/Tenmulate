@@ -23,6 +23,7 @@ describe('versioned drill documents', () => {
         paceKmh: 101,
         spin: 'slice' as const,
         target: { x: 1.25, z: -7.5 },
+        opponentPosition: { x: -2.5, z: 10.8 },
         cue: 'MOVE NOW',
       }],
       shotIds: ['fh-cross-deep'],
@@ -49,6 +50,7 @@ describe('versioned drill documents', () => {
       paceKmh: 101,
       spin: 'slice',
       target: { x: 1.25, z: -7.5 },
+      source: { x: -2.5, y: 1.15, z: 10.8 },
       cue: 'MOVE NOW',
       opponentHand: 'left',
     });

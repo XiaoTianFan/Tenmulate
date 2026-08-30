@@ -21,6 +21,7 @@ type SceneViewportProps = Readonly<{
   showTrajectory?: boolean;
   playbackRate?: number;
   loopTrajectory?: boolean;
+  trajectoryInterval?: number | null;
   cameraMotion?: CameraMotion | null;
   showSight?: boolean;
   highContrastBall?: boolean;
@@ -39,6 +40,7 @@ export function SceneViewport({
   showTrajectory = true,
   playbackRate = 1,
   loopTrajectory = true,
+  trajectoryInterval = null,
   cameraMotion = null,
   showSight = true,
   highContrastBall = false,
@@ -77,6 +79,7 @@ export function SceneViewport({
   useEffect(() => sceneRef.current?.setTrajectoryVisible(showTrajectory), [showTrajectory]);
   useEffect(() => sceneRef.current?.setPlaybackRate(playbackRate), [playbackRate]);
   useEffect(() => sceneRef.current?.setLoopTrajectory(loopTrajectory), [loopTrajectory]);
+  useEffect(() => sceneRef.current?.setTrajectoryInterval(trajectoryInterval), [trajectoryInterval]);
   useEffect(() => sceneRef.current?.setCameraMotion(cameraMotion), [cameraMotion]);
   useEffect(() => sceneRef.current?.setBallPresentation(highContrastBall, showBallTrail), [highContrastBall, showBallTrail]);
 
