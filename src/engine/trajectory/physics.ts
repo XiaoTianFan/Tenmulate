@@ -10,6 +10,7 @@ const AIR_DENSITY_KG_M3 = 1.225;
 const DRAG_COEFFICIENT = 0.55;
 const LIFT_COEFFICIENT_SLOPE = 0.6;
 const MAX_LIFT_COEFFICIENT = 0.35;
+const SPIN_DECAY_PER_M = -Math.log(0.98) / 6.4;
 const BALL_INERTIA_FACTOR = 0.55;
 const CONTACT_VELOCITY_COUPLING = BALL_INERTIA_FACTOR / (1 + BALL_INERTIA_FACTOR);
 const AERODYNAMIC_ACCELERATION_FACTOR = 0.5 * AIR_DENSITY_KG_M3 * BALL_AREA_M2 / BALL_MASS_KG;
@@ -35,14 +36,15 @@ export type ShotIntent = Readonly<{
   source: Vec3;
   target: Readonly<{ x: number; z: number }>;
   aimDirectionDeg?: number;
-  paceKmh: number;
+  launchSpeedKmh: number;
   spin: SpinKind;
+  spinRateRpm?: number;
   shotType?: PracticeShotType;
   family?: string;
   opponentHand?: 'left' | 'right';
   surface: SurfaceId;
   receiverZ?: number;
-  netClearanceM?: number;
+  minimumNetClearanceM?: number;
   windVelocity?: Vec3;
   bounceFactor?: number;
 }>;
@@ -68,6 +70,12 @@ export type ResolvedTrajectory = Readonly<{
   samples: readonly FlightSample[];
   events: readonly TrajectoryEvent[];
   apexHeight: number;
+  resolved: Readonly<{
+    launchSpeedKmh: number;
+    launchAngleDeg: number;
+    spinRateRpm: number;
+    spinParameter: number;
+  }>;
 }>;
 
 const trajectoryShotType = (intent: Pick<ShotIntent, 'shotType' | 'family'>): PracticeShotType => {
@@ -78,47 +86,100 @@ const trajectoryShotType = (intent: Pick<ShotIntent, 'shotType' | 'family'>): Pr
   return 'groundstroke';
 };
 
-const spinVector = (intent: Pick<ShotIntent, 'spin' | 'shotType' | 'family' | 'opponentHand'>): Vec3 => {
+const radiansPerSecondFromRpm = (rpm: number): number => rpm * Math.PI * 2 / 60;
+const rpmFromRadiansPerSecond = (radiansPerSecond: number): number => radiansPerSecond * 60 / (Math.PI * 2);
+
+const defaultSpinRateRpm = (intent: Pick<ShotIntent, 'spin' | 'shotType' | 'family'>): number => {
+  const shotType = trajectoryShotType(intent);
+  if (shotType === 'volley') return 0;
+  if (shotType === 'serve') {
+    if (intent.spin === 'flat') return 1179;
+    if (intent.spin === 'slice') return 2212;
+    if (intent.spin === 'kick' || intent.spin === 'topspin') return 3220;
+    return 1814;
+  }
+  if (shotType === 'lob') {
+    if (intent.spin === 'topspin' || intent.spin === 'kick') return 1199;
+    if (intent.spin === 'slice') return 819;
+    return 0;
+  }
+  if (intent.spin === 'topspin') return 1814;
+  if (intent.spin === 'slice') return 1253;
+  if (intent.spin === 'kick') return 2285;
+  if (intent.spin === 'sidespin') return 1432;
+  return 0;
+};
+
+const spinAxisWeights = (
+  intent: Pick<ShotIntent, 'spin' | 'shotType' | 'family' | 'opponentHand'>,
+): Readonly<{ topspin: number; sidespin: number }> => {
   const handDirection = intent.opponentHand === 'left' ? -1 : 1;
   const shotType = trajectoryShotType(intent);
-  if (shotType === 'volley') return vec3();
+  if (shotType === 'volley') return { topspin: 0, sidespin: 0 };
   if (shotType === 'serve') {
     switch (intent.spin) {
       case 'flat':
-        return vec3(-45, handDirection * 115, 0);
+        return { topspin: 45, sidespin: handDirection * 115 };
       case 'slice':
-        return vec3(-55, handDirection * 225, 0);
+        return { topspin: 55, sidespin: handDirection * 225 };
       case 'kick':
       case 'topspin':
-        return vec3(-285, handDirection * 180, 0);
+        return { topspin: 285, sidespin: handDirection * 180 };
       default:
-        return vec3(0, handDirection * 190, 0);
+        return { topspin: 0, sidespin: handDirection * 190 };
     }
   }
   if (shotType === 'lob') {
     switch (intent.spin) {
       case 'topspin':
       case 'kick':
-        return vec3(-125, handDirection * 12, 0);
+        return { topspin: 125, sidespin: handDirection * 12 };
       case 'slice':
-        return vec3(85, handDirection * 12, 0);
+        return { topspin: -85, sidespin: handDirection * 12 };
       default:
-        return vec3();
+        return { topspin: 1, sidespin: 0 };
     }
   }
   switch (intent.spin) {
     case 'topspin':
-      return vec3(-190, 0, 0);
+      return { topspin: 1, sidespin: 0 };
     case 'slice':
-      return vec3(130, handDirection * 18, 0);
+      return { topspin: -130, sidespin: handDirection * 18 };
     case 'kick':
-      return vec3(-235, handDirection * 45, 0);
+      return { topspin: 235, sidespin: handDirection * 45 };
     case 'sidespin':
-      return vec3(0, handDirection * 150, 0);
+      return { topspin: 0, sidespin: handDirection };
     default:
-      return vec3(0, 0, 0);
+      return { topspin: 1, sidespin: 0 };
   }
 };
+
+const spinVector = (
+  intent: Pick<ShotIntent, 'spin' | 'spinRateRpm' | 'shotType' | 'family' | 'opponentHand'>,
+  launchVelocity: Vec3,
+): Vec3 => {
+  if (trajectoryShotType(intent) === 'volley') return vec3();
+  const rateRpm = typeof intent.spinRateRpm === 'number' && Number.isFinite(intent.spinRateRpm)
+    ? Math.max(0, intent.spinRateRpm)
+    : defaultSpinRateRpm(intent);
+  if (rateRpm <= 0) return vec3();
+  const horizontalSpeed = Math.hypot(launchVelocity.x, launchVelocity.z);
+  const speed = magnitude(launchVelocity);
+  if (horizontalSpeed < 0.001 || speed < 0.001) return vec3();
+  const topAxis = vec3(launchVelocity.z / horizontalSpeed, 0, -launchVelocity.x / horizontalSpeed);
+  const velocityDirection = scale(launchVelocity, 1 / speed);
+  const sideAxis = cross(velocityDirection, topAxis);
+  const weights = spinAxisWeights(intent);
+  const weightedAxis = add(scale(topAxis, weights.topspin), scale(sideAxis, weights.sidespin));
+  const axisMagnitude = magnitude(weightedAxis);
+  return axisMagnitude > 0
+    ? scale(weightedAxis, radiansPerSecondFromRpm(rateRpm) / axisMagnitude)
+    : vec3();
+};
+
+const decaySpin = (spin: Vec3, distanceM: number): Vec3 => (
+  scale(spin, Math.exp(-SPIN_DECAY_PER_M * Math.max(0, distanceM)))
+);
 
 const acceleration = (velocity: Vec3, spin: Vec3, windVelocity = vec3()): Vec3 => {
   const airVelocity = subtract(velocity, windVelocity);
@@ -140,7 +201,7 @@ const lowArcVelocity = (intent: ShotIntent): Vec3 => {
   const dx = intent.target.x - intent.source.x;
   const dz = intent.target.z - intent.source.z;
   const distance = Math.hypot(dx, dz);
-  const speed = Math.max(8, intent.paceKmh / 3.6);
+  const speed = Math.max(8, intent.launchSpeedKmh / 3.6);
   const deltaY = COURT.ballRadius - intent.source.y;
   const speedSquared = speed * speed;
   const discriminant = Math.max(
@@ -161,11 +222,12 @@ const lowArcVelocity = (intent: ShotIntent): Vec3 => {
 const firstBounce = (intent: ShotIntent, initialVelocity: Vec3): FlightSample => {
   let position = intent.source;
   let velocity = initialVelocity;
-  const spin = spinVector(intent);
+  let spin = spinVector(intent, initialVelocity);
 
   for (let index = 1; index < 5 / FIXED_STEP; index += 1) {
     const nextVelocity = add(velocity, scale(acceleration(velocity, spin), FIXED_STEP));
     const nextPosition = add(position, scale(nextVelocity, FIXED_STEP));
+    spin = decaySpin(spin, magnitude(nextVelocity) * FIXED_STEP);
     if (nextPosition.y <= COURT.ballRadius && nextVelocity.y < 0) {
       return {
         time: index * FIXED_STEP,
@@ -184,11 +246,12 @@ const firstBounce = (intent: ShotIntent, initialVelocity: Vec3): FlightSample =>
 const firstNetCrossing = (intent: ShotIntent, initialVelocity: Vec3): FlightSample | null => {
   let position = intent.source;
   let velocity = initialVelocity;
-  const spin = spinVector(intent);
+  let spin = spinVector(intent, initialVelocity);
 
   for (let index = 1; index < 3 / FIXED_STEP; index += 1) {
     const nextVelocity = add(velocity, scale(acceleration(velocity, spin), FIXED_STEP));
     const nextPosition = add(position, scale(nextVelocity, FIXED_STEP));
+    spin = decaySpin(spin, magnitude(nextVelocity) * FIXED_STEP);
     if (position.z > 0 && nextPosition.z <= 0) {
       return {
         time: index * FIXED_STEP,
@@ -209,12 +272,13 @@ const firstFlight = (intent: ShotIntent, initialVelocity: Vec3): Readonly<{
 }> => {
   let position = intent.source;
   let velocity = initialVelocity;
-  const spin = spinVector(intent);
+  let spin = spinVector(intent, initialVelocity);
   let netCrossing: FlightSample | null = null;
 
   for (let index = 1; index < 5 / FIXED_STEP; index += 1) {
     const nextVelocity = add(velocity, scale(acceleration(velocity, spin), FIXED_STEP));
     const nextPosition = add(position, scale(nextVelocity, FIXED_STEP));
+    spin = decaySpin(spin, magnitude(nextVelocity) * FIXED_STEP);
     if (!netCrossing && position.z > 0 && nextPosition.z <= 0) {
       netCrossing = { time: index * FIXED_STEP, position: nextPosition, velocity: nextVelocity, bounced: false };
     }
@@ -232,9 +296,10 @@ const firstFlight = (intent: ShotIntent, initialVelocity: Vec3): Readonly<{
 
 const directedVelocity = (intent: ShotIntent): Vec3 => {
   const direction = Math.min(35, Math.max(-35, intent.aimDirectionDeg ?? 0)) * Math.PI / 180;
-  const speed = Math.max(8, intent.paceKmh / 3.6);
+  const speed = Math.max(8, intent.launchSpeedKmh / 3.6);
   const shotType = trajectoryShotType(intent);
-  const clearance = Math.min(shotType === 'lob' ? 6 : 1.8, Math.max(0.08, intent.netClearanceM ?? 0.12));
+  const defaultClearance = shotType === 'lob' ? 1.2 : shotType === 'serve' || shotType === 'volley' ? 0.08 : 0.12;
+  const clearance = Math.min(shotType === 'lob' ? 6 : 1.8, Math.max(0.04, intent.minimumNetClearanceM ?? defaultClearance));
   const minimumAngle = (shotType === 'lob' ? 25 : shotType === 'volley' ? -14 : -5) * Math.PI / 180;
   const maximumAngle = (shotType === 'lob' ? 78 : shotType === 'volley' ? 52 : 58) * Math.PI / 180;
   const calmIntent = { ...intent, windVelocity: undefined };
@@ -295,7 +360,7 @@ const velocityForDirectionAndAngle = (speed: number, direction: number, angle: n
 };
 
 const minimumNetClearingAngle = (intent: ShotIntent, speed: number, direction: number): number => {
-  const clearance = Math.min(1.8, Math.max(0.04, intent.netClearanceM ?? 0.12));
+  const clearance = Math.min(1.8, Math.max(0.04, intent.minimumNetClearanceM ?? 0.08));
   let lowerAngle = -14 * Math.PI / 180;
   let upperAngle = 42 * Math.PI / 180;
   for (let iteration = 0; iteration < 26; iteration += 1) {
@@ -311,7 +376,7 @@ const minimumNetClearingAngle = (intent: ShotIntent, speed: number, direction: n
 };
 
 const serveVelocity = (intent: ShotIntent): Vec3 => {
-  const speed = Math.max(8, intent.paceKmh / 3.6);
+  const speed = Math.max(8, intent.launchSpeedKmh / 3.6);
   let direction = Math.atan2(intent.target.x - intent.source.x, intent.source.z - intent.target.z);
   let velocity = velocityForDirectionAndAngle(speed, direction, 0);
 
@@ -377,7 +442,7 @@ const targetAdjustedVelocity = (intent: ShotIntent): Vec3 => {
     const errorX = intent.target.x - bounce.position.x;
     const errorZ = intent.target.z - bounce.position.z;
     const net = firstNetCrossing(intent, velocity);
-    const clearance = Math.min(1.8, Math.max(0.08, intent.netClearanceM ?? 0.12));
+    const clearance = Math.min(1.8, Math.max(0.04, intent.minimumNetClearanceM ?? 0.12));
     const requiredNetY = net ? netHeightAt(net.position.x) + clearance : COURT.netCenterHeight + clearance;
     const verticalCorrection = net && net.position.y < requiredNetY
       ? ((requiredNetY - net.position.y) / Math.max(0.18, net.time)) * 1.08
@@ -394,7 +459,8 @@ const targetAdjustedVelocity = (intent: ShotIntent): Vec3 => {
 export const resolveTrajectory = (intent: ShotIntent): ResolvedTrajectory => {
   const launchVelocity = targetAdjustedVelocity(intent);
   const surface = SURFACE_PROFILES[intent.surface];
-  let spin = spinVector(intent);
+  const initialSpin = spinVector(intent, launchVelocity);
+  let spin = initialSpin;
   const receiverZ = intent.receiverZ ?? -(COURT.halfLength + 0.65);
   const samples: FlightSample[] = [
     { time: 0, position: intent.source, velocity: launchVelocity, bounced: false },
@@ -422,6 +488,7 @@ export const resolveTrajectory = (intent: ShotIntent): ResolvedTrajectory => {
     } else {
       velocity = add(velocity, scale(acceleration(velocity, spin, intent.windVelocity), FIXED_STEP));
       position = add(position, scale(velocity, FIXED_STEP));
+      spin = decaySpin(spin, magnitude(velocity) * FIXED_STEP);
     }
     apexHeight = Math.max(apexHeight, position.y);
 
@@ -486,7 +553,21 @@ export const resolveTrajectory = (intent: ShotIntent): ResolvedTrajectory => {
     if (completedPostBounceWindow) break;
   }
 
-  return { intent, launchVelocity, samples, events, apexHeight };
+  const launchSpeed = magnitude(launchVelocity);
+  const spinMagnitude = magnitude(initialSpin);
+  return {
+    intent,
+    launchVelocity,
+    samples,
+    events,
+    apexHeight,
+    resolved: {
+      launchSpeedKmh: launchSpeed * 3.6,
+      launchAngleDeg: Math.atan2(launchVelocity.y, Math.hypot(launchVelocity.x, launchVelocity.z)) * 180 / Math.PI,
+      spinRateRpm: rpmFromRadiansPerSecond(spinMagnitude),
+      spinParameter: launchSpeed > 0 ? COURT.ballRadius * spinMagnitude / launchSpeed : 0,
+    },
+  };
 };
 
 export const sampleTrajectoryAt = (

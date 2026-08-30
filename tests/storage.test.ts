@@ -21,7 +21,7 @@ describe('local application data', () => {
       customDrills: [{ ...DRILLS[0]!, id: 'saved-drill', category: 'Custom' as const }],
       cameraPositionPresets: [{ id: 'position-one', name: 'Projector', position: { eyeHeight: 1.7, behindBaseline: 2, lateral: 0 } }],
       perspectivePresets: [{ id: 'perspective-one', name: 'Projector POV', perspective: { yaw: 0, pitch: -1.7, fov: 66 } }],
-      preferences: { ...DEFAULT_PREFERENCES, pace: 96, quality: 'performance' as const },
+      preferences: { ...DEFAULT_PREFERENCES, launchSpeedKmh: 96, spinRateRpm: 2400, quality: 'performance' as const },
     };
     saveAppData(data);
     expect(loadAppData()).toEqual(data);
@@ -50,8 +50,8 @@ describe('local application data', () => {
     expect(loadAppData().preferences).toMatchObject({
       shotType: 'lob',
       spin: 'topspin',
-      pace: 105,
-      netClearanceM: 1.2,
+      launchSpeedKmh: 105,
+      spinRateRpm: 1199,
       landingDepthM: 11.635,
     });
   });

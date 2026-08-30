@@ -19,17 +19,17 @@ export type SessionSettings = Readonly<{
   interval: number;
   variationPercent: number;
   timingVariationPercent: number;
-  paceKmh: number;
+  launchSpeedKmh: number;
   surface: SurfaceId;
   seed: string;
   spin: 'preset' | SpinKind;
+  spinRateRpm?: number;
   practiceShotType?: PracticeShotType;
   bounceFactor?: number;
   opponentHand: OpponentHand;
   workBlockSize: number;
   restSeconds: number;
   serveRhythm: 'preset' | ServeRhythm;
-  netClearanceM: number;
   landingDepthM?: number;
   aimDirectionDeg?: number;
   opponentPosition?: Readonly<{ x: number; z: number }>;
@@ -44,7 +44,7 @@ export type CompiledRepetition = Readonly<{
 }>;
 
 export type CompiledSession = Readonly<{
-  solverVersion: 'ball-v5-depth-intent';
+  solverVersion: 'ball-v6-spin-target';
   contentVersion: '2026.08.29';
   drill: DrillDefinitionV1;
   settings: SessionSettings;
@@ -76,7 +76,7 @@ export const compileSession = (
     const variation = settings.variationPercent / 100;
     const xJitter = (random() * 2 - 1) * 0.55 * variation;
     const zJitter = (random() * 2 - 1) * 1.1 * variation;
-    const paceJitter = (random() * 2 - 1) * settings.paceKmh * 0.12 * variation;
+    const speedJitter = (random() * 2 - 1) * settings.launchSpeedKmh * 0.12 * variation;
     const eventSpin = sourceEvent && 'spin' in sourceEvent ? sourceEvent.spin : undefined;
     const practiceProfile = settings.practiceShotType ? PRACTICE_SHOT_PROFILES[settings.practiceShotType] : null;
     const selectedSpin = settings.practiceShotType
@@ -84,13 +84,13 @@ export const compileSession = (
       : eventSpin && eventSpin !== 'preset'
         ? eventSpin
         : settings.spin === 'preset' ? sourceShot.spin : settings.spin;
-    const paceKmh = Math.max(25, (
+    const launchSpeedKmh = Math.max(25, (
       sourceEvent && 'paceKmh' in sourceEvent && sourceEvent.paceKmh
         ? sourceEvent.paceKmh
         : practiceProfile
-          ? settings.paceKmh
-          : settings.paceKmh + (sourceShot.paceKmh - 78) * 0.35
-    ) + paceJitter);
+          ? settings.launchSpeedKmh
+          : settings.launchSpeedKmh + (sourceShot.paceKmh - 78) * 0.35
+    ) + speedJitter);
     const source = {
       ...sourceShot.source,
       x: sourceEvent && 'opponentPosition' in sourceEvent && sourceEvent.opponentPosition
@@ -106,7 +106,7 @@ export const compileSession = (
       z: (sourceEvent && 'target' in sourceEvent && sourceEvent.target ? sourceEvent.target.z : sourceShot.target.z) + zJitter,
     };
     const target = settings.practiceShotType === 'serve'
-      ? legalServeTarget(source, settings.aimDirectionDeg ?? 0, paceKmh, settings.netClearanceM, selectedSpin)
+      ? legalServeTarget(source, settings.aimDirectionDeg ?? 0, settings.landingDepthM ?? PRACTICE_SHOT_PROFILES.serve.defaultLandingDepthM)
       : practiceProfile
         ? practiceLandingTarget(source, settings.aimDirectionDeg ?? 0, settings.landingDepthM ?? practiceProfile.defaultLandingDepthM)
         : authoredTarget;
@@ -120,7 +120,7 @@ export const compileSession = (
         : practiceProfile
           ? Math.abs(target.z) >= 8.5 ? 'Deep' : Math.abs(target.z) >= 4.5 ? 'Mid' : 'Short'
           : sourceShot.depth,
-      paceKmh,
+      paceKmh: launchSpeedKmh,
       surface: settings.surface,
       spin: selectedSpin,
       opponentHand: settings.opponentHand,
@@ -133,13 +133,16 @@ export const compileSession = (
         : undefined,
       netClearanceM: sourceEvent && 'netClearanceM' in sourceEvent && sourceEvent.netClearanceM !== undefined
         ? sourceEvent.netClearanceM
-        : settings.netClearanceM,
+        : practiceProfile?.minimumNetClearanceM ?? sourceShot.netClearanceM,
     };
     repetitions.push({
       index,
       shot,
       trajectory: resolveTrajectory({
         ...shot,
+        launchSpeedKmh,
+        spinRateRpm: settings.practiceShotType ? settings.spinRateRpm : undefined,
+        minimumNetClearanceM: shot.netClearanceM,
         shotType: settings.practiceShotType,
         aimDirectionDeg: settings.aimDirectionDeg,
         windVelocity: settings.windVelocity,
@@ -158,7 +161,7 @@ export const compileSession = (
   }
 
   return {
-    solverVersion: 'ball-v5-depth-intent',
+    solverVersion: 'ball-v6-spin-target',
     contentVersion: '2026.08.29',
     drill,
     settings,

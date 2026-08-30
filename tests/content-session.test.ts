@@ -26,7 +26,11 @@ describe('bundled V1 content floor', () => {
   });
 
   it.each(SHOTS.map((shot) => [shot.id, shot] as const))('%s resolves across the net and bounces on the near court', (_id, shot) => {
-    const trajectory = resolveTrajectory(shot);
+    const trajectory = resolveTrajectory({
+      ...shot,
+      launchSpeedKmh: shot.paceKmh,
+      minimumNetClearanceM: shot.netClearanceM,
+    });
     const net = trajectory.events.find((event) => event.type === 'net-crossing');
     const bounce = trajectory.events.find((event) => event.type === 'bounce');
     expect(net, `${shot.id} did not cross the net`).toBeDefined();
@@ -45,7 +49,7 @@ describe('session compiler', () => {
     interval: 3.2,
     variationPercent: 8,
     timingVariationPercent: 0,
-    paceKmh: 78,
+    launchSpeedKmh: 78,
     surface: 'hard' as const,
     seed: '18427',
     spin: 'preset' as const,
@@ -53,7 +57,6 @@ describe('session compiler', () => {
     workBlockSize: 4,
     restSeconds: 20,
     serveRhythm: 'preset' as const,
-    netClearanceM: 0.24,
   };
 
   it('is deterministic for the same seed', () => {
@@ -101,8 +104,9 @@ describe('session compiler', () => {
       repetitions: 1,
       practiceShotType: 'serve',
       spin: 'kick',
-      paceKmh: 135,
-      netClearanceM: 0.18,
+      spinRateRpm: 3200,
+      launchSpeedKmh: 135,
+      landingDepthM: 5.05,
       bounceFactor: 1.2,
       opponentPosition: { x: 1.25, z: COURT.halfLength - 0.18 },
       aimDirectionDeg: 0,
@@ -123,8 +127,8 @@ describe('session compiler', () => {
       repetitions: 1,
       practiceShotType: 'lob',
       spin: 'topspin',
-      paceKmh: 52,
-      netClearanceM: 3.2,
+      spinRateRpm: 1200,
+      launchSpeedKmh: 52,
       landingDepthM: 9.3,
       opponentPosition: { x: 1.1, z: 6 },
       aimDirectionDeg: 0,

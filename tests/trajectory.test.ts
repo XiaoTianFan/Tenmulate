@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { COURT } from '../src/domain/court';
 import { POST_BOUNCE_SIMULATION_SECONDS, aimDirectionToCourtPoint, netHeightAt, resolveTrajectory } from '../src/engine/trajectory/physics';
-import { PRACTICE_SHOT_PROFILES, legalServeTarget, practiceLandingTarget } from '../src/engine/trajectory/practiceProfiles';
+import { PRACTICE_SHOT_PROFILES, legalServeTarget, practiceLandingTarget, spinRateForPracticeShot } from '../src/engine/trajectory/practiceProfiles';
 
 describe('fixed-step trajectory solver', () => {
   it('clears the net and lands near the authored target', () => {
     const trajectory = resolveTrajectory({
       source: { x: 0, y: 1.15, z: COURT.halfLength - 0.65 },
       target: { x: -2.35, z: -8.9 },
-      paceKmh: 78,
+      launchSpeedKmh: 78,
       spin: 'topspin',
       surface: 'hard',
     });
@@ -25,7 +25,7 @@ describe('fixed-step trajectory solver', () => {
     const base = {
       source: { x: 0, y: 1.15, z: COURT.halfLength - 0.65 },
       target: { x: 0.8, z: -8.3 },
-      paceKmh: 72,
+      launchSpeedKmh: 72,
       spin: 'flat' as const,
     };
     const hard = resolveTrajectory({ ...base, surface: 'hard' });
@@ -41,7 +41,7 @@ describe('fixed-step trajectory solver', () => {
     const intent = {
       source: { x: 0, y: 1.15, z: COURT.halfLength - 0.65 },
       target: { x: 0.8, z: -8.3 },
-      paceKmh: 78,
+      launchSpeedKmh: 78,
       spin: 'topspin' as const,
     };
     const reboundSample = (surface: 'clay' | 'grass') => {
@@ -61,7 +61,7 @@ describe('fixed-step trajectory solver', () => {
     const trajectory = resolveTrajectory({
       source: { x: 0, y: 1.15, z: COURT.halfLength - 0.65 },
       target: { x: 0.8, z: -8.4 },
-      paceKmh: 82,
+      launchSpeedKmh: 82,
       spin: 'topspin',
       surface: 'hard',
     });
@@ -73,7 +73,7 @@ describe('fixed-step trajectory solver', () => {
   it('supports authored net clearance without changing the landing target contract', () => {
     const target = { x: -1.2, z: -8.4 };
     const trajectory = resolveTrajectory({
-      source: { x: 0, y: 1.15, z: COURT.halfLength - 0.65 }, target, paceKmh: 76, spin: 'topspin', surface: 'hard', netClearanceM: 1.1,
+      source: { x: 0, y: 1.15, z: COURT.halfLength - 0.65 }, target, launchSpeedKmh: 76, spin: 'topspin', surface: 'hard', minimumNetClearanceM: 1.1,
     });
     const net = trajectory.events.find((event) => event.type === 'net-crossing')!;
     const bounce = trajectory.events.find((event) => event.type === 'bounce')!;
@@ -83,7 +83,7 @@ describe('fixed-step trajectory solver', () => {
   });
 
   it('models sidespin as a distinct curved launch solution', () => {
-    const base = { source: { x: 0, y: 1.15, z: COURT.halfLength - 0.65 }, target: { x: 1.4, z: -8.1 }, paceKmh: 74, surface: 'hard' as const };
+    const base = { source: { x: 0, y: 1.15, z: COURT.halfLength - 0.65 }, target: { x: 1.4, z: -8.1 }, launchSpeedKmh: 74, surface: 'hard' as const };
     const flat = resolveTrajectory({ ...base, spin: 'flat' });
     const sidespin = resolveTrajectory({ ...base, spin: 'sidespin' });
     expect(sidespin.launchVelocity.x).not.toBeCloseTo(flat.launchVelocity.x, 3);
@@ -94,7 +94,7 @@ describe('fixed-step trajectory solver', () => {
     const intent = {
       source: { x: 0, y: 1.15, z: COURT.halfLength - 0.65 },
       target: { x: 0, z: -8.5 },
-      paceKmh: 78,
+      launchSpeedKmh: 78,
       spin: 'topspin' as const,
       surface: 'hard' as const,
     };
@@ -107,7 +107,7 @@ describe('fixed-step trajectory solver', () => {
 
   it('replays the same wind configuration deterministically', () => {
     const intent = {
-      source: { x: 0, y: 1.15, z: COURT.halfLength - 0.65 }, target: { x: -1, z: -8.2 }, paceKmh: 80,
+      source: { x: 0, y: 1.15, z: COURT.halfLength - 0.65 }, target: { x: -1, z: -8.2 }, launchSpeedKmh: 80,
       spin: 'slice' as const, surface: 'clay' as const, windVelocity: { x: -4, y: 0, z: 3 },
     };
     expect(resolveTrajectory(intent).events).toEqual(resolveTrajectory(intent).events);
@@ -122,9 +122,9 @@ describe('fixed-step trajectory solver', () => {
       spin: 'topspin' as const,
       surface: 'hard' as const,
     };
-    const slower = resolveTrajectory({ ...base, paceKmh: 62, netClearanceM: 0.24 });
-    const faster = resolveTrajectory({ ...base, paceKmh: 96, netClearanceM: 0.24 });
-    const higher = resolveTrajectory({ ...base, paceKmh: 96, netClearanceM: 0.9 });
+    const slower = resolveTrajectory({ ...base, launchSpeedKmh: 62, minimumNetClearanceM: 0.24 });
+    const faster = resolveTrajectory({ ...base, launchSpeedKmh: 96, minimumNetClearanceM: 0.24 });
+    const higher = resolveTrajectory({ ...base, launchSpeedKmh: 96, minimumNetClearanceM: 0.9 });
     const slowerBounce = slower.events.find((event) => event.type === 'bounce')!;
     const fasterBounce = faster.events.find((event) => event.type === 'bounce')!;
     const higherBounce = higher.events.find((event) => event.type === 'bounce')!;
@@ -143,8 +143,8 @@ describe('fixed-step trajectory solver', () => {
     const base = {
       source: { x: 0, y: 1.15, z: COURT.halfLength - 0.65 },
       target: { x: 0, z: -8 },
-      paceKmh: 78,
-      netClearanceM: 0.35,
+      launchSpeedKmh: 78,
+      minimumNetClearanceM: 0.35,
       spin: 'flat' as const,
       surface: 'hard' as const,
     };
@@ -161,8 +161,8 @@ describe('fixed-step trajectory solver', () => {
       source,
       target: { x: 0, z: -8 },
       aimDirectionDeg: 8,
-      paceKmh: profile.defaultPaceKmh,
-      netClearanceM: profile.defaultNetClearanceM,
+      launchSpeedKmh: profile.defaultLaunchSpeedKmh,
+      minimumNetClearanceM: profile.minimumNetClearanceM,
       spin,
       shotType: 'groundstroke',
       surface: 'hard',
@@ -176,6 +176,38 @@ describe('fixed-step trajectory solver', () => {
     expect(topspin.events.find((event) => event.type === 'bounce')?.position.z).not.toBeCloseTo(slice.events.find((event) => event.type === 'bounce')?.position.z ?? 0, 1);
   });
 
+  it('uses an explicit continuous spin rate while solving the selected landing depth', () => {
+    const profile = PRACTICE_SHOT_PROFILES.groundstroke;
+    const source = { ...profile.opponentPosition, y: profile.contactHeight };
+    const base = {
+      source,
+      target: practiceLandingTarget(source, 0, 9.2),
+      aimDirectionDeg: 0,
+      launchSpeedKmh: 72,
+      minimumNetClearanceM: profile.minimumNetClearanceM,
+      spin: 'topspin' as const,
+      shotType: 'groundstroke' as const,
+      surface: 'hard' as const,
+    };
+    const lowSpin = resolveTrajectory({ ...base, spinRateRpm: 600 });
+    const highSpin = resolveTrajectory({ ...base, spinRateRpm: 3200 });
+    const lowBounce = lowSpin.events.find((event) => event.type === 'bounce')!;
+    const highBounce = highSpin.events.find((event) => event.type === 'bounce')!;
+
+    expect(lowSpin.resolved.spinRateRpm).toBeCloseTo(600, 6);
+    expect(highSpin.resolved.spinRateRpm).toBeCloseTo(3200, 6);
+    expect(highSpin.resolved.spinParameter).toBeGreaterThan(lowSpin.resolved.spinParameter);
+    expect(highSpin.resolved.launchAngleDeg).not.toBeCloseTo(lowSpin.resolved.launchAngleDeg, 1);
+    expect(lowBounce.position.z).toBeCloseTo(base.target.z, 1);
+    expect(highBounce.position.z).toBeCloseTo(base.target.z, 1);
+  });
+
+  it('clamps saved spin rates to each shot and spin profile', () => {
+    expect(spinRateForPracticeShot('groundstroke', 'topspin', 99999)).toBe(4000);
+    expect(spinRateForPracticeShot('serve', 'kick', 100)).toBe(1200);
+    expect(spinRateForPracticeShot('volley', 'flat', 1200)).toBe(0);
+  });
+
   it('uses landing depth independently from recreational groundstroke pace and minimum net clearance', () => {
     const profile = PRACTICE_SHOT_PROFILES.groundstroke;
     const source = { ...profile.opponentPosition, y: profile.contactHeight };
@@ -184,8 +216,8 @@ describe('fixed-step trajectory solver', () => {
       source,
       target,
       aimDirectionDeg: 0,
-      paceKmh: 68,
-      netClearanceM: 0.36,
+      launchSpeedKmh: 68,
+      minimumNetClearanceM: 0.36,
       spin: 'flat',
       shotType: 'groundstroke',
       surface: 'hard',
@@ -207,8 +239,8 @@ describe('fixed-step trajectory solver', () => {
       source,
       target,
       aimDirectionDeg: -5,
-      paceKmh: profile.defaultPaceKmh,
-      netClearanceM: profile.defaultNetClearanceM,
+      launchSpeedKmh: profile.defaultLaunchSpeedKmh,
+      minimumNetClearanceM: profile.minimumNetClearanceM,
       spin: profile.defaultSpin,
       shotType: 'lob',
       surface: 'hard',
@@ -234,8 +266,8 @@ describe('fixed-step trajectory solver', () => {
       source: { x: 0, y: 1.15, z: COURT.halfLength - 0.65 },
       target: { x: 0, z: -8 },
       aimDirectionDeg: 0,
-      paceKmh: 78,
-      netClearanceM: 0.35,
+      launchSpeedKmh: 78,
+      minimumNetClearanceM: 0.35,
       spin: 'topspin',
       surface: 'hard',
     });
@@ -253,13 +285,13 @@ describe('fixed-step trajectory solver', () => {
   it.each(['flat', 'slice', 'kick'] as const)('keeps a %s serve inside the diagonal service box', (spin) => {
     const profile = PRACTICE_SHOT_PROFILES.serve;
     const source = { ...profile.opponentPosition, y: profile.contactHeight };
-    const target = legalServeTarget(source, spin === 'slice' ? -18 : 0, profile.defaultPaceKmh, profile.defaultNetClearanceM, spin);
+    const target = legalServeTarget(source, spin === 'slice' ? -18 : 0, profile.defaultLandingDepthM);
     const trajectory = resolveTrajectory({
       source,
       target,
       aimDirectionDeg: spin === 'slice' ? -18 : 0,
-      paceKmh: profile.defaultPaceKmh,
-      netClearanceM: profile.defaultNetClearanceM,
+      launchSpeedKmh: profile.defaultLaunchSpeedKmh,
+      minimumNetClearanceM: profile.minimumNetClearanceM,
       spin,
       shotType: 'serve',
       opponentHand: 'right',
@@ -278,10 +310,10 @@ describe('fixed-step trajectory solver', () => {
     const source = { ...profile.opponentPosition, y: profile.contactHeight };
     const trajectoryFor = (spin: 'flat' | 'slice' | 'kick') => resolveTrajectory({
       source,
-      target: legalServeTarget(source, 0, profile.defaultPaceKmh, profile.defaultNetClearanceM, spin),
+      target: legalServeTarget(source, 0, profile.defaultLandingDepthM),
       aimDirectionDeg: 0,
-      paceKmh: profile.defaultPaceKmh,
-      netClearanceM: profile.defaultNetClearanceM,
+      launchSpeedKmh: profile.defaultLaunchSpeedKmh,
+      minimumNetClearanceM: profile.minimumNetClearanceM,
       spin,
       shotType: 'serve',
       opponentHand: 'right',
@@ -298,7 +330,7 @@ describe('fixed-step trajectory solver', () => {
   it('models a volley as spin-free even if stale settings contain a spin value', () => {
     const base = {
       source: { x: 0, y: 1.32, z: 3.7 }, target: { x: 0, z: -4 }, aimDirectionDeg: 0,
-      paceKmh: 62, netClearanceM: 0.15, shotType: 'volley' as const, surface: 'hard' as const,
+      launchSpeedKmh: 62, minimumNetClearanceM: 0.15, shotType: 'volley' as const, surface: 'hard' as const,
     };
     expect(resolveTrajectory({ ...base, spin: 'flat' }).samples).toEqual(resolveTrajectory({ ...base, spin: 'kick' }).samples);
   });
@@ -306,7 +338,7 @@ describe('fixed-step trajectory solver', () => {
   it('applies the practice bounce-height factor only to the post-impact arrival', () => {
     const base = {
       source: { x: 0, y: 1.15, z: COURT.halfLength - 0.65 }, target: { x: 0, z: -8 }, aimDirectionDeg: 0,
-      paceKmh: 78, netClearanceM: 0.35, spin: 'topspin' as const, shotType: 'groundstroke' as const, surface: 'hard' as const,
+      launchSpeedKmh: 78, minimumNetClearanceM: 0.35, spin: 'topspin' as const, shotType: 'groundstroke' as const, surface: 'hard' as const,
     };
     const low = resolveTrajectory({ ...base, bounceFactor: 0.7 });
     const natural = resolveTrajectory({ ...base, bounceFactor: 1 });

@@ -36,7 +36,7 @@ describe('versioned drill documents', () => {
       interval: 3,
       variationPercent: 0,
       timingVariationPercent: 0,
-      paceKmh: 78,
+      launchSpeedKmh: 78,
       surface: 'hard',
       seed: '1',
       spin: 'preset',
@@ -44,7 +44,6 @@ describe('versioned drill documents', () => {
       workBlockSize: 4,
       restSeconds: 20,
       serveRhythm: 'preset',
-      netClearanceM: 0.24,
     });
     expect(session.repetitions[0]!.shot).toMatchObject({
       paceKmh: 101,

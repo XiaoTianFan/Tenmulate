@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { trajectoryPlaybackState, trajectoryPlaybackTimes } from '../src/engine/rendering/TennisScene';
+import { closestPointOnScreenSegment, trajectoryPlaybackState, trajectoryPlaybackTimes } from '../src/engine/rendering/TennisScene';
 
 describe('setup trajectory playback timing', () => {
   it('uses the configured interval as the relaunch cycle', () => {
@@ -18,5 +18,16 @@ describe('setup trajectory playback timing', () => {
       expect.closeTo(3.2, 8),
     ]);
     expect(trajectoryPlaybackTimes(4.5, 4.4, true, 3)).toEqual([expect.closeTo(1.5, 8)]);
+  });
+
+  it('interpolates the nearest point along a projected trajectory segment', () => {
+    expect(closestPointOnScreenSegment({ x: 15, y: 7 }, { x: 10, y: 10 }, { x: 30, y: 10 })).toEqual({
+      alpha: 0.25,
+      distancePx: 3,
+    });
+    expect(closestPointOnScreenSegment({ x: 4, y: 10 }, { x: 10, y: 10 }, { x: 30, y: 10 })).toEqual({
+      alpha: 0,
+      distancePx: 6,
+    });
   });
 });

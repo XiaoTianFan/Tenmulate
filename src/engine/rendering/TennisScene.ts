@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { cameraRotationRadians } from '../../domain/camera';
 import { COURT, type SurfaceId } from '../../domain/court';
 import { DEFAULT_ENVIRONMENT, SCENE_DEFINITIONS, isOutdoorVenue, windVelocityFromEnvironment, type EnvironmentConfiguration, type VenueId } from '../../domain/environment';
-import type { ResolvedTrajectory } from '../trajectory/physics';
+import type { FlightSample, ResolvedTrajectory } from '../trajectory/physics';
 import { aimDirectionToCourtPoint, sampleTrajectoryAt } from '../trajectory/physics';
 import { createCourt } from './buildCourt';
 import { OpponentRig, OpponentRigDisposedError } from './OpponentRig';
@@ -35,6 +35,27 @@ export type CameraMotion = Readonly<{
   duration: number;
   delay?: number;
 }>;
+
+export type ClosestScreenPoint = Readonly<{
+  alpha: number;
+  distancePx: number;
+}>;
+
+export const closestPointOnScreenSegment = (
+  pointer: Readonly<{ x: number; y: number }>,
+  start: Readonly<{ x: number; y: number }>,
+  end: Readonly<{ x: number; y: number }>,
+): ClosestScreenPoint => {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const lengthSquared = dx * dx + dy * dy;
+  const alpha = lengthSquared <= Number.EPSILON
+    ? 0
+    : THREE.MathUtils.clamp(((pointer.x - start.x) * dx + (pointer.y - start.y) * dy) / lengthSquared, 0, 1);
+  const nearestX = start.x + dx * alpha;
+  const nearestY = start.y + dy * alpha;
+  return { alpha, distancePx: Math.hypot(pointer.x - nearestX, pointer.y - nearestY) };
+};
 
 export const trajectoryPlaybackState = (
   elapsed: number,
@@ -306,6 +327,49 @@ export class TennisScene {
     const point = this.aimRaycaster.ray.intersectPlane(this.courtPlane, this.courtIntersection);
     if (!point || Math.abs(point.x) > COURT.doublesWidth / 2 || Math.abs(point.z) > COURT.halfLength) return null;
     return aimDirectionToCourtPoint(this.trajectory.intent.source, point);
+  }
+
+  trajectorySampleFromClientPoint(clientX: number, clientY: number, thresholdPx = 11): FlightSample | null {
+    if (!this.trajectory || !this.trajectoryLine.visible) return null;
+    const bounds = this.canvas.getBoundingClientRect();
+    if (bounds.width <= 0 || bounds.height <= 0) return null;
+    const pointer = { x: clientX - bounds.left, y: clientY - bounds.top };
+    const projected = new THREE.Vector3();
+    const project = (sample: FlightSample) => {
+      projected.set(sample.position.x, sample.position.y, sample.position.z).project(this.camera);
+      return {
+        x: (projected.x * 0.5 + 0.5) * bounds.width,
+        y: (-projected.y * 0.5 + 0.5) * bounds.height,
+        depth: projected.z,
+      };
+    };
+    let closest: Readonly<{ left: FlightSample; right: FlightSample; alpha: number; distancePx: number }> | null = null;
+    for (let index = 1; index < this.trajectory.samples.length; index += 1) {
+      const left = this.trajectory.samples[index - 1];
+      const right = this.trajectory.samples[index];
+      if (!left || !right) continue;
+      const start = project(left);
+      const end = project(right);
+      if (start.depth < -1 || start.depth > 1 || end.depth < -1 || end.depth > 1) continue;
+      const candidate = closestPointOnScreenSegment(pointer, start, end);
+      if (!closest || candidate.distancePx < closest.distancePx) closest = { left, right, ...candidate };
+    }
+    if (!closest || closest.distancePx > thresholdPx) return null;
+    const mix = (left: number, right: number) => THREE.MathUtils.lerp(left, right, closest.alpha);
+    return {
+      time: mix(closest.left.time, closest.right.time),
+      position: {
+        x: mix(closest.left.position.x, closest.right.position.x),
+        y: mix(closest.left.position.y, closest.right.position.y),
+        z: mix(closest.left.position.z, closest.right.position.z),
+      },
+      velocity: {
+        x: mix(closest.left.velocity.x, closest.right.velocity.x),
+        y: mix(closest.left.velocity.y, closest.right.velocity.y),
+        z: mix(closest.left.velocity.z, closest.right.velocity.z),
+      },
+      bounced: closest.alpha < 0.5 ? closest.left.bounced : closest.right.bounced,
+    };
   }
 
   private ensureBallCount(count: number): void {

@@ -8,7 +8,7 @@ import { SCENE_DEFINITIONS, VENUE_LABELS, isOutdoorVenue, windVelocityFromEnviro
 import type { CameraConfiguration, QualityMode, SceneMetrics } from '../engine/rendering/TennisScene';
 import { compileSession } from '../engine/session/compileSession';
 import { resolveTrajectory, type SpinKind } from '../engine/trajectory/physics';
-import { PRACTICE_SHOT_PROFILES, legalServeTarget, practiceLandingTarget, spinForPracticeShot, type PracticeShotType } from '../engine/trajectory/practiceProfiles';
+import { PRACTICE_SHOT_PROFILES, legalServeTarget, practiceLandingTarget, spinForPracticeShot, spinRateForPracticeShot, spinRateProfileForPracticeShot, type PracticeShotType } from '../engine/trajectory/practiceProfiles';
 import { practiceAudio } from '../engine/audio/AudioCueEngine';
 import type { SessionLaunch } from '../app/types';
 import { DEFAULT_CAMERA_POSITION_PRESETS, DEFAULT_PERSPECTIVE_PRESETS, type CameraPositionPresetV1, type PerspectivePresetV1, type PracticePreferencesV1 } from '../storage/appStorage';
@@ -93,7 +93,7 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
   const [practicePreset, setPracticePreset] = useState<PracticePresetId>(initialPractice.id);
   const [sessionCategory, setSessionCategory] = useState<SessionCategory>(initialPractice.category);
   const [trajectoryEnabled, setTrajectoryEnabled] = useState(initialPreferences.trajectoryEnabled ?? false);
-  const [pace, setPace] = useState(initialPreferences.pace);
+  const [launchSpeedKmh, setLaunchSpeedKmh] = useState(initialPreferences.launchSpeedKmh);
   const [interval, setIntervalValue] = useState(initialPreferences.interval);
   const [repetitions, setRepetitions] = useState(initialPreferences.repetitions);
   const [variation, setVariation] = useState(initialPreferences.variation);
@@ -103,10 +103,10 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
   const [surface, setSurface] = useState<SurfaceId>(() => legacyInitialPreferences.surface ?? legacyInitialPreferences.physicsSurface ?? legacyInitialPreferences.visualSurface ?? 'hard');
   const [shotType, setShotType] = useState<PracticeShotType>(initialPreferences.shotType);
   const [spin, setSpin] = useState<SpinKind>(() => spinForPracticeShot(initialPreferences.shotType, initialPreferences.spin));
+  const [spinRateRpm, setSpinRateRpm] = useState(initialPreferences.spinRateRpm);
   const [bounceFactor, setBounceFactor] = useState(initialPreferences.bounceFactor);
   const [opponentHand, setOpponentHand] = useState<'left' | 'right'>(initialPreferences.opponentHand);
   const [serveRhythm, setServeRhythm] = useState<'preset' | 'normal' | 'compact'>(initialPreferences.serveRhythm);
-  const [netClearanceM, setNetClearanceM] = useState(initialPreferences.netClearanceM);
   const [landingDepthM, setLandingDepthM] = useState(initialPreferences.landingDepthM);
   const [aimDirectionDeg, setAimDirectionDeg] = useState(initialPreferences.aimDirectionDeg ?? 0);
   const [opponentPosition, setOpponentPosition] = useState<CourtPoint>(initialPreferences.opponentPosition ?? initialPractice.opponent);
@@ -156,33 +156,34 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
   const environment = useMemo<EnvironmentConfiguration>(() => ({ venue, lighting, lightDirection, lightIntensity, timeOfDay, weather, weatherIntensity, windDirection, windSpeedMps }), [lightDirection, lightIntensity, lighting, timeOfDay, venue, weather, weatherIntensity, windDirection, windSpeedMps]);
   const windVelocity = useMemo(() => windVelocityFromEnvironment(environment), [environment]);
   const shotProfile = PRACTICE_SHOT_PROFILES[shotType];
+  const spinRateProfile = spinRateProfileForPracticeShot(shotType, spin);
   const trajectory = useMemo(() => {
     const source = { x: opponentPosition.x, y: shotProfile.contactHeight, z: opponentPosition.z };
     const target = shotType === 'serve'
-      ? legalServeTarget(source, aimDirectionDeg, pace, netClearanceM, spin)
+      ? legalServeTarget(source, aimDirectionDeg, landingDepthM)
       : practiceLandingTarget(source, aimDirectionDeg, landingDepthM);
     return resolveTrajectory({
       source,
       target,
       aimDirectionDeg,
-      paceKmh: pace,
+      launchSpeedKmh,
       spin,
+      spinRateRpm,
       shotType,
       opponentHand,
       surface,
-      netClearanceM,
+      minimumNetClearanceM: shotProfile.minimumNetClearanceM,
       windVelocity,
       bounceFactor,
     });
-  }, [aimDirectionDeg, bounceFactor, landingDepthM, netClearanceM, opponentHand, opponentPosition, pace, shotProfile.contactHeight, shotType, spin, surface, windVelocity]);
+  }, [aimDirectionDeg, bounceFactor, landingDepthM, launchSpeedKmh, opponentHand, opponentPosition, shotProfile.contactHeight, shotProfile.minimumNetClearanceM, shotType, spin, spinRateRpm, surface, windVelocity]);
   const bounce = trajectory.events.find((event) => event.type === 'bounce');
-  const net = trajectory.events.find((event) => event.type === 'net-crossing');
   const camera = useMemo<CameraConfiguration>(() => ({ eyeHeight, behindBaseline, lateral, yaw, pitch, fov }), [behindBaseline, eyeHeight, fov, lateral, pitch, yaw]);
 
   useEffect(() => {
-    const timeout = window.setTimeout(() => onPreferencesChange({ sessionCategory, trajectoryEnabled, pace, interval, repetitions, variation, timingVariation, workBlockSize, restSeconds, surface, shotType, spin, bounceFactor, opponentHand, serveRhythm, netClearanceM, landingDepthM, aimDirectionDeg, opponentPosition, camera, environment, quality, screenWidthCm, screenHeightCm, viewDistanceCm }), 180);
+    const timeout = window.setTimeout(() => onPreferencesChange({ sessionCategory, trajectoryEnabled, launchSpeedKmh, interval, repetitions, variation, timingVariation, workBlockSize, restSeconds, surface, shotType, spin, spinRateRpm, bounceFactor, opponentHand, serveRhythm, landingDepthM, aimDirectionDeg, opponentPosition, camera, environment, quality, screenWidthCm, screenHeightCm, viewDistanceCm }), 180);
     return () => window.clearTimeout(timeout);
-  }, [aimDirectionDeg, bounceFactor, camera, environment, interval, landingDepthM, netClearanceM, onPreferencesChange, opponentHand, opponentPosition, pace, quality, repetitions, restSeconds, screenHeightCm, screenWidthCm, serveRhythm, sessionCategory, shotType, spin, surface, timingVariation, trajectoryEnabled, variation, viewDistanceCm, workBlockSize]);
+  }, [aimDirectionDeg, bounceFactor, camera, environment, interval, landingDepthM, launchSpeedKmh, onPreferencesChange, opponentHand, opponentPosition, quality, repetitions, restSeconds, screenHeightCm, screenWidthCm, serveRhythm, sessionCategory, shotType, spin, spinRateRpm, surface, timingVariation, trajectoryEnabled, variation, viewDistanceCm, workBlockSize]);
 
   useEffect(() => {
     let frame = 0;
@@ -264,12 +265,18 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
     const profile = PRACTICE_SHOT_PROFILES[nextShotType];
     setShotType(nextShotType);
     setSpin(profile.defaultSpin);
-    setPace(profile.defaultPaceKmh);
-    setNetClearanceM(profile.defaultNetClearanceM);
+    setSpinRateRpm(spinRateForPracticeShot(nextShotType, profile.defaultSpin, undefined));
+    setLaunchSpeedKmh(profile.defaultLaunchSpeedKmh);
     setLandingDepthM(profile.defaultLandingDepthM);
     setOpponentPosition(profile.opponentPosition);
     setAimDirectionDeg(0);
     setResetToken((value) => value + 1);
+  };
+
+  const changeSpin = (nextSpinValue: string) => {
+    const nextSpin = spinForPracticeShot(shotType, nextSpinValue);
+    setSpin(nextSpin);
+    setSpinRateRpm(spinRateForPracticeShot(shotType, nextSpin, undefined));
   };
 
   const applyPerspective = (preset: PerspectivePresetV1) => {
@@ -323,7 +330,7 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
   };
 
   const launch = () => onStart({
-    session: compileSession(drill, { repetitions, interval, variationPercent: variation, timingVariationPercent: timingVariation, paceKmh: pace, surface, seed, spin, practiceShotType: shotType, bounceFactor, opponentHand, workBlockSize, restSeconds, serveRhythm, netClearanceM, landingDepthM, aimDirectionDeg, opponentPosition, windVelocity }),
+    session: compileSession(drill, { repetitions, interval, variationPercent: variation, timingVariationPercent: timingVariation, launchSpeedKmh, surface, seed, spin, spinRateRpm, practiceShotType: shotType, bounceFactor, opponentHand, workBlockSize, restSeconds, serveRhythm, landingDepthM, aimDirectionDeg, opponentPosition, windVelocity }),
     trajectoryEnabled,
     camera,
     environment,
@@ -373,7 +380,7 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
         <section className="preview-column" aria-label="Live court preview">
           <div className="setup-court-view">
             <SceneViewport camera={camera} trajectory={trajectory} surface={surface} environment={environment} quality={quality} running resetToken={resetToken} showTrajectory={trajectoryEnabled} trajectoryInterval={interval} onAimChange={setAimDirectionDeg} onCameraFovChange={updateCameraFov} onCameraLookChange={updateCameraLook} onMetrics={onMetrics} />
-            <div className="court-metadata" aria-live="polite">{metrics ? `${metrics.renderer} · ${metrics.fps} fps · ${metrics.pixelRatio.toFixed(2)}× ${metrics.quality}` : 'Starting renderer'} · {net ? `Net ${net.position.y.toFixed(2)} m` : 'No net crossing'} · {bounce ? `Landing ${bounce.position.x.toFixed(2)}/${bounce.position.z.toFixed(2)} m` : 'No landing'} · {interval.toFixed(1)} s</div>
+            <div className="court-metadata" aria-live="polite">{metrics ? `${metrics.renderer} · ${metrics.fps} fps · ${metrics.pixelRatio.toFixed(2)}× ${metrics.quality}` : 'Starting renderer'} · Every {interval.toFixed(1)} s</div>
           </div>
           <div className="preset-toolbar">
             <div className="preset-group" aria-label="Camera position presets">
@@ -394,10 +401,10 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
           <SetupSection title="Ball & rhythm" subtitle="Flight, speed, timing" open>
             <label className="toggle-field"><span>Trajectory</span><button type="button" role="switch" aria-checked={trajectoryEnabled} className={trajectoryEnabled ? 'toggle active' : 'toggle'} onClick={() => setTrajectoryEnabled((value) => !value)}><span /></button><small>{trajectoryEnabled ? 'On' : 'Off'}</small></label>
             <label className="select-field"><span>Shot type</span><select aria-label="Shot type" value={shotType} onChange={(event) => changeShotType(event.target.value as PracticeShotType)}><option value="groundstroke">Groundstroke</option><option value="serve">Serve</option><option value="volley">Volley</option><option value="lob">Lob</option></select></label>
-            <label className="select-field"><span>Spin</span><select aria-label="Spin" value={spin} disabled={shotType === 'volley'} onChange={(event) => setSpin(spinForPracticeShot(shotType, event.target.value))}>{shotProfile.spins.map((option) => <option key={option} value={option}>{practiceSpinLabel(shotType, option)}</option>)}</select></label>
-            <RangeField label="Pace" value={pace} min={shotProfile.paceRangeKmh.min} max={shotProfile.paceRangeKmh.max} step={1} unit="km/h" onChange={setPace} />
-            <RangeField label="Net clearance" value={netClearanceM} min={shotProfile.netClearanceRangeM.min} max={shotProfile.netClearanceRangeM.max} step={0.02} unit="m" onChange={setNetClearanceM} />
-            {shotType !== 'serve' ? <><RangeField label="Landing depth" value={landingDepthM} min={shotProfile.landingDepthRangeM.min} max={shotProfile.landingDepthRangeM.max} step={0.1} unit="m" onChange={setLandingDepthM} /><p className="calculation">Target {landingDepthM.toFixed(1)} m from net · {bounce ? `resolved ${Math.max(0, -bounce.position.z).toFixed(1)} m` : 'no first bounce'}{bounce && (net?.time ?? Infinity) >= bounce.time ? ' · current pace cannot clear the net before bouncing' : bounce && Math.abs(-bounce.position.z - landingDepthM) > 0.35 ? ' · closest physically reachable depth at these settings' : ''}</p></> : null}
+            <RangeField label="Launch speed" value={launchSpeedKmh} min={shotProfile.launchSpeedRangeKmh.min} max={shotProfile.launchSpeedRangeKmh.max} step={1} unit="km/h" onChange={setLaunchSpeedKmh} />
+            <label className="select-field"><span>Spin type</span><select aria-label="Spin type" value={spin} disabled={shotType === 'volley'} onChange={(event) => changeSpin(event.target.value)}>{shotProfile.spins.map((option) => <option key={option} value={option}>{practiceSpinLabel(shotType, option)}</option>)}</select></label>
+            {shotType !== 'volley' ? <RangeField label="Spin rate" value={spinRateRpm} min={spinRateProfile.minRpm} max={spinRateProfile.maxRpm} step={1} unit="rpm" onChange={setSpinRateRpm} /> : null}
+            <RangeField label="Landing depth" value={landingDepthM} min={shotProfile.landingDepthRangeM.min} max={shotProfile.landingDepthRangeM.max} step={0.1} unit="m" onChange={setLandingDepthM} />
             <RangeField label="Interval" value={interval} min={1.5} max={8} step={0.1} unit="s" onChange={setIntervalValue} />
           </SetupSection>
           <SetupSection title="Ball arrival" subtitle="Surface response and perceived height"><RangeField label="Bounce height" value={bounceFactor} min={0.6} max={1.4} step={0.05} unit="×" onChange={setBounceFactor} /></SetupSection>

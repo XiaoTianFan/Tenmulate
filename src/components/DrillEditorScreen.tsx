@@ -93,7 +93,11 @@ export function DrillEditorScreen({ route, initialDrill, onRoute, onSave, onTest
     cameraMotion: selected?.cameraMotion ?? sourceShot.cameraMotion,
     cue: selected?.cue || sourceShot.cue,
   } : SHOTS[0]!;
-  const trajectory = useMemo(() => resolveTrajectory(previewShot), [previewShot]);
+  const trajectory = useMemo(() => resolveTrajectory({
+    ...previewShot,
+    launchSpeedKmh: previewShot.paceKmh,
+    minimumNetClearanceM: previewShot.netClearanceM,
+  }), [previewShot]);
   const validation = validateDrill(drill);
 
   const commit = (next: DrillDefinitionV1) => setHistory((current) => ({ past: [...current.past.slice(-49), current.present], present: next, future: [] }));

@@ -16,9 +16,8 @@ import {
 } from 'lucide-react';
 import type { SessionLaunch } from '../app/types';
 import { practiceAudio } from '../engine/audio/AudioCueEngine';
-import type { CameraMotion, SceneMetrics } from '../engine/rendering/TennisScene';
+import type { CameraMotion } from '../engine/rendering/TennisScene';
 import { useSessionPlayer } from '../hooks/useSessionPlayer';
-import { netHeightAt } from '../engine/trajectory/physics';
 import { Modal } from './Modal';
 import { SceneViewport } from './SceneViewport';
 
@@ -39,7 +38,6 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
   const [highContrastBall, setHighContrastBall] = useState(false);
   const [showBallTrail, setShowBallTrail] = useState(false);
   const [hudHidden, setHudHidden] = useState(false);
-  const [metrics, setMetrics] = useState<SceneMetrics | null>(null);
   const [resetToken, setResetToken] = useState(0);
   const audioRef = useRef(practiceAudio);
   const previousCueRef = useRef('');
@@ -48,10 +46,9 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
   const trajectory = repetition?.trajectory;
   const shot = repetition?.shot;
   const bounce = trajectory?.events.find((event) => event.type === 'bounce');
-  const net = trajectory?.events.find((event) => event.type === 'net-crossing');
   const receiver = trajectory?.events.find((event) => event.type === 'receiver-plane');
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const onMetrics = useCallback((next: SceneMetrics) => setMetrics(next), []);
+  const onMetrics = useCallback(() => undefined, []);
 
   useEffect(() => {
     return () => audioRef.current.setAmbience(0);
@@ -192,15 +189,13 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
           <label className="compact-range"><span>Ambience</span><input aria-label="Ambience volume" type="range" min="0" max="1" step="0.1" value={audioLevels.ambience} onChange={(event) => setAudioLevels((current) => ({ ...current, ambience: Number(event.target.value) }))} /><output>{Math.round(audioLevels.ambience * 100)}%</output></label>
           <label className="compact-check"><input type="checkbox" checked={highContrastBall} onChange={(event) => setHighContrastBall(event.target.checked)} /><span>High-contrast ball</span></label>
           <label className="compact-check"><input type="checkbox" checked={showBallTrail} onChange={(event) => setShowBallTrail(event.target.checked)} /><span>Short ball trail</span></label>
-          <h2 className="diagnostic-heading">Coach diagnostics</h2>
-          <dl><div><dt>Launch</dt><dd>{resolvedSpeed} km/h</dd></div><div><dt>Apex</dt><dd>{trajectory.apexHeight.toFixed(2)} m</dd></div><div><dt>Net clearance</dt><dd>{net ? `${(net.position.y - netHeightAt(net.position.x)).toFixed(2)} m` : '—'}</dd></div><div><dt>Bounce point</dt><dd>{bounce ? `${bounce.position.x.toFixed(2)}, ${bounce.position.z.toFixed(2)} m` : '—'}</dd></div><div><dt>Bounce speed</dt><dd>{bounce ? `${Math.round(bounce.speedKmh)} → ${Math.round(bounce.postSpeedKmh ?? 0)} km/h` : '—'}</dd></div><div><dt>Arrival</dt><dd>{receiver ? `${receiver.position.y.toFixed(2)} m · ${receiver.time.toFixed(2)} s · ${Math.round(receiver.speedKmh)} km/h` : '—'}</dd></div><div><dt>Scale</dt><dd>8.23 m court · 0.914 m net · 6.7 cm ball</dd></div><div><dt>Renderer</dt><dd>{metrics ? `${metrics.renderer} · ${metrics.fps} fps · ${metrics.pixelRatio.toFixed(2)}×` : 'Starting…'}</dd></div></dl>
         </aside>
       ) : null}
 
       {player.status === 'completed' ? (
         <Modal title="Set complete" actions={<><button className="secondary-button" type="button" onClick={onExit}>Back to setup</button><button className="secondary-button" type="button" onClick={onRandomize}>New variation</button><button className="primary-button inline" type="button" onClick={player.restart}>Replay same seed</button></>}>
           <p>{launch.session.drill.title}: {launch.session.repetitions.length} repetition{launch.session.repetitions.length === 1 ? '' : 's'} completed in {Math.round(launch.session.duration)} seconds.</p>
-          <dl className="session-summary"><div><dt>Trajectory</dt><dd>{launch.trajectoryEnabled ? 'on' : 'off'}</dd></div><div><dt>Shot type</dt><dd>{launch.session.settings.practiceShotType ?? 'Drill-authored'}</dd></div><div><dt>Venue</dt><dd>{launch.environment.venue}</dd></div><div><dt>Surface</dt><dd>{launch.surface}</dd></div><div><dt>Landing depth</dt><dd>{launch.session.settings.landingDepthM ? `${launch.session.settings.landingDepthM.toFixed(1)} m` : 'Drill-authored'}</dd></div><div><dt>Bounce height</dt><dd>{(launch.session.settings.bounceFactor ?? 1).toFixed(2)}×</dd></div><div><dt>Base pace</dt><dd>{launch.session.settings.paceKmh} km/h</dd></div><div><dt>Interval</dt><dd>{launch.session.settings.interval.toFixed(1)} s ± {launch.session.settings.timingVariationPercent}%</dd></div><div><dt>Seed</dt><dd>{launch.session.settings.seed}</dd></div></dl>
+          <dl className="session-summary"><div><dt>Trajectory</dt><dd>{launch.trajectoryEnabled ? 'on' : 'off'}</dd></div><div><dt>Shot type</dt><dd>{launch.session.settings.practiceShotType ?? 'Drill-authored'}</dd></div><div><dt>Venue</dt><dd>{launch.environment.venue}</dd></div><div><dt>Surface</dt><dd>{launch.surface}</dd></div><div><dt>Landing depth</dt><dd>{launch.session.settings.landingDepthM ? `${launch.session.settings.landingDepthM.toFixed(1)} m` : 'Drill-authored'}</dd></div><div><dt>Spin rate</dt><dd>{launch.session.settings.spinRateRpm !== undefined ? `${Math.round(launch.session.settings.spinRateRpm)} rpm` : 'Drill-authored'}</dd></div><div><dt>Bounce height</dt><dd>{(launch.session.settings.bounceFactor ?? 1).toFixed(2)}×</dd></div><div><dt>Launch speed</dt><dd>{launch.session.settings.launchSpeedKmh} km/h</dd></div><div><dt>Interval</dt><dd>{launch.session.settings.interval.toFixed(1)} s ± {launch.session.settings.timingVariationPercent}%</dd></div><div><dt>Seed</dt><dd>{launch.session.settings.seed}</dd></div></dl>
           <p>The same seed reproduces the same shot order and bounded landing variation.</p>
         </Modal>
       ) : null}

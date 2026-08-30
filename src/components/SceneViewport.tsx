@@ -9,7 +9,7 @@ import {
   type QualityMode,
   type SceneMetrics,
 } from '../engine/rendering/TennisScene';
-import type { ResolvedTrajectory } from '../engine/trajectory/physics';
+import { netHeightAt, type FlightSample, type ResolvedTrajectory } from '../engine/trajectory/physics';
 
 type SceneViewportProps = Readonly<{
   camera: CameraConfiguration;
@@ -40,6 +40,14 @@ type CameraPointerDrag = {
   look: CameraLook;
 };
 
+type TrajectoryTooltipState = Readonly<{
+  x: number;
+  y: number;
+  placeBelow: boolean;
+  sample: FlightSample;
+  trajectory: ResolvedTrajectory;
+}>;
+
 export function SceneViewport({
   camera,
   trajectory,
@@ -64,6 +72,7 @@ export function SceneViewport({
   const sceneRef = useRef<TennisScene | null>(null);
   const pointerDrag = useRef<CameraPointerDrag | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [trajectoryTooltip, setTrajectoryTooltip] = useState<TrajectoryTooltipState | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -104,14 +113,33 @@ export function SceneViewport({
 
   const updateFromPointer = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     const drag = pointerDrag.current;
-    if (!drag || drag.pointerId !== event.pointerId) return;
-    if (drag.mode === 'aim') {
-      updateAimFromPointer(event);
+    if (drag && drag.pointerId === event.pointerId) {
+      setTrajectoryTooltip(null);
+      if (drag.mode === 'aim') {
+        updateAimFromPointer(event);
+        return;
+      }
+      const look = cameraLookAfterDrag(drag.look, event.clientX - drag.lastX, event.clientY - drag.lastY);
+      pointerDrag.current = { ...drag, lastX: event.clientX, lastY: event.clientY, look };
+      onCameraLookChange?.(look);
       return;
     }
-    const look = cameraLookAfterDrag(drag.look, event.clientX - drag.lastX, event.clientY - drag.lastY);
-    pointerDrag.current = { ...drag, lastX: event.clientX, lastY: event.clientY, look };
-    onCameraLookChange?.(look);
+    if (!showTrajectory) return;
+    const sample = sceneRef.current?.trajectorySampleFromClientPoint(event.clientX, event.clientY) ?? null;
+    if (!sample) {
+      setTrajectoryTooltip(null);
+      return;
+    }
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const localX = event.clientX - bounds.left;
+    const localY = event.clientY - bounds.top;
+    setTrajectoryTooltip({
+      x: Math.min(Math.max(localX, 136), Math.max(136, bounds.width - 136)),
+      y: localY,
+      placeBelow: localY < 150,
+      sample,
+      trajectory,
+    });
   };
 
   const finishPointer = (event: ReactPointerEvent<HTMLCanvasElement>) => {
@@ -124,7 +152,17 @@ export function SceneViewport({
     onCameraLookChange ? 'Left-drag to look' : null,
     onCameraFovChange ? 'Wheel to zoom' : null,
     onAimChange ? 'Right-drag to aim' : null,
+    showTrajectory ? 'Hover trajectory for data' : null,
   ].filter(Boolean).join(' · ') || null;
+
+  const bounce = trajectory.events.find((event) => event.type === 'bounce');
+  const net = trajectory.events.find((event) => event.type === 'net-crossing');
+  const receiver = trajectory.events.find((event) => event.type === 'receiver-plane');
+  const spinLabel = `${trajectory.intent.spin[0]?.toUpperCase()}${trajectory.intent.spin.slice(1)}`;
+  const visibleTooltip = showTrajectory && trajectoryTooltip?.trajectory === trajectory ? trajectoryTooltip : null;
+  const tooltipSpeedKmh = visibleTooltip
+    ? Math.hypot(visibleTooltip.sample.velocity.x, visibleTooltip.sample.velocity.y, visibleTooltip.sample.velocity.z) * 3.6
+    : 0;
 
   return (
     <div className="scene-viewport">
@@ -158,15 +196,40 @@ export function SceneViewport({
             lastY: event.clientY,
             look: { yaw: camera.yaw, pitch: camera.pitch },
           };
+          setTrajectoryTooltip(null);
           event.currentTarget.setPointerCapture(event.pointerId);
           if (mode === 'aim') updateAimFromPointer(event);
         } : undefined}
-        onPointerMove={onAimChange || onCameraLookChange ? updateFromPointer : undefined}
+        onPointerMove={showTrajectory || onAimChange || onCameraLookChange ? updateFromPointer : undefined}
         onPointerUp={onAimChange || onCameraLookChange ? finishPointer : undefined}
         onPointerCancel={onAimChange || onCameraLookChange ? finishPointer : undefined}
+        onPointerLeave={() => { if (!pointerDrag.current) setTrajectoryTooltip(null); }}
       />
       {error ? <div className="renderer-error" role="alert"><strong>3D renderer unavailable</strong><span>{error}</span><small>WebGL 2 and hardware acceleration are required. Setup and local drills remain available.</small></div> : null}
       {interactionHint ? <div className="scene-aim-hint">{interactionHint}</div> : null}
+      {visibleTooltip ? (
+        <aside
+          className={`trajectory-tooltip${visibleTooltip.placeBelow ? ' below' : ''}`}
+          role="tooltip"
+          style={{ left: visibleTooltip.x, top: visibleTooltip.y }}
+        >
+          <strong>Trajectory · {spinLabel}</strong>
+          <span className="trajectory-tooltip-current">
+            {visibleTooltip.sample.time.toFixed(2)} s · {visibleTooltip.sample.position.y.toFixed(2)} m high · {Math.round(tooltipSpeedKmh)} km/h
+          </span>
+          <dl>
+            <div><dt>Launch</dt><dd>{trajectory.resolved.launchSpeedKmh.toFixed(1)} km/h</dd></div>
+            <div><dt>Spin</dt><dd>{Math.round(trajectory.resolved.spinRateRpm)} rpm</dd></div>
+            <div><dt>Angle</dt><dd>{trajectory.resolved.launchAngleDeg.toFixed(1)}°</dd></div>
+            <div><dt>Apex</dt><dd>{trajectory.apexHeight.toFixed(2)} m</dd></div>
+            <div><dt>Net</dt><dd>{net ? `${(net.position.y - netHeightAt(net.position.x)).toFixed(2)} m clear` : 'No crossing'}</dd></div>
+            <div><dt>Landing</dt><dd>{bounce ? `${bounce.position.x.toFixed(2)}, ${bounce.position.z.toFixed(2)} m` : 'Unresolved'}</dd></div>
+            <div><dt>Target error</dt><dd>{bounce ? `${Math.hypot(bounce.position.x - trajectory.intent.target.x, bounce.position.z - trajectory.intent.target.z).toFixed(2)} m` : 'Unresolved'}</dd></div>
+            <div><dt>Bounce</dt><dd>{bounce?.postSpeedKmh !== undefined ? `${Math.round(bounce.speedKmh)} → ${Math.round(bounce.postSpeedKmh)} km/h` : 'Unresolved'}</dd></div>
+            <div><dt>Arrival</dt><dd>{receiver ? `${receiver.position.y.toFixed(2)} m · ${Math.round(receiver.speedKmh)} km/h` : 'Before baseline'}</dd></div>
+          </dl>
+        </aside>
+      ) : null}
     </div>
   );
 }
