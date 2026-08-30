@@ -32,6 +32,15 @@ describe('local application data', () => {
     expect(loadAppData().preferences).toEqual(DEFAULT_PREFERENCES);
   });
 
+  it('migrates the removed spin preset into a legal shot-aware selection', () => {
+    localStorage.setItem('tenmulate.appData.v1', JSON.stringify({
+      schemaVersion: 1,
+      customDrills: [],
+      preferences: { sessionCategory: 'Return Practice', spin: 'preset', bounceFactor: 9 },
+    }));
+    expect(loadAppData().preferences).toMatchObject({ shotType: 'serve', spin: 'flat', bounceFactor: 1.4 });
+  });
+
   it('migrates coupled saved views into independent position and perspective presets', () => {
     localStorage.setItem('tenmulate.appData.v1', JSON.stringify({
       schemaVersion: 1,

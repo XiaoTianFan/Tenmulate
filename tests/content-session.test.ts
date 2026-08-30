@@ -94,4 +94,26 @@ describe('session compiler', () => {
     expect(varied.repetitions[1]!.startTime).toBeLessThanOrEqual(3 + settings.interval * 1.2);
     expect(varied.restPeriods[0]!.endTime - varied.restPeriods[0]!.startTime).toBeCloseTo(20, 8);
   });
+
+  it('compiles a selected quick-practice serve from serve contact height into a legal service box', () => {
+    const session = compileSession(drill, {
+      ...settings,
+      repetitions: 1,
+      practiceShotType: 'serve',
+      spin: 'kick',
+      paceKmh: 135,
+      netClearanceM: 0.18,
+      bounceFactor: 1.2,
+      opponentPosition: { x: 1.25, z: COURT.halfLength - 0.18 },
+      aimDirectionDeg: 0,
+    });
+    const repetition = session.repetitions[0]!;
+    const bounce = repetition.trajectory.events.find((event) => event.type === 'bounce')!;
+    expect(repetition.shot.family).toBe('serve');
+    expect(repetition.shot.source.y).toBe(2.75);
+    expect(repetition.shot.spin).toBe('kick');
+    expect(bounce.position.z).toBeGreaterThanOrEqual(-COURT.serviceLineFromNet);
+    expect(bounce.position.z).toBeLessThan(0);
+    expect(bounce.position.x).toBeLessThan(0);
+  });
 });

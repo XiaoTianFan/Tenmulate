@@ -1,10 +1,18 @@
 import { COURT, type SurfaceId } from '../../domain/court';
 import { add, cross, magnitude, scale, subtract, vec3, type Vec3 } from '../../domain/vector';
+import type { PracticeShotType } from './practiceProfiles';
 
 const GRAVITY = vec3(0, -9.81, 0);
 const FIXED_STEP = 1 / 240;
-const DRAG_FACTOR = 0.0018;
-const MAGNUS_FACTOR = 0.00028;
+const BALL_MASS_KG = 0.0577;
+const BALL_AREA_M2 = Math.PI * COURT.ballRadius ** 2;
+const AIR_DENSITY_KG_M3 = 1.225;
+const DRAG_COEFFICIENT = 0.55;
+const LIFT_COEFFICIENT_SLOPE = 0.6;
+const MAX_LIFT_COEFFICIENT = 0.35;
+const BALL_INERTIA_FACTOR = 0.55;
+const CONTACT_VELOCITY_COUPLING = BALL_INERTIA_FACTOR / (1 + BALL_INERTIA_FACTOR);
+const AERODYNAMIC_ACCELERATION_FACTOR = 0.5 * AIR_DENSITY_KG_M3 * BALL_AREA_M2 / BALL_MASS_KG;
 const MAX_SIMULATION_SECONDS = 10;
 export const POST_BOUNCE_SIMULATION_SECONDS = 3;
 
@@ -12,15 +20,15 @@ export type SpinKind = 'flat' | 'topspin' | 'slice' | 'kick' | 'sidespin';
 
 export type SurfaceProfile = Readonly<{
   id: SurfaceId;
-  restitution: number;
-  horizontalRetention: number;
-  spinCoupling: number;
+  normalRestitution: number;
+  friction: number;
+  rollingResistance: number;
 }>;
 
 export const SURFACE_PROFILES: Record<SurfaceId, SurfaceProfile> = {
-  hard: { id: 'hard', restitution: 0.73, horizontalRetention: 0.82, spinCoupling: 0.08 },
-  clay: { id: 'clay', restitution: 0.77, horizontalRetention: 0.72, spinCoupling: 0.11 },
-  grass: { id: 'grass', restitution: 0.62, horizontalRetention: 0.9, spinCoupling: 0.05 },
+  hard: { id: 'hard', normalRestitution: 0.67, friction: 0.56, rollingResistance: 1.8 },
+  clay: { id: 'clay', normalRestitution: 0.71, friction: 0.68, rollingResistance: 2.2 },
+  grass: { id: 'grass', normalRestitution: 0.60, friction: 0.42, rollingResistance: 1.45 },
 };
 
 export type ShotIntent = Readonly<{
@@ -29,10 +37,14 @@ export type ShotIntent = Readonly<{
   aimDirectionDeg?: number;
   paceKmh: number;
   spin: SpinKind;
+  shotType?: PracticeShotType;
+  family?: string;
+  opponentHand?: 'left' | 'right';
   surface: SurfaceId;
   receiverZ?: number;
   netClearanceM?: number;
   windVelocity?: Vec3;
+  bounceFactor?: number;
 }>;
 
 export type FlightSample = Readonly<{
@@ -58,16 +70,39 @@ export type ResolvedTrajectory = Readonly<{
   apexHeight: number;
 }>;
 
-const spinVector = (kind: SpinKind): Vec3 => {
-  switch (kind) {
+const trajectoryShotType = (intent: Pick<ShotIntent, 'shotType' | 'family'>): PracticeShotType => {
+  if (intent.shotType) return intent.shotType;
+  if (intent.family === 'serve') return 'serve';
+  if (intent.family === 'volley') return 'volley';
+  return 'groundstroke';
+};
+
+const spinVector = (intent: Pick<ShotIntent, 'spin' | 'shotType' | 'family' | 'opponentHand'>): Vec3 => {
+  const handDirection = intent.opponentHand === 'left' ? -1 : 1;
+  const shotType = trajectoryShotType(intent);
+  if (shotType === 'volley') return vec3();
+  if (shotType === 'serve') {
+    switch (intent.spin) {
+      case 'flat':
+        return vec3(-45, handDirection * 115, 0);
+      case 'slice':
+        return vec3(-55, handDirection * 225, 0);
+      case 'kick':
+      case 'topspin':
+        return vec3(-285, handDirection * 180, 0);
+      default:
+        return vec3(0, handDirection * 190, 0);
+    }
+  }
+  switch (intent.spin) {
     case 'topspin':
-      return vec3(-105, 0, 0);
+      return vec3(-190, 0, 0);
     case 'slice':
-      return vec3(45, 0, 28);
+      return vec3(130, handDirection * 18, 0);
     case 'kick':
-      return vec3(-125, 0, 42);
+      return vec3(-235, handDirection * 45, 0);
     case 'sidespin':
-      return vec3(0, 0, 95);
+      return vec3(0, handDirection * 150, 0);
     default:
       return vec3(0, 0, 0);
   }
@@ -76,8 +111,16 @@ const spinVector = (kind: SpinKind): Vec3 => {
 const acceleration = (velocity: Vec3, spin: Vec3, windVelocity = vec3()): Vec3 => {
   const airVelocity = subtract(velocity, windVelocity);
   const speed = magnitude(airVelocity);
-  const drag = scale(airVelocity, -DRAG_FACTOR * speed);
-  const magnus = scale(cross(spin, airVelocity), MAGNUS_FACTOR);
+  if (speed < 0.001) return GRAVITY;
+  const drag = scale(airVelocity, -AERODYNAMIC_ACCELERATION_FACTOR * DRAG_COEFFICIENT * speed);
+  const spinMagnitude = magnitude(spin);
+  const spinParameter = COURT.ballRadius * spinMagnitude / speed;
+  const liftCoefficient = Math.min(MAX_LIFT_COEFFICIENT, LIFT_COEFFICIENT_SLOPE * spinParameter);
+  const spinCrossVelocity = cross(spin, airVelocity);
+  const crossMagnitude = magnitude(spinCrossVelocity);
+  const magnus = crossMagnitude > 0
+    ? scale(spinCrossVelocity, AERODYNAMIC_ACCELERATION_FACTOR * liftCoefficient * speed ** 2 / crossMagnitude)
+    : vec3();
   return add(GRAVITY, add(drag, magnus));
 };
 
@@ -106,7 +149,7 @@ const lowArcVelocity = (intent: ShotIntent): Vec3 => {
 const firstBounce = (intent: ShotIntent, initialVelocity: Vec3): FlightSample => {
   let position = intent.source;
   let velocity = initialVelocity;
-  const spin = spinVector(intent.spin);
+  const spin = spinVector(intent);
 
   for (let index = 1; index < 5 / FIXED_STEP; index += 1) {
     const nextVelocity = add(velocity, scale(acceleration(velocity, spin), FIXED_STEP));
@@ -129,7 +172,7 @@ const firstBounce = (intent: ShotIntent, initialVelocity: Vec3): FlightSample =>
 const firstNetCrossing = (intent: ShotIntent, initialVelocity: Vec3): FlightSample | null => {
   let position = intent.source;
   let velocity = initialVelocity;
-  const spin = spinVector(intent.spin);
+  const spin = spinVector(intent);
 
   for (let index = 1; index < 3 / FIXED_STEP; index += 1) {
     const nextVelocity = add(velocity, scale(acceleration(velocity, spin), FIXED_STEP));
@@ -182,6 +225,74 @@ const directedVelocity = (intent: ShotIntent): Vec3 => {
   );
 };
 
+const velocityForDirectionAndAngle = (speed: number, direction: number, angle: number): Vec3 => {
+  const horizontalSpeed = speed * Math.cos(angle);
+  return vec3(
+    Math.sin(direction) * horizontalSpeed,
+    speed * Math.sin(angle),
+    -Math.cos(direction) * horizontalSpeed,
+  );
+};
+
+const minimumNetClearingAngle = (intent: ShotIntent, speed: number, direction: number): number => {
+  const clearance = Math.min(1.8, Math.max(0.04, intent.netClearanceM ?? 0.12));
+  let lowerAngle = -14 * Math.PI / 180;
+  let upperAngle = 42 * Math.PI / 180;
+  for (let iteration = 0; iteration < 26; iteration += 1) {
+    const angle = (lowerAngle + upperAngle) / 2;
+    const crossing = firstNetCrossing({ ...intent, windVelocity: undefined }, velocityForDirectionAndAngle(speed, direction, angle));
+    const requiredHeight = crossing
+      ? netHeightAt(crossing.position.x) + clearance
+      : COURT.netCenterHeight + clearance;
+    if (crossing && crossing.position.y >= requiredHeight) upperAngle = angle;
+    else lowerAngle = angle;
+  }
+  return upperAngle;
+};
+
+const serveVelocity = (intent: ShotIntent): Vec3 => {
+  const speed = Math.max(8, intent.paceKmh / 3.6);
+  let direction = Math.atan2(intent.target.x - intent.source.x, intent.source.z - intent.target.z);
+  let velocity = velocityForDirectionAndAngle(speed, direction, 0);
+
+  for (let headingIteration = 0; headingIteration < 8; headingIteration += 1) {
+    const minimumAngle = minimumNetClearingAngle(intent, speed, direction);
+    const maximumAngle = 38 * Math.PI / 180;
+    const minimumVelocity = velocityForDirectionAndAngle(speed, direction, minimumAngle);
+    const maximumVelocity = velocityForDirectionAndAngle(speed, direction, maximumAngle);
+    const minimumBounce = firstBounce(intent, minimumVelocity);
+    const maximumBounce = firstBounce(intent, maximumVelocity);
+    let launchAngle = Math.abs(minimumBounce.position.z - intent.target.z) <= Math.abs(maximumBounce.position.z - intent.target.z)
+      ? minimumAngle
+      : maximumAngle;
+
+    if (
+      intent.target.z <= Math.max(minimumBounce.position.z, maximumBounce.position.z)
+      && intent.target.z >= Math.min(minimumBounce.position.z, maximumBounce.position.z)
+    ) {
+      let lowerAngle = minimumAngle;
+      let upperAngle = maximumAngle;
+      const fartherAtUpper = maximumBounce.position.z < minimumBounce.position.z;
+      for (let iteration = 0; iteration < 24; iteration += 1) {
+        const angle = (lowerAngle + upperAngle) / 2;
+        const bounce = firstBounce(intent, velocityForDirectionAndAngle(speed, direction, angle));
+        const needsFarther = bounce.position.z > intent.target.z;
+        if (needsFarther === fartherAtUpper) lowerAngle = angle;
+        else upperAngle = angle;
+      }
+      launchAngle = (lowerAngle + upperAngle) / 2;
+    }
+
+    velocity = velocityForDirectionAndAngle(speed, direction, launchAngle);
+    const bounce = firstBounce(intent, velocity);
+    const errorX = intent.target.x - bounce.position.x;
+    if (Math.abs(errorX) < 0.005) break;
+    direction += Math.atan2(errorX, Math.max(4, intent.source.z - intent.target.z)) * 0.75;
+  }
+
+  return velocity;
+};
+
 export const aimDirectionToCourtPoint = (
   source: Readonly<{ x: number; z: number }>,
   point: Readonly<{ x: number; z: number }>,
@@ -197,6 +308,7 @@ export const netHeightAt = (x: number): number => {
 };
 
 const targetAdjustedVelocity = (intent: ShotIntent): Vec3 => {
+  if (trajectoryShotType(intent) === 'serve') return serveVelocity(intent);
   if (intent.aimDirectionDeg !== undefined) return directedVelocity(intent);
   let velocity = lowArcVelocity(intent);
   for (let iteration = 0; iteration < 14; iteration += 1) {
@@ -222,7 +334,7 @@ const targetAdjustedVelocity = (intent: ShotIntent): Vec3 => {
 export const resolveTrajectory = (intent: ShotIntent): ResolvedTrajectory => {
   const launchVelocity = targetAdjustedVelocity(intent);
   const surface = SURFACE_PROFILES[intent.surface];
-  const spin = spinVector(intent.spin);
+  let spin = spinVector(intent);
   const receiverZ = intent.receiverZ ?? -(COURT.halfLength + 0.65);
   const samples: FlightSample[] = [
     { time: 0, position: intent.source, velocity: launchVelocity, bounced: false },
@@ -240,7 +352,7 @@ export const resolveTrajectory = (intent: ShotIntent): ResolvedTrajectory => {
   for (let index = 1; index <= MAX_SIMULATION_SECONDS / FIXED_STEP; index += 1) {
     const time = index * FIXED_STEP;
     if (grounded) {
-      const rollingRetention = Math.exp(-1.8 * FIXED_STEP);
+      const rollingRetention = Math.exp(-surface.rollingResistance * FIXED_STEP);
       velocity = vec3(velocity.x * rollingRetention, 0, velocity.z * rollingRetention);
       position = vec3(
         position.x + velocity.x * FIXED_STEP,
@@ -261,11 +373,33 @@ export const resolveTrajectory = (intent: ShotIntent): ResolvedTrajectory => {
       const firstGroundContact = !bounced;
       const preBounceSpeed = magnitude(velocity) * 3.6;
       position = vec3(position.x, COURT.ballRadius, position.z);
-      const reboundSpeed = -velocity.y * surface.restitution;
+      const normalImpactSpeed = -velocity.y;
+      const speedCorrection = Math.min(1.04, Math.max(0.82, 1.04 - Math.max(0, normalImpactSpeed - 4) * 0.012));
+      const effectiveRestitution = surface.normalRestitution * speedCorrection;
+      const practiceBounceFactor = firstGroundContact
+        ? Math.min(1.4, Math.max(0.6, intent.bounceFactor ?? 1))
+        : 1;
+      const reboundSpeed = normalImpactSpeed * effectiveRestitution * practiceBounceFactor;
+      const contactVelocityX = velocity.x + COURT.ballRadius * spin.z;
+      const contactVelocityZ = velocity.z - COURT.ballRadius * spin.x;
+      const requiredDeltaX = -contactVelocityX * CONTACT_VELOCITY_COUPLING;
+      const requiredDeltaZ = -contactVelocityZ * CONTACT_VELOCITY_COUPLING;
+      const requiredDelta = Math.hypot(requiredDeltaX, requiredDeltaZ);
+      const maximumFrictionDelta = surface.friction * (1 + effectiveRestitution) * normalImpactSpeed;
+      const frictionScale = requiredDelta > maximumFrictionDelta && requiredDelta > 0
+        ? maximumFrictionDelta / requiredDelta
+        : 1;
+      const deltaVelocityX = requiredDeltaX * frictionScale;
+      const deltaVelocityZ = requiredDeltaZ * frictionScale;
       velocity = vec3(
-        velocity.x * surface.horizontalRetention + spin.z * surface.spinCoupling * 0.01,
+        velocity.x + deltaVelocityX,
         reboundSpeed,
-        velocity.z * surface.horizontalRetention - spin.x * surface.spinCoupling * 0.01,
+        velocity.z + deltaVelocityZ,
+      );
+      spin = vec3(
+        spin.x - deltaVelocityZ / (BALL_INERTIA_FACTOR * COURT.ballRadius),
+        spin.y,
+        spin.z + deltaVelocityX / (BALL_INERTIA_FACTOR * COURT.ballRadius),
       );
       bounced = true;
       if (firstGroundContact) {

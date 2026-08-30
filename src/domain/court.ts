@@ -31,6 +31,20 @@ export const cameraMovementDelta = (
   }
 };
 
+export const cameraMovementForKeys = (
+  keys: ReadonlySet<CameraMoveKey>,
+  distance: number,
+): Readonly<{ behindBaseline: number; lateral: number }> => {
+  const longitudinal = (keys.has('s') ? 1 : 0) - (keys.has('w') ? 1 : 0);
+  const horizontal = (keys.has('a') ? 1 : 0) - (keys.has('d') ? 1 : 0);
+  const length = Math.hypot(longitudinal, horizontal);
+  if (length === 0) return { behindBaseline: 0, lateral: 0 };
+  return {
+    behindBaseline: longitudinal * distance / length,
+    lateral: horizontal * distance / length,
+  };
+};
+
 // The FPV camera looks from negative z toward positive z, so positive world x
 // appears on the player's left. Keep top-down controls in that player view.
 export const worldXToPlayerViewHorizontal = (worldX: number): number => -worldX;

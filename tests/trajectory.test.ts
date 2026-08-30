@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { COURT } from '../src/domain/court';
 import { POST_BOUNCE_SIMULATION_SECONDS, aimDirectionToCourtPoint, resolveTrajectory } from '../src/engine/trajectory/physics';
+import { PRACTICE_SHOT_PROFILES, legalServeTarget } from '../src/engine/trajectory/practiceProfiles';
 
 describe('fixed-step trajectory solver', () => {
   it('clears the net and lands near the authored target', () => {
@@ -34,6 +35,26 @@ describe('fixed-step trajectory solver', () => {
     expect(hardArrival).toBeDefined();
     expect(grassArrival).toBeDefined();
     expect(grassArrival?.position.y).not.toBeCloseTo(hardArrival?.position.y ?? 0, 3);
+  });
+
+  it('uses surface friction to slow clay rebounds more than grass', () => {
+    const intent = {
+      source: { x: 0, y: 1.15, z: COURT.halfLength - 0.65 },
+      target: { x: 0.8, z: -8.3 },
+      paceKmh: 78,
+      spin: 'topspin' as const,
+    };
+    const reboundSample = (surface: 'clay' | 'grass') => {
+      const trajectory = resolveTrajectory({ ...intent, surface });
+      const bounce = trajectory.events.find((event) => event.type === 'bounce')!;
+      return trajectory.samples.find((sample) => sample.time >= bounce.time + 1 / 60)!;
+    };
+    const clay = reboundSample('clay');
+    const grass = reboundSample('grass');
+    const horizontalSpeed = (sample: typeof clay) => Math.hypot(sample.velocity.x, sample.velocity.z);
+
+    expect(horizontalSpeed(clay)).toBeLessThan(horizontalSpeed(grass));
+    expect(clay.velocity.y).toBeGreaterThan(grass.velocity.y);
   });
 
   it('reports both pre-bounce and post-bounce speeds for coach diagnostics', () => {
@@ -128,6 +149,28 @@ describe('fixed-step trajectory solver', () => {
     expect(right.events.find((event) => event.type === 'bounce')!.position.x).toBeGreaterThan(0);
   });
 
+  it('gives flat, topspin, and slice groundstrokes distinct trajectories', () => {
+    const profile = PRACTICE_SHOT_PROFILES.groundstroke;
+    const source = { ...profile.opponentPosition, y: profile.contactHeight };
+    const trajectoryFor = (spin: 'flat' | 'topspin' | 'slice') => resolveTrajectory({
+      source,
+      target: { x: 0, z: -8 },
+      aimDirectionDeg: 8,
+      paceKmh: profile.defaultPaceKmh,
+      netClearanceM: profile.defaultNetClearanceM,
+      spin,
+      shotType: 'groundstroke',
+      surface: 'hard',
+    });
+    const flat = trajectoryFor('flat');
+    const topspin = trajectoryFor('topspin');
+    const slice = trajectoryFor('slice');
+
+    expect(topspin.launchVelocity.y).not.toBeCloseTo(flat.launchVelocity.y, 2);
+    expect(slice.launchVelocity.y).not.toBeCloseTo(flat.launchVelocity.y, 2);
+    expect(topspin.events.find((event) => event.type === 'bounce')?.position.z).not.toBeCloseTo(slice.events.find((event) => event.type === 'bounce')?.position.z ?? 0, 1);
+  });
+
   it('derives aim direction in the same player-view horizontal coordinate system', () => {
     const source = { x: 0, z: COURT.halfLength - 0.65 };
     expect(aimDirectionToCourtPoint(source, { x: 2, z: -8 })).toBeGreaterThan(0);
@@ -153,5 +196,77 @@ describe('fixed-step trajectory solver', () => {
     expect(finalSample.time).toBeGreaterThan(receiver.time);
     expect(finalSample.position.z).toBeLessThan(receiver.position.z);
     expect(Math.min(...postBounceSamples.map((sample) => sample.position.y))).toBeGreaterThanOrEqual(COURT.ballRadius);
+  });
+
+  it.each(['flat', 'slice', 'kick'] as const)('keeps a %s serve inside the diagonal service box', (spin) => {
+    const profile = PRACTICE_SHOT_PROFILES.serve;
+    const source = { ...profile.opponentPosition, y: profile.contactHeight };
+    const target = legalServeTarget(source, spin === 'slice' ? -18 : 0, profile.defaultPaceKmh, profile.defaultNetClearanceM, spin);
+    const trajectory = resolveTrajectory({
+      source,
+      target,
+      aimDirectionDeg: spin === 'slice' ? -18 : 0,
+      paceKmh: profile.defaultPaceKmh,
+      netClearanceM: profile.defaultNetClearanceM,
+      spin,
+      shotType: 'serve',
+      opponentHand: 'right',
+      surface: 'hard',
+    });
+    const bounce = trajectory.events.find((event) => event.type === 'bounce')!;
+    expect(trajectory.events.find((event) => event.type === 'net-crossing')?.position.y ?? 0).toBeGreaterThan(COURT.netCenterHeight);
+    expect(bounce.position.z).toBeGreaterThanOrEqual(-COURT.serviceLineFromNet);
+    expect(bounce.position.z).toBeLessThan(0);
+    expect(bounce.position.x).toBeLessThan(0);
+    expect(Math.abs(bounce.position.x)).toBeLessThanOrEqual(COURT.singlesWidth / 2);
+  });
+
+  it('gives flat, slice, and kick serves distinct physical trajectories', () => {
+    const profile = PRACTICE_SHOT_PROFILES.serve;
+    const source = { ...profile.opponentPosition, y: profile.contactHeight };
+    const trajectoryFor = (spin: 'flat' | 'slice' | 'kick') => resolveTrajectory({
+      source,
+      target: legalServeTarget(source, 0, profile.defaultPaceKmh, profile.defaultNetClearanceM, spin),
+      aimDirectionDeg: 0,
+      paceKmh: profile.defaultPaceKmh,
+      netClearanceM: profile.defaultNetClearanceM,
+      spin,
+      shotType: 'serve',
+      opponentHand: 'right',
+      surface: 'hard',
+    });
+    const flat = trajectoryFor('flat');
+    const slice = trajectoryFor('slice');
+    const kick = trajectoryFor('kick');
+    expect(slice.launchVelocity.x).not.toBeCloseTo(flat.launchVelocity.x, 2);
+    expect(kick.launchVelocity.y).not.toBeCloseTo(flat.launchVelocity.y, 2);
+    expect(kick.events.find((event) => event.type === 'bounce')?.position.z).not.toBeCloseTo(flat.events.find((event) => event.type === 'bounce')?.position.z ?? 0, 1);
+  });
+
+  it('models a volley as spin-free even if stale settings contain a spin value', () => {
+    const base = {
+      source: { x: 0, y: 1.32, z: 3.7 }, target: { x: 0, z: -4 }, aimDirectionDeg: 0,
+      paceKmh: 62, netClearanceM: 0.15, shotType: 'volley' as const, surface: 'hard' as const,
+    };
+    expect(resolveTrajectory({ ...base, spin: 'flat' }).samples).toEqual(resolveTrajectory({ ...base, spin: 'kick' }).samples);
+  });
+
+  it('applies the practice bounce-height factor only to the post-impact arrival', () => {
+    const base = {
+      source: { x: 0, y: 1.15, z: COURT.halfLength - 0.65 }, target: { x: 0, z: -8 }, aimDirectionDeg: 0,
+      paceKmh: 78, netClearanceM: 0.35, spin: 'topspin' as const, shotType: 'groundstroke' as const, surface: 'hard' as const,
+    };
+    const low = resolveTrajectory({ ...base, bounceFactor: 0.7 });
+    const natural = resolveTrajectory({ ...base, bounceFactor: 1 });
+    const high = resolveTrajectory({ ...base, bounceFactor: 1.3 });
+    const postBounceApex = (trajectory: typeof natural) => {
+      const bounce = trajectory.events.find((event) => event.type === 'bounce')!;
+      return Math.max(...trajectory.samples.filter((sample) => sample.time > bounce.time).map((sample) => sample.position.y));
+    };
+    expect(low.launchVelocity).toEqual(natural.launchVelocity);
+    expect(high.launchVelocity).toEqual(natural.launchVelocity);
+    expect(postBounceApex(low)).toBeLessThan(postBounceApex(natural));
+    expect(postBounceApex(high)).toBeGreaterThan(postBounceApex(natural));
+    expect(postBounceApex(natural)).toBeGreaterThan(0.65);
   });
 });

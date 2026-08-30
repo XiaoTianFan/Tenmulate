@@ -1,13 +1,14 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Activity, Eye, Gauge, MapPin, Plus, RotateCcw, Target, Trophy, UserRound } from 'lucide-react';
 import { DRILL_BY_CATEGORY } from '../content/bundled';
 import type { SessionCategory } from '../content/types';
 import { CAMERA_FOV_MAX, CAMERA_FOV_MIN, clampCameraFov, type CameraLook } from '../domain/camera';
-import { COURT, OPPONENT_POSITION_PRESETS, cameraMovementDelta, type CameraMoveKey, type SurfaceId } from '../domain/court';
+import { COURT, OPPONENT_POSITION_PRESETS, cameraMovementForKeys, type CameraMoveKey, type SurfaceId } from '../domain/court';
 import { SCENE_DEFINITIONS, VENUE_LABELS, isOutdoorVenue, windVelocityFromEnvironment, type EnvironmentConfiguration, type LightingPreset, type VenueId, type WeatherCondition } from '../domain/environment';
 import type { CameraConfiguration, QualityMode, SceneMetrics } from '../engine/rendering/TennisScene';
 import { compileSession } from '../engine/session/compileSession';
 import { resolveTrajectory, type SpinKind } from '../engine/trajectory/physics';
+import { PRACTICE_SHOT_PROFILES, legalServeTarget, spinForPracticeShot, type PracticeShotType } from '../engine/trajectory/practiceProfiles';
 import { practiceAudio } from '../engine/audio/AudioCueEngine';
 import type { SessionLaunch } from '../app/types';
 import { DEFAULT_CAMERA_POSITION_PRESETS, DEFAULT_PERSPECTIVE_PRESETS, type CameraPositionPresetV1, type PerspectivePresetV1, type PracticePreferencesV1 } from '../storage/appStorage';
@@ -26,12 +27,12 @@ const PRACTICE_PRESETS: ReadonlyArray<{
   icon: typeof Activity;
   cameraPresetId: string;
   opponent: CourtPoint;
-  sourceHeight: number;
+  shotType: PracticeShotType;
 }> = [
-  { id: 'rally', label: 'Rally', category: 'Quick Rally', icon: Activity, cameraPresetId: 'position-baseline', opponent: { x: 0, z: COURT.halfLength - 0.65 }, sourceHeight: 1.15 },
-  { id: 'return', label: 'Return', category: 'Return Practice', icon: Target, cameraPresetId: 'position-baseline', opponent: { x: -2.7, z: COURT.halfLength - 0.18 }, sourceHeight: 2.55 },
-  { id: 'volley', label: 'Volley', category: 'Serve & Volley', icon: Trophy, cameraPresetId: 'position-net', opponent: { x: -1.2, z: 3.7 }, sourceHeight: 1.3 },
-  { id: 'overhead', label: 'Overhead', category: 'Net & Overhead', icon: Gauge, cameraPresetId: 'position-overhead', opponent: { x: 1.1, z: 3.4 }, sourceHeight: 2.4 },
+  { id: 'rally', label: 'Rally', category: 'Quick Rally', icon: Activity, cameraPresetId: 'position-baseline', opponent: { x: 0, z: COURT.halfLength - 0.65 }, shotType: 'groundstroke' },
+  { id: 'return', label: 'Return', category: 'Return Practice', icon: Target, cameraPresetId: 'position-baseline', opponent: { x: 1.25, z: COURT.halfLength - 0.18 }, shotType: 'serve' },
+  { id: 'volley', label: 'Volley', category: 'Serve & Volley', icon: Trophy, cameraPresetId: 'position-net', opponent: { x: 0, z: 3.7 }, shotType: 'volley' },
+  { id: 'overhead', label: 'Overhead', category: 'Net & Overhead', icon: Gauge, cameraPresetId: 'position-overhead', opponent: { x: 1.1, z: 3.4 }, shotType: 'volley' },
 ];
 
 const OUTDOOR_TIME_BY_LIGHTING: Readonly<Record<'day' | 'golden-hour' | 'night', number>> = {
@@ -39,6 +40,10 @@ const OUTDOOR_TIME_BY_LIGHTING: Readonly<Record<'day' | 'golden-hour' | 'night',
   'golden-hour': 18.5,
   night: 21.5,
 };
+
+const practiceSpinLabel = (shotType: PracticeShotType, spin: SpinKind): string => (
+  shotType === 'volley' ? 'None' : spin === 'topspin' ? 'Topspin' : `${spin[0]?.toUpperCase()}${spin.slice(1)}`
+);
 
 type RangeFieldProps = Readonly<{
   label: string;
@@ -96,7 +101,9 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
   const [workBlockSize, setWorkBlockSize] = useState(initialPreferences.workBlockSize);
   const [restSeconds, setRestSeconds] = useState(initialPreferences.restSeconds);
   const [surface, setSurface] = useState<SurfaceId>(() => legacyInitialPreferences.surface ?? legacyInitialPreferences.physicsSurface ?? legacyInitialPreferences.visualSurface ?? 'hard');
-  const [spin, setSpin] = useState<'preset' | SpinKind>(initialPreferences.spin);
+  const [shotType, setShotType] = useState<PracticeShotType>(initialPreferences.shotType);
+  const [spin, setSpin] = useState<SpinKind>(() => spinForPracticeShot(initialPreferences.shotType, initialPreferences.spin));
+  const [bounceFactor, setBounceFactor] = useState(initialPreferences.bounceFactor);
   const [opponentHand, setOpponentHand] = useState<'left' | 'right'>(initialPreferences.opponentHand);
   const [serveRhythm, setServeRhythm] = useState<'preset' | 'normal' | 'compact'>(initialPreferences.serveRhythm);
   const [netClearanceM, setNetClearanceM] = useState(initialPreferences.netClearanceM);
@@ -130,6 +137,8 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
   const [viewDistanceCm, setViewDistanceCm] = useState(initialPreferences.viewDistanceCm);
   const [presetName, setPresetName] = useState('My preset');
   const [presetNotice, setPresetNotice] = useState<string | null>(null);
+  const heldMovementKeys = useRef(new Set<CameraMoveKey>());
+  const fastMovement = useRef(false);
   const onMetrics = useCallback((next: SceneMetrics) => setMetrics(next), []);
   const updateCameraLook = useCallback((look: CameraLook) => {
     setYaw(look.yaw);
@@ -145,42 +154,96 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
   const drill = DRILL_BY_CATEGORY.get(sessionCategory) ?? DRILL_BY_CATEGORY.get('Quick Rally')!;
   const environment = useMemo<EnvironmentConfiguration>(() => ({ venue, lighting, lightDirection, lightIntensity, timeOfDay, weather, weatherIntensity, windDirection, windSpeedMps }), [lightDirection, lightIntensity, lighting, timeOfDay, venue, weather, weatherIntensity, windDirection, windSpeedMps]);
   const windVelocity = useMemo(() => windVelocityFromEnvironment(environment), [environment]);
-  const trajectory = useMemo(() => resolveTrajectory({
-    source: { x: opponentPosition.x, y: activePractice.sourceHeight, z: opponentPosition.z },
-    target: { x: 0, z: -8 },
-    aimDirectionDeg,
-    paceKmh: pace,
-    spin: spin === 'preset' ? 'topspin' : spin,
-    surface,
-    netClearanceM,
-    windVelocity,
-  }), [activePractice.sourceHeight, aimDirectionDeg, netClearanceM, opponentPosition, pace, spin, surface, windVelocity]);
+  const shotProfile = PRACTICE_SHOT_PROFILES[shotType];
+  const trajectory = useMemo(() => {
+    const source = { x: opponentPosition.x, y: shotProfile.contactHeight, z: opponentPosition.z };
+    const target = shotType === 'serve'
+      ? legalServeTarget(source, aimDirectionDeg, pace, netClearanceM, spin)
+      : { x: 0, z: -8 };
+    return resolveTrajectory({
+      source,
+      target,
+      aimDirectionDeg,
+      paceKmh: pace,
+      spin,
+      shotType,
+      opponentHand,
+      surface,
+      netClearanceM,
+      windVelocity,
+      bounceFactor,
+    });
+  }, [aimDirectionDeg, bounceFactor, netClearanceM, opponentHand, opponentPosition, pace, shotProfile.contactHeight, shotType, spin, surface, windVelocity]);
   const bounce = trajectory.events.find((event) => event.type === 'bounce');
   const net = trajectory.events.find((event) => event.type === 'net-crossing');
   const camera = useMemo<CameraConfiguration>(() => ({ eyeHeight, behindBaseline, lateral, yaw, pitch, fov }), [behindBaseline, eyeHeight, fov, lateral, pitch, yaw]);
 
   useEffect(() => {
-    const timeout = window.setTimeout(() => onPreferencesChange({ sessionCategory, trajectoryEnabled, pace, interval, repetitions, variation, timingVariation, workBlockSize, restSeconds, surface, spin, opponentHand, serveRhythm, netClearanceM, aimDirectionDeg, opponentPosition, camera, environment, quality, screenWidthCm, screenHeightCm, viewDistanceCm }), 180);
+    const timeout = window.setTimeout(() => onPreferencesChange({ sessionCategory, trajectoryEnabled, pace, interval, repetitions, variation, timingVariation, workBlockSize, restSeconds, surface, shotType, spin, bounceFactor, opponentHand, serveRhythm, netClearanceM, aimDirectionDeg, opponentPosition, camera, environment, quality, screenWidthCm, screenHeightCm, viewDistanceCm }), 180);
     return () => window.clearTimeout(timeout);
-  }, [aimDirectionDeg, camera, environment, interval, netClearanceM, onPreferencesChange, opponentHand, opponentPosition, pace, quality, repetitions, restSeconds, screenHeightCm, screenWidthCm, serveRhythm, sessionCategory, spin, surface, timingVariation, trajectoryEnabled, variation, viewDistanceCm, workBlockSize]);
+  }, [aimDirectionDeg, bounceFactor, camera, environment, interval, netClearanceM, onPreferencesChange, opponentHand, opponentPosition, pace, quality, repetitions, restSeconds, screenHeightCm, screenWidthCm, serveRhythm, sessionCategory, shotType, spin, surface, timingVariation, trajectoryEnabled, variation, viewDistanceCm, workBlockSize]);
 
   useEffect(() => {
-    const move = (event: KeyboardEvent) => {
+    let frame = 0;
+    let lastFrame = performance.now();
+    const clearMovement = () => {
+      heldMovementKeys.current.clear();
+      fastMovement.current = false;
+      if (frame) cancelAnimationFrame(frame);
+      frame = 0;
+    };
+    const applyMovement = (distance: number) => {
+      const movement = cameraMovementForKeys(heldMovementKeys.current, distance);
+      if (movement.behindBaseline) setBehindBaseline((value) => Math.min(6, Math.max(-10, value + movement.behindBaseline)));
+      if (movement.lateral) setLateral((value) => Math.min(7, Math.max(-7, value + movement.lateral)));
+      if (movement.behindBaseline || movement.lateral) setSelectedPositionPreset('');
+    };
+    const moveFrame = (now: number) => {
+      if (!heldMovementKeys.current.size || dialog) {
+        frame = 0;
+        return;
+      }
+      const deltaSeconds = Math.min(0.05, Math.max(0, (now - lastFrame) / 1_000));
+      lastFrame = now;
+      applyMovement((fastMovement.current ? 6 : 2.4) * deltaSeconds);
+      frame = requestAnimationFrame(moveFrame);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
-      if (dialog || target?.matches('input, select, textarea, button, [contenteditable="true"]')) return;
+      if (event.key === 'Shift') fastMovement.current = true;
+      if (dialog || target?.matches('input:not([type="range"]), textarea, [contenteditable="true"]')) return;
       const key = event.key.toLowerCase();
       if (!['w', 'a', 's', 'd'].includes(key)) return;
       event.preventDefault();
-      const step = event.shiftKey ? 0.45 : 0.16;
-      const movement = cameraMovementDelta(key as CameraMoveKey, step);
-      if (movement.behindBaseline < 0) setBehindBaseline((value) => Math.max(-10, value + movement.behindBaseline));
-      if (movement.behindBaseline > 0) setBehindBaseline((value) => Math.min(6, value + movement.behindBaseline));
-      if (movement.lateral > 0) setLateral((value) => Math.min(7, value + movement.lateral));
-      if (movement.lateral < 0) setLateral((value) => Math.max(-7, value + movement.lateral));
-      setSelectedPositionPreset('');
+      fastMovement.current = event.shiftKey;
+      const movementKey = key as CameraMoveKey;
+      const isNewPress = !heldMovementKeys.current.has(movementKey);
+      heldMovementKeys.current.add(movementKey);
+      if (isNewPress) applyMovement(event.shiftKey ? 0.1 : 0.04);
+      if (!frame) {
+        lastFrame = performance.now();
+        frame = requestAnimationFrame(moveFrame);
+      }
     };
-    window.addEventListener('keydown', move);
-    return () => window.removeEventListener('keydown', move);
+    const onKeyUp = (event: KeyboardEvent) => {
+      if (event.key === 'Shift') fastMovement.current = false;
+      const key = event.key.toLowerCase();
+      if (['w', 'a', 's', 'd'].includes(key)) heldMovementKeys.current.delete(key as CameraMoveKey);
+    };
+    const onVisibilityChange = () => {
+      if (document.hidden) clearMovement();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    window.addEventListener('blur', clearMovement);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+      window.removeEventListener('blur', clearMovement);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      clearMovement();
+    };
   }, [dialog]);
 
   useEffect(() => {
@@ -196,6 +259,17 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
     setSelectedPositionPreset(preset.id);
   };
 
+  const changeShotType = (nextShotType: PracticeShotType) => {
+    const profile = PRACTICE_SHOT_PROFILES[nextShotType];
+    setShotType(nextShotType);
+    setSpin(profile.defaultSpin);
+    setPace(profile.defaultPaceKmh);
+    setNetClearanceM(profile.defaultNetClearanceM);
+    setOpponentPosition(profile.opponentPosition);
+    setAimDirectionDeg(0);
+    setResetToken((value) => value + 1);
+  };
+
   const applyPerspective = (preset: PerspectivePresetV1) => {
     setYaw(preset.perspective.yaw);
     setPitch(preset.perspective.pitch);
@@ -207,12 +281,11 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
     const nextDrill = DRILL_BY_CATEGORY.get(preset.category);
     setPracticePreset(preset.id);
     setSessionCategory(preset.category);
+    changeShotType(preset.shotType);
     setOpponentPosition(preset.opponent);
-    setAimDirectionDeg(0);
     const position = cameraPositionPresets.find((item) => item.id === preset.cameraPresetId);
     if (position) applyCameraPosition(position);
     if (nextDrill) { setIntervalValue(nextDrill.defaultInterval); setRepetitions(nextDrill.defaultRepetitions); }
-    setResetToken((value) => value + 1);
   };
 
   const resetView = () => {
@@ -248,7 +321,7 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
   };
 
   const launch = () => onStart({
-    session: compileSession(drill, { repetitions, interval, variationPercent: variation, timingVariationPercent: timingVariation, paceKmh: pace, surface, seed, spin, opponentHand, workBlockSize, restSeconds, serveRhythm, netClearanceM, aimDirectionDeg, opponentPosition, windVelocity }),
+    session: compileSession(drill, { repetitions, interval, variationPercent: variation, timingVariationPercent: timingVariation, paceKmh: pace, surface, seed, spin, practiceShotType: shotType, bounceFactor, opponentHand, workBlockSize, restSeconds, serveRhythm, netClearanceM, aimDirectionDeg, opponentPosition, windVelocity }),
     trajectoryEnabled,
     camera,
     environment,
@@ -292,7 +365,7 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
               return <button type="button" key={preset.id} className={practicePreset === preset.id ? 'session-row selected' : 'session-row'} onClick={() => choosePractice(preset)}><Icon size={21} /><span>{preset.label}</span></button>;
             })}
           </div>
-          <div className="practice-preset-summary"><span>{activePractice.label} setup</span><strong>{drill.title}</strong><small>Opponent {opponentPosition.x.toFixed(1)}, {opponentPosition.z.toFixed(1)} m</small></div>
+          <div className="practice-preset-summary"><span>{activePractice.label} setup</span><strong>{shotProfile.label} · {practiceSpinLabel(shotType, spin)}</strong><small>Opponent {opponentPosition.x.toFixed(1)}, {opponentPosition.z.toFixed(1)} m</small></div>
         </aside>
 
         <section className="preview-column" aria-label="Live court preview">
@@ -318,13 +391,15 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
           <h2>Practice configuration</h2>
           <SetupSection title="Ball & rhythm" subtitle="Flight, speed, timing" open>
             <label className="toggle-field"><span>Trajectory</span><button type="button" role="switch" aria-checked={trajectoryEnabled} className={trajectoryEnabled ? 'toggle active' : 'toggle'} onClick={() => setTrajectoryEnabled((value) => !value)}><span /></button><small>{trajectoryEnabled ? 'On' : 'Off'}</small></label>
-            <RangeField label="Pace" value={pace} min={35} max={165} step={1} unit="km/h" onChange={setPace} />
+            <label className="select-field"><span>Shot type</span><select aria-label="Shot type" value={shotType} onChange={(event) => changeShotType(event.target.value as PracticeShotType)}><option value="groundstroke">Groundstroke</option><option value="serve">Serve</option><option value="volley">Volley</option></select></label>
+            <label className="select-field"><span>Spin</span><select aria-label="Spin" value={spin} disabled={shotType === 'volley'} onChange={(event) => setSpin(spinForPracticeShot(shotType, event.target.value))}>{shotProfile.spins.map((option) => <option key={option} value={option}>{practiceSpinLabel(shotType, option)}</option>)}</select></label>
+            <RangeField label="Pace" value={pace} min={shotProfile.paceRangeKmh.min} max={shotProfile.paceRangeKmh.max} step={1} unit="km/h" onChange={setPace} />
             <RangeField label="Net clearance" value={netClearanceM} min={0.08} max={1.5} step={0.02} unit="m" onChange={setNetClearanceM} />
             <RangeField label="Interval" value={interval} min={1.5} max={8} step={0.1} unit="s" onChange={setIntervalValue} />
-            <label className="select-field"><span>Spin</span><select value={spin} onChange={(event) => setSpin(event.target.value as 'preset' | SpinKind)}><option value="preset">Drill preset</option><option value="flat">Flat</option><option value="topspin">Topspin</option><option value="slice">Slice</option><option value="kick">Kick</option><option value="sidespin">Sidespin</option></select></label>
           </SetupSection>
+          <SetupSection title="Ball arrival" subtitle="Surface response and perceived height"><RangeField label="Bounce height" value={bounceFactor} min={0.6} max={1.4} step={0.05} unit="×" onChange={setBounceFactor} /></SetupSection>
           <SetupSection title="Practice set" subtitle="Repetitions and recovery"><RangeField label="Repetitions" value={repetitions} min={1} max={50} step={1} unit="" onChange={setRepetitions} /><RangeField label="Shot variation" value={variation} min={0} max={25} step={1} unit="%" onChange={setVariation} /><RangeField label="Timing variation" value={timingVariation} min={0} max={30} step={1} unit="%" onChange={setTimingVariation} /><RangeField label="Work block" value={workBlockSize} min={1} max={20} step={1} unit="reps" onChange={setWorkBlockSize} /><RangeField label="Rest" value={restSeconds} min={0} max={120} step={5} unit="s" onChange={setRestSeconds} /></SetupSection>
-          <SetupSection title="Opponent" subtitle="Position and delivery" open><button type="button" className="configuration-action" onClick={() => setDialog('opponent')}><UserRound size={16} /><span>Position opponent</span><small>{opponentPosition.x.toFixed(1)}, {opponentPosition.z.toFixed(1)} m</small></button><label className="select-field"><span>Hand</span><select value={opponentHand} onChange={(event) => setOpponentHand(event.target.value as 'left' | 'right')}><option value="right">Right-handed</option><option value="left">Left-handed</option></select></label><label className="select-field"><span>Serve rhythm</span><select value={serveRhythm} onChange={(event) => setServeRhythm(event.target.value as 'preset' | 'normal' | 'compact')}><option value="preset">Drill preset</option><option value="normal">Normal · high toss</option><option value="compact">Compact · quick toss</option></select></label></SetupSection>
+          <SetupSection title="Opponent" subtitle="Position and delivery" open><button type="button" className="configuration-action" onClick={() => setDialog('opponent')}><UserRound size={16} /><span>Position opponent</span><small>{opponentPosition.x.toFixed(1)}, {opponentPosition.z.toFixed(1)} m</small></button><label className="select-field"><span>Hand</span><select value={opponentHand} onChange={(event) => setOpponentHand(event.target.value as 'left' | 'right')}><option value="right">Right-handed</option><option value="left">Left-handed</option></select></label>{shotType === 'serve' ? <label className="select-field"><span>Serve rhythm</span><select value={serveRhythm} onChange={(event) => setServeRhythm(event.target.value as 'preset' | 'normal' | 'compact')}><option value="preset">Drill preset</option><option value="normal">Normal · high toss</option><option value="compact">Compact · quick toss</option></select></label> : null}</SetupSection>
           <SetupSection title="Venue" subtitle="Court, light, weather">
             <label className="select-field"><span>Venue</span><select value={venue} onChange={(event) => changeVenue(event.target.value as VenueId)}>{(Object.entries(VENUE_LABELS) as [VenueId, string][]).map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
             <label className="select-field"><span>Surface</span><select value={surface} onChange={(event) => setSurface(event.target.value as SurfaceId)}><option value="hard">Hard</option><option value="clay">Clay</option><option value="grass">Grass</option></select></label>
