@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { cameraRotationRadians } from '../../domain/camera';
 import { COURT, type SurfaceId } from '../../domain/court';
 import { DEFAULT_ENVIRONMENT, SCENE_DEFINITIONS, isOutdoorVenue, windVelocityFromEnvironment, type EnvironmentConfiguration, type VenueId } from '../../domain/environment';
 import type { ResolvedTrajectory } from '../trajectory/physics';
@@ -328,9 +329,8 @@ export class TennisScene {
       configuration.eyeHeight,
       -(COURT.halfLength + configuration.behindBaseline),
     );
-    const yawOffset = Math.tan(THREE.MathUtils.degToRad(configuration.yaw)) * 12;
-    const lookY = 1.05 + Math.tan(THREE.MathUtils.degToRad(configuration.pitch)) * 12;
-    this.camera.lookAt(yawOffset, lookY, 0);
+    const rotation = cameraRotationRadians(configuration);
+    this.camera.rotation.set(rotation.pitch, rotation.yaw, 0, 'YXZ');
     this.camera.updateProjectionMatrix();
   }
 

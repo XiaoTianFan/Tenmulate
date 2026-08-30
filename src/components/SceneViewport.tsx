@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { cameraLookAfterDrag, type CameraLook } from '../domain/camera';
 import type { SurfaceId } from '../domain/court';
 import { DEFAULT_ENVIRONMENT, type EnvironmentConfiguration } from '../domain/environment';
 import {
@@ -27,8 +28,17 @@ type SceneViewportProps = Readonly<{
   highContrastBall?: boolean;
   showBallTrail?: boolean;
   onAimChange?: (directionDeg: number) => void;
+  onCameraLookChange?: (look: CameraLook) => void;
   onMetrics: (metrics: SceneMetrics) => void;
 }>;
+
+type CameraPointerDrag = {
+  pointerId: number;
+  mode: 'look' | 'aim';
+  lastX: number;
+  lastY: number;
+  look: CameraLook;
+};
 
 export function SceneViewport({
   camera,
@@ -47,11 +57,12 @@ export function SceneViewport({
   highContrastBall = false,
   showBallTrail = false,
   onAimChange,
+  onCameraLookChange,
   onMetrics,
 }: SceneViewportProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sceneRef = useRef<TennisScene | null>(null);
-  const aimPointerId = useRef<number | null>(null);
+  const pointerDrag = useRef<CameraPointerDrag | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -91,36 +102,65 @@ export function SceneViewport({
     if (direction !== null && direction !== undefined) onAimChange?.(direction);
   };
 
-  const finishAim = (event: ReactPointerEvent<HTMLCanvasElement>) => {
-    if (aimPointerId.current !== event.pointerId) return;
-    aimPointerId.current = null;
+  const updateFromPointer = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    const drag = pointerDrag.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    if (drag.mode === 'aim') {
+      updateAimFromPointer(event);
+      return;
+    }
+    const look = cameraLookAfterDrag(drag.look, event.clientX - drag.lastX, event.clientY - drag.lastY);
+    pointerDrag.current = { ...drag, lastX: event.clientX, lastY: event.clientY, look };
+    onCameraLookChange?.(look);
+  };
+
+  const finishPointer = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    if (pointerDrag.current?.pointerId !== event.pointerId) return;
+    pointerDrag.current = null;
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
   };
+
+  const interactionHint = onCameraLookChange && onAimChange
+    ? 'Left-drag to look · Right-drag to aim'
+    : onCameraLookChange
+      ? 'Left-drag to look'
+      : onAimChange
+        ? 'Right-drag the court to aim'
+        : null;
 
   return (
     <div className="scene-viewport">
       <canvas
         ref={canvasRef}
-        className={onAimChange ? 'aim-enabled' : undefined}
+        className={[onCameraLookChange ? 'look-enabled' : '', onAimChange ? 'aim-enabled' : ''].filter(Boolean).join(' ') || undefined}
         tabIndex={0}
         aria-label="Live first-person tennis court preview"
         onContextMenu={onAimChange ? (event) => event.preventDefault() : undefined}
-        onPointerDown={onAimChange ? (event) => {
-          if (event.button !== 2) return;
+        onPointerDown={onAimChange || onCameraLookChange ? (event) => {
+          const mode = event.button === 0 && onCameraLookChange
+            ? 'look'
+            : event.button === 2 && onAimChange
+              ? 'aim'
+              : null;
+          if (!mode) return;
           event.preventDefault();
-          aimPointerId.current = event.pointerId;
+          pointerDrag.current = {
+            pointerId: event.pointerId,
+            mode,
+            lastX: event.clientX,
+            lastY: event.clientY,
+            look: { yaw: camera.yaw, pitch: camera.pitch },
+          };
           event.currentTarget.setPointerCapture(event.pointerId);
-          updateAimFromPointer(event);
+          if (mode === 'aim') updateAimFromPointer(event);
         } : undefined}
-        onPointerMove={onAimChange ? (event) => {
-          if (aimPointerId.current === event.pointerId) updateAimFromPointer(event);
-        } : undefined}
-        onPointerUp={onAimChange ? finishAim : undefined}
-        onPointerCancel={onAimChange ? finishAim : undefined}
+        onPointerMove={onAimChange || onCameraLookChange ? updateFromPointer : undefined}
+        onPointerUp={onAimChange || onCameraLookChange ? finishPointer : undefined}
+        onPointerCancel={onAimChange || onCameraLookChange ? finishPointer : undefined}
       />
       {error ? <div className="renderer-error" role="alert"><strong>3D renderer unavailable</strong><span>{error}</span><small>WebGL 2 and hardware acceleration are required. Setup and local drills remain available.</small></div> : null}
       {showSight ? <div className="scene-sight" aria-hidden="true"><span /></div> : null}
-      {onAimChange ? <div className="scene-aim-hint">Right-drag the court to aim</div> : null}
+      {interactionHint ? <div className="scene-aim-hint">{interactionHint}</div> : null}
     </div>
   );
 }
