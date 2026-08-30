@@ -1,6 +1,14 @@
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
-import { cameraLookAfterDrag, cameraRotationRadians, wrapCameraAngle, type CameraLook } from '../src/domain/camera';
+import {
+  CAMERA_FOV_MAX,
+  CAMERA_FOV_MIN,
+  cameraFovAfterWheel,
+  cameraLookAfterDrag,
+  cameraRotationRadians,
+  wrapCameraAngle,
+  type CameraLook,
+} from '../src/domain/camera';
 
 const forwardFor = (look: CameraLook): THREE.Vector3 => {
   const rotation = cameraRotationRadians(look);
@@ -42,5 +50,12 @@ describe('360-degree camera look controls', () => {
       expect.closeTo(0, 8),
       expect.closeTo(-1, 8),
     ]);
+  });
+
+  it('zooms with the wheel and clamps the widened horizontal FOV range', () => {
+    expect(cameraFovAfterWheel(70, -100)).toBe(67);
+    expect(cameraFovAfterWheel(70, 100)).toBe(73);
+    expect(cameraFovAfterWheel(6, -1_000)).toBe(CAMERA_FOV_MIN);
+    expect(cameraFovAfterWheel(159, 1_000)).toBe(CAMERA_FOV_MAX);
   });
 });

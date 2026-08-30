@@ -1,6 +1,17 @@
 export type CameraLook = Readonly<{ yaw: number; pitch: number }>;
 
 export const CAMERA_LOOK_DEGREES_PER_PIXEL = 0.22;
+export const CAMERA_FOV_MIN = 5;
+export const CAMERA_FOV_MAX = 160;
+export const CAMERA_FOV_DEGREES_PER_WHEEL_PIXEL = 0.03;
+
+export const clampCameraFov = (fov: number): number => Math.min(CAMERA_FOV_MAX, Math.max(CAMERA_FOV_MIN, fov));
+
+export const cameraFovAfterWheel = (
+  fov: number,
+  deltaPixels: number,
+  degreesPerPixel = CAMERA_FOV_DEGREES_PER_WHEEL_PIXEL,
+): number => clampCameraFov(fov + deltaPixels * degreesPerPixel);
 
 export const wrapCameraAngle = (degrees: number): number => {
   const wrapped = ((degrees + 180) % 360 + 360) % 360 - 180;

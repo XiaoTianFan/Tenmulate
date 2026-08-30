@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
-import { cameraLookAfterDrag, type CameraLook } from '../domain/camera';
+import { cameraFovAfterWheel, cameraLookAfterDrag, type CameraLook } from '../domain/camera';
 import type { SurfaceId } from '../domain/court';
 import { DEFAULT_ENVIRONMENT, type EnvironmentConfiguration } from '../domain/environment';
 import {
@@ -27,6 +27,7 @@ type SceneViewportProps = Readonly<{
   highContrastBall?: boolean;
   showBallTrail?: boolean;
   onAimChange?: (directionDeg: number) => void;
+  onCameraFovChange?: (fov: number) => void;
   onCameraLookChange?: (look: CameraLook) => void;
   onMetrics: (metrics: SceneMetrics) => void;
 }>;
@@ -55,6 +56,7 @@ export function SceneViewport({
   highContrastBall = false,
   showBallTrail = false,
   onAimChange,
+  onCameraFovChange,
   onCameraLookChange,
   onMetrics,
 }: SceneViewportProps) {
@@ -118,13 +120,11 @@ export function SceneViewport({
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
   };
 
-  const interactionHint = onCameraLookChange && onAimChange
-    ? 'Left-drag to look · Right-drag to aim'
-    : onCameraLookChange
-      ? 'Left-drag to look'
-      : onAimChange
-        ? 'Right-drag the court to aim'
-        : null;
+  const interactionHint = [
+    onCameraLookChange ? 'Left-drag to look' : null,
+    onCameraFovChange ? 'Wheel to zoom' : null,
+    onAimChange ? 'Right-drag to aim' : null,
+  ].filter(Boolean).join(' · ') || null;
 
   return (
     <div className="scene-viewport">
@@ -134,6 +134,15 @@ export function SceneViewport({
         tabIndex={0}
         aria-label="Live first-person tennis court preview"
         onContextMenu={onAimChange ? (event) => event.preventDefault() : undefined}
+        onWheel={onCameraFovChange ? (event) => {
+          event.preventDefault();
+          const deltaPixels = event.deltaY * (event.deltaMode === 1
+            ? 16
+            : event.deltaMode === 2
+              ? event.currentTarget.clientHeight
+              : 1);
+          onCameraFovChange(cameraFovAfterWheel(camera.fov, deltaPixels));
+        } : undefined}
         onPointerDown={onAimChange || onCameraLookChange ? (event) => {
           const mode = event.button === 0 && onCameraLookChange
             ? 'look'
