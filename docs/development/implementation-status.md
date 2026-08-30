@@ -251,3 +251,27 @@ The detailed status of every requirement is recorded in the [V1 release matrix](
 
 - Owner/manual review of WASD movement speed, FPV left/right-drag discoverability and look sensitivity, full inversion comfort, preset naming volume, and physically useful pace/clearance ranges.
 - Target-device foreground performance review during continuous FPV aiming and overlapping-ball playback.
+
+## Stage 9 — shot-aware practice physics and reliable movement
+
+- **Status:** Implemented locally on 2026-08-30; instrumented trajectory, measured-surface, and player-perception calibration remain external validation gates
+- Replaced the mixed Quick Practice spin list with a Shot type selector. Groundstroke exposes Flat, Topspin, and Slice; Serve exposes Flat, Slice, and Kick; Volley is explicitly spin-free.
+- Added shot profiles for contact height, opponent origin, pace range, net clearance, legal spin, and default target. Serve launches originate at 2.75 m and solve into the diagonally opposite regulation service box; Volley moves the opponent to 3.7 m from the net and uses a lower, slower launch.
+- Reworked `ball-v4-shot-profiles` around a 57.7 g, 67 mm tennis ball, `Cd = 0.55`, spin-dependent Magnus lift, measured-style serve spin magnitudes, and `0.55 mR²` rotational inertia. Spin axes now correspond to topspin/backspin about the cross-court horizontal axis and side curve about the vertical axis.
+- Replaced scalar horizontal retention with normal restitution, Coulomb-limited contact friction, translation/spin transfer, impact-speed correction, and rolling resistance. Hard, clay, and grass retain separate response profiles.
+- Added a persisted 0.60×–1.40× Bounce height control under a collapsible Ball arrival section. The factor defaults to 1.00× and multiplies only the first post-impact normal velocity after the selected surface response; it cannot change launch, net clearance, wind, or first landing.
+- Rebuilt WASD as held-key, request-animation-frame movement with elapsed-time scaling, normalized diagonals, immediate tap response, Shift acceleration, and cleanup on key release, blur, hidden tabs, dialogs, and unmount. Setup selects, sliders, and buttons no longer intermittently capture movement.
+- Recorded source constraints, runtime decisions, explicit product calibration values, and remaining external gates in [Ball flight and impact calibration](../research/ball-flight-impact-calibration.md).
+
+### Verification
+
+- Implementation commit: `2acad7d`.
+- `npm test`: 10 files, 92 tests passed, including all three groundstroke and serve spin families, legal service-box landings, spin-free Volley normalization, horizontal surface-friction ordering, first-impact-only bounce adjustment, deterministic wind, and held/diagonal WASD behavior.
+- `npm run build`: production PWA build passed; scene and setup chunks remain split and the 29-entry generated precache remains approximately 1.83 MiB.
+- In-app Browser at 1280 × 720 verified Return selecting Serve at 135 km/h and 2.75 m contact, with Flat and Kick producing different legal metadata (`-0.12, -5.09 m` versus `-0.12, -4.04 m`). Volley moved the opponent to `0.0, 3.7 m`, exposed only disabled `None` spin, and landed at `0.00, -4.64 m`.
+- Pressing A while the Shot type select retained focus cleared the active Baseline camera preset without changing the shot, directly verifying that setup-control focus no longer blocks movement. At 767 × 898 the configuration remained stacked without horizontal overflow; both viewports had zero console errors or warnings.
+
+### Remaining review gates
+
+- Compare flight and post-bounce samples with instrumented ball tracking, and fit profiles to measured court-specific restitution/friction before describing them as venue-measured.
+- Coach/player review of contact heights, default pace/clearance, serve target margins, Bounce height adjustment, and held-key movement speed on the intended display and input hardware.

@@ -101,11 +101,11 @@ type BallState = {
 
 Shot definitions store an authoring intent and a resolved launch solution. This lets content authors say “land deep cross-court and arrive shoulder-high” while tests preserve the exact resolved parameters.
 
-The runtime supports two explicit authoring paths. Bundled and editor-authored drills retain inverse target correction to preserve exact checked-in landing points. Quick Practice can instead provide an opponent floor origin plus an azimuth; a right-button drag is raycast from the current FPV camera onto the regulation court plane and converted through the shared player-view horizontal convention. The solver derives launch elevation from required net clearance while pace remains the launch-speed magnitude, so the first bounce is a physical result rather than a forced target. Both paths use the same fixed-step forces, bounce profiles, and event reporting.
+The runtime supports two explicit authoring paths. Bundled and editor-authored drills retain inverse target correction to preserve exact checked-in landing points. Quick Practice selects a Groundstroke, Serve, or Volley profile before resolving pace, compatible spin, contact height, opponent origin, net clearance, surface, and wind. Groundstrokes and volleys provide an opponent floor origin plus an azimuth; a right-button drag is raycast from the current FPV camera onto the regulation court plane and converted through the shared player-view horizontal convention. Their launch elevation comes from required net clearance while pace remains the launch-speed magnitude, so the first bounce is a physical result rather than a forced target. Serves map the same aim onto the diagonally opposite service box, clamp the target inside ITF geometry, and solve a fixed-speed heading/elevation that clears the net and reaches that legal target. Both paths use the same fixed-step forces, bounce profiles, and event reporting.
 
 ### 6.2 Free-flight forces
 
-The provisional solver applies:
+The `ball-v4-shot-profiles` solver applies:
 
 - gravity `m * g`;
 - drag opposite the velocity vector, proportional to `0.5 * Cd * rho * A * v²`;
@@ -114,11 +114,11 @@ The provisional solver applies:
 
 Wind direction is stored in the player-facing court frame: `0 degrees` moves air toward `+z` and `90 degrees` toward `+x`. The authoring solver finds the calm-air launch required for the intended target, then runtime air-relative forces apply the configured wind. This deliberately makes wind move the visible bounce/arrival instead of silently re-aiming every opponent shot.
 
-The current research supports treating drag coefficient as constant over one arc and lift coefficient as a function of spin parameter for the normal tennis range. Those values must be calibration data, not scattered magic constants.
+The implementation uses a 57.7 g, 67 mm ball, `Cd = 0.55`, and `Cl = min(0.35, 0.6 S)`, where `S = Rω/v`. Flat, slice, and kick serve profiles use distinct three-dimensional axes and approximate measured magnitudes of 123, 232, and 337 rad/s. Volley spin is always zero. These constants, their source evidence, and remaining calibration limits are recorded in [Ball flight and impact calibration](research/ball-flight-impact-calibration.md).
 
 ### 6.3 Integration and events
 
-- Fixed simulation step; initial spike compares 1/240 s and 1/480 s RK4 or an equivalent stable integrator against high-resolution golden trajectories.
+- Fixed 1/240 s semi-implicit integration; endpoint, legality, determinism, and post-bounce invariants are covered by checked-in tests, while a high-resolution research comparison remains an external calibration gate.
 - Rendering interpolates between simulation states and does not advance the physics clock directly.
 - Court and net intersections are solved within a step instead of waiting for a sampled point to cross a plane.
 - Ball launch, net crossing/contact, court bounce, receiver-plane crossing, and shot completion are timestamped events.
@@ -135,14 +135,12 @@ Bounce is a discontinuity between two free-flight arcs. A surface profile provid
 type SurfacePhysics = {
   id: string;
   normalRestitution: number;
-  tangentialFriction: number;
-  spinCoupling: number;
-  paceCategory?: 1 | 2 | 3 | 4 | 5;
-  provenance: string;
+  friction: number;
+  rollingResistance: number;
 };
 ```
 
-Initial values are calibrated to ITF ball rebound ranges and Court Pace Rating test concepts, then tuned with recorded trajectory references. Product-facing labels distinguish measured/calibrated profiles from illustrative ones.
+Impact uses a `0.55 mR²` tennis-ball inertia model. It computes contact-point slip, caps the tangential impulse with Coulomb friction, transfers that impulse into both horizontal and angular velocity, and applies a bounded impact-speed correction to normal restitution. Hard, clay, and grass provide separate restitution, friction, and rolling resistance. The natural profile is resolved first; an optional Quick Practice factor then multiplies only the first rebound's normal velocity from 0.60× to 1.40×. Product-facing labels distinguish the 1.00× research-calibrated baseline from this explicit perceptual adjustment.
 
 ### 6.5 Inverse authoring
 

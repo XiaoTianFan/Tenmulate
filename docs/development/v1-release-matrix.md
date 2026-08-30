@@ -18,11 +18,12 @@ Status meanings:
 | CAL-01 | Implemented | Width, height, and viewing distance report horizontal/vertical FOV; a 27° physical FOV was applied in browser. |
 | CAL-02 | Implemented | Six independent camera axes update only the scene camera. |
 | CAL-03 | Implemented | Realistic preset/reset restores 1.70 m eye height, centered 1.5 m runback, level gaze, and 70° horizontal FOV. |
-| CAL-04 | Implemented | Named views save, apply, rename, and delete in local versioned storage. |
+| CAL-04 | Implemented | Camera-position and perspective presets persist as separate local collections; either side can be combined, created, or updated in place. |
 | CAL-05 | Implemented; external validation | The calibration dialog exposes regulation court/net/ball checks; real TV/projector review is pending. |
 | CAL-06 | Implemented | First practice launch is gated by a local safe-space acknowledgement with no room-measurement claim. |
+| CAL-07 | Implemented; owner comfort review pending | Held-key WASD movement is frame-rate independent, diagonal-normalized, player-view correct, and remains active after setup controls retain focus. |
 | POV-01 | Implemented | SI constants and court-construction tests cover 8.23 × 23.77 m singles geometry, 6.40 m service distance, net center/posts, and ball radius. |
-| POV-02 | Implemented | Separate court-appearance and bounce-profile state; clay appearance with grass physics passed browser inspection. |
+| POV-02 | Implemented | One canonical hard/clay/grass selection drives both the rendered material and the physical surface profile; legacy split preferences migrate to the former physics choice. |
 | POV-03 | Implemented | The near-player layer is absent by design. |
 | POV-04 | Implemented | Browser fullscreen plus button/H-key HUD hiding; central transport remains available. |
 | POV-05 | Implemented | Camera presentation lives on launch/event metadata and never enters trajectory resolution. |
@@ -35,13 +36,17 @@ Status meanings:
 
 | ID | Status | Evidence or remaining gate |
 | --- | --- | --- |
-| BALL-01 | Implemented; external calibration | Fixed 240 Hz gravity, quadratic drag, Magnus coupling, and five spin modes are tested across all bundled shots. Physics tuning against measured/player evidence remains. |
-| BALL-02 | Implemented | Hard/clay/grass restitution, retention, and spin coupling are separate from flight; bounce events report pre/post speed. |
-| BALL-03 | Implemented | Shots author source, landing target/depth, pace, spin, net clearance, and receiver plane; launch vectors are solved internally. |
+| BALL-01 | Implemented; external calibration | `ball-v4-shot-profiles` uses source-backed ball mass/diameter, quadratic drag, spin-dependent Magnus force, and a fixed 240 Hz step. Instrumented trajectory calibration remains external. |
+| BALL-02 | Implemented; external calibration | Hard/clay/grass use separate restitution, Coulomb friction, spin transfer, and rolling resistance; tests prove clay loses more horizontal rebound speed than grass. Measured court profiles remain external. |
+| BALL-03 | Implemented | Shots author source/contact, landing or aim, pace, compatible spin, net clearance, surface, and receiver plane; launch vectors are solved internally. |
 | BALL-04 | Implemented | Fixed-step simulation is independent of render refresh and records the first net, bounce, and receiver crossing. Multi-refresh device evidence remains part of the browser matrix. |
 | BALL-05 | Implemented | High-contrast scale/material and short trail are renderer-only; diagnostic centroid samples remain unchanged. |
-| BALL-06 | Implemented | Every bundled shot must cross the net and land in bounds in the content-wide test; imported targets/clearance/enums are bounded and invalid content is rejected. |
+| BALL-06 | Implemented | Bundled shots must cross and land in bounds; Quick Practice flat/slice/kick serves must clear the net and first-bounce inside the diagonally opposite service box. |
 | BALL-07 | Implemented; external calibration | Persisted direction/speed controls produce court-frame wind velocity; drag and Magnus use air-relative velocity. Side-wind displacement and deterministic replay are automated; measured wind calibration remains external. |
+| BALL-08 | Implemented | Right-button court dragging changes player-view azimuth; pace remains launch speed and net clearance constrains elevation while live metadata reports the resulting bounce. |
+| BALL-09 | Implemented | Receiver-plane and baseline crossing are non-terminal; samples and overlapping preview balls continue for at least three seconds after first contact. |
+| BALL-10 | Implemented; owner calibration pending | Groundstroke offers flat/topspin/slice, Serve offers flat/slice/kick from a 2.75 m contact, and Volley is spin-free with the opponent at the net; automated and browser evidence covers each family. |
+| BALL-11 | Implemented; owner calibration pending | A persisted 0.60×–1.40× factor changes only the first post-impact normal velocity; 1.00× preserves the natural surface response and pre-bounce samples are invariant. |
 
 ## Opponent and serve motion
 
@@ -62,7 +67,7 @@ Status meanings:
 | DRILL-02 | Implemented | Compiled repetitions coordinate ball, camera, cue, and rest state on one deterministic clock; opponent metadata occupies the same event. |
 | DRILL-03 | Implemented | Exact seed replay and bounded shot/timing variation have automated coverage. |
 | DRILL-04 | Implemented | 26 shots and 16 drills cover every named family and requested tactical sequence. |
-| DRILL-05 | Implemented | Learning exposes predictive cue/trajectory and slow motion; rehearsal removes predictive overlays. |
+| DRILL-05 | Implemented | One explicit Trajectory toggle controls the predictive path without introducing a second setup mode. |
 | DRILL-06 | Implemented for code-owned primitives; asset validation pending | Five-track editor, undo/redo, live preview, bounded nested camera validation, and test play exist. Clip/GLB availability checks start with production assets. |
 | DRILL-07 | Implemented | Size-limited schema-v1 JSON exchange allowlists fields and rejects duplicate IDs, remote URLs, invalid geometry, unknown primitives, and malformed JSON. |
 | DRILL-08 | Implemented for current bundled/local content | Production service worker hard-reloaded offline after network removal. Optional production asset caching/errors remain an asset-stage gate. |
