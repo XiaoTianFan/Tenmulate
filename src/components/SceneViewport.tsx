@@ -24,7 +24,6 @@ type SceneViewportProps = Readonly<{
   loopTrajectory?: boolean;
   trajectoryInterval?: number | null;
   cameraMotion?: CameraMotion | null;
-  showSight?: boolean;
   highContrastBall?: boolean;
   showBallTrail?: boolean;
   onAimChange?: (directionDeg: number) => void;
@@ -53,7 +52,6 @@ export function SceneViewport({
   loopTrajectory = true,
   trajectoryInterval = null,
   cameraMotion = null,
-  showSight = true,
   highContrastBall = false,
   showBallTrail = false,
   onAimChange,
@@ -159,7 +157,6 @@ export function SceneViewport({
         onPointerCancel={onAimChange || onCameraLookChange ? finishPointer : undefined}
       />
       {error ? <div className="renderer-error" role="alert"><strong>3D renderer unavailable</strong><span>{error}</span><small>WebGL 2 and hardware acceleration are required. Setup and local drills remain available.</small></div> : null}
-      {showSight ? <div className="scene-sight" aria-hidden="true"><span /></div> : null}
       {interactionHint ? <div className="scene-aim-hint">{interactionHint}</div> : null}
     </div>
   );

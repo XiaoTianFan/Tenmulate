@@ -70,11 +70,6 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .renderer-error strong { font-size: 18px; }
 .renderer-error span { max-width: 540px; color: #ef9b95; font-size: 13px; }
 .renderer-error small { color: var(--muted); }
-.scene-sight { pointer-events: none; position: absolute; left: 50%; bottom: 18%; width: 22px; height: 22px; border: 2px solid var(--accent); border-radius: 50%; transform: translateX(-50%); }
-.scene-sight::before, .scene-sight::after { content: ""; position: absolute; background: var(--accent); }
-.scene-sight::before { width: 28px; height: 1px; left: -5px; top: 9px; }
-.scene-sight::after { height: 28px; width: 1px; left: 9px; top: -5px; }
-.scene-sight span { position: absolute; width: 2px; height: 44vh; background: linear-gradient(transparent, rgb(255 255 255 / 55%)); left: 8px; bottom: 19px; }
 .preset-toolbar { position: relative; min-width: 0; display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) auto; align-items: stretch; gap: 12px; padding: 12px 16px; border-top: 1px solid var(--divider); border-bottom: 1px solid var(--divider); background: #090f13; }
 .preset-group { min-width: 0; display: grid; grid-template-rows: 25px 1fr; }
 .preset-group header { min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; color: #dbe3e6; font-size: 11px; }
