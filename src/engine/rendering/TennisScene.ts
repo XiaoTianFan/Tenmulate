@@ -213,11 +213,9 @@ export class TennisScene {
     this.weatherSystem.apply(configuration);
     const activeVenue = this.venueGroups[configuration.venue];
     const warm = configuration.lighting === 'indoor-warm';
-    const outdoorFixtureScale = configuration.timeOfDay >= 19
-      ? THREE.MathUtils.smoothstep(configuration.timeOfDay, 19, 21)
-      : configuration.timeOfDay <= 7
-        ? THREE.MathUtils.smoothstep(7 - configuration.timeOfDay, 0, 2)
-        : 0;
+    const solarArc = Math.sin(THREE.MathUtils.clamp((configuration.timeOfDay - 5.5) / 15, 0, 1) * Math.PI);
+    const solarElevation = THREE.MathUtils.lerp(-4, 67, Math.pow(Math.max(0, solarArc), 1.5));
+    const outdoorFixtureScale = 1 - THREE.MathUtils.smoothstep(solarElevation, -1, 7);
     const fixtureScale = isOutdoorVenue(configuration.venue) ? outdoorFixtureScale : 1;
     activeVenue.traverse((object) => {
       if (!(object instanceof THREE.PointLight || object instanceof THREE.SpotLight)) return;
@@ -359,7 +357,6 @@ export class TennisScene {
     this.scene.traverse((object) => {
       if (
         object.name === 'dynamic-physical-sky'
-        || object.name === 'procedural-responsive-cloud-dome'
         || object.name === 'procedural-wind-driven-rain'
       ) return;
       if (object instanceof THREE.Mesh || object instanceof THREE.Line || object instanceof THREE.LineSegments) {

@@ -22,9 +22,34 @@ const addLine = (
   x: number,
   z: number,
 ): void => {
-  const line = box(width, 0.012, depth, material, x, 0.021, z);
+  const line = box(width, 0.0015, depth, material, x, 0.00075, z);
   line.name = 'court-line';
   group.add(line);
+};
+
+const createRunoffRing = (material: THREE.Material): THREE.Mesh => {
+  const halfWidth = 12;
+  const halfLength = 19.5;
+  const innerHalfWidth = COURT.doublesWidth / 2;
+  const innerHalfLength = COURT.halfLength;
+  const shape = new THREE.Shape();
+  shape.moveTo(-halfWidth, -halfLength);
+  shape.lineTo(halfWidth, -halfLength);
+  shape.lineTo(halfWidth, halfLength);
+  shape.lineTo(-halfWidth, halfLength);
+  shape.closePath();
+  const hole = new THREE.Path();
+  hole.moveTo(-innerHalfWidth, -innerHalfLength);
+  hole.lineTo(-innerHalfWidth, innerHalfLength);
+  hole.lineTo(innerHalfWidth, innerHalfLength);
+  hole.lineTo(innerHalfWidth, -innerHalfLength);
+  hole.closePath();
+  shape.holes.push(hole);
+  const runoff = new THREE.Mesh(new THREE.ShapeGeometry(shape), material);
+  runoff.rotation.x = -Math.PI / 2;
+  runoff.name = 'runoff-surface';
+  runoff.receiveShadow = true;
+  return runoff;
 };
 
 export const createCourt = (surface: SurfaceId): CourtBuildResult => {
@@ -33,8 +58,7 @@ export const createCourt = (surface: SurfaceId): CourtBuildResult => {
   const materialBundle = createSceneMaterialBundle(surface);
   const { materials } = materialBundle;
 
-  const runoff = box(24, 0.08, 39, materials.runoff, 0, -0.08, 0);
-  runoff.name = 'runoff-surface';
+  const runoff = createRunoffRing(materials.runoff);
   const playingSurface = box(COURT.doublesWidth, 0.04, COURT.fullLength, materials.court, 0, -0.02, 0);
   playingSurface.name = 'regulation-playing-surface';
   group.add(runoff, playingSurface);

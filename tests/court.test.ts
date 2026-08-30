@@ -35,14 +35,24 @@ describe('regulation court constants', () => {
 
   it('keeps arenas outdoors and all indoor venues free of audience seating', () => {
     const court = createCourt('hard');
-    for (const arena of ['hard-open-arena', 'clay-sunset-arena', 'grass-center-court'] as const) {
+    const arenaContracts = {
+      'hard-open-arena': { tiers: 3, shape: 'rounded-rectangular-oval' },
+      'clay-sunset-arena': { tiers: 4, shape: 'asymmetric-rounded-rectangle' },
+      'grass-center-court': { tiers: 2, shape: 'squarish-continuous-bowl' },
+    } as const;
+    for (const [arena, contract] of Object.entries(arenaContracts) as [keyof typeof arenaContracts, (typeof arenaContracts)[keyof typeof arenaContracts]][]) {
       const bowl = court.venueGroups[arena].getObjectByName('four-sided-arena-seating-bowl')!;
       expect(bowl).toBeDefined();
-      const standNames: string[] = [];
+      const tiers: THREE.Object3D[] = [];
       bowl.traverse((object) => {
-        if (object.name.includes('multi-tier-stadium-stand')) standNames.push(object.name);
+        if (object.name === 'continuous-rounded-arena-tier') tiers.push(object);
       });
-      expect(standNames).toHaveLength(8);
+      expect(tiers).toHaveLength(contract.tiers);
+      expect(bowl.userData.shape).toBe(contract.shape);
+      expect(bowl.userData.approximateCapacity).toBeGreaterThanOrEqual(14_000);
+      const visibleSeatCount = tiers.reduce((total, tier) => total + Number(tier.userData.visibleSeatCount ?? 0), 0);
+      expect(visibleSeatCount, arena).toBeGreaterThanOrEqual(13_000);
+      expect(visibleSeatCount, arena).toBeLessThanOrEqual(16_500);
       expect(court.venueGroups[arena].getObjectByName('unbranded-procedural-ad-ring')).toBeDefined();
       expect(court.venueGroups[arena].getObjectByName('open-roof-arena-canopy')).toBeDefined();
     }
@@ -50,6 +60,43 @@ describe('regulation court constants', () => {
       const names: string[] = [];
       court.venueGroups[indoor].traverse((object) => names.push(object.name));
       expect(names.some((name) => name.includes('bleacher') || name.includes('seating-bowl'))).toBe(false);
+    }
+  });
+
+  it('grounds the runoff, playing slab, and court markings on one shared surface plane', () => {
+    const court = createCourt('hard');
+    const runoff = court.group.getObjectByName('runoff-surface') as THREE.Mesh;
+    const playingSurface = court.group.getObjectByName('regulation-playing-surface') as THREE.Mesh;
+    expect(runoff.geometry).toBeInstanceOf(THREE.ShapeGeometry);
+    expect(runoff.position.y).toBe(0);
+    playingSurface.geometry.computeBoundingBox();
+    expect(playingSurface.position.y + playingSurface.geometry.boundingBox!.max.y).toBeCloseTo(0, 6);
+    const lines = court.group.children.filter((child) => child.name === 'court-line') as THREE.Mesh[];
+    expect(lines).toHaveLength(11);
+    for (const line of lines) {
+      line.geometry.computeBoundingBox();
+      expect(line.position.y + line.geometry.boundingBox!.min.y).toBeCloseTo(0, 6);
+    }
+  });
+
+  it('builds a dense net mesh with a regulation-width white top tape', () => {
+    const court = createCourt('hard');
+    const net = court.group.getObjectByName('regulation-net') as THREE.Group;
+    const mesh = net.children.find((child) => child instanceof THREE.LineSegments) as THREE.LineSegments;
+    expect((mesh.geometry.getAttribute('position') as THREE.BufferAttribute).count).toBeGreaterThan(3_000);
+    const tape = net.getObjectByName('wide-regulation-net-tape') as THREE.Mesh;
+    tape.geometry.computeBoundingBox();
+    expect(tape.geometry.boundingBox!.max.y - tape.geometry.boundingBox!.min.y).toBeGreaterThanOrEqual(0.075);
+  });
+
+  it('provides positioned artificial floodlights in every outdoor venue', () => {
+    const court = createCourt('hard');
+    for (const venue of VENUE_IDS.slice(0, 6)) {
+      let lightCount = 0;
+      court.venueGroups[venue].traverse((object) => {
+        if (object instanceof THREE.SpotLight) lightCount += 1;
+      });
+      expect(lightCount, venue).toBeGreaterThanOrEqual(12);
     }
   });
 

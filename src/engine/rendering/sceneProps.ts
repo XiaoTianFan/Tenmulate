@@ -3,6 +3,15 @@ import { COURT } from '../../domain/court';
 import type { SceneMaterialLibrary } from './sceneMaterials';
 import { box, cylinder, instancedBoxes, markShadows, type BoxTransform } from './scenePrimitives';
 
+const cloneDoubleSidedMaterial = (material: THREE.Material): THREE.Material => {
+  const clone = material.clone();
+  clone.side = THREE.DoubleSide;
+  clone.onBeforeCompile = material.onBeforeCompile;
+  clone.customProgramCacheKey = material.customProgramCacheKey;
+  clone.userData = { ...material.userData };
+  return clone;
+};
+
 export const createNet = (materials: SceneMaterialLibrary): THREE.Group => {
   const group = new THREE.Group();
   group.name = 'regulation-net';
@@ -11,15 +20,15 @@ export const createNet = (materials: SceneMaterialLibrary): THREE.Group => {
   group.add(box(0.075, COURT.netPostHeight, 0.075, materials.darkMetal, halfWidth, COURT.netPostHeight / 2, 0));
 
   const points: THREE.Vector3[] = [];
-  const divisions = 28;
+  const divisions = 64;
   for (let index = 0; index <= divisions; index += 1) {
     const x = -halfWidth + (index / divisions) * halfWidth * 2;
     const normalized = Math.abs(x / halfWidth);
     const top = COURT.netCenterHeight + (COURT.netPostHeight - COURT.netCenterHeight) * normalized ** 1.7;
     points.push(new THREE.Vector3(x, 0.05, 0), new THREE.Vector3(x, top, 0));
   }
-  for (let row = 1; row <= 10; row += 1) {
-    const ratio = row / 11;
+  for (let row = 1; row <= 24; row += 1) {
+    const ratio = row / 25;
     for (let index = 0; index < divisions; index += 1) {
       const x1 = -halfWidth + (index / divisions) * halfWidth * 2;
       const x2 = -halfWidth + ((index + 1) / divisions) * halfWidth * 2;
@@ -29,19 +38,32 @@ export const createNet = (materials: SceneMaterialLibrary): THREE.Group => {
   }
   group.add(new THREE.LineSegments(
     new THREE.BufferGeometry().setFromPoints(points),
-    new THREE.LineBasicMaterial({ color: 0x34454a, transparent: true, opacity: 0.62 }),
+    new THREE.LineBasicMaterial({ color: 0x26363b, transparent: true, opacity: 0.82 }),
   ));
-  const tapePoints: THREE.Vector3[] = [];
-  for (let index = 0; index <= 48; index += 1) {
-    const x = -halfWidth + (index / 48) * halfWidth * 2;
+  const tapeVertices: number[] = [];
+  const tapeIndices: number[] = [];
+  const tapeSegments = 72;
+  const tapeWidth = 0.075;
+  for (let index = 0; index <= tapeSegments; index += 1) {
+    const x = -halfWidth + (index / tapeSegments) * halfWidth * 2;
     const normalized = Math.abs(x / halfWidth);
     const y = COURT.netCenterHeight + (COURT.netPostHeight - COURT.netCenterHeight) * normalized ** 1.7 + 0.035;
-    tapePoints.push(new THREE.Vector3(x, y, 0));
+    tapeVertices.push(x, y + tapeWidth / 2, -0.004, x, y - tapeWidth / 2, -0.004);
+    if (index < tapeSegments) {
+      const offset = index * 2;
+      tapeIndices.push(offset, offset + 1, offset + 2, offset + 2, offset + 1, offset + 3);
+    }
   }
-  group.add(new THREE.Line(
-    new THREE.BufferGeometry().setFromPoints(tapePoints),
-    new THREE.LineBasicMaterial({ color: 0xf5f5ee }),
-  ));
+  const tapeGeometry = new THREE.BufferGeometry();
+  tapeGeometry.setAttribute('position', new THREE.Float32BufferAttribute(tapeVertices, 3));
+  tapeGeometry.setIndex(tapeIndices);
+  tapeGeometry.computeVertexNormals();
+  const tapeMaterial = cloneDoubleSidedMaterial(materials.line);
+  const tape = new THREE.Mesh(tapeGeometry, tapeMaterial);
+  tape.name = 'wide-regulation-net-tape';
+  tape.castShadow = true;
+  group.add(tape);
+  group.add(box(0.035, COURT.netCenterHeight, 0.018, materials.line, 0, COURT.netCenterHeight / 2, 0));
   return group;
 };
 
@@ -265,6 +287,222 @@ export const createStadiumStand = (
     group.add(rail);
   }
   return group;
+};
+
+export type RoundedArenaTierOptions = Readonly<{
+  radiusX: number;
+  radiusZ: number;
+  exponent: number;
+  rows: number;
+  baseHeight: number;
+  seatMaterial: THREE.Material;
+  rowDepth?: number;
+  rowRise?: number;
+  seatSpacing?: number;
+  aisleCount?: number;
+  aisleWidth?: number;
+  startAngle?: number;
+  endAngle?: number;
+}>;
+
+const signedPower = (value: number, power: number): number => Math.sign(value) * Math.abs(value) ** power;
+
+const superellipsePoint = (
+  angle: number,
+  radiusX: number,
+  radiusZ: number,
+  exponent: number,
+): readonly [number, number] => {
+  const power = 2 / exponent;
+  return [
+    radiusX * signedPower(Math.cos(angle), power),
+    radiusZ * signedPower(Math.sin(angle), power),
+  ];
+};
+
+const wrappedAngleDistance = (left: number, right: number): number => {
+  const delta = Math.abs(left - right) % (Math.PI * 2);
+  return Math.min(delta, Math.PI * 2 - delta);
+};
+
+const createSteppedBowlGeometry = (options: RoundedArenaTierOptions, segments: number): THREE.BufferGeometry => {
+  const vertices: number[] = [];
+  const indices: number[] = [];
+  const start = options.startAngle ?? 0;
+  const end = options.endAngle ?? Math.PI * 2;
+  const rowDepth = options.rowDepth ?? 0.62;
+  const rowRise = options.rowRise ?? 0.4;
+  const pushQuad = (points: readonly (readonly [number, number, number])[]): void => {
+    const offset = vertices.length / 3;
+    for (const point of points) vertices.push(...point);
+    indices.push(offset, offset + 2, offset + 1, offset + 2, offset + 3, offset + 1);
+  };
+  for (let row = 0; row < options.rows; row += 1) {
+    const centerX = options.radiusX + row * rowDepth;
+    const centerZ = options.radiusZ + row * rowDepth;
+    const innerX = centerX - rowDepth * 0.48;
+    const innerZ = centerZ - rowDepth * 0.48;
+    const outerX = centerX + rowDepth * 0.5;
+    const outerZ = centerZ + rowDepth * 0.5;
+    const y = options.baseHeight + row * rowRise;
+    const riserBottom = row === 0 ? options.baseHeight - 0.42 : y - rowRise + 0.015;
+    for (let segment = 0; segment < segments; segment += 1) {
+      const angle0 = THREE.MathUtils.lerp(start, end, segment / segments);
+      const angle1 = THREE.MathUtils.lerp(start, end, (segment + 1) / segments);
+      const inner0 = superellipsePoint(angle0, innerX, innerZ, options.exponent);
+      const inner1 = superellipsePoint(angle1, innerX, innerZ, options.exponent);
+      const outer0 = superellipsePoint(angle0, outerX, outerZ, options.exponent);
+      const outer1 = superellipsePoint(angle1, outerX, outerZ, options.exponent);
+      pushQuad([
+        [inner0[0], y, inner0[1]], [outer0[0], y, outer0[1]],
+        [inner1[0], y, inner1[1]], [outer1[0], y, outer1[1]],
+      ]);
+      pushQuad([
+        [outer0[0], riserBottom, outer0[1]], [outer0[0], y, outer0[1]],
+        [outer1[0], riserBottom, outer1[1]], [outer1[0], y, outer1[1]],
+      ]);
+    }
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  return geometry;
+};
+
+export const createRoundedArenaTier = (
+  materials: SceneMaterialLibrary,
+  options: RoundedArenaTierOptions,
+): THREE.Group => {
+  const group = new THREE.Group();
+  group.name = 'continuous-rounded-arena-tier';
+  const start = options.startAngle ?? 0;
+  const end = options.endAngle ?? Math.PI * 2;
+  const span = end - start;
+  const fullLoop = Math.abs(span - Math.PI * 2) < 0.01;
+  const segments = Math.max(48, Math.round(144 * span / (Math.PI * 2)));
+  const terrace = new THREE.Mesh(createSteppedBowlGeometry(options, segments), materials.concrete);
+  terrace.name = 'stepped-rounded-concrete-bowl';
+  terrace.castShadow = true;
+  terrace.receiveShadow = true;
+  group.add(terrace);
+
+  const rowDepth = options.rowDepth ?? 0.62;
+  const rowRise = options.rowRise ?? 0.4;
+  const seats: BoxTransform[] = [];
+  const backs: BoxTransform[] = [];
+  const aisleCount = options.aisleCount ?? 12;
+  const aisleWidth = options.aisleWidth ?? 0.045;
+  const aisleAngles = Array.from({ length: aisleCount }, (_, index) => start + span * (index + 0.5) / aisleCount);
+  for (let row = 0; row < options.rows; row += 1) {
+    const radiusX = options.radiusX + row * rowDepth;
+    const radiusZ = options.radiusZ + row * rowDepth;
+    const circumference = Math.PI * (3 * (radiusX + radiusZ) - Math.sqrt((3 * radiusX + radiusZ) * (radiusX + 3 * radiusZ)));
+    const columns = Math.max(24, Math.round(circumference * span / (Math.PI * 2) / (options.seatSpacing ?? 0.52)));
+    for (let column = 0; column < columns; column += 1) {
+      const angle = THREE.MathUtils.lerp(start, end, (column + 0.5) / columns);
+      const inAisle = aisleAngles.some((aisleAngle) => (
+        fullLoop ? wrappedAngleDistance(angle, aisleAngle) : Math.abs(angle - aisleAngle)
+      ) < aisleWidth);
+      if (inAisle) continue;
+      const point = superellipsePoint(angle, radiusX, radiusZ, options.exponent);
+      const normal = new THREE.Vector2(point[0] / (radiusX * radiusX), point[1] / (radiusZ * radiusZ)).normalize();
+      const yaw = Math.atan2(normal.x, normal.y);
+      const y = options.baseHeight + row * rowRise;
+      seats.push({ position: [point[0] - normal.x * 0.07, y + 0.13, point[1] - normal.y * 0.07], rotation: [0, yaw, 0] });
+      backs.push({ position: [point[0] + normal.x * 0.18, y + 0.38, point[1] + normal.y * 0.18], rotation: [0, yaw, 0] });
+    }
+  }
+  group.add(instancedBoxes(0.46, 0.085, 0.42, options.seatMaterial, seats));
+  group.add(instancedBoxes(0.46, 0.46, 0.085, options.seatMaterial, backs));
+
+  const railPoints: THREE.Vector3[] = [];
+  const railSamples = Math.max(48, Math.round(96 * span / (Math.PI * 2)));
+  for (let sample = 0; sample <= railSamples; sample += 1) {
+    const angle = THREE.MathUtils.lerp(start, end, sample / railSamples);
+    const point = superellipsePoint(angle, options.radiusX - 0.42, options.radiusZ - 0.42, options.exponent);
+    railPoints.push(new THREE.Vector3(point[0], options.baseHeight + 1.02, point[1]));
+  }
+  const railCurve = new THREE.CatmullRomCurve3(railPoints, fullLoop, 'catmullrom', 0.12);
+  const rail = new THREE.Mesh(new THREE.TubeGeometry(railCurve, railSamples * 2, 0.045, 6, fullLoop), materials.darkMetal);
+  rail.name = 'rounded-front-guardrail';
+  group.add(rail);
+  for (let index = 0; index < railPoints.length; index += Math.max(1, Math.floor(railPoints.length / 26))) {
+    const point = railPoints[index];
+    group.add(box(0.055, 1.02, 0.055, materials.darkMetal, point.x, options.baseHeight + 0.51, point.z));
+  }
+  group.userData.visibleSeatCount = seats.length;
+  return group;
+};
+
+export const createSuperellipseFascia = (
+  material: THREE.Material,
+  radiusX: number,
+  radiusZ: number,
+  exponent: number,
+  y: number,
+  height: number,
+): THREE.Mesh => {
+  const vertices: number[] = [];
+  const indices: number[] = [];
+  const segments = 160;
+  for (let segment = 0; segment < segments; segment += 1) {
+    const point0 = superellipsePoint(segment / segments * Math.PI * 2, radiusX, radiusZ, exponent);
+    const point1 = superellipsePoint((segment + 1) / segments * Math.PI * 2, radiusX, radiusZ, exponent);
+    const offset = vertices.length / 3;
+    vertices.push(
+      point0[0], y - height / 2, point0[1], point0[0], y + height / 2, point0[1],
+      point1[0], y - height / 2, point1[1], point1[0], y + height / 2, point1[1],
+    );
+    indices.push(offset, offset + 1, offset + 2, offset + 2, offset + 1, offset + 3);
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  const roofMaterial = cloneDoubleSidedMaterial(material);
+  const mesh = new THREE.Mesh(geometry, roofMaterial);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  return mesh;
+};
+
+export const createSuperellipseRoofRing = (
+  material: THREE.Material,
+  innerX: number,
+  innerZ: number,
+  outerX: number,
+  outerZ: number,
+  exponent: number,
+  y: number,
+): THREE.Mesh => {
+  const vertices: number[] = [];
+  const indices: number[] = [];
+  const segments = 160;
+  for (let segment = 0; segment < segments; segment += 1) {
+    const angle0 = segment / segments * Math.PI * 2;
+    const angle1 = (segment + 1) / segments * Math.PI * 2;
+    const inner0 = superellipsePoint(angle0, innerX, innerZ, exponent);
+    const inner1 = superellipsePoint(angle1, innerX, innerZ, exponent);
+    const outer0 = superellipsePoint(angle0, outerX, outerZ, exponent);
+    const outer1 = superellipsePoint(angle1, outerX, outerZ, exponent);
+    const offset = vertices.length / 3;
+    vertices.push(
+      inner0[0], y, inner0[1], outer0[0], y, outer0[1],
+      inner1[0], y, inner1[1], outer1[0], y, outer1[1],
+    );
+    indices.push(offset, offset + 2, offset + 1, offset + 2, offset + 3, offset + 1);
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  const roofMaterial = cloneDoubleSidedMaterial(material);
+  const mesh = new THREE.Mesh(geometry, roofMaterial);
+  mesh.name = 'continuous-rounded-roof-ring';
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  return mesh;
 };
 
 export const createLightPole = (materials: SceneMaterialLibrary, x: number, z: number, faceZ: number): THREE.Group => {

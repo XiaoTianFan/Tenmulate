@@ -10,7 +10,9 @@ import {
   createFenceEnclosure,
   createHedge,
   createLightPole,
-  createStadiumStand,
+  createRoundedArenaTier,
+  createSuperellipseFascia,
+  createSuperellipseRoofRing,
 } from './sceneProps';
 
 const addPathNetwork = (group: THREE.Group, materials: SceneMaterialLibrary, width: number, length: number): void => {
@@ -85,6 +87,7 @@ const createClayTerrace = (materials: SceneMaterialLibrary): THREE.Group => {
   for (let step = 0; step < 13; step += 1) group.add(box(5 + step * 0.4, 0.22, 0.5, materials.clayStone, 0, 0.12 + step * 0.23, 17 + step * 0.43));
   for (const side of [-1, 1]) for (let z = -15; z <= 33; z += 6) group.add(createCypressTree(materials, side * 18, z, 1.15));
   for (const x of [-11, -7, 7, 11]) group.add(createCypressTree(materials, x, 34, 1.25));
+  for (const [x, z] of [[-13.4, -14], [13.4, -14], [-13.4, 13], [13.4, 13]] as const) group.add(createLightPole(materials, x, z, z < 0 ? 1 : -1));
   return group;
 };
 
@@ -130,118 +133,118 @@ const createAdRing = (materials: SceneMaterialLibrary): THREE.Group => {
   return group;
 };
 
-type ArenaIdentity = 'hard' | 'clay' | 'grass';
-
-const createArenaBowl = (
-  materials: SceneMaterialLibrary,
-  identity: ArenaIdentity,
-): THREE.Group => {
+const createHardOvalBowl = (materials: SceneMaterialLibrary): THREE.Group => {
   const group = new THREE.Group();
   group.name = 'four-sided-arena-seating-bowl';
-  group.userData.identity = identity;
-  const compact = identity === 'clay';
-  const lowerSeat = identity === 'hard' ? materials.blueSeat : identity === 'grass' ? materials.greenSeat : materials.warmSeat;
-  const upperSeat = identity === 'hard' ? materials.darkWall : materials.greenSeat;
-  const sideLength = compact ? 39 : 43;
-  const endLength = compact ? 29 : 33;
+  group.userData = { identity: 'hard', shape: 'rounded-rectangular-oval', approximateCapacity: 14800 };
+  group.add(createRoundedArenaTier(materials, {
+    radiusX: 13.1, radiusZ: 17.8, exponent: 3.1, rows: 15, baseHeight: 0.65,
+    rowDepth: 0.52, rowRise: 0.32, seatSpacing: 0.46, seatMaterial: materials.blueSeat, aisleCount: 16,
+  }));
+  const lowerFascia = createSuperellipseFascia(materials.darkWall, 20.35, 25.05, 3.1, 5.5, 1.35);
+  lowerFascia.name = 'hard-arena-lower-concourse';
+  group.add(lowerFascia);
+  group.add(createRoundedArenaTier(materials, {
+    radiusX: 21.2, radiusZ: 25.9, exponent: 3.05, rows: 9, baseHeight: 6.05,
+    rowDepth: 0.58, rowRise: 0.38, seatSpacing: 0.46, seatMaterial: materials.blueSeat, aisleCount: 18,
+  }));
+  group.add(createRoundedArenaTier(materials, {
+    radiusX: 26.2, radiusZ: 31.3, exponent: 2.85, rows: 25, baseHeight: 9.55,
+    rowDepth: 0.5, rowRise: 0.3, seatSpacing: 0.46, seatMaterial: materials.darkWall, aisleCount: 20,
+  }));
+  group.add(createSuperellipseFascia(materials.darkWall, 25.3, 30.4, 2.9, 8.7, 1.0));
+  return group;
+};
 
+const createClayAsymmetricBowl = (materials: SceneMaterialLibrary): THREE.Group => {
+  const group = new THREE.Group();
+  group.name = 'four-sided-arena-seating-bowl';
+  group.userData = { identity: 'clay', shape: 'asymmetric-rounded-rectangle', approximateCapacity: 15000 };
+  group.add(createRoundedArenaTier(materials, {
+    radiusX: 12.8, radiusZ: 17.4, exponent: 5.5, rows: 15, baseHeight: 0.65,
+    rowDepth: 0.45, rowRise: 0.27, seatSpacing: 0.46, seatMaterial: materials.warmSeat, aisleCount: 14,
+  }));
+  group.add(createSuperellipseFascia(materials.darkWall, 19.45, 24.05, 5.4, 4.85, 1.15));
+  group.add(createRoundedArenaTier(materials, {
+    radiusX: 19.9, radiusZ: 24.5, exponent: 5.4, rows: 16, baseHeight: 5.45,
+    rowDepth: 0.4, rowRise: 0.27, seatSpacing: 0.46, seatMaterial: materials.greenSeat, aisleCount: 16,
+  }));
+  group.add(createRoundedArenaTier(materials, {
+    radiusX: 25.9, radiusZ: 30.5, exponent: 5.8, rows: 28, baseHeight: 9.7,
+    rowDepth: 0.46, rowRise: 0.27, seatSpacing: 0.46, seatMaterial: materials.darkWall, aisleCount: 18,
+    startAngle: Math.PI * 0.06, endAngle: Math.PI * 0.94,
+  }));
+  group.add(createRoundedArenaTier(materials, {
+    radiusX: 25.7, radiusZ: 30.3, exponent: 5.8, rows: 24, baseHeight: 9.7,
+    rowDepth: 0.46, rowRise: 0.27, seatSpacing: 0.46, seatMaterial: materials.greenSeat, aisleCount: 8,
+    startAngle: Math.PI * 1.08, endAngle: Math.PI * 1.92,
+  }));
+  return group;
+};
+
+const createGrassContinuousBowl = (materials: SceneMaterialLibrary): THREE.Group => {
+  const group = new THREE.Group();
+  group.name = 'four-sided-arena-seating-bowl';
+  group.userData = { identity: 'grass', shape: 'squarish-continuous-bowl', approximateCapacity: 14900 };
+  group.add(createRoundedArenaTier(materials, {
+    radiusX: 12.9, radiusZ: 17.9, exponent: 4.7, rows: 19, baseHeight: 0.62,
+    rowDepth: 0.42, rowRise: 0.28, seatSpacing: 0.46, seatMaterial: materials.greenSeat, aisleCount: 16,
+  }));
+  group.add(createSuperellipseFascia(materials.darkWall, 20.7, 25.7, 4.7, 5.45, 1.25));
+  group.add(createRoundedArenaTier(materials, {
+    radiusX: 21.2, radiusZ: 26.2, exponent: 4.7, rows: 34, baseHeight: 6.0,
+    rowDepth: 0.52, rowRise: 0.34, seatSpacing: 0.46, seatMaterial: materials.greenSeat, aisleCount: 20,
+  }));
+  return group;
+};
+
+const createHardArenaRoof = (materials: SceneMaterialLibrary): THREE.Group => {
+  const group = new THREE.Group();
+  group.name = 'open-roof-arena-canopy';
+  group.userData.identity = 'hard';
+  group.add(createSuperellipseRoofRing(materials.darkWall, 23.5, 29.2, 36.5, 43.5, 3, 17.1));
+  group.add(createSuperellipseFascia(materials.darkWall, 30.2, 36.4, 3, 16.45, 1.25));
+  group.add(createSuperellipseFascia(materials.lightMetal, 23.5, 29.2, 3, 17.05, 0.28));
+  return group;
+};
+
+const createClayArenaRoof = (materials: SceneMaterialLibrary): THREE.Group => {
+  const group = new THREE.Group();
+  group.name = 'open-roof-arena-canopy';
+  group.userData.identity = 'clay';
   for (const side of [-1, 1]) {
-    const lower = createStadiumStand(materials, side as -1 | 1, {
-      rows: compact ? 7 : 8,
-      columns: compact ? 58 : 68,
-      length: sideLength,
-      seatMaterial: lowerSeat,
-      aisleCount: 3,
-    });
-    lower.position.set(side * 12.9, 0.78, 0);
-    const upper = createStadiumStand(materials, side as -1 | 1, {
-      rows: compact ? 8 : 10,
-      columns: compact ? 62 : 74,
-      length: sideLength + 4,
-      seatMaterial: upperSeat,
-      rowDepth: 0.66,
-      rowRise: 0.43,
-      aisleCount: 3,
-    });
-    upper.position.set(side * (compact ? 17.25 : 17.8), compact ? 4.45 : 4.8, 0);
-    group.add(lower, upper);
-    group.add(box(2.35, 1.42, sideLength + 5.4, materials.darkWall, side * (compact ? 17.2 : 17.7), 4.05, 0));
-    group.add(box(2.8, 0.24, sideLength + 6, materials.paleConcrete, side * (compact ? 17.2 : 17.7), 4.78, 0));
-    for (const z of [-13, 0, 13]) {
-      group.add(box(0.28, 2.35, 3.2, materials.darkMetal, side * 16.02, 3.25, z));
-      group.add(box(0.36, 0.16, 3.6, materials.lamp, side * 15.84, 4.38, z));
-    }
+    const canopy = box(11.5, 0.42, 68, materials.roof, side * 31, 18.15, 0);
+    canopy.rotation.z = side * -0.055;
+    group.add(canopy);
+    group.add(box(0.8, 1.1, 68, materials.darkWall, side * 36.1, 17.5, 0));
   }
+  group.add(box(50, 0.42, 11, materials.roof, 0, 18.55, 33.2));
+  for (let x = -22; x <= 22; x += 5.5) group.add(box(0.18, 0.18, 11, materials.lightMetal, x, 18.3, 33.2));
+  return group;
+};
 
-  const lowerFar = createStadiumStand(materials, 1, {
-    rows: compact ? 6 : 7, columns: compact ? 42 : 50, length: endLength, seatMaterial: lowerSeat, aisleCount: 2,
-  });
-  lowerFar.position.set(0, 0.78, 16.35);
-  lowerFar.rotation.y = -Math.PI / 2;
-  const lowerNear = createStadiumStand(materials, -1, {
-    rows: compact ? 5 : 6, columns: compact ? 40 : 48, length: endLength, seatMaterial: lowerSeat, aisleCount: 2,
-  });
-  lowerNear.position.set(0, 0.78, -19.55);
-  lowerNear.rotation.y = -Math.PI / 2;
-  const upperFar = createStadiumStand(materials, 1, {
-    rows: compact ? 7 : 9, columns: compact ? 50 : 58, length: endLength + 5, seatMaterial: upperSeat, rowDepth: 0.66, rowRise: 0.43, aisleCount: 2,
-  });
-  upperFar.position.set(0, compact ? 4.3 : 4.65, compact ? 20.1 : 20.45);
-  upperFar.rotation.y = -Math.PI / 2;
-  const upperNear = createStadiumStand(materials, -1, {
-    rows: compact ? 6 : 8, columns: compact ? 48 : 56, length: endLength + 5, seatMaterial: upperSeat, rowDepth: 0.66, rowRise: 0.43, aisleCount: 2,
-  });
-  upperNear.position.set(0, compact ? 4.3 : 4.65, compact ? -23.1 : -23.55);
-  upperNear.rotation.y = -Math.PI / 2;
-  group.add(lowerFar, lowerNear, upperFar, upperNear);
-  group.add(box(endLength + 6, 1.42, 2.4, materials.darkWall, 0, 3.98, compact ? 20.1 : 20.4));
-  group.add(box(endLength + 6, 1.42, 2.4, materials.darkWall, 0, 3.98, compact ? -23.1 : -23.5));
-  for (const z of [compact ? 20 : 20.3, compact ? -23 : -23.4]) {
-    group.add(box(endLength + 7, 0.24, 2.8, materials.paleConcrete, 0, 4.72, z));
-    for (const x of [-9.5, 0, 9.5]) group.add(box(3, 2.25, 0.3, materials.darkMetal, x, 3.23, z + Math.sign(z) * -1.16));
+const createGrassArenaRoof = (materials: SceneMaterialLibrary): THREE.Group => {
+  const group = new THREE.Group();
+  group.name = 'open-roof-arena-canopy';
+  group.userData.identity = 'grass';
+  group.add(createSuperellipseRoofRing(materials.greenSeat, 22.5, 28.5, 38.5, 44, 4.8, 17.9));
+  group.add(createSuperellipseFascia(materials.darkWall, 31, 36.4, 4.8, 17.2, 1.25));
+  group.add(createSuperellipseFascia(materials.lightMetal, 22.5, 28.5, 4.8, 17.8, 0.32));
+  for (let x = -20; x <= 20; x += 5) {
+    const brace = box(0.2, 0.2, 10.5, materials.lightMetal, x, 18.08, 33.2);
+    group.add(brace);
   }
   return group;
 };
 
-const createArenaCanopy = (materials: SceneMaterialLibrary, identity: ArenaIdentity): THREE.Group => {
+const createArenaFloodlightSystem = (materials: SceneMaterialLibrary, y: number, intensity: number): THREE.Group => {
   const group = new THREE.Group();
-  group.name = 'open-roof-arena-canopy';
-  group.userData.identity = identity;
-  const sideY = identity === 'grass' ? 15.1 : identity === 'hard' ? 14.45 : 13.85;
-  const roofMaterial = identity === 'grass' ? materials.greenSeat : materials.paleConcrete;
-  for (const side of [-1, 1]) {
-    for (let z = -27; z <= 27; z += 7.7) {
-      const canopy = box(11.5, 0.36, 7.35, roofMaterial, side * 23.4, sideY, z);
-      canopy.rotation.z = side * -0.07;
-      group.add(canopy);
-    }
-    group.add(box(1.05, 1.1, 57, materials.darkWall, side * 27.9, sideY - 0.82, 0));
-    group.add(box(0.34, 0.34, 57, materials.lightMetal, side * 28.35, sideY + 0.35, 0));
+  group.name = 'arena-dawn-night-floodlights';
+  for (const z of [-20.2, 20.2]) {
+    for (const x of [-12, -4, 4, 12]) group.add(createCeilingFixture(materials, x, y, z, 3.4, intensity));
   }
-  for (const end of [-1, 1]) {
-    for (let x = -19.5; x <= 19.5; x += 6.5) {
-      const canopy = box(6.2, 0.36, 10.5, roofMaterial, x, sideY + 0.35, end * 27.4);
-      canopy.rotation.x = end * -0.06;
-      group.add(canopy);
-    }
-    group.add(box(43, 0.95, 0.9, materials.darkWall, 0, sideY - 0.55, end * 32.15));
-  }
-  for (const side of [-1, 1]) {
-    for (let z = -27; z <= 27; z += 7.7) {
-      group.add(box(0.24, sideY - 4.1, 0.24, materials.lightMetal, side * 28.1, (sideY + 4.1) / 2, z));
-      for (const direction of [-1, 1]) {
-        const brace = box(8.8, 0.19, 0.19, materials.lightMetal, side * 24, sideY - 1.55, z + direction * 1.6);
-        brace.rotation.z = side * direction * 0.45;
-        group.add(brace);
-      }
-    }
-  }
-  for (const end of [-1, 1]) {
-    for (const x of [-18, -12, -6, 0, 6, 12, 18]) {
-      group.add(box(0.2, 0.2, 10.5, materials.lightMetal, x, sideY + 0.18, end * 27.4));
-      const upright = box(0.2, 4.2, 0.2, materials.lightMetal, x, sideY - 2.1, end * 32);
-      group.add(upright);
-    }
+  for (const x of [-17.2, 17.2]) {
+    for (const z of [-8, 8]) group.add(createCeilingFixture(materials, x, y - 0.7, z, 3.2, intensity * 0.86));
   }
   return group;
 };
@@ -258,37 +261,36 @@ const createScoreboard = (materials: SceneMaterialLibrary, y = 8.5): THREE.Group
 const createHardOpenArena = (materials: SceneMaterialLibrary): THREE.Group => {
   const group = new THREE.Group();
   group.name = 'scene-hard-open-arena';
-  group.add(box(72, 0.24, 92, materials.concrete, 0, -0.25, 2));
+  group.add(box(86, 0.24, 104, materials.darkWall, 0, -0.25, 2));
   group.add(createAdRing(materials));
-  group.add(createArenaBowl(materials, 'hard'));
-  group.add(createArenaCanopy(materials, 'hard'));
-  group.add(createScoreboard(materials));
-  for (const x of [-9, 0, 9]) group.add(createCeilingFixture(materials, x, 11.8, 14.4, 4.2, 34));
+  group.add(createHardOvalBowl(materials));
+  group.add(createHardArenaRoof(materials));
+  group.add(createScoreboard(materials, 10.2));
+  group.add(createArenaFloodlightSystem(materials, 16.45, 42));
   return group;
 };
 
 const createClaySunsetArena = (materials: SceneMaterialLibrary): THREE.Group => {
   const group = new THREE.Group();
   group.name = 'scene-clay-sunset-arena';
-  group.add(box(76, 0.24, 96, materials.clayStone, 0, -0.25, 2));
+  group.add(box(88, 0.24, 108, materials.clayStone, 0, -0.25, 2));
   group.add(createAdRing(materials));
-  group.add(createArenaBowl(materials, 'clay'));
-  group.add(createArenaCanopy(materials, 'clay'));
-  group.add(createScoreboard(materials, 9));
-  for (const side of [-1, 1]) group.add(box(7, 3.2, 20, materials.greenSeat, side * 19.2, 5.6, 0));
-  for (const x of [-10, 0, 10]) group.add(createCeilingFixture(materials, x, 12, 14.3, 4.5, 32));
+  group.add(createClayAsymmetricBowl(materials));
+  group.add(createClayArenaRoof(materials));
+  group.add(createScoreboard(materials, 10.4));
+  group.add(createArenaFloodlightSystem(materials, 17.45, 44));
   return group;
 };
 
 const createGrassCenterCourt = (materials: SceneMaterialLibrary): THREE.Group => {
   const group = new THREE.Group();
   group.name = 'scene-grass-center-court';
-  group.add(box(78, 0.24, 98, materials.darkWall, 0, -0.25, 2));
+  group.add(box(90, 0.24, 110, materials.darkWall, 0, -0.25, 2));
   group.add(createAdRing(materials));
-  group.add(createArenaBowl(materials, 'grass'));
-  group.add(createArenaCanopy(materials, 'grass'));
-  group.add(createScoreboard(materials, 8.8));
-  for (const side of [-1, 1]) for (const z of [-14, -5, 5, 14]) group.add(box(2.2, 7.5, 3, materials.paleConcrete, side * 17.4, 4.2, z));
+  group.add(createGrassContinuousBowl(materials));
+  group.add(createGrassArenaRoof(materials));
+  group.add(createScoreboard(materials, 9.5));
+  group.add(createArenaFloodlightSystem(materials, 17.15, 40));
   return group;
 };
 
