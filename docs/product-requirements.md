@@ -169,8 +169,10 @@ Accounts, premium entitlements, cloud content, and payments belong to a separate
 | BALL-07 | Apply configurable physical wind. | Direction and speed produce deterministic world-space air velocity; drag and Magnus use air-relative velocity, non-zero side wind measurably shifts the bounce, and calm-air results remain compatible. |
 | BALL-08 | Configure physical landing interactively. | Right-click, hold, and drag directly on the FPV court to change shot azimuth; pace supplies launch speed and net clearance supplies the elevation constraint, with the resulting first bounce shown in live diagnostics. |
 | BALL-09 | Preserve the complete post-bounce simulation. | Receiver-plane or baseline crossing does not terminate samples; the trajectory and each launched ball remain active through at least three seconds after first ground contact, including when launch intervals overlap. |
-| BALL-10 | Keep Quick Practice shot and spin choices physically compatible. | Groundstroke exposes flat/topspin/slice, serve exposes flat/slice/kick from serve contact height into the diagonal service box, and volley moves the opponent near the net and is spin-free; changing either control changes the rendered trajectory. |
+| BALL-10 | Keep Quick Practice shot and spin choices physically compatible. | Groundstroke exposes flat/topspin/slice, serve exposes flat/slice/kick from serve contact height into the diagonal service box, volley moves the opponent near the net and is spin-free, and lob exposes flat/topspin/slice on a high arc for Overhead practice; changing either control changes the rendered trajectory. |
 | BALL-11 | Separate perceptual bounce adjustment from natural surface physics. | A 0.60×–1.40× first-bounce-height factor defaults to 1.00×, affects only the first post-impact normal velocity, persists locally, and leaves launch, pre-bounce flight, landing, wind, and the selected surface profile unchanged. |
+| BALL-12 | Configure landing depth independently from pace and net clearance. | Non-serve practice exposes a persisted target measured from the net; the fixed-speed solver searches legal launch angles that clear the requested minimum and reports the closest physically reachable depth when no exact solution exists. |
+| BALL-13 | Support an incoming lob for overhead rehearsal. | Lob is a first-class Quick Practice type with a high-angle branch, distinct contact/opponent defaults, 1.20–6.00 m clearance range, compatible flat/topspin/slice choices, and a deep default first bounce. |
 
 ### 9.4 Opponent and serve motion
 
@@ -216,7 +218,7 @@ Each reusable shot describes independent axes:
 - **Intent:** neutral, heavy/deep, short angle, approach, defensive height, pass, lob, volley setup, finish.
 - **Direction:** near-left, middle/body, near-right plus tactical cross-court/down-line/inside-out/inside-in metadata.
 - **Flight:** low/flat, medium, high/heavy.
-- **Spin:** shot-aware rather than one mixed list—groundstrokes allow flat/topspin/slice, serves allow flat/slice/kick, volleys are spin-free, and authored specialist content may retain validated sidespin blends.
+- **Spin:** shot-aware rather than one mixed list—groundstrokes and lobs allow flat/topspin/slice, serves allow flat/slice/kick, volleys are spin-free, and authored specialist content may retain validated sidespin blends.
 - **Pace:** beginner, club, advanced, elite-inspired, or explicit launch-speed range.
 - **Frequency:** fixed interval, work/rest cadence, or declared bounded timing variation.
 - **Landing:** named normalized zone plus exact coordinates.

@@ -153,3 +153,15 @@ The three owner-supplied photographs were used only for massing, palette, venue 
 | Responsive/runtime health | Added controls must not overflow or introduce runtime faults | At 767 × 898 the configuration stacked with zero horizontal overflow; desktop and narrow checks reported zero console errors or warnings | Pass. |
 
 The first implementation used one spin taxonomy and surface-retention scalar across all incoming balls; this pass removes that mismatch. The remaining physics ledger is explicit: constants and impact behavior are research-calibrated rather than venue-measured, Quick Practice contact heights/paces are product defaults rather than claims about a universal player, and no Hawk-Eye-class trajectory or target-device player-perception validation has yet been performed.
+
+## Stage 9: slow/deep trajectory intent and Lob/Overhead feed
+
+| Comparison point | Intended behavior | Browser evidence | Result / remaining refinement |
+| --- | --- | --- | --- |
+| Independent depth | Recreational pace can target a deep first bounce without using clearance as an accidental depth control | Rally selected Groundstroke/Flat at 68 km/h, 0.36 m minimum clearance, and 9.5 m Landing depth; metadata and inline feedback both resolved `0.00, -9.50 m` / 9.5 m | Pass. Automated coverage separately resolves a 10.0 m target at the same pace and preserves launch magnitude exactly. |
+| Physical infeasibility | Impossible pace/depth combinations must not be disguised | Setup compares Target and resolved depth and adds a closest-reachable or pre-net-bounce explanation when the error exceeds tolerance | Contract pass. Exact wording and whether named zones should supplement metres remain owner-review items. |
+| Lob identity | Overhead practice receives a high lob rather than a repurposed volley | Clicking Overhead selected Lob/Topspin, opponent `1.1, 6.0 m`, 52 km/h, 3.2 m clearance, and 9.3 m depth; the visible arc crossed at 6.23 m and landed at `0.96, -9.29 m` | Functional visual pass. Apex/contact/pace remain player-calibration values. |
+| Control density | Landing depth and Lob must fit the existing configuration hierarchy | The new range and target/resolved line fit Ball & rhythm at 1280 × 720; at 767 × 898 the page remained stacked with no horizontal overflow | Pass. |
+| Runtime health | The broader angle search must not introduce visible faults | Groundstroke/Spin and Overhead/Lob interactions completed with zero console warnings/errors; 96 tests and production build pass | Correctness pass. Browser FPS observed during automation is not accepted as target-device performance evidence. |
+
+The previous minimum-angle solve conflated obstacle clearance with depth and could even report a net crossing after a first bounce on an impossible low-speed feed. This pass makes that mismatch explicit and corrects the authoring model. The remaining ledger is calibration rather than architecture: measured recreational speed/spin distributions, lob apex preferences, and target-display perception still require player or instrumented evidence.

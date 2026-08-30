@@ -101,11 +101,11 @@ type BallState = {
 
 Shot definitions store an authoring intent and a resolved launch solution. This lets content authors say “land deep cross-court and arrive shoulder-high” while tests preserve the exact resolved parameters.
 
-The runtime supports two explicit authoring paths. Bundled and editor-authored drills retain inverse target correction to preserve exact checked-in landing points. Quick Practice selects a Groundstroke, Serve, or Volley profile before resolving pace, compatible spin, contact height, opponent origin, net clearance, surface, and wind. Groundstrokes and volleys provide an opponent floor origin plus an azimuth; a right-button drag is raycast from the current FPV camera onto the regulation court plane and converted through the shared player-view horizontal convention. Their launch elevation comes from required net clearance while pace remains the launch-speed magnitude, so the first bounce is a physical result rather than a forced target. Serves map the same aim onto the diagonally opposite service box, clamp the target inside ITF geometry, and solve a fixed-speed heading/elevation that clears the net and reaches that legal target. Both paths use the same fixed-step forces, bounce profiles, and event reporting.
+The runtime supports two explicit authoring paths. Bundled and editor-authored drills retain inverse target correction to preserve exact checked-in landing points. Quick Practice selects a Groundstroke, Serve, Volley, or Lob profile before resolving pace, compatible spin, contact height, opponent origin, minimum net clearance, landing depth, surface, and wind. A right-button drag is raycast from the current FPV camera onto the regulation court plane and converted through the shared player-view horizontal convention. For non-serves, pace remains the exact launch-speed magnitude while landing depth is a separate target measured from the net. `ball-v5-depth-intent` samples the valid fixed-speed launch-angle envelope, rejects candidates that bounce before crossing or miss the requested minimum clearance, then refines the closest depth solution. Groundstroke/Volley prefer the lower matching branch; Lob prefers the high branch. If the requested combination is impossible, the physical closest result is retained and the setup UI reports the mismatch rather than changing pace or fabricating a target hit. Serves retain their diagonally opposite service-box clamp and fixed-speed legality solve. Both authoring paths use the same forces, bounce profiles, and event reporting.
 
 ### 6.2 Free-flight forces
 
-The `ball-v4-shot-profiles` solver applies:
+The `ball-v5-depth-intent` solver applies:
 
 - gravity `m * g`;
 - drag opposite the velocity vector, proportional to `0.5 * Cd * rho * A * v²`;
@@ -114,7 +114,7 @@ The `ball-v4-shot-profiles` solver applies:
 
 Wind direction is stored in the player-facing court frame: `0 degrees` moves air toward `+z` and `90 degrees` toward `+x`. The authoring solver finds the calm-air launch required for the intended target, then runtime air-relative forces apply the configured wind. This deliberately makes wind move the visible bounce/arrival instead of silently re-aiming every opponent shot.
 
-The implementation uses a 57.7 g, 67 mm ball, `Cd = 0.55`, and `Cl = min(0.35, 0.6 S)`, where `S = Rω/v`. Flat, slice, and kick serve profiles use distinct three-dimensional axes and approximate measured magnitudes of 123, 232, and 337 rad/s. Volley spin is always zero. These constants, their source evidence, and remaining calibration limits are recorded in [Ball flight and impact calibration](research/ball-flight-impact-calibration.md).
+The implementation uses a 57.7 g, 67 mm ball, `Cd = 0.55`, and `Cl = min(0.35, 0.6 S)`, where `S = Rω/v`. Flat, slice, and kick serve profiles use distinct three-dimensional axes and approximate measured magnitudes of 123, 232, and 337 rad/s. Volley spin is always zero; Lob uses a lower-spin high-arc family so it does not inherit the ordinary groundstroke spin magnitude. These constants, their source evidence, and remaining calibration limits are recorded in [Ball flight and impact calibration](research/ball-flight-impact-calibration.md).
 
 ### 6.3 Integration and events
 

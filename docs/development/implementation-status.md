@@ -275,3 +275,27 @@ The detailed status of every requirement is recorded in the [V1 release matrix](
 
 - Compare flight and post-bounce samples with instrumented ball tracking, and fit profiles to measured court-specific restitution/friction before describing them as venue-measured.
 - Coach/player review of contact heights, default pace/clearance, serve target margins, Bounce height adjustment, and held-key movement speed on the intended display and input hardware.
+
+## Stage 10 — independent landing depth and lob feeds
+
+- **Status:** Implemented locally on 2026-08-30; owner trajectory-feel and instrumented calibration remain open
+- Reproduced the original failure numerically. The old minimum-clearance solve placed 55–75 km/h topspin groundstrokes only about 1.8–7.4 m beyond the net across the full clearance range; at 35 km/h the first bounce occurred before the net and the recorded crossing happened afterward.
+- Added persisted Landing depth for Groundstroke, Volley, and Lob, measured from the net toward the receiving baseline. Pace remains the exact launch-speed magnitude and Net clearance is a minimum obstacle constraint rather than a hidden proxy for depth.
+- Replaced the one-angle directed solve with `ball-v5-depth-intent`: it samples the physically valid fixed-speed angle envelope, rejects pre-net bounces and insufficient clearances, refines the closest target, selects the lower branch for Groundstroke/Volley and high branch for Lob, and leaves impossible requests visibly unresolved instead of silently increasing speed.
+- Changed the Rally product default to a recreational 68 km/h with a 9.5 m landing target. The exposed pace floor is now 45 km/h from a baseline origin; lower physically impossible baseline feeds are no longer offered by that profile.
+- Added Lob as the fourth Quick Practice shot type with flat/topspin/slice, a 1.05 m contact from `1.1, 6.0 m`, 52 km/h default pace, 3.2 m minimum clearance, 9.3 m default landing depth, and a bounded high arc. The Overhead rail preset now selects this incoming lob rather than reusing Volley.
+- Added target-versus-resolved depth feedback. When pace, spin, clearance, origin, wind, and depth cannot coexist, setup explicitly labels the closest physically reachable result.
+- Updated local preference migration, compiled-session metadata, rehearsal summaries, product requirements, architecture, release matrix, and the research calibration note.
+
+### Verification
+
+- Implementation commit: `817ac8a`.
+- `npm test`: 10 files, 96 tests passed. New evidence preserves 68 km/h launch magnitude while landing a flat Groundstroke within 0.25 m of a 10.0 m target, keeps attainable depth stable across pace/clearance changes, bounds Lob apex between 5.0 and 8.5 m, compiles Overhead as Lob, and clamps migrated depth/profile settings.
+- `npm run build`: production PWA build passed; Setup is approximately 7.68 kB gzip, SceneViewport approximately 173.12 kB gzip, and the 29-entry precache approximately 1.83 MiB. The existing large-scene-chunk warning remains.
+- In-app Browser at 1280 × 720 verified Rally → Groundstroke/Flat at 68 km/h with a 9.5 m target resolving at `0.00, -9.50 m`. Overhead selected Lob/Topspin, moved the opponent to `1.1, 6.0 m`, applied 52 km/h and 3.2 m clearance, and resolved its 9.3 m target at `0.96, -9.29 m` with a 6.23 m net-crossing height.
+- At 767 × 898 the active Overhead/Lob preset and court remained stacked with `scrollWidth = clientWidth = 752`; the final browser console contained zero warnings or errors. Browser-reported FPS was not accepted as foreground performance evidence.
+
+### Remaining review gates
+
+- Coach/player review of whether Landing depth should use metric distance, named zones, or both, and whether the 68 km/h Groundstroke and 52 km/h Lob defaults feel appropriate on the target display.
+- Instrumented comparison of the chosen low/high angle branches, particularly recreational topspin and lob apex, before labeling the profiles measured rather than research-calibrated.
