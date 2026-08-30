@@ -74,8 +74,8 @@ No single TV/projector, viewing distance, room, or GPU defines the product. Refe
 
 ### Environment and view
 
-- Standards-dimension singles court and net, with selectable hard/clay/grass-inspired visual themes and separately selectable surface-physics profiles.
-- Nine complete venue identities: six outdoor club/park/arena environments and three simple indoor halls. Surface appearance and bounce physics remain independently selectable without duplicating regulation court geometry.
+- Standards-dimension singles court and net, with selectable hard, clay, and grass surfaces whose material and bounce profile change together.
+- Nine complete venue identities: six outdoor club/park/arena environments and three simple indoor halls. One surface selection controls both appearance and bounce behavior without duplicating regulation court geometry.
 - Every venue includes an umpire chair, player rest chair/bench, spectator seating without required crowd models, believable access/context, and appropriate perimeter fencing, walls, or stadium structure.
 - Outdoor venues expose sun direction plus daytime/night presets and floodlights. Indoor venues expose artificial-light intensity/color presets and, where windows/skylights/roof openings exist, optional daylight influence.
 - Venue architecture and seating preserve an uncluttered opponent preparation, contact, ball-flight, and bounce visibility corridor from every required player camera.
@@ -147,7 +147,7 @@ Accounts, premium entitlements, cloud content, and payments belong to a separate
 | ID | Requirement | Acceptance criterion |
 | --- | --- | --- |
 | POV-01 | Render regulation geometry in SI units. | Singles width is 8.23 m, full length 23.77 m, service line distance is 6.40 m from the net, and net height is 0.914 m at center and 1.07 m at posts. |
-| POV-02 | Separate appearance and physics. | Changing a court color/theme cannot silently change bounce physics; paired defaults remain independently selectable. |
+| POV-02 | Keep surface appearance and physics coherent. | One hard/clay/grass selection updates both the court material and its bounce profile; saved preferences and rehearsal launches contain one canonical surface identifier. |
 | POV-03 | Keep the near player absent. | No near-player limb, body, or racket appears during V1 playback. |
 | POV-04 | Provide full-screen rehearsal. | Controls hide and restore with one keyboard-accessible action and pause remains discoverable. |
 | POV-05 | Keep camera motion independent. | Camera transforms never alter shot coordinates, event timing, or deterministic replay. |

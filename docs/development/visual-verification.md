@@ -71,7 +71,7 @@ The club-hall/grass and stadium/clay browser screenshots were inspected directly
 | Comparison point | Intended behavior | Browser evidence | Result / action |
 | --- | --- | --- | --- |
 | Physical calibration | Real display measurements produce a usable physical view | 120 × 67.5 cm at 250 cm reported 27° horizontal / 15° vertical and applied 27° without clamping | Pass; corrected the earlier 45° lower-bound mismatch. |
-| Appearance/physics independence | Visual court may differ from bounce profile | Clay appearance and grass bounce profile remained independently selected; the rendered court was clay | Pass. |
+| Surface coherence | One selector drives both material and bounce profile | Selecting Clay left one visible Surface control and changed the rendered court to clay; storage tests preserved one canonical surface value | Pass; legacy independent values migrate with the former physics choice taking precedence. |
 | Camera coverage | Baseline, transition, net, and overhead views | Eight presets and six continuous camera axes are present; reset restores the documented realistic view | Pass. |
 | Rehearsal instrumentation | Quiet primary view with optional detailed diagnostics | Settings panel shows five audio channels, ball options, net clearance, pre/post-bounce speed, arrival, and renderer metrics | Pass. |
 | Ball accessibility | Visibility help cannot alter the physical path | High-contrast scale/material and ten-sample trail are renderer-only settings | Architectural and interaction pass. |

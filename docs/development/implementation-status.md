@@ -121,7 +121,7 @@ This is the evidence ledger for the code-backed V1. “Implemented” means runn
 
 - Full camera calibration across eye height, longitudinal/lateral position, yaw, pitch, and 20–105° horizontal FOV; physical screen width/height plus viewing distance calculate both horizontal and vertical FOV and preserve exact court geometry.
 - Eight built-in camera views covering realistic, wide, both baseline sides, approach, first volley, second volley, and overhead, plus locally persisted named views and complete preference persistence/migration.
-- Independent court appearance and bounce-physics selectors, three venue shells, venue-correct lighting controls, and a sub-900px large-display practice recommendation.
+- Stage 5 originally shipped independent court appearance and bounce-physics selectors; Stage 8 supersedes them with one coherent surface control. Three venue shells, venue-correct lighting controls, and a sub-900px large-display practice recommendation remain.
 - Seeded, bounded shot and timing variation; configurable interval, work/rest cadence, spin, net clearance, opponent hand, serve rhythm, and render quality.
 - Expanded 26-shot/16-drill content floor: 12 groundstrokes, 8 serves across both hands/rhythms, approach, half-volley, volleys, lob, overhead, four Quick Rally drills, four Return drills, and four Tactical drills.
 - Adaptive quality modes with automatic pixel-ratio reduction after sustained low frame rate, route-level lazy loading, production chunk splitting, renderer failure fallback, and raster 192/512 PWA icons.
@@ -134,7 +134,7 @@ This is the evidence ledger for the code-backed V1. “Implemented” means runn
 
 - `npm test`: 5 files, 49 tests passed, including content-wide legal trajectories, seeded shot/timing replay, work/rest timing, surface behavior, pre/post-bounce diagnostics, storage migration, and hostile import rejection.
 - `npm run build`: production PWA build passed with route chunks separated from the app shell and Three.js scene; main application code is approximately 63 kB gzip and the lazy scene chunk approximately 137 kB gzip.
-- Playwright CLI at 1920 × 1080: independent clay appearance/grass physics selection, 27° calculated physical FOV, persisted quality/camera preferences, live work/rest state, footwork volume, complete coach diagnostics, and zero console errors/warnings.
+- Historical Playwright CLI at 1920 × 1080 verified the former independent clay-appearance/grass-physics path, 27° calculated physical FOV, persisted quality/camera preferences, live work/rest state, footwork volume, complete coach diagnostics, and zero console errors/warnings. Stage 8 supersedes the independent-surface behavior.
 - Playwright CLI at 1280 × 820 and 820 × 1000: no horizontal overflow; setup stacks at the compact breakpoint and the large-display practice recommendation is visible below 900 px.
 - Production preview offline hard reload: active service worker retained the application shell and reported cached offline readiness.
 - Concept and final browser images were inspected directly after the setup and rehearsal passes.
@@ -220,6 +220,8 @@ The detailed status of every requirement is recorded in the [V1 release matrix](
 - Reduced the Practice rail to Rally, Return, Volley, and Overhead setup presets. Each preset selects an incoming-ball origin, source height, drill cadence, and starting camera position.
 - Replaced the learning/rehearsal selector with one trajectory on/off switch and removed the second hidden cue behavior so the label matches the actual contract.
 - Split the right configuration surface into collapsible Ball & rhythm, Practice set, Opponent, Venue, Perspective, and System sections. Venue follows the ball/practice/opponent controls, and net clearance now sits beside pace and interval.
+- Removed the setup-only offline badge and repeated safety footer, reduced the preset toolbar from 154 px to 112 px in the landscape composition, and moved renderer/trajectory metadata from a dedicated row into a single lower-right court overlay.
+- Replaced independent Appearance and Bounce controls with one Surface selection shared by court materials, trajectory physics, saved preferences, and rehearsal launches. Older `visualSurface`/`physicsSurface` data migrates to the canonical `surface`, preferring the former physics choice when both were saved.
 - Bound setup playback to the configured interval. Overlapping launches now use shared-geometry ball meshes so a new interval can start without cutting off an earlier ball's physical trajectory.
 - Replaced coupled saved views with independent local camera-position and perspective preset collections. Legacy views migrate into both collections; clicking applies one side, right-click updates it in place, plus creates a new preset, WASD provides free camera movement, and Reset applies the first item from each collection. The player-view coordinate correction makes A move left and D move right and migrates the legacy built-in Left corner preset.
 - Removed the fixed court look-at anchor. The FPV camera now keeps its local orientation while WASD changes position; left-button hold-and-drag adjusts yaw and pitch continuously through 360°, while right-button dragging remains dedicated to shot direction.
@@ -233,10 +235,12 @@ The detailed status of every requirement is recorded in the [V1 release matrix](
 - Commit: `f97ffb7`.
 - Direction/lifetime follow-up commit: `2d93e6c`.
 - Camera-look follow-up commit: `0b66b43`.
-- `npm test`: 10 files, 79 tests passed, including player-view A/D mapping, mirrored opponent coordinates, deuce/ad serving presets, direct aim direction, overlapping interval playback, legacy Left corner migration, three-second post-bounce sampling, angle wrapping, drag accumulation beyond the former limits, and forward/side/vertical/backward orientations.
-- `npm run build`: production PWA build passed; the scene chunk is approximately 173.1 kB gzip and the 30-entry generated precache approximately 1.82 MiB.
+- Setup cleanup/surface-coherence follow-up commit: `e0a124e`.
+- `npm test`: 10 files, 80 tests passed, including player-view A/D mapping, mirrored opponent coordinates, deuce/ad serving presets, direct aim direction, overlapping interval playback, legacy Left corner migration, canonical surface migration, three-second post-bounce sampling, angle wrapping, drag accumulation beyond the former limits, and forward/side/vertical/backward orientations.
+- `npm run build`: production PWA build passed; the scene chunk is approximately 173.0 kB gzip and the 29-entry generated precache approximately 1.82 MiB.
 - In-app browser at 1280 × 720 verified opposite A/D viewpoint movement, removal of the landing modal, the deuce-serve opponent at `1.25, 11.71 m` on the visible left, and a real right-button hold-and-drag that changed landing from `-1.08 m` to `+1.33 m`; the final console had zero errors or warnings.
 - A real left-button drag produced yaw `-26.4°` and pitch `+13.7°`, beyond the former `±25°`/`±12°` limits. Eight subsequent A movements preserved both values exactly; repeated horizontal and vertical drags wrapped cleanly past 180°, and the final browser console remained empty of errors and warnings.
+- In-app Browser at 1280 × 720 confirmed the offline badge, safety footer, and diagnostics row were absent; the 112 px preset toolbar remained fully usable; one metadata line stayed inside the lower-right court corner; and selecting Clay changed the visible court through the sole Surface control. At 767 × 898 the stacked preset toolbar measured about 196 px, had no horizontal overflow, and did not overlap the look/aim hint. Both viewports had zero console errors or warnings.
 - The Browser loop caught and fixed an in-place legacy-state crash during hot replacement. A fresh 1280 × 720 load then rendered the WebGL practice screen with the four presets, split bottom controls, collapsible sections, and zero console errors or warnings.
 - At 820 × 1000 the stacked setup had no horizontal overflow, retained both preset groups and the safety notice, and kept the complete landing planner inside the viewport with zero console errors or warnings. The court map also scales down at the 720 px default height so the Done action remains visible without modal scrolling.
 

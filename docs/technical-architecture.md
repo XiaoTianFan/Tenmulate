@@ -63,7 +63,7 @@ React owns menus and low-frequency state. The session controller owns active pla
 - Near baseline at `z = -11.885`; far baseline at `z = +11.885`.
 - Singles sidelines at `x = ±4.115`; doubles sidelines at `x = ±5.485`.
 - Service lines at `z = ±6.40`.
-- Physics surfaces and visual materials have different identifiers. A blue hard-court appearance cannot silently imply a particular bounce profile.
+- A single validated surface identifier selects the matching visual material and bounce profile. Legacy independent appearance/physics preferences normalize to one canonical value during local-storage loading, with the former physics choice taking precedence when both exist.
 
 All geometry constants live in one tested `courtDimensions` module sourced from the current ITF rules.
 
