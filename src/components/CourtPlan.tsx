@@ -1,5 +1,6 @@
 import { useRef, type PointerEvent as ReactPointerEvent } from 'react';
-import { COURT } from '../domain/court';
+import { COURT, playerViewHorizontalToWorldX, worldXToPlayerViewHorizontal } from '../domain/court';
+import { aimDirectionToCourtPoint } from '../engine/trajectory/physics';
 
 export type CourtPoint = Readonly<{ x: number; z: number }>;
 
@@ -19,7 +20,7 @@ const COURT_WIDTH = 220;
 const COURT_HEIGHT = 560;
 
 const toPlan = (point: CourtPoint) => ({
-  x: COURT_LEFT + ((point.x + COURT.doublesWidth / 2) / COURT.doublesWidth) * COURT_WIDTH,
+  x: COURT_LEFT + ((worldXToPlayerViewHorizontal(point.x) + COURT.doublesWidth / 2) / COURT.doublesWidth) * COURT_WIDTH,
   y: COURT_TOP + ((COURT.halfLength - point.z) / COURT.fullLength) * COURT_HEIGHT,
 });
 
@@ -33,7 +34,7 @@ export function CourtPlan({ opponent, landing = null, aimDirectionDeg = 0, onOpp
     const planX = ((event.clientX - bounds.left) / bounds.width) * VIEW_WIDTH;
     const planY = ((event.clientY - bounds.top) / bounds.height) * VIEW_HEIGHT;
     return {
-      x: Math.min(COURT.doublesWidth / 2, Math.max(-COURT.doublesWidth / 2, ((planX - COURT_LEFT) / COURT_WIDTH) * COURT.doublesWidth - COURT.doublesWidth / 2)),
+      x: playerViewHorizontalToWorldX(Math.min(COURT.doublesWidth / 2, Math.max(-COURT.doublesWidth / 2, ((planX - COURT_LEFT) / COURT_WIDTH) * COURT.doublesWidth - COURT.doublesWidth / 2))),
       z: Math.min(COURT.halfLength, Math.max(-COURT.halfLength, COURT.halfLength - ((planY - COURT_TOP) / COURT_HEIGHT) * COURT.fullLength)),
     };
   };
@@ -42,10 +43,7 @@ export function CourtPlan({ opponent, landing = null, aimDirectionDeg = 0, onOpp
     const point = pointFromEvent(event);
     if (dragMode.current === 'opponent') onOpponentChange?.(point);
     if (dragMode.current === 'aim') {
-      const dx = point.x - opponent.x;
-      const dz = point.z - opponent.z;
-      const direction = Math.atan2(dx, -dz) * 180 / Math.PI;
-      onAimChange?.(Math.min(35, Math.max(-35, direction)));
+      onAimChange?.(aimDirectionToCourtPoint(opponent, point));
     }
   };
 

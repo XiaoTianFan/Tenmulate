@@ -18,7 +18,7 @@ import { materializeEvents } from '../content/editing';
 import type { DrillDefinitionV1, DrillEventV1 } from '../content/types';
 import { downloadDrill, parseDrillJson, validateDrill } from '../content/validation';
 import { DEFAULT_CAMERA } from '../app/defaults';
-import { COURT } from '../domain/court';
+import { OPPONENT_POSITION_PRESETS } from '../domain/court';
 import { resolveTrajectory, type SpinKind } from '../engine/trajectory/physics';
 import type { SceneMetrics } from '../engine/rendering/TennisScene';
 import { AppHeader, type AppRoute } from './AppHeader';
@@ -255,7 +255,7 @@ export function DrillEditorScreen({ route, initialDrill, onRoute, onSave, onTest
         </aside>
       </section>
       {message ? <Modal title="Drill editor" onClose={() => setMessage(null)} actions={<button className="primary-button inline" type="button" onClick={() => setMessage(null)}>Close</button>}><p>{message}</p></Modal> : null}
-      {positionDraft && selected && sourceShot ? <Modal title="Opponent position for this shot" onClose={() => setPositionDraft(null)} actions={<><button className="secondary-button" type="button" onClick={() => setPositionDraft(null)}>Cancel</button><button className="primary-button inline" type="button" onClick={() => { updateEvent({ opponentPosition: positionDraft }); setPositionDraft(null); }}>Apply to shot</button></>}><p>Drag the opponent on the floor plan. This origin is stored on the selected event only.</p><div className="court-preset-list"><button type="button" onClick={() => setPositionDraft({ x: 0, z: COURT.halfLength - 0.65 })}>Baseline</button><button type="button" onClick={() => setPositionDraft({ x: -3.4, z: COURT.halfLength - 0.65 })}>Deuce</button><button type="button" onClick={() => setPositionDraft({ x: 3.4, z: COURT.halfLength - 0.65 })}>Ad</button><button type="button" onClick={() => setPositionDraft({ x: 0, z: COURT.serviceLineFromNet })}>Service line</button><button type="button" onClick={() => setPositionDraft({ x: 0, z: 1.2 })}>Net</button></div><CourtPlan opponent={positionDraft} landing={trajectory.events.find((event) => event.type === 'bounce')?.position ?? null} onOpponentChange={setPositionDraft} /><p className="calculation">Event position: {positionDraft.x.toFixed(2)}, {positionDraft.z.toFixed(2)} m</p></Modal> : null}
+      {positionDraft && selected && sourceShot ? <Modal title="Opponent position for this shot" onClose={() => setPositionDraft(null)} actions={<><button className="secondary-button" type="button" onClick={() => setPositionDraft(null)}>Cancel</button><button className="primary-button inline" type="button" onClick={() => { updateEvent({ opponentPosition: positionDraft }); setPositionDraft(null); }}>Apply to shot</button></>}><p>Drag the opponent anywhere on the floor plan, or start from a court preset. This origin is stored on the selected event only.</p><div className="court-preset-list">{OPPONENT_POSITION_PRESETS.map((preset) => <button type="button" key={preset.name} onClick={() => setPositionDraft(preset.point)}>{preset.name}</button>)}</div><CourtPlan opponent={positionDraft} landing={trajectory.events.find((event) => event.type === 'bounce')?.position ?? null} onOpponentChange={setPositionDraft} /><p className="calculation">Event position: {positionDraft.x.toFixed(2)}, {positionDraft.z.toFixed(2)} m</p></Modal> : null}
     </main>
   );
 }

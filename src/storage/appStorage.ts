@@ -21,7 +21,7 @@ export type PerspectivePresetV1 = Readonly<{ id: string; name: string; perspecti
 
 export const DEFAULT_CAMERA_POSITION_PRESETS: readonly CameraPositionPresetV1[] = [
   { id: 'position-baseline', name: 'Baseline', position: { eyeHeight: 1.7, behindBaseline: 1.5, lateral: 0 } },
-  { id: 'position-left', name: 'Left corner', position: { eyeHeight: 1.68, behindBaseline: 1.4, lateral: -2.6 } },
+  { id: 'position-left', name: 'Left corner', position: { eyeHeight: 1.68, behindBaseline: 1.4, lateral: 2.6 } },
   { id: 'position-net', name: 'At the net', position: { eyeHeight: 1.66, behindBaseline: -6.7, lateral: -0.4 } },
   { id: 'position-overhead', name: 'Overhead', position: { eyeHeight: 1.7, behindBaseline: -3.2, lateral: 0 } },
 ];
@@ -84,6 +84,16 @@ export const DEFAULT_APP_DATA: AppDataV1 = {
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value);
 
+const normalizePlayerViewCameraPreset = (preset: CameraPositionPresetV1): CameraPositionPresetV1 => (
+  preset.id === 'position-left'
+  && preset.name === 'Left corner'
+  && preset.position.eyeHeight === 1.68
+  && preset.position.behindBaseline === 1.4
+  && preset.position.lateral === -2.6
+    ? { ...preset, position: { ...preset.position, lateral: 2.6 } }
+    : preset
+);
+
 export const loadAppData = (): AppDataV1 => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -97,7 +107,7 @@ export const loadAppData = (): AppDataV1 => {
       ? ((parsed as Partial<AppDataV1> & { savedViews?: unknown[] }).savedViews ?? []).filter((view): view is SavedViewV1 => Boolean(view && typeof view === 'object' && 'id' in view && 'name' in view && 'camera' in view))
       : [];
     const cameraPositionPresets = Array.isArray(parsed.cameraPositionPresets) && parsed.cameraPositionPresets.length
-      ? parsed.cameraPositionPresets
+      ? parsed.cameraPositionPresets.map(normalizePlayerViewCameraPreset)
       : legacyViews.length
         ? legacyViews.map((view) => ({ id: `position-${view.id}`, name: view.name, position: { eyeHeight: view.camera.eyeHeight, behindBaseline: view.camera.behindBaseline, lateral: view.camera.lateral } }))
         : DEFAULT_CAMERA_POSITION_PRESETS;

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import type { SurfaceId } from '../domain/court';
 import { DEFAULT_ENVIRONMENT, type EnvironmentConfiguration } from '../domain/environment';
 import {
@@ -26,6 +26,7 @@ type SceneViewportProps = Readonly<{
   showSight?: boolean;
   highContrastBall?: boolean;
   showBallTrail?: boolean;
+  onAimChange?: (directionDeg: number) => void;
   onMetrics: (metrics: SceneMetrics) => void;
 }>;
 
@@ -45,10 +46,12 @@ export function SceneViewport({
   showSight = true,
   highContrastBall = false,
   showBallTrail = false,
+  onAimChange,
   onMetrics,
 }: SceneViewportProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sceneRef = useRef<TennisScene | null>(null);
+  const aimPointerId = useRef<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -83,11 +86,41 @@ export function SceneViewport({
   useEffect(() => sceneRef.current?.setCameraMotion(cameraMotion), [cameraMotion]);
   useEffect(() => sceneRef.current?.setBallPresentation(highContrastBall, showBallTrail), [highContrastBall, showBallTrail]);
 
+  const updateAimFromPointer = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    const direction = sceneRef.current?.aimDirectionFromClientPoint(event.clientX, event.clientY);
+    if (direction !== null && direction !== undefined) onAimChange?.(direction);
+  };
+
+  const finishAim = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    if (aimPointerId.current !== event.pointerId) return;
+    aimPointerId.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+  };
+
   return (
     <div className="scene-viewport">
-      <canvas ref={canvasRef} aria-label="Live first-person tennis court preview" />
+      <canvas
+        ref={canvasRef}
+        className={onAimChange ? 'aim-enabled' : undefined}
+        tabIndex={0}
+        aria-label="Live first-person tennis court preview"
+        onContextMenu={onAimChange ? (event) => event.preventDefault() : undefined}
+        onPointerDown={onAimChange ? (event) => {
+          if (event.button !== 2) return;
+          event.preventDefault();
+          aimPointerId.current = event.pointerId;
+          event.currentTarget.setPointerCapture(event.pointerId);
+          updateAimFromPointer(event);
+        } : undefined}
+        onPointerMove={onAimChange ? (event) => {
+          if (aimPointerId.current === event.pointerId) updateAimFromPointer(event);
+        } : undefined}
+        onPointerUp={onAimChange ? finishAim : undefined}
+        onPointerCancel={onAimChange ? finishAim : undefined}
+      />
       {error ? <div className="renderer-error" role="alert"><strong>3D renderer unavailable</strong><span>{error}</span><small>WebGL 2 and hardware acceleration are required. Setup and local drills remain available.</small></div> : null}
       {showSight ? <div className="scene-sight" aria-hidden="true"><span /></div> : null}
+      {onAimChange ? <div className="scene-aim-hint">Right-drag the court to aim</div> : null}
     </div>
   );
 }

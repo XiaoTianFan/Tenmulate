@@ -43,6 +43,16 @@ describe('local application data', () => {
     expect(migrated.perspectivePresets[0]).toMatchObject({ id: 'perspective-view-one', name: 'Projector' });
   });
 
+  it('migrates the legacy left camera preset to player-view left', () => {
+    localStorage.setItem('tenmulate.appData.v1', JSON.stringify({
+      ...DEFAULT_APP_DATA,
+      cameraPositionPresets: [
+        { id: 'position-left', name: 'Left corner', position: { eyeHeight: 1.68, behindBaseline: 1.4, lateral: -2.6 } },
+      ],
+    }));
+    expect(loadAppData().cameraPositionPresets[0]?.position.lateral).toBe(2.6);
+  });
+
   it('migrates the original coupled surface preference into independent visual and physics choices', () => {
     localStorage.setItem('tenmulate.appData.v1', JSON.stringify({
       schemaVersion: 1,

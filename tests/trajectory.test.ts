@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { COURT } from '../src/domain/court';
-import { resolveTrajectory } from '../src/engine/trajectory/physics';
+import { POST_BOUNCE_SIMULATION_SECONDS, aimDirectionToCourtPoint, resolveTrajectory } from '../src/engine/trajectory/physics';
 
 describe('fixed-step trajectory solver', () => {
   it('clears the net and lands near the authored target', () => {
@@ -126,5 +126,32 @@ describe('fixed-step trajectory solver', () => {
     const right = resolveTrajectory({ ...base, aimDirectionDeg: 12 });
     expect(left.events.find((event) => event.type === 'bounce')!.position.x).toBeLessThan(0);
     expect(right.events.find((event) => event.type === 'bounce')!.position.x).toBeGreaterThan(0);
+  });
+
+  it('derives aim direction in the same player-view horizontal coordinate system', () => {
+    const source = { x: 0, z: COURT.halfLength - 0.65 };
+    expect(aimDirectionToCourtPoint(source, { x: 2, z: -8 })).toBeGreaterThan(0);
+    expect(aimDirectionToCourtPoint(source, { x: -2, z: -8 })).toBeLessThan(0);
+  });
+
+  it('continues the physical trajectory for three seconds after first ground contact', () => {
+    const trajectory = resolveTrajectory({
+      source: { x: 0, y: 1.15, z: COURT.halfLength - 0.65 },
+      target: { x: 0, z: -8 },
+      aimDirectionDeg: 0,
+      paceKmh: 78,
+      netClearanceM: 0.35,
+      spin: 'topspin',
+      surface: 'hard',
+    });
+    const bounce = trajectory.events.find((event) => event.type === 'bounce')!;
+    const receiver = trajectory.events.find((event) => event.type === 'receiver-plane')!;
+    const finalSample = trajectory.samples.at(-1)!;
+    const postBounceSamples = trajectory.samples.filter((sample) => sample.time >= bounce.time);
+
+    expect(finalSample.time - bounce.time).toBeGreaterThanOrEqual(POST_BOUNCE_SIMULATION_SECONDS);
+    expect(finalSample.time).toBeGreaterThan(receiver.time);
+    expect(finalSample.position.z).toBeLessThan(receiver.position.z);
+    expect(Math.min(...postBounceSamples.map((sample) => sample.position.y))).toBeGreaterThanOrEqual(COURT.ballRadius);
   });
 });

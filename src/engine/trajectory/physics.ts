@@ -5,6 +5,8 @@ const GRAVITY = vec3(0, -9.81, 0);
 const FIXED_STEP = 1 / 240;
 const DRAG_FACTOR = 0.0018;
 const MAGNUS_FACTOR = 0.00028;
+const MAX_SIMULATION_SECONDS = 10;
+export const POST_BOUNCE_SIMULATION_SECONDS = 3;
 
 export type SpinKind = 'flat' | 'topspin' | 'slice' | 'kick' | 'sidespin';
 
@@ -180,6 +182,14 @@ const directedVelocity = (intent: ShotIntent): Vec3 => {
   );
 };
 
+export const aimDirectionToCourtPoint = (
+  source: Readonly<{ x: number; z: number }>,
+  point: Readonly<{ x: number; z: number }>,
+): number => {
+  const direction = Math.atan2(point.x - source.x, source.z - point.z) * 180 / Math.PI;
+  return Math.min(35, Math.max(-35, direction));
+};
+
 export const netHeightAt = (x: number): number => {
   const postX = COURT.doublesWidth / 2 + 0.15;
   const normalized = Math.min(1, Math.abs(x) / postX);
@@ -221,41 +231,65 @@ export const resolveTrajectory = (intent: ShotIntent): ResolvedTrajectory => {
   let position = intent.source;
   let velocity = launchVelocity;
   let bounced = false;
+  let firstBounceTime: number | null = null;
+  let receiverRecorded = false;
+  let grounded = false;
   let apexHeight = position.y;
   let previousZ = position.z;
 
-  for (let index = 1; index <= 6 / FIXED_STEP; index += 1) {
+  for (let index = 1; index <= MAX_SIMULATION_SECONDS / FIXED_STEP; index += 1) {
     const time = index * FIXED_STEP;
-    velocity = add(velocity, scale(acceleration(velocity, spin, intent.windVelocity), FIXED_STEP));
-    position = add(position, scale(velocity, FIXED_STEP));
+    if (grounded) {
+      const rollingRetention = Math.exp(-1.8 * FIXED_STEP);
+      velocity = vec3(velocity.x * rollingRetention, 0, velocity.z * rollingRetention);
+      position = vec3(
+        position.x + velocity.x * FIXED_STEP,
+        COURT.ballRadius,
+        position.z + velocity.z * FIXED_STEP,
+      );
+    } else {
+      velocity = add(velocity, scale(acceleration(velocity, spin, intent.windVelocity), FIXED_STEP));
+      position = add(position, scale(velocity, FIXED_STEP));
+    }
     apexHeight = Math.max(apexHeight, position.y);
 
     if (previousZ > 0 && position.z <= 0) {
       events.push({ type: 'net-crossing', time, position, speedKmh: magnitude(velocity) * 3.6 });
     }
 
-    if (!bounced && position.y <= COURT.ballRadius && velocity.y < 0) {
+    if (!grounded && position.y <= COURT.ballRadius && velocity.y < 0) {
+      const firstGroundContact = !bounced;
       const preBounceSpeed = magnitude(velocity) * 3.6;
       position = vec3(position.x, COURT.ballRadius, position.z);
+      const reboundSpeed = -velocity.y * surface.restitution;
       velocity = vec3(
         velocity.x * surface.horizontalRetention + spin.z * surface.spinCoupling * 0.01,
-        -velocity.y * surface.restitution,
+        reboundSpeed,
         velocity.z * surface.horizontalRetention - spin.x * surface.spinCoupling * 0.01,
       );
       bounced = true;
-      events.push({ type: 'bounce', time, position, speedKmh: preBounceSpeed, postSpeedKmh: magnitude(velocity) * 3.6 });
+      if (firstGroundContact) {
+        firstBounceTime = time;
+        events.push({ type: 'bounce', time, position, speedKmh: preBounceSpeed, postSpeedKmh: magnitude(velocity) * 3.6 });
+      }
+      if (reboundSpeed < 0.65) {
+        grounded = true;
+        velocity = vec3(velocity.x, 0, velocity.z);
+      }
     }
 
-    if (bounced && previousZ > receiverZ && position.z <= receiverZ) {
+    if (!receiverRecorded && bounced && previousZ > receiverZ && position.z <= receiverZ) {
       events.push({ type: 'receiver-plane', time, position, speedKmh: magnitude(velocity) * 3.6 });
-      samples.push({ time, position, velocity, bounced });
-      break;
+      receiverRecorded = true;
     }
 
-    if (index % 4 === 0) {
+    const completedPostBounceWindow = firstBounceTime !== null
+      && time >= firstBounceTime + POST_BOUNCE_SIMULATION_SECONDS;
+    if (index % 4 === 0 || completedPostBounceWindow) {
       samples.push({ time, position, velocity, bounced });
     }
     previousZ = position.z;
+    if (completedPostBounceWindow) break;
   }
 
   return { intent, launchVelocity, samples, events, apexHeight };

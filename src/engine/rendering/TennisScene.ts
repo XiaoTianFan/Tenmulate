@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { COURT, type SurfaceId } from '../../domain/court';
 import { DEFAULT_ENVIRONMENT, SCENE_DEFINITIONS, isOutdoorVenue, windVelocityFromEnvironment, type EnvironmentConfiguration, type VenueId } from '../../domain/environment';
 import type { ResolvedTrajectory } from '../trajectory/physics';
-import { sampleTrajectoryAt } from '../trajectory/physics';
+import { aimDirectionToCourtPoint, sampleTrajectoryAt } from '../trajectory/physics';
 import { createCourt } from './buildCourt';
 import { OpponentRig, OpponentRigDisposedError } from './OpponentRig';
 import { DynamicSkySystem } from './DynamicSkySystem';
@@ -47,11 +47,31 @@ export const trajectoryPlaybackState = (
   return { sampleTime, visible: sampleTime <= duration };
 };
 
+export const trajectoryPlaybackTimes = (
+  elapsed: number,
+  duration: number,
+  loop: boolean,
+  interval: number | null,
+): readonly number[] => {
+  const currentTime = Math.max(0, elapsed);
+  if (!loop || interval === null) return [currentTime];
+  const cycle = Math.max(0.25, interval);
+  const latestLaunch = Math.floor(currentTime / cycle);
+  const earliestActiveLaunch = Math.max(0, Math.ceil((currentTime - duration) / cycle));
+  const activeTimes: number[] = [];
+  for (let launch = latestLaunch; launch >= earliestActiveLaunch; launch -= 1) {
+    const age = currentTime - launch * cycle;
+    if (age <= duration) activeTimes.push(age);
+  }
+  return activeTimes;
+};
+
 export class TennisScene {
   private readonly renderer: THREE.WebGLRenderer;
   private readonly scene = new THREE.Scene();
   private readonly camera = new THREE.PerspectiveCamera(54, 16 / 9, 0.05, 140);
   private readonly ball: THREE.Mesh;
+  private readonly balls: THREE.Mesh[] = [];
   private readonly ballMaterial: THREE.MeshStandardMaterial;
   private readonly trajectoryLine: THREE.Line;
   private readonly ballTrail: THREE.Line;
@@ -65,6 +85,10 @@ export class TennisScene {
   private readonly skySystem: DynamicSkySystem;
   private readonly weatherSystem: WeatherSystem;
   private readonly resizeObserver: ResizeObserver;
+  private readonly aimRaycaster = new THREE.Raycaster();
+  private readonly aimPointer = new THREE.Vector2();
+  private readonly courtPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  private readonly courtIntersection = new THREE.Vector3();
   private trajectory: ResolvedTrajectory | null = null;
   private elapsed = 0;
   private running = true;
@@ -148,6 +172,7 @@ export class TennisScene {
     });
     this.ball = new THREE.Mesh(new THREE.SphereGeometry(COURT.ballRadius * 1.34, 24, 16), this.ballMaterial);
     this.ball.castShadow = true;
+    this.balls.push(this.ball);
     this.scene.add(this.ball);
 
     this.trajectoryLine = new THREE.Line(
@@ -192,7 +217,7 @@ export class TennisScene {
   setBallPresentation(highContrast: boolean, showTrail: boolean): void {
     this.showBallTrail = showTrail;
     this.ballTrail.visible = showTrail;
-    this.ball.scale.setScalar(highContrast ? 1.24 : 1);
+    for (const ball of this.balls) ball.scale.setScalar(highContrast ? 1.24 : 1);
     this.ballMaterial.color.setHex(highContrast ? 0xf8ff24 : 0xe8ef32);
     this.ballMaterial.emissive.setHex(highContrast ? 0xb0bd1a : 0x697214);
     this.ballMaterial.emissiveIntensity = highContrast ? 0.62 : 0.28;
@@ -268,6 +293,30 @@ export class TennisScene {
     this.applyCamera();
   }
 
+  aimDirectionFromClientPoint(clientX: number, clientY: number): number | null {
+    if (!this.trajectory) return null;
+    const bounds = this.canvas.getBoundingClientRect();
+    if (bounds.width <= 0 || bounds.height <= 0) return null;
+    this.aimPointer.set(
+      ((clientX - bounds.left) / bounds.width) * 2 - 1,
+      -(((clientY - bounds.top) / bounds.height) * 2 - 1),
+    );
+    this.aimRaycaster.setFromCamera(this.aimPointer, this.camera);
+    const point = this.aimRaycaster.ray.intersectPlane(this.courtPlane, this.courtIntersection);
+    if (!point || Math.abs(point.x) > COURT.doublesWidth / 2 || Math.abs(point.z) > COURT.halfLength) return null;
+    return aimDirectionToCourtPoint(this.trajectory.intent.source, point);
+  }
+
+  private ensureBallCount(count: number): void {
+    while (this.balls.length < count) {
+      const ball = new THREE.Mesh(this.ball.geometry, this.ballMaterial);
+      ball.castShadow = true;
+      ball.scale.copy(this.ball.scale);
+      this.balls.push(ball);
+      this.scene.add(ball);
+    }
+  }
+
   private applyCamera(): void {
     const configuration = this.cameraConfiguration;
     const horizontalRadians = THREE.MathUtils.degToRad(configuration.fov);
@@ -311,16 +360,22 @@ export class TennisScene {
     );
     if (this.trajectory) {
       const duration = this.trajectory.samples.at(-1)?.time ?? 0;
-      const playback = trajectoryPlaybackState(this.elapsed, duration, this.loopTrajectory, this.trajectoryInterval);
-      const cycleTime = playback.sampleTime;
-      const ballActive = playback.visible;
-      const position = sampleTrajectoryAt(
-        this.trajectory,
-        cycleTime,
-        this.loopTrajectory && this.trajectoryInterval === null,
-      );
-      this.ball.position.set(position.x, position.y, position.z);
-      this.ball.visible = ballActive;
+      const sampleTimes = trajectoryPlaybackTimes(this.elapsed, duration, this.loopTrajectory, this.trajectoryInterval);
+      this.ensureBallCount(Math.max(1, sampleTimes.length));
+      for (let index = 0; index < this.balls.length; index += 1) {
+        const ball = this.balls[index]!;
+        const sampleTime = sampleTimes[index];
+        ball.visible = sampleTime !== undefined;
+        if (sampleTime === undefined) continue;
+        const position = sampleTrajectoryAt(
+          this.trajectory,
+          sampleTime,
+          this.loopTrajectory && this.trajectoryInterval === null,
+        );
+        ball.position.set(position.x, position.y, position.z);
+      }
+      const cycleTime = sampleTimes[0] ?? 0;
+      const ballActive = sampleTimes.length > 0;
       this.ballTrail.visible = this.showBallTrail && ballActive;
       if (this.showBallTrail && ballActive) {
         const points: THREE.Vector3[] = [];
@@ -332,7 +387,7 @@ export class TennisScene {
         this.ballTrail.geometry = new THREE.BufferGeometry().setFromPoints(points);
       }
     } else {
-      this.ball.visible = false;
+      for (const ball of this.balls) ball.visible = false;
       this.ballTrail.visible = false;
     }
     if (this.cameraMotion) {
