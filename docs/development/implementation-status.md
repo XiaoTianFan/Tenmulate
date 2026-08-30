@@ -222,6 +222,7 @@ The detailed status of every requirement is recorded in the [V1 release matrix](
 - Split the right configuration surface into collapsible Ball & rhythm, Practice set, Opponent, Venue, Perspective, and System sections. Venue follows the ball/practice/opponent controls, and net clearance now sits beside pace and interval.
 - Bound setup playback to the configured interval. Overlapping launches now use shared-geometry ball meshes so a new interval can start without cutting off an earlier ball's physical trajectory.
 - Replaced coupled saved views with independent local camera-position and perspective preset collections. Legacy views migrate into both collections; clicking applies one side, right-click updates it in place, plus creates a new preset, WASD provides free camera movement, and Reset applies the first item from each collection. The player-view coordinate correction makes A move left and D move right and migrates the legacy built-in Left corner preset.
+- Removed the fixed court look-at anchor. The FPV camera now keeps its local orientation while WASD changes position; left-button hold-and-drag adjusts yaw and pitch continuously through 360°, while right-button dragging remains dedicated to shot direction.
 - Added a reusable interactive court plan for opponent positioning, with player-view-correct dragging plus baseline, corner, deuce/ad serve, service-line, and net presets shared by Quick Practice and the drill editor.
 - Removed the ball-landing modal. Right-click, hold, and drag now raycasts directly from the FPV camera onto the court; `ball-v3-directed-aim` converts that point to azimuth while pace remains launch speed and net clearance solves elevation.
 - Added validated per-event `opponentPosition` overrides in the drill editor, including court presets, free dragging, live preview, timeline labels, JSON round-trip, and compile precedence over the session-wide position.
@@ -231,13 +232,15 @@ The detailed status of every requirement is recorded in the [V1 release matrix](
 
 - Commit: `f97ffb7`.
 - Direction/lifetime follow-up commit: `2d93e6c`.
-- `npm test`: 9 files, 76 tests passed, including player-view A/D mapping, mirrored opponent coordinates, deuce/ad serving presets, direct aim direction, overlapping interval playback, legacy Left corner migration, and three-second post-bounce sampling.
-- `npm run build`: production PWA build passed; the scene chunk is approximately 172.8 kB gzip and the 30-entry generated precache approximately 1.82 MiB.
+- Camera-look follow-up commit: `0b66b43`.
+- `npm test`: 10 files, 79 tests passed, including player-view A/D mapping, mirrored opponent coordinates, deuce/ad serving presets, direct aim direction, overlapping interval playback, legacy Left corner migration, three-second post-bounce sampling, angle wrapping, drag accumulation beyond the former limits, and forward/side/vertical/backward orientations.
+- `npm run build`: production PWA build passed; the scene chunk is approximately 173.1 kB gzip and the 30-entry generated precache approximately 1.82 MiB.
 - In-app browser at 1280 × 720 verified opposite A/D viewpoint movement, removal of the landing modal, the deuce-serve opponent at `1.25, 11.71 m` on the visible left, and a real right-button hold-and-drag that changed landing from `-1.08 m` to `+1.33 m`; the final console had zero errors or warnings.
+- A real left-button drag produced yaw `-26.4°` and pitch `+13.7°`, beyond the former `±25°`/`±12°` limits. Eight subsequent A movements preserved both values exactly; repeated horizontal and vertical drags wrapped cleanly past 180°, and the final browser console remained empty of errors and warnings.
 - The Browser loop caught and fixed an in-place legacy-state crash during hot replacement. A fresh 1280 × 720 load then rendered the WebGL practice screen with the four presets, split bottom controls, collapsible sections, and zero console errors or warnings.
 - At 820 × 1000 the stacked setup had no horizontal overflow, retained both preset groups and the safety notice, and kept the complete landing planner inside the viewport with zero console errors or warnings. The court map also scales down at the 720 px default height so the Done action remains visible without modal scrolling.
 
 ### Remaining review gates
 
-- Owner/manual review of WASD movement speed, FPV right-drag discoverability, preset naming volume, and physically useful pace/clearance ranges.
+- Owner/manual review of WASD movement speed, FPV left/right-drag discoverability and look sensitivity, full inversion comfort, preset naming volume, and physically useful pace/clearance ranges.
 - Target-device foreground performance review during continuous FPV aiming and overlapping-ball playback.

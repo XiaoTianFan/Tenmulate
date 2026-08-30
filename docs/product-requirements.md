@@ -135,7 +135,7 @@ Accounts, premium entitlements, cloud content, and payments belong to a separate
 | ID | Requirement | Acceptance criterion |
 | --- | --- | --- |
 | CAL-01 | Support optional physical display calibration. | Given visible screen width/height or diagonal/aspect plus viewing distance, the app derives physical horizontal/vertical FOV and shows the entered values. |
-| CAL-02 | Support camera preference controls. | Eye height, baseline offset, lateral offset, yaw/pitch/look target, and FOV/zoom update without changing court or ball coordinates. |
+| CAL-02 | Support camera preference controls. | Eye height, baseline offset, lateral offset, yaw, pitch, and FOV/zoom update without changing court or ball coordinates; left-drag directly adjusts yaw and pitch through a full 360° range. |
 | CAL-03 | Provide a predictable reset. | A single action applies the first camera-position preset plus the first perspective preset. |
 | CAL-04 | Save decoupled view presets locally. | Camera position and perspective are separate collections; users can combine them, create presets, and right-click an existing preset to update it. |
 | CAL-05 | Run a visual scale check. | Court-width/net-height and ball-size checks can be revisited without restarting a drill. |
