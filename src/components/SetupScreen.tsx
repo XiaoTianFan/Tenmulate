@@ -14,7 +14,6 @@ import { DEFAULT_CAMERA_POSITION_PRESETS, DEFAULT_PERSPECTIVE_PRESETS, type Came
 import { AppHeader, type AppRoute } from './AppHeader';
 import { CourtPlan, type CourtPoint } from './CourtPlan';
 import { Modal } from './Modal';
-import { OfflineStatus } from './OfflineStatus';
 import { SceneViewport } from './SceneViewport';
 
 type PracticePresetId = 'rally' | 'return' | 'volley' | 'overhead';
@@ -84,6 +83,7 @@ type SetupScreenProps = Readonly<{
 }>;
 
 export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSITION_PRESETS, perspectivePresets = DEFAULT_PERSPECTIVE_PRESETS, initialPreferences, onRoute, onStart, onSaveCameraPositionPreset, onSavePerspectivePreset, onPreferencesChange }: SetupScreenProps) {
+  const legacyInitialPreferences = initialPreferences as PracticePreferencesV1 & { physicsSurface?: SurfaceId; visualSurface?: SurfaceId };
   const initialPractice = PRACTICE_PRESETS.find((preset) => preset.category === initialPreferences.sessionCategory) ?? PRACTICE_PRESETS[0]!;
   const [practicePreset, setPracticePreset] = useState<PracticePresetId>(initialPractice.id);
   const [sessionCategory, setSessionCategory] = useState<SessionCategory>(initialPractice.category);
@@ -95,8 +95,7 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
   const [timingVariation, setTimingVariation] = useState(initialPreferences.timingVariation);
   const [workBlockSize, setWorkBlockSize] = useState(initialPreferences.workBlockSize);
   const [restSeconds, setRestSeconds] = useState(initialPreferences.restSeconds);
-  const [visualSurface, setVisualSurface] = useState<SurfaceId>(initialPreferences.visualSurface);
-  const [physicsSurface, setPhysicsSurface] = useState<SurfaceId>(initialPreferences.physicsSurface);
+  const [surface, setSurface] = useState<SurfaceId>(() => legacyInitialPreferences.surface ?? legacyInitialPreferences.physicsSurface ?? legacyInitialPreferences.visualSurface ?? 'hard');
   const [spin, setSpin] = useState<'preset' | SpinKind>(initialPreferences.spin);
   const [opponentHand, setOpponentHand] = useState<'left' | 'right'>(initialPreferences.opponentHand);
   const [serveRhythm, setServeRhythm] = useState<'preset' | 'normal' | 'compact'>(initialPreferences.serveRhythm);
@@ -148,18 +147,18 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
     aimDirectionDeg,
     paceKmh: pace,
     spin: spin === 'preset' ? 'topspin' : spin,
-    surface: physicsSurface,
+    surface,
     netClearanceM,
     windVelocity,
-  }), [activePractice.sourceHeight, aimDirectionDeg, netClearanceM, opponentPosition, pace, physicsSurface, spin, windVelocity]);
+  }), [activePractice.sourceHeight, aimDirectionDeg, netClearanceM, opponentPosition, pace, spin, surface, windVelocity]);
   const bounce = trajectory.events.find((event) => event.type === 'bounce');
   const net = trajectory.events.find((event) => event.type === 'net-crossing');
   const camera = useMemo<CameraConfiguration>(() => ({ eyeHeight, behindBaseline, lateral, yaw, pitch, fov }), [behindBaseline, eyeHeight, fov, lateral, pitch, yaw]);
 
   useEffect(() => {
-    const timeout = window.setTimeout(() => onPreferencesChange({ sessionCategory, trajectoryEnabled, pace, interval, repetitions, variation, timingVariation, workBlockSize, restSeconds, visualSurface, physicsSurface, spin, opponentHand, serveRhythm, netClearanceM, aimDirectionDeg, opponentPosition, camera, environment, quality, screenWidthCm, screenHeightCm, viewDistanceCm }), 180);
+    const timeout = window.setTimeout(() => onPreferencesChange({ sessionCategory, trajectoryEnabled, pace, interval, repetitions, variation, timingVariation, workBlockSize, restSeconds, surface, spin, opponentHand, serveRhythm, netClearanceM, aimDirectionDeg, opponentPosition, camera, environment, quality, screenWidthCm, screenHeightCm, viewDistanceCm }), 180);
     return () => window.clearTimeout(timeout);
-  }, [aimDirectionDeg, camera, environment, interval, netClearanceM, onPreferencesChange, opponentHand, opponentPosition, pace, physicsSurface, quality, repetitions, restSeconds, screenHeightCm, screenWidthCm, serveRhythm, sessionCategory, spin, timingVariation, trajectoryEnabled, variation, viewDistanceCm, visualSurface, workBlockSize]);
+  }, [aimDirectionDeg, camera, environment, interval, netClearanceM, onPreferencesChange, opponentHand, opponentPosition, pace, quality, repetitions, restSeconds, screenHeightCm, screenWidthCm, serveRhythm, sessionCategory, spin, surface, timingVariation, trajectoryEnabled, variation, viewDistanceCm, workBlockSize]);
 
   useEffect(() => {
     const move = (event: KeyboardEvent) => {
@@ -245,11 +244,11 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
   };
 
   const launch = () => onStart({
-    session: compileSession(drill, { repetitions, interval, variationPercent: variation, timingVariationPercent: timingVariation, paceKmh: pace, surface: physicsSurface, seed, spin, opponentHand, workBlockSize, restSeconds, serveRhythm, netClearanceM, aimDirectionDeg, opponentPosition, windVelocity }),
+    session: compileSession(drill, { repetitions, interval, variationPercent: variation, timingVariationPercent: timingVariation, paceKmh: pace, surface, seed, spin, opponentHand, workBlockSize, restSeconds, serveRhythm, netClearanceM, aimDirectionDeg, opponentPosition, windVelocity }),
     trajectoryEnabled,
     camera,
     environment,
-    visualSurface,
+    surface,
     quality,
   });
 
@@ -270,13 +269,13 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
     const definition = SCENE_DEFINITIONS[next];
     const preset = definition.defaultLighting;
     setVenue(next);
-    setVisualSurface(definition.defaultSurface);
+    setSurface(definition.defaultSurface);
     setLighting(preset);
     if (preset === 'day' || preset === 'golden-hour' || preset === 'night') setTimeOfDay(OUTDOOR_TIME_BY_LIGHTING[preset]);
   };
 
   return (
-    <main className="app-shell">
+    <main className="app-shell setup-shell">
       <AppHeader route={route} onRoute={onRoute} onDisplay={() => setDialog('display')} onHelp={() => setDialog('help')} />
       <section className="practice-layout">
         <aside className="session-rail compact-practice-rail" aria-label="Practice presets">
@@ -290,11 +289,13 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
             })}
           </div>
           <div className="practice-preset-summary"><span>{activePractice.label} setup</span><strong>{drill.title}</strong><small>Opponent {opponentPosition.x.toFixed(1)}, {opponentPosition.z.toFixed(1)} m</small></div>
-          <OfflineStatus />
         </aside>
 
         <section className="preview-column" aria-label="Live court preview">
-          <SceneViewport camera={camera} trajectory={trajectory} surface={visualSurface} environment={environment} quality={quality} running resetToken={resetToken} showTrajectory={trajectoryEnabled} trajectoryInterval={interval} onAimChange={setAimDirectionDeg} onCameraLookChange={updateCameraLook} onMetrics={onMetrics} />
+          <div className="setup-court-view">
+            <SceneViewport camera={camera} trajectory={trajectory} surface={surface} environment={environment} quality={quality} running resetToken={resetToken} showTrajectory={trajectoryEnabled} trajectoryInterval={interval} onAimChange={setAimDirectionDeg} onCameraLookChange={updateCameraLook} onMetrics={onMetrics} />
+            <div className="court-metadata" aria-live="polite">{metrics ? `${metrics.renderer} · ${metrics.fps} fps · ${metrics.pixelRatio.toFixed(2)}× ${metrics.quality}` : 'Starting renderer'} · {net ? `Net ${net.position.y.toFixed(2)} m` : 'No net crossing'} · {bounce ? `Landing ${bounce.position.x.toFixed(2)}/${bounce.position.z.toFixed(2)} m` : 'No landing'} · {interval.toFixed(1)} s</div>
+          </div>
           <div className="preset-toolbar">
             <div className="preset-group" aria-label="Camera position presets">
               <header><span><MapPin size={14} /> Camera positions</span><small>WASD to move · right-click to update</small></header>
@@ -307,7 +308,6 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
             <button className="reset-link" type="button" onClick={resetView}><RotateCcw size={15} /> Reset view</button>
             {presetNotice ? <span className="preset-notice" role="status">{presetNotice}</span> : null}
           </div>
-          <div className="preview-diagnostics" aria-live="polite"><span>{metrics ? `${metrics.renderer} · ${metrics.fps} fps · ${metrics.frameMs.toFixed(1)} ms · ${metrics.pixelRatio.toFixed(2)}× ${metrics.quality}` : 'Starting renderer…'}</span><span>{net ? `Net ${net.position.y.toFixed(2)} m` : 'No net crossing'} · {bounce ? `Landing ${bounce.position.x.toFixed(2)}, ${bounce.position.z.toFixed(2)} m` : 'No landing'} · Every {interval.toFixed(1)} s</span></div>
         </section>
 
         <aside className="inspector" aria-label="Practice configuration">
@@ -323,8 +323,7 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
           <SetupSection title="Opponent" subtitle="Position and delivery" open><button type="button" className="configuration-action" onClick={() => setDialog('opponent')}><UserRound size={16} /><span>Position opponent</span><small>{opponentPosition.x.toFixed(1)}, {opponentPosition.z.toFixed(1)} m</small></button><label className="select-field"><span>Hand</span><select value={opponentHand} onChange={(event) => setOpponentHand(event.target.value as 'left' | 'right')}><option value="right">Right-handed</option><option value="left">Left-handed</option></select></label><label className="select-field"><span>Serve rhythm</span><select value={serveRhythm} onChange={(event) => setServeRhythm(event.target.value as 'preset' | 'normal' | 'compact')}><option value="preset">Drill preset</option><option value="normal">Normal · high toss</option><option value="compact">Compact · quick toss</option></select></label></SetupSection>
           <SetupSection title="Venue" subtitle="Court, light, weather">
             <label className="select-field"><span>Venue</span><select value={venue} onChange={(event) => changeVenue(event.target.value as VenueId)}>{(Object.entries(VENUE_LABELS) as [VenueId, string][]).map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
-            <label className="select-field"><span>Appearance</span><select value={visualSurface} onChange={(event) => setVisualSurface(event.target.value as SurfaceId)}><option value="hard">Hard</option><option value="clay">Clay</option><option value="grass">Grass</option></select></label>
-            <label className="select-field"><span>Bounce</span><select value={physicsSurface} onChange={(event) => setPhysicsSurface(event.target.value as SurfaceId)}><option value="hard">Hard</option><option value="clay">Clay</option><option value="grass">Grass</option></select></label>
+            <label className="select-field"><span>Surface</span><select value={surface} onChange={(event) => setSurface(event.target.value as SurfaceId)}><option value="hard">Hard</option><option value="clay">Clay</option><option value="grass">Grass</option></select></label>
             <label className="select-field"><span>Lighting</span><select value={lighting} onChange={(event) => { const next = event.target.value as LightingPreset; setLighting(next); if (next === 'day' || next === 'golden-hour' || next === 'night') setTimeOfDay(OUTDOOR_TIME_BY_LIGHTING[next]); }}>{isOutdoorVenue(venue) ? <><option value="day">Day</option><option value="golden-hour">Golden hour</option><option value="night">Night floodlights</option></> : <><option value="indoor-neutral">Neutral</option><option value="indoor-warm">Warm</option><option value="indoor-bright">Bright match</option></>}</select></label>
             {isOutdoorVenue(venue) ? <><RangeField label="Time of day" value={timeOfDay} min={5} max={23} step={0.25} unit="h" onChange={setTimeOfDay} /><label className="select-field"><span>Weather</span><select value={weather} onChange={(event) => { const next = event.target.value as WeatherCondition; setWeather(next); setWeatherIntensity(next === 'clear' ? 0 : Math.max(0.45, weatherIntensity)); }}><option value="clear">Clear</option><option value="overcast">Overcast</option><option value="rain">Rain</option></select></label>{weather !== 'clear' ? <RangeField label="Weather level" value={weatherIntensity} min={0.1} max={1} step={0.05} unit="×" onChange={setWeatherIntensity} /> : null}</> : null}
             <RangeField label={isOutdoorVenue(venue) ? 'Sun direction' : 'Light direction'} value={lightDirection} min={-180} max={180} step={5} unit="°" onChange={setLightDirection} /><RangeField label="Light level" value={lightIntensity} min={0.35} max={1.5} step={0.05} unit="×" onChange={setLightIntensity} /><RangeField label="Wind direction" value={windDirection} min={-180} max={180} step={5} unit="°" onChange={setWindDirection} /><RangeField label="Wind speed" value={windSpeedMps} min={0} max={15} step={0.5} unit="m/s" onChange={setWindSpeedMps} />
@@ -334,8 +333,6 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
           <div className="inspector-actions"><button className="primary-button" type="button" onClick={requestStart}>Start practice</button></div>
         </aside>
       </section>
-      <footer className="safety-footer">Clear a safe practice area before starting</footer>
-
       {dialog === 'safety' ? <Modal title="Make room to swing" actions={<><button className="secondary-button" type="button" onClick={() => setDialog(null)}>Cancel</button><button className="primary-button inline" type="button" disabled={!safetyChecked} onClick={() => { localStorage.setItem('tenmulate.safetyAcknowledged', 'true'); setDialog(null); launch(); }}>Continue</button></>}><p>Move furniture, people, pets, and breakable objects beyond your full racket-and-arm reach. Tenmulate does not measure your room.</p><label className="check-row"><input type="checkbox" checked={safetyChecked} onChange={(event) => setSafetyChecked(event.target.checked)} /> I have cleared a safe practice area.</label></Modal> : null}
       {dialog === 'opponent' ? <Modal title="Opponent position" onClose={() => setDialog(null)} actions={<button className="primary-button inline" type="button" onClick={() => setDialog(null)}>Done</button>}><p>Drag the opponent anywhere on the floor plan, or start from a court preset.</p><div className="court-preset-list">{OPPONENT_POSITION_PRESETS.map((preset) => <button type="button" key={preset.name} onClick={() => setOpponentPosition(preset.point)}>{preset.name}</button>)}</div><CourtPlan opponent={opponentPosition} landing={bounce?.position ?? null} onOpponentChange={setOpponentPosition} /><p className="calculation">Opponent floor position: {opponentPosition.x.toFixed(2)}, {opponentPosition.z.toFixed(2)} m</p></Modal> : null}
       {dialog === 'display' ? <Modal title="Physical display view" onClose={() => setDialog(null)} actions={<button className="primary-button inline" type="button" onClick={applyPhysicalFov}>Apply calculated FOV</button>}><p>Enter the visible screen width and height plus your eye-to-screen distance. This calculates physical horizontal and vertical FOV without changing court geometry.</p><label className="dialog-field"><span>Screen width</span><input type="number" min="30" max="1000" value={screenWidthCm} onChange={(event) => setScreenWidthCm(Number(event.target.value))} /><small>cm</small></label><label className="dialog-field"><span>Screen height</span><input type="number" min="20" max="1000" value={screenHeightCm} onChange={(event) => setScreenHeightCm(Number(event.target.value))} /><small>cm</small></label><label className="dialog-field"><span>Viewing distance</span><input type="number" min="30" max="1500" value={viewDistanceCm} onChange={(event) => setViewDistanceCm(Number(event.target.value))} /><small>cm</small></label><p className="calculation">Calculated FOV: {Math.round((2 * Math.atan(screenWidthCm / (2 * viewDistanceCm)) * 180) / Math.PI)}° horizontal · {Math.round((2 * Math.atan(screenHeightCm / (2 * viewDistanceCm)) * 180) / Math.PI)}° vertical</p></Modal> : null}

@@ -31,6 +31,6 @@ export const createDefaultLaunch = (drill: DrillDefinitionV1): SessionLaunch => 
   trajectoryEnabled: false,
   camera: DEFAULT_CAMERA,
   environment: DEFAULT_ENVIRONMENT,
-  visualSurface: 'hard',
+  surface: 'hard',
   quality: 'auto',
 });

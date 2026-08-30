@@ -50,8 +50,7 @@ export type PracticePreferencesV1 = Readonly<{
   timingVariation: number;
   workBlockSize: number;
   restSeconds: number;
-  visualSurface: SurfaceId;
-  physicsSurface: SurfaceId;
+  surface: SurfaceId;
   spin: 'preset' | SpinKind;
   opponentHand: 'left' | 'right';
   serveRhythm: 'preset' | 'normal' | 'compact';
@@ -68,7 +67,7 @@ export type PracticePreferencesV1 = Readonly<{
 
 export const DEFAULT_PREFERENCES: PracticePreferencesV1 = {
   sessionCategory: 'Quick Rally', trajectoryEnabled: false, pace: 78, interval: 3.2, repetitions: 12, variation: 8, timingVariation: 0,
-  workBlockSize: 4, restSeconds: 20, visualSurface: 'hard', physicsSurface: 'hard', spin: 'preset', opponentHand: 'right', serveRhythm: 'preset', netClearanceM: 0.24,
+  workBlockSize: 4, restSeconds: 20, surface: 'hard', spin: 'preset', opponentHand: 'right', serveRhythm: 'preset', netClearanceM: 0.24,
   aimDirectionDeg: 0, opponentPosition: { x: 0, z: 11.235 },
   camera: { eyeHeight: 1.7, behindBaseline: 1.5, lateral: 0, yaw: 0, pitch: -1.7, fov: 70 },
   environment: DEFAULT_ENVIRONMENT, quality: 'auto', screenWidthCm: 120, screenHeightCm: 67.5, viewDistanceCm: 250,
@@ -119,15 +118,21 @@ export const loadAppData = (): AppDataV1 => {
     const candidate: Record<string, unknown> = isRecord(parsed.preferences) ? parsed.preferences : {};
     const camera = isRecord(candidate.camera) ? { ...DEFAULT_PREFERENCES.camera, ...candidate.camera } : DEFAULT_PREFERENCES.camera;
     const environment = normalizeEnvironmentConfiguration(candidate.environment);
-    const legacySurface = candidate.surface === 'hard' || candidate.surface === 'clay' || candidate.surface === 'grass'
+    const savedSurface = candidate.surface === 'hard' || candidate.surface === 'clay' || candidate.surface === 'grass'
       ? candidate.surface
-      : undefined;
+      : candidate.physicsSurface === 'hard' || candidate.physicsSurface === 'clay' || candidate.physicsSurface === 'grass'
+        ? candidate.physicsSurface
+      : candidate.visualSurface === 'hard' || candidate.visualSurface === 'clay' || candidate.visualSurface === 'grass'
+        ? candidate.visualSurface
+        : DEFAULT_PREFERENCES.surface;
+    const canonicalCandidate = { ...candidate };
+    delete canonicalCandidate.physicsSurface;
+    delete canonicalCandidate.visualSurface;
     const preferences = {
       ...DEFAULT_PREFERENCES,
-      ...candidate,
+      ...canonicalCandidate,
       trajectoryEnabled: typeof candidate.trajectoryEnabled === 'boolean' ? candidate.trajectoryEnabled : candidate.mode === 'learning',
-      visualSurface: candidate.visualSurface ?? legacySurface ?? DEFAULT_PREFERENCES.visualSurface,
-      physicsSurface: candidate.physicsSurface ?? legacySurface ?? DEFAULT_PREFERENCES.physicsSurface,
+      surface: savedSurface,
       camera,
       environment,
     } as PracticePreferencesV1;

@@ -8,6 +8,6 @@ export type SessionLaunch = Readonly<{
   trajectoryEnabled: boolean;
   camera: CameraConfiguration;
   environment: EnvironmentConfiguration;
-  visualSurface: SurfaceId;
+  surface: SurfaceId;
   quality: QualityMode;
 }>;

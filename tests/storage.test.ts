@@ -53,15 +53,28 @@ describe('local application data', () => {
     expect(loadAppData().cameraPositionPresets[0]?.position.lateral).toBe(2.6);
   });
 
-  it('migrates the original coupled surface preference into independent visual and physics choices', () => {
+  it('migrates legacy surface preferences into the canonical visual-and-physics surface', () => {
     localStorage.setItem('tenmulate.appData.v1', JSON.stringify({
       schemaVersion: 1,
       customDrills: [],
       savedViews: [],
       preferences: { surface: 'clay' },
     }));
-    expect(loadAppData().preferences.visualSurface).toBe('clay');
-    expect(loadAppData().preferences.physicsSurface).toBe('clay');
+    expect(loadAppData().preferences.surface).toBe('clay');
+    expect(loadAppData().preferences).not.toHaveProperty('visualSurface');
+    expect(loadAppData().preferences).not.toHaveProperty('physicsSurface');
+  });
+
+  it('uses the saved bounce surface as the canonical surface over a legacy appearance', () => {
+    localStorage.setItem('tenmulate.appData.v1', JSON.stringify({
+      schemaVersion: 1,
+      customDrills: [],
+      savedViews: [],
+      preferences: { visualSurface: 'clay', physicsSurface: 'grass' },
+    }));
+    expect(loadAppData().preferences.surface).toBe('grass');
+    expect(loadAppData().preferences).not.toHaveProperty('visualSurface');
+    expect(loadAppData().preferences).not.toHaveProperty('physicsSurface');
   });
 
   it('normalizes legacy and invalid environment weather and wind fields', () => {
