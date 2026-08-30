@@ -213,3 +213,29 @@ The detailed status of every requirement is recorded in the [V1 release matrix](
 - Calm and wind trajectory tests, legacy storage normalization, nine-venue registry, no-seating indoor contract, venue-specific rounded tiers and capacity bounds, all-six outdoor floodlights, coplanar court layers, dense net/tape, procedural-surface switching, fixture/lens alignment, and upright roof coverage bring the full suite to 64 passing tests.
 - `npm run build` passes. The renderer chunk is approximately 171.5 kB gzip and the 29-entry generated PWA precache remains approximately 1.81 MiB with no external venue texture/model payload added.
 - In-app browser verification exercised the outdoor club at noon, all three arena identities, the hard arena at night, and the close approach view. The loop caught and fixed the residual solar wash plus procedural-shader loss on cloned double-sided materials. Final switching produced zero browser console errors or warnings. The references and final captures were inspected together; detailed roof mechanics, architectural weathering, foreground reference-device profiling, and owner visual approval remain explicit gates.
+
+## Stage 8 — practice interaction and physical shot setup
+
+- **Status:** Implemented locally on 2026-08-30; owner interaction review remains open
+- Reduced the Practice rail to Rally, Return, Volley, and Overhead setup presets. Each preset selects an incoming-ball origin, source height, drill cadence, and starting camera position.
+- Replaced the learning/rehearsal selector with one trajectory on/off switch and removed the second hidden cue behavior so the label matches the actual contract.
+- Split the right configuration surface into collapsible Ball & rhythm, Practice set, Opponent, Venue, Perspective, and System sections. Venue follows the ball/practice/opponent controls, and net clearance now sits beside pace and interval.
+- Bound setup playback to the configured interval. The renderer now relaunches or hides its single preview ball from the interval cycle instead of looping immediately at trajectory duration.
+- Replaced coupled saved views with independent local camera-position and perspective preset collections. Legacy views migrate into both collections; clicking applies one side, right-click updates it in place, plus creates a new preset, WASD provides free camera movement, and Reset applies the first item from each collection.
+- Added a reusable interactive court plan. Ball landing uses right-click aiming plus the `ball-v3-directed-aim` solver, where pace is launch speed and net clearance solves launch elevation; Quick Practice opponent positioning supports presets and free dragging.
+- Added validated per-event `opponentPosition` overrides in the drill editor, including court presets, free dragging, live preview, timeline labels, JSON round-trip, and compile precedence over the session-wide position.
+- The renderer moves both the neutral opponent rig and its ball-machine fallback to the active trajectory origin.
+
+### Verification
+
+- Commit: `f97ffb7`.
+- `npm test`: 8 files, 66 tests passed, including directed pace/clearance landing, left/right aiming, interval-cycle playback, split-preset migration, and per-event opponent-origin compilation.
+- `npm run build`: production PWA build passed; the scene chunk remains approximately 164.6 kB gzip and the generated precache approximately 1.84 MiB.
+- In-app browser at 1440 × 900 verified the four-item Practice rail, collapsible configuration hierarchy, decoupled bottom presets, right-click landing change from center to 3.58 m right, opponent preset and free-drag updates, and a selected editor event moved to the service line.
+- The Browser loop caught and fixed an in-place legacy-state crash during hot replacement. A fresh 1280 × 720 load then rendered the WebGL practice screen with the four presets, split bottom controls, collapsible sections, and zero console errors or warnings.
+- At 820 × 1000 the stacked setup had no horizontal overflow, retained both preset groups and the safety notice, and kept the complete landing planner inside the viewport with zero console errors or warnings. The court map also scales down at the 720 px default height so the Done action remains visible without modal scrolling.
+
+### Remaining review gates
+
+- Owner/manual review of WASD feel, right-click discoverability, preset naming volume, and physically useful pace/clearance ranges.
+- Target-device foreground performance review during continuous court-map dragging.

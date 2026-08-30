@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { DrillDefinitionV1 } from '../content/types';
-import { DEFAULT_APP_DATA, loadAppData, saveAppData, type AppDataV1, type PracticePreferencesV1, type SavedViewV1 } from '../storage/appStorage';
+import { DEFAULT_APP_DATA, loadAppData, saveAppData, type AppDataV1, type CameraPositionPresetV1, type PerspectivePresetV1, type PracticePreferencesV1 } from '../storage/appStorage';
 
 export const useAppData = () => {
   const [data, setData] = useState<AppDataV1>(() => typeof window === 'undefined' ? DEFAULT_APP_DATA : loadAppData());
@@ -8,13 +8,22 @@ export const useAppData = () => {
 
   const saveDrill = useCallback((drill: DrillDefinitionV1) => setData((current) => ({ ...current, customDrills: [...current.customDrills.filter((item) => item.id !== drill.id), drill] })), []);
   const deleteDrill = useCallback((id: string) => setData((current) => ({ ...current, customDrills: current.customDrills.filter((item) => item.id !== id) })), []);
-  const saveView = useCallback((view: SavedViewV1) => setData((current) => ({ ...current, savedViews: [...current.savedViews.filter((item) => item.id !== view.id), view] })), []);
-  const deleteView = useCallback((id: string) => setData((current) => ({ ...current, savedViews: current.savedViews.filter((item) => item.id !== id) })), []);
-  const renameView = useCallback((id: string, name: string) => setData((current) => ({ ...current, savedViews: current.savedViews.map((item) => item.id === id ? { ...item, name } : item) })), []);
+  const saveCameraPositionPreset = useCallback((preset: CameraPositionPresetV1) => setData((current) => ({
+    ...current,
+    cameraPositionPresets: current.cameraPositionPresets.some((item) => item.id === preset.id)
+      ? current.cameraPositionPresets.map((item) => item.id === preset.id ? preset : item)
+      : [...current.cameraPositionPresets, preset],
+  })), []);
+  const savePerspectivePreset = useCallback((preset: PerspectivePresetV1) => setData((current) => ({
+    ...current,
+    perspectivePresets: current.perspectivePresets.some((item) => item.id === preset.id)
+      ? current.perspectivePresets.map((item) => item.id === preset.id ? preset : item)
+      : [...current.perspectivePresets, preset],
+  })), []);
   const savePreferences = useCallback((preferences: PracticePreferencesV1) => setData((current) => ({ ...current, preferences })), []);
 
   return {
     data,
-    saveDrill, deleteDrill, saveView, deleteView, renameView, savePreferences,
+    saveDrill, deleteDrill, saveCameraPositionPreset, savePerspectivePreset, savePreferences,
   };
 };

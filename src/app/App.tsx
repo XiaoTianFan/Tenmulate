@@ -72,13 +72,13 @@ export function App() {
   return <Suspense fallback={<LoadingScreen />}>
     <SetupScreen
       route={route}
-      savedViews={appData.data.savedViews}
+      cameraPositionPresets={appData.data.cameraPositionPresets}
+      perspectivePresets={appData.data.perspectivePresets}
       initialPreferences={appData.data.preferences}
       onRoute={setRoute}
       onStart={setLaunch}
-      onSaveView={appData.saveView}
-      onDeleteView={appData.deleteView}
-      onRenameView={appData.renameView}
+      onSaveCameraPositionPreset={appData.saveCameraPositionPreset}
+      onSavePerspectivePreset={appData.savePerspectivePreset}
       onPreferencesChange={appData.savePreferences}
     />
   </Suspense>;

@@ -3,10 +3,9 @@ import type { CameraConfiguration, QualityMode } from '../engine/rendering/Tenni
 import type { EnvironmentConfiguration } from '../domain/environment';
 import type { SurfaceId } from '../domain/court';
 
-export type PracticeMode = 'rehearsal' | 'learning';
 export type SessionLaunch = Readonly<{
   session: CompiledSession;
-  mode: PracticeMode;
+  trajectoryEnabled: boolean;
   camera: CameraConfiguration;
   environment: EnvironmentConfiguration;
   visualSurface: SurfaceId;

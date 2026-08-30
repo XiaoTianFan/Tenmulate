@@ -108,7 +108,7 @@ No single TV/projector, viewing distance, room, or GPU defines the product. Refe
 - Strategic combinations including the requested cross-court/down-the-line pattern and serve-and-volley sequences with first volley, second volley, lob, and overhead repositioning.
 - A local timeline editor with opponent, ball, camera, cue, and rest tracks, constrained to validated content primitives.
 - JSON drill export/import with schema versioning and pre-play validation.
-- Learning mode with optional target/trajectory/timing cues and rehearsal mode with predictive cues removed.
+- A direct trajectory-line on/off control; no separate mode label for the same visual choice.
 - Coach/debug overlay for launch speed, spin, net clearance, landing coordinates, pre/post-bounce speed, bounce height, and receiver-plane arrival time.
 - One neutral faceless opponent carrier for V1, with both handedness modes and mocap-driven clip families; venue ambience is optional and off by default. Additional appearances are a later content concern, not a V1 dependency.
 - Contact, bounce, countdown, footwork cue, and ambience audio with independent controls and text/visual equivalents where needed.
@@ -136,10 +136,11 @@ Accounts, premium entitlements, cloud content, and payments belong to a separate
 | --- | --- | --- |
 | CAL-01 | Support optional physical display calibration. | Given visible screen width/height or diagonal/aspect plus viewing distance, the app derives physical horizontal/vertical FOV and shows the entered values. |
 | CAL-02 | Support camera preference controls. | Eye height, baseline offset, lateral offset, yaw/pitch/look target, and FOV/zoom update without changing court or ball coordinates. |
-| CAL-03 | Provide a realistic default and reset. | A single action restores 1.70 m eye height, center position, 1.5 m behind baseline, level horizon, and the documented default FOV mode. |
-| CAL-04 | Save named view presets locally. | Users can save, rename, select, and delete view presets; a preset cannot overwrite the built-in realistic default. |
+| CAL-03 | Provide a predictable reset. | A single action applies the first camera-position preset plus the first perspective preset. |
+| CAL-04 | Save decoupled view presets locally. | Camera position and perspective are separate collections; users can combine them, create presets, and right-click an existing preset to update it. |
 | CAL-05 | Run a visual scale check. | Court-width/net-height and ball-size checks can be revisited without restarting a drill. |
 | CAL-06 | Confirm a clear practice area. | First use presents a short safety acknowledgement and never claims to measure the room. |
+| CAL-07 | Support free setup movement. | WASD moves the camera around the court without changing the selected ball or opponent configuration. |
 
 ### 9.2 Court and point of view
 
@@ -166,6 +167,7 @@ Accounts, premium entitlements, cloud content, and payments belong to a separate
 | BALL-05 | Keep fast balls visible without changing physics. | Optional blur/trail/halo affects presentation only; the debug path always shows the computed centroid trajectory. |
 | BALL-06 | Validate legality and authored intent. | Invalid service boxes, unintended net contacts, and landing/clearance failures block a preset from shipping. |
 | BALL-07 | Apply configurable physical wind. | Direction and speed produce deterministic world-space air velocity; drag and Magnus use air-relative velocity, non-zero side wind measurably shifts the bounce, and calm-air results remain compatible. |
+| BALL-08 | Configure physical landing interactively. | Right-drag changes shot azimuth; pace supplies launch speed and net clearance supplies the elevation constraint, with the resulting first bounce shown on a court plan. |
 
 ### 9.4 Opponent and serve motion
 
@@ -177,6 +179,7 @@ Accounts, premium entitlements, cloud content, and payments belong to a separate
 | OPP-04 | Ship both opponent hands. | All required drill families work with a left- and right-handed opponent; each mirrored use has a recorded acceptance review. |
 | OPP-05 | Ship normal and compact serves. | Both rhythms have distinct toss/loading/contact timing, remain readable at normal speed, and can drive the same legal ball-pace preset. |
 | OPP-06 | Preserve readable preparation. | Preparation and contact timing are authored independently of ball flight speed and expose valid playback-rate bounds. |
+| OPP-07 | Position the opponent on court. | Quick Practice offers position presets and free floor-plan dragging; every editor event can store and preview its own validated opponent floor position. |
 
 ### 9.5 Drills, timeline, and local content
 
@@ -186,7 +189,7 @@ Accounts, premium entitlements, cloud content, and payments belong to a separate
 | DRILL-02 | Coordinate ordered sequences. | Opponent, ball, camera, cue, and rest events share one deterministic timeline. |
 | DRILL-03 | Randomize only declared parameters. | The same seed reproduces the same session; every value remains within author bounds. |
 | DRILL-04 | Cover every V1 family. | Bundled content includes baseline alternation/depth, serve recognition, tactical transition, serve-and-volley, two-volley, lob/overhead, and moving recovery patterns. |
-| DRILL-05 | Separate learning and rehearsal. | Learning cues, slow motion, and preview can be enabled; rehearsal removes predictive overlays. |
+| DRILL-05 | Make trajectory guidance explicit. | One trajectory toggle controls the predictive line in setup and playback without introducing a second practice-mode concept. |
 | DRILL-06 | Author locally. | The timeline editor validates compatible opponent clips, ball contacts, camera paths, rest/cues, and asset availability before playback. |
 | DRILL-07 | Exchange drills safely. | Versioned JSON export/import rejects unknown incompatible schemas and never executes code or remote references. |
 | DRILL-08 | Reuse offline. | The app explains which content is cached, launches cached drills offline, and reports missing optional assets clearly. |
@@ -218,10 +221,10 @@ Each reusable shot describes independent axes:
 
 ## 11. Core user flow
 
-1. Open the public app and choose **Quick Rally**, **Return Practice**, **Tactical Pattern**, **Serve-and-Volley**, **Net/Overhead**, or **Custom**.
-2. On first use, choose the realistic default or optionally enter physical display/viewing measurements; adjust eye/camera preferences and confirm a clear area.
-3. Choose skill/pace preset, surface, frequency, variation, repetition/work-rest values, opponent hand/appearance, and learning/rehearsal mode.
-4. Preview a paused court or first trajectory if desired.
+1. Open the public app and choose the **Rally**, **Return**, **Volley**, or **Overhead** setup preset.
+2. Combine a camera-position preset with a perspective preset, optionally use WASD or physical display measurements, and confirm a clear area.
+3. Configure pace, net clearance, interval, trajectory visibility, repetitions, opponent position/hand, and venue in collapsible sections.
+4. Use the court plans to position the opponent or steer a physically resolved landing if desired.
 5. Enter full screen, receive a countdown, and run the set.
 6. Pause immediately at any time.
 7. Review the completed repetitions and configuration, then replay with the same seed, randomize, edit, or export the drill. V1 does not grade the player's body.

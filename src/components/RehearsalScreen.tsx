@@ -139,7 +139,7 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
 
   return (
     <main className={hudHidden ? 'rehearsal-shell hud-hidden' : 'rehearsal-shell'} onMouseMove={() => { if (hudHidden) setHudHidden(false); }}>
-      <SceneViewport camera={launch.camera} trajectory={trajectory} surface={launch.visualSurface} environment={launch.environment} quality={launch.quality} running={playing} resetToken={resetToken} showTrajectory={launch.mode === 'learning' || showDiagnostics} playbackRate={playbackRate} loopTrajectory={false} cameraMotion={cameraMotion} showSight={false} highContrastBall={highContrastBall} showBallTrail={showBallTrail} onMetrics={onMetrics} />
+      <SceneViewport camera={launch.camera} trajectory={trajectory} surface={launch.visualSurface} environment={launch.environment} quality={launch.quality} running={playing} resetToken={resetToken} showTrajectory={launch.trajectoryEnabled || showDiagnostics} playbackRate={playbackRate} loopTrajectory={false} cameraMotion={cameraMotion} showSight={false} highContrastBall={highContrastBall} showBallTrail={showBallTrail} onMetrics={onMetrics} />
       <header className="rehearsal-header">
         <strong>Tenmulate</strong>
         <span className="drill-title">{launch.session.drill.title}</span>
@@ -152,14 +152,12 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
         </div>
       </header>
 
-      {launch.mode === 'learning' && playing ? <div className="preparation-cue"><strong>{shot.cue}</strong><span /></div> : null}
       {player.countdown ? <div className="countdown" aria-live="assertive"><strong>{player.countdown}</strong><span>Ready position</span></div> : null}
       {player.status === 'resting' ? <div className="countdown rest-countdown" aria-live="polite"><strong>{player.restRemaining}</strong><span>Rest · next set follows</span></div> : null}
       {paused ? <div className="paused-label" aria-live="polite">Paused</div> : null}
 
       <aside className="rehearsal-mode-panel">
-        <span className={launch.mode === 'rehearsal' ? 'active' : ''}>Rehearsal</span>
-        <span className={launch.mode === 'learning' ? 'active' : ''}>Learning</span>
+        <span className={launch.trajectoryEnabled ? 'active' : ''}>Trajectory {launch.trajectoryEnabled ? 'on' : 'off'}</span>
         <small>Seed {launch.session.settings.seed}</small>
       </aside>
 
@@ -202,7 +200,7 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
       {player.status === 'completed' ? (
         <Modal title="Set complete" actions={<><button className="secondary-button" type="button" onClick={onExit}>Back to setup</button><button className="secondary-button" type="button" onClick={onRandomize}>New variation</button><button className="primary-button inline" type="button" onClick={player.restart}>Replay same seed</button></>}>
           <p>{launch.session.drill.title}: {launch.session.repetitions.length} repetition{launch.session.repetitions.length === 1 ? '' : 's'} completed in {Math.round(launch.session.duration)} seconds.</p>
-          <dl className="session-summary"><div><dt>Mode</dt><dd>{launch.mode}</dd></div><div><dt>Venue</dt><dd>{launch.environment.venue}</dd></div><div><dt>Appearance</dt><dd>{launch.visualSurface}</dd></div><div><dt>Bounce profile</dt><dd>{launch.session.settings.surface}</dd></div><div><dt>Base pace</dt><dd>{launch.session.settings.paceKmh} km/h</dd></div><div><dt>Interval</dt><dd>{launch.session.settings.interval.toFixed(1)} s ± {launch.session.settings.timingVariationPercent}%</dd></div></dl>
+          <dl className="session-summary"><div><dt>Trajectory</dt><dd>{launch.trajectoryEnabled ? 'on' : 'off'}</dd></div><div><dt>Venue</dt><dd>{launch.environment.venue}</dd></div><div><dt>Appearance</dt><dd>{launch.visualSurface}</dd></div><div><dt>Bounce profile</dt><dd>{launch.session.settings.surface}</dd></div><div><dt>Base pace</dt><dd>{launch.session.settings.paceKmh} km/h</dd></div><div><dt>Interval</dt><dd>{launch.session.settings.interval.toFixed(1)} s ± {launch.session.settings.timingVariationPercent}%</dd></div></dl>
           <p>The same seed reproduces the same shot order and bounded landing variation.</p>
         </Modal>
       ) : null}

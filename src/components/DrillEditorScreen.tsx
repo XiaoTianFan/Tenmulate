@@ -4,6 +4,7 @@ import {
   Copy,
   Download,
   GripVertical,
+  MapPin,
   Play,
   Plus,
   Redo2,
@@ -17,9 +18,11 @@ import { materializeEvents } from '../content/editing';
 import type { DrillDefinitionV1, DrillEventV1 } from '../content/types';
 import { downloadDrill, parseDrillJson, validateDrill } from '../content/validation';
 import { DEFAULT_CAMERA } from '../app/defaults';
+import { COURT } from '../domain/court';
 import { resolveTrajectory, type SpinKind } from '../engine/trajectory/physics';
 import type { SceneMetrics } from '../engine/rendering/TennisScene';
 import { AppHeader, type AppRoute } from './AppHeader';
+import { CourtPlan, type CourtPoint } from './CourtPlan';
 import { Modal } from './Modal';
 import { SceneViewport } from './SceneViewport';
 
@@ -69,6 +72,7 @@ export function DrillEditorScreen({ route, initialDrill, onRoute, onSave, onTest
   const [selectedId, setSelectedId] = useState(normalized.events?.[0]?.id ?? '');
   const [resetToken, setResetToken] = useState(0);
   const [message, setMessage] = useState<string | null>(null);
+  const [positionDraft, setPositionDraft] = useState<CourtPoint | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const dragId = useRef<string | null>(null);
   const onMetrics = useCallback((_metrics: SceneMetrics) => undefined, []);
@@ -78,6 +82,11 @@ export function DrillEditorScreen({ route, initialDrill, onRoute, onSave, onTest
   const sourceShot = selected ? SHOT_BY_ID.get(selected.shotId) : SHOTS[0]!;
   const previewShot = sourceShot ? {
     ...sourceShot,
+    source: {
+      ...sourceShot.source,
+      x: selected?.opponentPosition?.x ?? sourceShot.source.x,
+      z: selected?.opponentPosition?.z ?? sourceShot.source.z,
+    },
     paceKmh: selected?.paceKmh ?? sourceShot.paceKmh,
     spin: selected?.spin && selected.spin !== 'preset' ? selected.spin : sourceShot.spin,
     target: selected?.target ?? sourceShot.target,
@@ -203,7 +212,7 @@ export function DrillEditorScreen({ route, initialDrill, onRoute, onSave, onTest
                   <div className="track-events">
                     {events.map((event, index) => {
                       const shot = SHOT_BY_ID.get(event.shotId);
-                      const text = track === 'Opponent' ? shot?.family : track === 'Ball' ? shot?.label : track === 'Camera' ? motionKey(event) : track === 'Cue' ? event.cue || shot?.cue : index === events.length - 1 ? 'set end' : '';
+                      const text = track === 'Opponent' ? `${shot?.family ?? ''}${event.opponentPosition ? ` · ${event.opponentPosition.x.toFixed(1)}, ${event.opponentPosition.z.toFixed(1)}` : ''}` : track === 'Ball' ? shot?.label : track === 'Camera' ? motionKey(event) : track === 'Cue' ? event.cue || shot?.cue : index === events.length - 1 ? 'set end' : '';
                       return <button type="button" key={`${track}-${event.id}`} className={event.id === selected?.id ? 'timeline-clip selected' : 'timeline-clip'} onClick={() => setSelectedId(event.id)} title={text}>{text}</button>;
                     })}
                   </div>
@@ -231,6 +240,7 @@ export function DrillEditorScreen({ route, initialDrill, onRoute, onSave, onTest
               <label className="stack-field"><span>Pace override</span><input type="number" min="20" max="260" placeholder={`${sourceShot.paceKmh} preset`} value={selected.paceKmh ?? ''} onChange={(event) => updateEvent({ paceKmh: event.target.value ? Number(event.target.value) : undefined })} /></label>
               <label className="stack-field"><span>Spin</span><select value={selected.spin ?? 'preset'} onChange={(event) => updateEvent({ spin: event.target.value as 'preset' | SpinKind })}><option value="preset">Shot preset</option><option value="flat">Flat</option><option value="topspin">Topspin</option><option value="slice">Slice</option><option value="kick">Kick</option><option value="sidespin">Sidespin</option></select></label>
               <label className="stack-field"><span>Net clearance</span><input type="number" min="0.08" max="1.8" step="0.02" value={selected.netClearanceM ?? ''} placeholder="0.24 session" onChange={(event) => updateEvent({ netClearanceM: event.target.value ? Number(event.target.value) : undefined })} /></label>
+              <button type="button" className="configuration-action editor-position-action" onClick={() => setPositionDraft(selected.opponentPosition ?? { x: sourceShot.source.x, z: sourceShot.source.z })}><MapPin size={16} /><span>Opponent position</span><small>{(selected.opponentPosition?.x ?? sourceShot.source.x).toFixed(1)}, {(selected.opponentPosition?.z ?? sourceShot.source.z).toFixed(1)} m</small></button>
               {sourceShot.family === 'serve' ? <label className="stack-field"><span>Serve rhythm</span><select value={selected.serveRhythm ?? 'preset'} onChange={(event) => updateEvent({ serveRhythm: event.target.value as 'preset' | 'normal' | 'compact' })}><option value="preset">Shot preset</option><option value="normal">Normal · high toss</option><option value="compact">Compact · quick toss</option></select></label> : null}
               <div className="paired-fields"><label className="stack-field"><span>Target X</span><input type="number" min="-4.115" max="4.115" step="0.05" value={(selected.target?.x ?? sourceShot.target.x).toFixed(2)} onChange={(event) => updateEvent({ target: { x: Number(event.target.value), z: selected.target?.z ?? sourceShot.target.z } })} /></label><label className="stack-field"><span>Target Z</span><input type="number" min="-11.885" max="-0.01" step="0.05" value={(selected.target?.z ?? sourceShot.target.z).toFixed(2)} onChange={(event) => updateEvent({ target: { x: selected.target?.x ?? sourceShot.target.x, z: Number(event.target.value) } })} /></label></div>
               <label className="stack-field"><span>Camera motion</span><select value={motionKey(selected)} onChange={(event) => updateEvent({ cameraMotion: cameraMotions[event.target.value as keyof typeof cameraMotions] })}>{Object.keys(cameraMotions).map((key) => <option key={key} value={key}>{key.replace('-', ' ')}</option>)}</select></label>
@@ -245,6 +255,7 @@ export function DrillEditorScreen({ route, initialDrill, onRoute, onSave, onTest
         </aside>
       </section>
       {message ? <Modal title="Drill editor" onClose={() => setMessage(null)} actions={<button className="primary-button inline" type="button" onClick={() => setMessage(null)}>Close</button>}><p>{message}</p></Modal> : null}
+      {positionDraft && selected && sourceShot ? <Modal title="Opponent position for this shot" onClose={() => setPositionDraft(null)} actions={<><button className="secondary-button" type="button" onClick={() => setPositionDraft(null)}>Cancel</button><button className="primary-button inline" type="button" onClick={() => { updateEvent({ opponentPosition: positionDraft }); setPositionDraft(null); }}>Apply to shot</button></>}><p>Drag the opponent on the floor plan. This origin is stored on the selected event only.</p><div className="court-preset-list"><button type="button" onClick={() => setPositionDraft({ x: 0, z: COURT.halfLength - 0.65 })}>Baseline</button><button type="button" onClick={() => setPositionDraft({ x: -3.4, z: COURT.halfLength - 0.65 })}>Deuce</button><button type="button" onClick={() => setPositionDraft({ x: 3.4, z: COURT.halfLength - 0.65 })}>Ad</button><button type="button" onClick={() => setPositionDraft({ x: 0, z: COURT.serviceLineFromNet })}>Service line</button><button type="button" onClick={() => setPositionDraft({ x: 0, z: 1.2 })}>Net</button></div><CourtPlan opponent={positionDraft} landing={trajectory.events.find((event) => event.type === 'bounce')?.position ?? null} onOpponentChange={setPositionDraft} /><p className="calculation">Event position: {positionDraft.x.toFixed(2)}, {positionDraft.z.toFixed(2)} m</p></Modal> : null}
     </main>
   );
 }

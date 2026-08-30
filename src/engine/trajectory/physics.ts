@@ -24,6 +24,7 @@ export const SURFACE_PROFILES: Record<SurfaceId, SurfaceProfile> = {
 export type ShotIntent = Readonly<{
   source: Vec3;
   target: Readonly<{ x: number; z: number }>;
+  aimDirectionDeg?: number;
   paceKmh: number;
   spin: SpinKind;
   surface: SurfaceId;
@@ -145,6 +146,40 @@ const firstNetCrossing = (intent: ShotIntent, initialVelocity: Vec3): FlightSamp
   return null;
 };
 
+const directedVelocity = (intent: ShotIntent): Vec3 => {
+  const direction = Math.min(35, Math.max(-35, intent.aimDirectionDeg ?? 0)) * Math.PI / 180;
+  const speed = Math.max(8, intent.paceKmh / 3.6);
+  const directionX = Math.sin(direction);
+  const directionZ = -Math.cos(direction);
+  const clearance = Math.min(1.8, Math.max(0.08, intent.netClearanceM ?? 0.12));
+  let lowerAngle = -5 * Math.PI / 180;
+  let upperAngle = 48 * Math.PI / 180;
+
+  for (let iteration = 0; iteration < 24; iteration += 1) {
+    const angle = (lowerAngle + upperAngle) / 2;
+    const horizontalSpeed = speed * Math.cos(angle);
+    const velocity = vec3(
+      directionX * horizontalSpeed,
+      speed * Math.sin(angle),
+      directionZ * horizontalSpeed,
+    );
+    const crossing = firstNetCrossing({ ...intent, windVelocity: undefined }, velocity);
+    const requiredHeight = crossing
+      ? netHeightAt(crossing.position.x) + clearance
+      : COURT.netCenterHeight + clearance;
+    if (crossing && crossing.position.y >= requiredHeight) upperAngle = angle;
+    else lowerAngle = angle;
+  }
+
+  const launchAngle = upperAngle;
+  const horizontalSpeed = speed * Math.cos(launchAngle);
+  return vec3(
+    directionX * horizontalSpeed,
+    speed * Math.sin(launchAngle),
+    directionZ * horizontalSpeed,
+  );
+};
+
 export const netHeightAt = (x: number): number => {
   const postX = COURT.doublesWidth / 2 + 0.15;
   const normalized = Math.min(1, Math.abs(x) / postX);
@@ -152,6 +187,7 @@ export const netHeightAt = (x: number): number => {
 };
 
 const targetAdjustedVelocity = (intent: ShotIntent): Vec3 => {
+  if (intent.aimDirectionDeg !== undefined) return directedVelocity(intent);
   let velocity = lowArcVelocity(intent);
   for (let iteration = 0; iteration < 14; iteration += 1) {
     const bounce = firstBounce(intent, velocity);
