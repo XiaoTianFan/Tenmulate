@@ -30,6 +30,18 @@ export const isCameraHeightShortcut = (
   && (event.key.toLowerCase() === 'w' || event.key.toLowerCase() === 's')
 );
 
+export const cameraHeightMovementKey = (
+  event: Readonly<Pick<KeyboardEvent, 'altKey' | 'ctrlKey' | 'key' | 'metaKey'>>,
+  keyboardLocked: boolean,
+): Extract<CameraMoveKey, 'w' | 's'> | null => {
+  if (!event.altKey && !event.ctrlKey && !event.metaKey) {
+    if (event.key === 'PageUp') return 'w';
+    if (event.key === 'PageDown') return 's';
+  }
+  if (!keyboardLocked || !isCameraHeightShortcut(event)) return null;
+  return event.key.toLowerCase() as Extract<CameraMoveKey, 'w' | 's'>;
+};
+
 export type CameraMovement = Readonly<{
   behindBaseline: number;
   lateral: number;

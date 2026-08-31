@@ -3,7 +3,7 @@ import { Activity, Eye, Gauge, MapPin, Plus, RotateCcw, Target, Trophy, UserRoun
 import { DRILL_BY_CATEGORY } from '../content/bundled';
 import type { SessionCategory } from '../content/types';
 import { CAMERA_FOV_MAX, CAMERA_FOV_MIN, clampCameraFov, type CameraLook } from '../domain/camera';
-import { CAMERA_EYE_HEIGHT_MAX, CAMERA_EYE_HEIGHT_MIN, DEFAULT_RALLY_OPPONENT_POSITION, OPPONENT_POSITION_PRESETS, cameraMovementForKeys, isCameraHeightShortcut, type CameraMoveKey, type SurfaceId } from '../domain/court';
+import { CAMERA_EYE_HEIGHT_MAX, CAMERA_EYE_HEIGHT_MIN, DEFAULT_RALLY_OPPONENT_POSITION, OPPONENT_POSITION_PRESETS, cameraHeightMovementKey, cameraMovementForKeys, isCameraHeightShortcut, type CameraMoveKey, type SurfaceId } from '../domain/court';
 import { SCENE_DEFINITIONS, VENUE_LABELS, isOutdoorVenue, windVelocityFromEnvironment, type EnvironmentConfiguration, type LightingPreset, type VenueId, type WeatherCondition } from '../domain/environment';
 import { RETURN_SERVE_PATTERN, RETURN_SERVE_PLACEMENT_LABELS, returnReceiverSideForCameraPreset, returnServeTarget, returnServerPosition, type ReturnReceiverSide } from '../domain/returnPractice';
 import type { CameraConfiguration, QualityMode, SceneMetrics } from '../engine/rendering/TennisScene';
@@ -13,6 +13,7 @@ import { PRACTICE_SHOT_PROFILES, legalServeTarget, practiceLandingTarget, spinFo
 import { practiceAudio } from '../engine/audio/AudioCueEngine';
 import type { SessionLaunch } from '../app/types';
 import { DEFAULT_CAMERA_POSITION_PRESETS, DEFAULT_PERSPECTIVE_PRESETS, type CameraPositionPresetV1, type PerspectivePresetV1, type PracticePreferencesV1 } from '../storage/appStorage';
+import { useCameraKeyboardLock } from '../hooks/useCameraKeyboardLock';
 import { AppHeader, type AppRoute } from './AppHeader';
 import { CourtPlan, type CourtPoint } from './CourtPlan';
 import { Modal } from './Modal';
@@ -150,9 +151,11 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
   const [presetName, setPresetName] = useState('My preset');
   const [presetNotice, setPresetNotice] = useState<string | null>(null);
   const heldMovementKeys = useRef(new Set<CameraMoveKey>());
+  const heldHeightKeys = useRef(new Set<CameraMoveKey>());
   const fastMovement = useRef(false);
   const verticalMovement = useRef(false);
   const cameraYaw = useRef(yaw);
+  const keyboardLock = useCameraKeyboardLock();
   const onMetrics = useCallback((next: SceneMetrics) => setMetrics(next), []);
   const updateCameraYaw = useCallback((nextYaw: number) => {
     cameraYaw.current = nextYaw;
@@ -211,6 +214,7 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
     let lastFrame = performance.now();
     const clearMovement = () => {
       heldMovementKeys.current.clear();
+      heldHeightKeys.current.clear();
       fastMovement.current = false;
       verticalMovement.current = false;
       if (frame) cancelAnimationFrame(frame);
@@ -235,20 +239,22 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
     };
     const onKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
-      const heightShortcut = isCameraHeightShortcut(event);
-      if (heightShortcut) {
+      const protectedHeightShortcut = cameraHeightMovementKey(event, keyboardLock.active);
+      const browserHeightShortcut = isCameraHeightShortcut(event);
+      if (protectedHeightShortcut) {
         event.preventDefault();
         event.stopPropagation();
       }
       if (event.key === 'Shift') fastMovement.current = true;
-      if (event.key === 'Control') verticalMovement.current = true;
-      if (dialog || (target?.matches('input:not([type="range"]), textarea, [contenteditable="true"]') && !heightShortcut)) return;
+      if (browserHeightShortcut && !keyboardLock.active) return;
+      if (dialog || (target?.matches('input:not([type="range"]), textarea, [contenteditable="true"]') && !protectedHeightShortcut)) return;
       const key = event.key.toLowerCase();
-      if (!['w', 'a', 's', 'd'].includes(key)) return;
+      const movementKey = protectedHeightShortcut ?? (['w', 'a', 's', 'd'].includes(key) ? key as CameraMoveKey : null);
+      if (!movementKey) return;
       event.preventDefault();
       fastMovement.current = event.shiftKey;
-      verticalMovement.current = event.ctrlKey;
-      const movementKey = key as CameraMoveKey;
+      if (protectedHeightShortcut) heldHeightKeys.current.add(movementKey);
+      verticalMovement.current = heldHeightKeys.current.size > 0;
       const isNewPress = !heldMovementKeys.current.has(movementKey);
       heldMovementKeys.current.add(movementKey);
       if (isNewPress) applyMovement(event.shiftKey ? 0.1 : 0.04);
@@ -258,14 +264,24 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
       }
     };
     const onKeyUp = (event: KeyboardEvent) => {
-      if (isCameraHeightShortcut(event)) {
+      const protectedHeightShortcut = cameraHeightMovementKey(event, keyboardLock.active);
+      if (protectedHeightShortcut) {
         event.preventDefault();
         event.stopPropagation();
       }
       if (event.key === 'Shift') fastMovement.current = false;
-      if (event.key === 'Control') verticalMovement.current = false;
+      if (event.key === 'Control') {
+        for (const key of heldHeightKeys.current) heldMovementKeys.current.delete(key);
+        heldHeightKeys.current.clear();
+        verticalMovement.current = false;
+        return;
+      }
       const key = event.key.toLowerCase();
-      if (['w', 'a', 's', 'd'].includes(key)) heldMovementKeys.current.delete(key as CameraMoveKey);
+      const movementKey = protectedHeightShortcut ?? (['w', 'a', 's', 'd'].includes(key) ? key as CameraMoveKey : null);
+      if (!movementKey) return;
+      heldMovementKeys.current.delete(movementKey);
+      if (protectedHeightShortcut) heldHeightKeys.current.delete(movementKey);
+      verticalMovement.current = heldHeightKeys.current.size > 0;
     };
     const onVisibilityChange = () => {
       if (document.hidden) clearMovement();
@@ -281,7 +297,7 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
       document.removeEventListener('visibilitychange', onVisibilityChange);
       clearMovement();
     };
-  }, [dialog]);
+  }, [dialog, keyboardLock.active]);
 
   useEffect(() => {
     if (!presetNotice) return;
@@ -446,7 +462,7 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
           </div>
           <div className="preset-toolbar">
             <div className="preset-group" aria-label="Camera position presets">
-              <header><span><MapPin size={14} /> Camera positions</span><small>WASD move · Ctrl+W/S <output aria-label="Camera height">{eyeHeight.toFixed(2)} m</output> · right-click update</small></header>
+              <header><span><MapPin size={14} /> Camera positions</span><div className="camera-control-status"><small>WASD · {keyboardLock.active ? 'Ctrl+W/S' : 'PgUp/PgDn'} <output aria-label="Camera height">{eyeHeight.toFixed(2)} m</output></small><button className={keyboardLock.active ? 'keyboard-lock-button active' : 'keyboard-lock-button'} type="button" aria-pressed={keyboardLock.active} disabled={keyboardLock.status === 'requesting' || keyboardLock.status === 'unsupported'} title={keyboardLock.message} onClick={() => void (keyboardLock.active ? keyboardLock.disable() : keyboardLock.enable())}>{keyboardLock.status === 'requesting' ? 'Requesting…' : keyboardLock.active ? 'Unlock Ctrl+W/S' : keyboardLock.status === 'failed' ? 'Retry Ctrl+W/S' : keyboardLock.status === 'unsupported' ? 'Ctrl+W/S unavailable' : 'Protect Ctrl+W/S'}</button></div></header>
               <div>{cameraPositionPresets.map((preset) => <button key={preset.id} type="button" className={selectedPositionPreset === preset.id ? 'preset-chip active' : 'preset-chip'} onClick={() => applyCameraPosition(preset)} onContextMenu={(event) => { event.preventDefault(); updatePositionPreset(preset); }}>{preset.name}</button>)}<button className="preset-add" type="button" aria-label="Create camera position preset" onClick={() => { setPresetName('My position'); setDialog('new-position'); }}><Plus size={15} /></button></div>
             </div>
             <div className="preset-group" aria-label="Perspective presets">
@@ -487,7 +503,7 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
       {dialog === 'safety' ? <Modal title="Make room to swing" actions={<><button className="secondary-button" type="button" onClick={() => setDialog(null)}>Cancel</button><button className="primary-button inline" type="button" disabled={!safetyChecked} onClick={() => { localStorage.setItem('tenmulate.safetyAcknowledged', 'true'); setDialog(null); launch(); }}>Continue</button></>}><p>Move furniture, people, pets, and breakable objects beyond your full racket-and-arm reach. Tenmulate does not measure your room.</p><label className="check-row"><input type="checkbox" checked={safetyChecked} onChange={(event) => setSafetyChecked(event.target.checked)} /> I have cleared a safe practice area.</label></Modal> : null}
       {dialog === 'opponent' ? <Modal title="Opponent position" onClose={() => setDialog(null)} actions={<button className="primary-button inline" type="button" onClick={() => setDialog(null)}>Done</button>}><p>Drag through the full ITF international-competition floor envelope: 3.66 m beyond each doubles sideline and 6.40 m behind each baseline.</p><div className="court-preset-list">{OPPONENT_POSITION_PRESETS.map((preset) => <button type="button" key={preset.name} onClick={() => setOpponentPosition(preset.point)}>{preset.name}</button>)}</div><CourtPlan opponent={opponentPosition} landing={bounce?.position ?? null} onOpponentChange={setOpponentPosition} /><p className="calculation">Opponent floor position: {opponentPosition.x.toFixed(2)}, {opponentPosition.z.toFixed(2)} m</p></Modal> : null}
       {dialog === 'display' ? <Modal title="Physical display view" onClose={() => setDialog(null)} actions={<button className="primary-button inline" type="button" onClick={applyPhysicalFov}>Apply calculated FOV</button>}><p>Enter the visible screen width and height plus your eye-to-screen distance. This calculates physical horizontal and vertical FOV without changing court geometry.</p><label className="dialog-field"><span>Screen width</span><input type="number" min="30" max="1000" value={screenWidthCm} onChange={(event) => setScreenWidthCm(Number(event.target.value))} /><small>cm</small></label><label className="dialog-field"><span>Screen height</span><input type="number" min="20" max="1000" value={screenHeightCm} onChange={(event) => setScreenHeightCm(Number(event.target.value))} /><small>cm</small></label><label className="dialog-field"><span>Viewing distance</span><input type="number" min="30" max="1500" value={viewDistanceCm} onChange={(event) => setViewDistanceCm(Number(event.target.value))} /><small>cm</small></label><p className="calculation">Calculated FOV: {Math.round((2 * Math.atan(screenWidthCm / (2 * viewDistanceCm)) * 180) / Math.PI)}° horizontal · {Math.round((2 * Math.atan(screenHeightCm / (2 * viewDistanceCm)) * 180) / Math.PI)}° vertical</p></Modal> : null}
-      {dialog === 'help' ? <Modal title="Practice controls" onClose={() => setDialog(null)}><dl className="shortcut-list"><div><dt>WASD</dt><dd>Move freely around the court during setup</dd></div><div><dt>Ctrl+W/S</dt><dd>Raise or lower camera height instead of using the browser shortcut</dd></div><div><dt>Shift</dt><dd>Move faster while held</dd></div><div><dt>Left drag</dt><dd>Turn and pitch the FPV camera through the full 360° range</dd></div><div><dt>Wheel</dt><dd>Zoom the FPV camera by changing its field of view</dd></div><div><dt>Right drag</dt><dd>Aim the opponent’s shot directly on the FPV court</dd></div><div><dt>Preset click</dt><dd>Right-click a bottom preset to update it</dd></div><div><dt>Space</dt><dd>Pause or resume practice</dd></div></dl></Modal> : null}
+      {dialog === 'help' ? <Modal title="Practice controls" onClose={() => setDialog(null)}><dl className="shortcut-list"><div><dt>WASD</dt><dd>Move freely around the court during setup</dd></div><div><dt>Ctrl+W/S</dt><dd>Raise or lower camera height after enabling Protect Ctrl+W/S</dd></div><div><dt>PgUp/PgDn</dt><dd>Raise or lower camera height without entering protected controls</dd></div><div><dt>Protected controls</dt><dd>Uses fullscreen keyboard access so the browser sends Ctrl+W/S to the court; hold Escape to leave</dd></div><div><dt>Shift</dt><dd>Move faster while held</dd></div><div><dt>Left drag</dt><dd>Turn and pitch the FPV camera through the full 360° range</dd></div><div><dt>Wheel</dt><dd>Zoom the FPV camera by changing its field of view</dd></div><div><dt>Right drag</dt><dd>Aim the opponent’s shot directly on the FPV court</dd></div><div><dt>Preset click</dt><dd>Right-click a bottom preset to update it</dd></div><div><dt>Space</dt><dd>Pause or resume practice</dd></div></dl></Modal> : null}
       {dialog === 'new-position' || dialog === 'new-perspective' ? <Modal title={dialog === 'new-position' ? 'New camera position' : 'New perspective'} onClose={() => setDialog(null)} actions={<><button className="secondary-button" type="button" onClick={() => setDialog(null)}>Cancel</button><button className="primary-button inline" type="button" onClick={createPreset}>Create preset</button></>}><label className="stack-field"><span>Preset name</span><input autoFocus maxLength={40} value={presetName} onChange={(event) => setPresetName(event.target.value)} /></label></Modal> : null}
     </main>
   );

@@ -90,6 +90,11 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .preset-group header { min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; color: #dbe3e6; font-size: 11px; }
 .preset-group header span { display: flex; align-items: center; gap: 6px; font-weight: 650; }
 .preset-group header small { overflow: hidden; color: var(--muted); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.camera-control-status { min-width: 0; display: flex; align-items: center; justify-content: flex-end; gap: 7px; }
+.keyboard-lock-button { flex: 0 0 auto; padding: 2px 5px; border: 1px solid #34566d; border-radius: 4px; background: #0d1c26; color: var(--blue); font: inherit; font-size: 9px; cursor: pointer; white-space: nowrap; }
+.keyboard-lock-button:hover { border-color: var(--blue); color: #a7d8ff; }
+.keyboard-lock-button.active { border-color: #4c9369; background: #10271a; color: #9ce2b8; }
+.keyboard-lock-button:disabled { opacity: 0.5; cursor: not-allowed; }
 .preset-group > div { min-width: 0; display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 5px; scrollbar-width: none; }
 .preset-group > div::-webkit-scrollbar { display: none; }
 .preset-chip, .preset-add { flex: 0 0 auto; min-height: 38px; padding: 0 12px; border: 1px solid var(--divider); border-radius: 6px; background: #0c1419; color: #c6d0d4; font-size: 11px; cursor: pointer; }

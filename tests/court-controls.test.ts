@@ -6,6 +6,7 @@ import {
   OPPONENT_POSITION_LIMITS,
   cameraMovementDelta,
   cameraMovementForKeys,
+  cameraHeightMovementKey,
   clampOpponentPosition,
   isCameraHeightShortcut,
   playerViewHorizontalToWorldX,
@@ -44,6 +45,17 @@ describe('player-view court controls', () => {
     expect(isCameraHeightShortcut({ key: 'w', ctrlKey: false, altKey: false, metaKey: false })).toBe(false);
     expect(isCameraHeightShortcut({ key: 'w', ctrlKey: true, altKey: true, metaKey: false })).toBe(false);
     expect(isCameraHeightShortcut({ key: 's', ctrlKey: true, altKey: false, metaKey: true })).toBe(false);
+  });
+
+  it('uses Ctrl+W/S only after keyboard lock and keeps a conflict-free height fallback', () => {
+    const ctrlW = { key: 'w', ctrlKey: true, altKey: false, metaKey: false };
+    const ctrlS = { key: 'S', ctrlKey: true, altKey: false, metaKey: false };
+    expect(cameraHeightMovementKey(ctrlW, false)).toBeNull();
+    expect(cameraHeightMovementKey(ctrlW, true)).toBe('w');
+    expect(cameraHeightMovementKey(ctrlS, true)).toBe('s');
+    expect(cameraHeightMovementKey({ key: 'PageUp', ctrlKey: false, altKey: false, metaKey: false }, false)).toBe('w');
+    expect(cameraHeightMovementKey({ key: 'PageDown', ctrlKey: false, altKey: false, metaKey: false }, false)).toBe('s');
+    expect(cameraHeightMovementKey({ key: 'PageUp', ctrlKey: true, altKey: false, metaKey: false }, true)).toBeNull();
   });
 
   it('mirrors world x into the FPV horizontal direction and round-trips it', () => {
