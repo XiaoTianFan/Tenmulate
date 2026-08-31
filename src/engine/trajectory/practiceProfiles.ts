@@ -1,5 +1,6 @@
 import { COURT, DEFAULT_RALLY_OPPONENT_POSITION, DEUCE_SERVE_OPPONENT_POSITION } from '../../domain/court';
 import type { SpinKind } from './physics';
+import { GROUNDSTROKE_FLAT_SPIN_PROFILE } from './spinCalibration';
 
 export type PracticeShotType = 'groundstroke' | 'serve' | 'volley' | 'lob';
 
@@ -36,7 +37,7 @@ export const PRACTICE_SHOT_PROFILES: Readonly<Record<PracticeShotType, PracticeS
     defaultSpin: 'topspin',
     spins: ['flat', 'topspin', 'slice'],
     spinRates: {
-      flat: { defaultRpm: 0, minRpm: 0, maxRpm: 1200 },
+      flat: GROUNDSTROKE_FLAT_SPIN_PROFILE,
       topspin: { defaultRpm: 1814, minRpm: 300, maxRpm: 4000 },
       slice: { defaultRpm: 1253, minRpm: 300, maxRpm: 3000 },
     },

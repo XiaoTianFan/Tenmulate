@@ -50,6 +50,15 @@ describe('local application data', () => {
     expect(loadAppData().preferences).toMatchObject({ shotType: 'serve', spin: 'flat', bounceFactor: 1.4 });
   });
 
+  it('migrates a legacy zero-spin flat groundstroke to the low-spin floor', () => {
+    localStorage.setItem('tenmulate.appData.v1', JSON.stringify({
+      schemaVersion: 1,
+      customDrills: [],
+      preferences: { shotType: 'groundstroke', spin: 'flat', spinRateRpm: 0 },
+    }));
+    expect(loadAppData().preferences).toMatchObject({ shotType: 'groundstroke', spin: 'flat', spinRateRpm: 250 });
+  });
+
   it('migrates the former on-court serve origin behind the baseline', () => {
     localStorage.setItem('tenmulate.appData.v1', JSON.stringify({
       schemaVersion: 1,

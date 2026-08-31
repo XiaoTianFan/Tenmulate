@@ -45,7 +45,11 @@ const OUTDOOR_TIME_BY_LIGHTING: Readonly<Record<'day' | 'golden-hour' | 'night',
 };
 
 const practiceSpinLabel = (shotType: PracticeShotType, spin: SpinKind): string => (
-  shotType === 'volley' ? 'None' : spin === 'topspin' ? 'Topspin' : `${spin[0]?.toUpperCase()}${spin.slice(1)}`
+  shotType === 'volley'
+    ? 'None'
+    : shotType === 'groundstroke' && spin === 'flat'
+      ? 'Flat drive'
+      : spin === 'topspin' ? 'Topspin' : `${spin[0]?.toUpperCase()}${spin.slice(1)}`
 );
 
 type RangeFieldProps = Readonly<{

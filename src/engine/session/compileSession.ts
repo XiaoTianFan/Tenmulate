@@ -17,6 +17,7 @@ import {
   legalServeTarget,
   practiceLandingTarget,
   spinForPracticeShot,
+  spinRateForPracticeShot,
   type PracticeShotType,
 } from '../trajectory/practiceProfiles';
 
@@ -154,7 +155,9 @@ export const compileSession = (
       trajectory: resolveTrajectory({
         ...shot,
         launchSpeedKmh,
-        spinRateRpm: settings.practiceShotType ? settings.spinRateRpm : undefined,
+        spinRateRpm: settings.practiceShotType
+          ? spinRateForPracticeShot(settings.practiceShotType, selectedSpin, settings.spinRateRpm)
+          : undefined,
         minimumNetClearanceM: shot.netClearanceM,
         shotType: settings.practiceShotType,
         aimDirectionDeg: returnServePlacement ? undefined : settings.aimDirectionDeg,

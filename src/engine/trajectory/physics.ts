@@ -1,6 +1,7 @@
 import { COURT, type SurfaceId } from '../../domain/court';
 import { add, cross, magnitude, scale, subtract, vec3, type Vec3 } from '../../domain/vector';
 import type { PracticeShotType } from './practiceProfiles';
+import { GROUNDSTROKE_FLAT_SPIN_PROFILE } from './spinCalibration';
 
 const GRAVITY = vec3(0, -9.81, 0);
 const FIXED_STEP = 1 / 240;
@@ -107,7 +108,7 @@ const defaultSpinRateRpm = (intent: Pick<ShotIntent, 'spin' | 'shotType' | 'fami
   if (intent.spin === 'slice') return 1253;
   if (intent.spin === 'kick') return 2285;
   if (intent.spin === 'sidespin') return 1432;
-  return 0;
+  return GROUNDSTROKE_FLAT_SPIN_PROFILE.defaultRpm;
 };
 
 const spinAxisWeights = (
@@ -141,6 +142,8 @@ const spinAxisWeights = (
     }
   }
   switch (intent.spin) {
+    case 'flat':
+      return { topspin: 1, sidespin: 0 };
     case 'topspin':
       return { topspin: 1, sidespin: 0 };
     case 'slice':
@@ -159,9 +162,12 @@ const spinVector = (
   launchVelocity: Vec3,
 ): Vec3 => {
   if (trajectoryShotType(intent) === 'volley') return vec3();
-  const rateRpm = typeof intent.spinRateRpm === 'number' && Number.isFinite(intent.spinRateRpm)
+  const requestedRateRpm = typeof intent.spinRateRpm === 'number' && Number.isFinite(intent.spinRateRpm)
     ? Math.max(0, intent.spinRateRpm)
     : defaultSpinRateRpm(intent);
+  const rateRpm = trajectoryShotType(intent) === 'groundstroke' && intent.spin === 'flat'
+    ? Math.min(GROUNDSTROKE_FLAT_SPIN_PROFILE.maxRpm, Math.max(GROUNDSTROKE_FLAT_SPIN_PROFILE.minRpm, requestedRateRpm))
+    : requestedRateRpm;
   if (rateRpm <= 0) return vec3();
   const horizontalSpeed = Math.hypot(launchVelocity.x, launchVelocity.z);
   const speed = magnitude(launchVelocity);

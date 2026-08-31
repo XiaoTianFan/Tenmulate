@@ -203,9 +203,30 @@ describe('fixed-step trajectory solver', () => {
   });
 
   it('clamps saved spin rates to each shot and spin profile', () => {
+    expect(PRACTICE_SHOT_PROFILES.groundstroke.spinRates.flat).toEqual({ defaultRpm: 760, minRpm: 250, maxRpm: 1600 });
+    expect(spinRateForPracticeShot('groundstroke', 'flat', undefined)).toBe(760);
+    expect(spinRateForPracticeShot('groundstroke', 'flat', 0)).toBe(250);
     expect(spinRateForPracticeShot('groundstroke', 'topspin', 99999)).toBe(4000);
     expect(spinRateForPracticeShot('serve', 'kick', 100)).toBe(1200);
     expect(spinRateForPracticeShot('volley', 'flat', 1200)).toBe(0);
+  });
+
+  it('models a flat groundstroke as a low-topspin drive rather than a spin-free ball', () => {
+    const profile = PRACTICE_SHOT_PROFILES.groundstroke;
+    const source = { ...profile.opponentPosition, y: profile.contactHeight };
+    const trajectory = resolveTrajectory({
+      source,
+      target: practiceLandingTarget(source, 0, profile.defaultLandingDepthM),
+      launchSpeedKmh: profile.defaultLaunchSpeedKmh,
+      minimumNetClearanceM: profile.minimumNetClearanceM,
+      spin: 'flat',
+      shotType: 'groundstroke',
+      surface: 'hard',
+    });
+
+    expect(trajectory.resolved.spinRateRpm).toBeCloseTo(760, 6);
+    expect(trajectory.resolved.spinParameter).toBeGreaterThan(0);
+    expect(resolveTrajectory({ ...trajectory.intent, spinRateRpm: 0 }).resolved.spinRateRpm).toBeCloseTo(250, 6);
   });
 
   it('uses landing depth independently from recreational groundstroke pace and minimum net clearance', () => {
