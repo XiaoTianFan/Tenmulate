@@ -321,3 +321,25 @@ The detailed status of every requirement is recorded in the [V1 release matrix](
 
 - Fit spin decay, type-specific axes, and RPM ranges against instrumented ball tracking before describing them as measured rather than research-calibrated.
 - Coach/player review of tooltip density/readability and whether the selected launch-speed, spin-rate, and depth ranges feel natural on the target display.
+
+## Stage 12 — six-venue catalogue and camera-relative navigation
+
+- **Status:** Implemented locally on 2026-08-31; owner camera-speed/height comfort and final venue visual review remain open
+- Replaced the nine-entry venue catalogue with exactly three Outdoor Arena and three Indoor Court choices, each named by the same setting/surface template for hard, clay, and grass.
+- Removed the outdoor club, clay terrace, and grass park builders from the runtime. Stored selections for those scenes migrate to the retained arena with the matching surface; generic legacy outdoor selections migrate to Outdoor Arena · Hard.
+- Changed WASD from fixed court-axis movement to a normalized horizontal basis derived from the current 360-degree camera yaw. Pitch remains view-only, so looking up or down does not introduce unintended vertical travel.
+- Added Ctrl+W/S eye-height movement, bounded from 0.4 m through 8.0 m, while retaining frame-rate-independent held input, Shift acceleration, A/D strafing, and preset invalidation after free movement.
+- Added ADR-0007 and updated the product, architecture, roadmap, and release contracts to make the six-scene catalogue and new camera coordinate system authoritative.
+
+### Verification
+
+- Implementation commit: `8b0c90f`.
+- Focused registry, storage, renderer, and camera-control run: 4 files, 29 tests passed. Full `npm test -- --run`: 10 files, 101 tests passed.
+- `npm run build`: production PWA build passed; Setup is approximately 7.61 kB gzip, SceneViewport approximately 170.95 kB gzip, and the 29-entry precache approximately 1.87 MiB. The existing large-scene-chunk warning remains.
+- In-app Browser at 1280 × 720 exposed exactly `Outdoor Arena · Hard/Clay/Grass` and `Indoor Court · Hard/Clay/Grass`; Indoor Court · Grass rendered successfully before the default hard arena was restored.
+- Browser interaction rotated yaw to 88°, accepted W as movement from that sideways view, accepted Ctrl+W/S as elevation input without browser navigation, and visibly raised then restored the viewpoint. The final console contained zero warnings or errors.
+
+### Remaining review gates
+
+- Owner comfort review of normal/Shift horizontal speed, vertical speed, and the 0.4–8.0 m height envelope on the target display.
+- Final owner visual approval for the three retained outdoor arenas and three indoor courts; browser FPS shown during background automation is not accepted as foreground performance evidence.

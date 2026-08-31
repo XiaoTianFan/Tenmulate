@@ -5,7 +5,7 @@
 
 **Current checkpoint:** the code-owned local ball-machine product now spans the functional work in Phases 1–6. The phase exit gates remain open where they require production 3D assets, measured target hardware/browser evidence, the 30-minute soak, human observation, licensing, or public deployment. See the [V1 release matrix](development/v1-release-matrix.md).
 
-**Visual-pipeline checkpoint (2026-08-30):** ADR-0005/0006 make all nine court environments canonical Three.js compositions and remove Gaussian splats, generated-world assets, and downloaded venue textures from the runtime. Six outdoor environments, three seating-free indoor halls, shared dynamic sky/weather, physical wind, and the CC0 neutral humanoid carrier are integrated. Venue work now moves through owner/target-device polish; opponent work waits on the owner-supplied mocap clips, separate racket, and retarget/contact review.
+**Visual-pipeline checkpoint (2026-08-31):** ADR-0005/0006/0007 make six court environments canonical Three.js compositions and remove Gaussian splats, generated-world assets, and downloaded venue textures from the runtime. Three outdoor arenas, three seating-free indoor courts, shared dynamic sky/weather, physical wind, and the CC0 neutral humanoid carrier are integrated. Venue work now moves through owner/target-device polish; opponent work waits on the owner-supplied mocap clips, separate racket, and retarget/contact review.
 
 This roadmap is ordered by uncertainty and integration risk. V1 is one complete public-free, non-tracking product; features are not split into must/should/could or a V1.1. Calendar estimates follow the vertical slice and asset bake-off.
 
@@ -21,7 +21,7 @@ This roadmap is ordered by uncertainty and integration risk. V1 is one complete 
 - Run a neutral-humanoid rig, animation-retargeting, and web-optimization bake-off.
 - Preserve the completed world/character research as history; do not spend further budget on generated meshes or world shells.
 - Select a neutral rights-cleared humanoid source, motion source, Blender retarget/cleanup workflow, commercial provenance record, and general-motion source for ready/footwork/recovery connectors.
-- Build and visually calibrate all nine venues through the canonical shared Three.js atmosphere, shader-material, and composition system.
+- Build and visually calibrate all six venues through the canonical shared Three.js atmosphere, shader-material, and composition system.
 - Define reference performance tiers rather than one mandatory room/display/GPU.
 - Confirm the first tennis biomechanics reviewer and initial hosting/CDN experiment.
 

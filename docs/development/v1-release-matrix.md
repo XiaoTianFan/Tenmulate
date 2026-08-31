@@ -21,13 +21,13 @@ Status meanings:
 | CAL-04 | Implemented | Camera-position and perspective presets persist as separate local collections; either side can be combined, created, or updated in place. |
 | CAL-05 | Implemented; external validation | The calibration dialog exposes regulation court/net/ball checks; real TV/projector review is pending. |
 | CAL-06 | Implemented | First practice launch is gated by a local safe-space acknowledgement with no room-measurement claim. |
-| CAL-07 | Implemented; owner comfort review pending | Held-key WASD movement is frame-rate independent, diagonal-normalized, player-view correct, and remains active after setup controls retain focus. |
+| CAL-07 | Implemented; owner comfort review pending | Held-key WASD movement is frame-rate independent, diagonal-normalized, and mapped to the active camera yaw; Ctrl+W/S changes only bounded eye height. Movement remains active after setup controls retain focus. |
 | POV-01 | Implemented | SI constants and court-construction tests cover 8.23 × 23.77 m singles geometry, 6.40 m service distance, net center/posts, and ball radius. |
 | POV-02 | Implemented | One canonical hard/clay/grass selection drives both the rendered material and the physical surface profile; legacy split preferences migrate to the former physics choice. |
 | POV-03 | Implemented | The near-player layer is absent by design. |
 | POV-04 | Implemented | Browser fullscreen plus button/H-key HUD hiding; central transport remains available. |
 | POV-05 | Implemented | Camera presentation lives on launch/event metadata and never enters trajectory resolution. |
-| POV-06 | Implemented; owner visual approval pending | Nine distinct code-owned venues render around the same exact court: six complete outdoor club/park/arena contexts and three seating-free indoor halls. Arena seating/ad/canopy contracts and the no-indoor-seating contract are automated; final owner/device review remains. |
+| POV-06 | Implemented; owner visual approval pending | Six distinct code-owned venues render around the same exact court: Outdoor Arena and Indoor Court variants for hard, clay, and grass, named by one uniform template. Arena seating/ad/canopy contracts, legacy venue migration, and the no-indoor-seating contract are automated; final owner/device review remains. |
 | POV-07 | Implemented; external visual validation | One Three.js physical sky drives sun, ambient fill, fog, PMREM reflections, and weather. Clear/overcast/rain were switched in browser. Actual indoor/flood lights live at visible fixture lenses. Target-display review remains. |
 | POV-08 | Implemented; external visual validation active | Exact court/ball coordinates and all venue geometry, shader materials, props, atmosphere, weather, and lights remain code-owned. No generated-world registration or proxy layer is permitted. |
 | POV-09 | Implemented; external visual validation active | All venue PBR materials use custom deterministic shader variation and share time/wind/wetness uniforms. The venue texture bundle contains zero raster/DataTextures. Owner material-fidelity review remains. |

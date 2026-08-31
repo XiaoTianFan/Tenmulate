@@ -75,8 +75,8 @@ No single TV/projector, viewing distance, room, or GPU defines the product. Refe
 ### Environment and view
 
 - Standards-dimension singles court and net, with selectable hard, clay, and grass surfaces whose material and bounce profile change together.
-- Nine complete venue identities: six outdoor club/park/arena environments and three simple indoor halls. One surface selection controls both appearance and bounce behavior without duplicating regulation court geometry.
-- Every venue includes an umpire chair, player rest chair/bench, spectator seating without required crowd models, believable access/context, and appropriate perimeter fencing, walls, or stadium structure.
+- Six complete venue identities using one `{setting} · {surface}` naming contract: Outdoor Arena and Indoor Court variants for hard, clay, and grass. One surface selection controls both appearance and bounce behavior without duplicating regulation court geometry.
+- Every venue includes umpire/rest furniture, believable access/context, and appropriate perimeter fencing, walls, or stadium structure. Outdoor arenas include spectator seating without required crowd models; indoor courts remain seating-free halls.
 - Outdoor venues expose sun direction plus daytime/night presets and floodlights. Indoor venues expose artificial-light intensity/color presets and, where windows/skylights/roof openings exist, optional daylight influence.
 - Venue architecture and seating preserve an uncluttered opponent preparation, contact, ball-flight, and bounce visibility corridor from every required player camera.
 - Game-realistic visual direction: courts are built as canonical code-owned Three.js compositions with physically credible materials, lighting, architecture, props, and planting. The opponent is a neutral faceless humanoid whose readable silhouette and mocap fidelity take priority over appearance detail.
@@ -151,9 +151,9 @@ Accounts, premium entitlements, cloud content, and payments belong to a separate
 | POV-03 | Keep the near player absent. | No near-player limb, body, or racket appears during V1 playback. |
 | POV-04 | Provide full-screen rehearsal. | Controls hide and restore with one keyboard-accessible action and pause remains discoverable. |
 | POV-05 | Keep camera motion independent. | Camera transforms never alter shot coordinates, event timing, or deterministic replay. |
-| POV-06 | Supply complete venue context. | All six outdoor scenes include perimeter/environment context; the three arena scenes add seating bowls, aisles, ad boards, roof/canopy massing, and open sky. The three indoor scenes are simple halls without audience seating. Every scene retains umpire/rest furniture and safe gameplay corridors. |
+| POV-06 | Supply complete venue context. | The catalogue contains exactly three outdoor arenas and three seating-free indoor courts, with one hard/clay/grass variant in each setting and uniform `{setting} · {surface}` labels. Every scene retains umpire/rest furniture and safe gameplay corridors. |
 | POV-07 | Configure one coherent atmosphere. | Outdoor time of day and clear/overcast/rain settings alter sky scattering, sun, ambient diffusion, fog, reflections, precipitation, and procedural wetness together. Indoor visible fixtures align with their real light sources. Lighting never changes court coordinates or replay. |
-| POV-08 | Keep every environment code-owned. | All nine visible scenes are composed from typed Three.js geometry, shader-material, atmosphere, and weather modules; no generated mesh, splat, panorama, iframe, or world-model output participates in runtime rendering or spatial authority. |
+| POV-08 | Keep every environment code-owned. | All six visible scenes are composed from typed Three.js geometry, shader-material, atmosphere, and weather modules; no generated mesh, splat, panorama, iframe, or world-model output participates in runtime rendering or spatial authority. |
 | POV-09 | Make every visible venue surface procedural. | Court, ground, seats, walls, roofs, metal, timber, planting, and ad-board materials derive their visual variation from deterministic custom shaders without downloaded venue textures. |
 
 ### 9.3 Ball simulation
@@ -228,8 +228,8 @@ Each reusable shot describes independent axes:
 ## 11. Core user flow
 
 1. Open the public app and choose the **Rally**, **Return**, **Volley**, or **Overhead** setup preset.
-2. Combine a camera-position preset with a perspective preset, optionally use WASD or physical display measurements, and confirm a clear area.
-3. Configure pace, net clearance, interval, trajectory visibility, repetitions, opponent position/hand, and venue in collapsible sections.
+2. Combine a camera-position preset with a perspective preset, optionally use camera-relative WASD plus Ctrl+W/S height movement or physical display measurements, and confirm a clear area.
+3. Configure launch speed, spin, landing depth, interval, trajectory visibility, repetitions, opponent position/hand, and venue in collapsible sections.
 4. Use the court plans to position the opponent or steer a physically resolved landing if desired.
 5. Enter full screen, receive a countdown, and run the set.
 6. Pause immediately at any time.
@@ -302,7 +302,7 @@ Each reusable shot describes independent axes:
 - Calibration and core drill flow pass observed testing with the owner, at least one coach, and at least three additional target players across more than one skill level.
 - Safety, accessibility, asset-license/provenance, privacy, browser fallback, and public-hosting reviews are complete.
 - Visual concept-to-browser fidelity and actual large-display reviews are accepted.
-- All nine venue identities load, preserve regulation gameplay geometry, and meet their documented atmosphere, shader-material, fixture-alignment, and opponent/ball-readability criteria.
+- All six venue identities load, preserve regulation gameplay geometry, and meet their documented atmosphere, shader-material, fixture-alignment, and opponent/ball-readability criteria.
 
 ## 17. Success measures
 
