@@ -104,6 +104,8 @@ Shot definitions store an authoring intent and a resolved launch solution. This 
 
 Quick Practice exposes only a target-practice authoring path: Groundstroke, Serve, Volley, or Lob; launch speed; compatible spin type and continuous rpm; landing depth; direction; surface; and cadence. There is no user-facing raw-angle or manual-ballistics mode. A right-button drag is raycast from the current FPV camera onto the regulation court plane and converted through the shared player-view horizontal convention. `ball-v6-spin-target` treats launch speed as an exact magnitude, retains shot-profile net clearance as an internal safety constraint, samples the valid fixed-speed launch-angle envelope, and refines the closest first-bounce target. Groundstroke/Volley prefer the lower matching branch; Lob prefers the high branch; Serve clamps depth and direction inside the diagonally opposite service box. If the selected combination is impossible, the physical closest result is retained without changing speed or fabricating a target hit. Bundled/editor-authored V1 content retains its validated compatibility fields internally, but does not add a second Quick Practice control mode. Both paths use the same forces, bounce profiles, and event reporting.
 
+The four left-rail setup presets compose camera and feed choices rather than naming the opponent's stroke in every case. In particular, Volley selects the `position-net` user camera plus the standard behind-baseline Groundstroke profile. Choosing Volley in the explicit Shot type control remains the separate authoring path for a spin-free opponent volley from near the net.
+
 ### 6.2 Free-flight forces
 
 The `ball-v6-spin-target` solver applies:

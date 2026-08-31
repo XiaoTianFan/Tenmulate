@@ -2,7 +2,7 @@
 
 - **Status:** Active
 - **Last updated:** 2026-08-31
-- **Current implementation commit:** `6591368`
+- **Current implementation commit:** `f11568c`
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The neutral humanoid carrier is now integrated; its tennis mocap and racket remain owner-supplied production inputs. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
@@ -386,3 +386,22 @@ The detailed status of every requirement is recorded in the [V1 release matrix](
 
 - Owner approval on the intended TV/monitor and across all retained venue/light combinations.
 - Firefox/Safari comparison plus real production mocap and racket poses to catch browser antialiasing or outline seam differences.
+
+## Stage 15 — receiver-oriented Quick Practice Volley preset
+
+- **Status:** Implemented locally on 2026-08-31; owner feed-speed/depth review remains open
+- Corrected the Volley rail preset so its name describes what the user practices rather than the opponent's source stroke. It retains the `position-net` user camera but now places the opponent at the regular Rally origin, 1.0 m behind the far baseline (`0.0, 12.885 m`).
+- Changed the preset's incoming family from Volley to Groundstroke, applying the ordinary 68 km/h Topspin feed and deep 9.5 m landing target. This provides a baseline passing/feed ball for the user to intercept near the net.
+- Preserved the explicit Volley value in the Shot type control. Selecting it deliberately still uses the spin-free 62 km/h opponent-volley profile at `0.0, 3.7 m`; only the left-rail setup composition changed.
+
+### Verification
+
+- Implementation commit: `f11568c`.
+- Focused preset, trajectory, and session run: 3 files, 58 tests passed. Full `npm test -- --run`: 12 files, 110 tests passed. New contract coverage locks the Volley rail to `position-net`, `DEFAULT_RALLY_OPPONENT_POSITION`, and Groundstroke while proving the explicit opponent Volley profile remains present.
+- `npm run build`: production TypeScript/Vite/PWA build passed; Setup is approximately 7.65 kB gzip and the 29-entry precache approximately 1.83 MiB. The existing large-scene-chunk warning remains.
+- In-app Browser at 1280 × 720 verified `Volley setup`, `Groundstroke · Topspin`, `Opponent 0.0, 12.9 m`, and the active `At the net` camera in one state. The far opponent remained visibly behind the baseline.
+- At 767 × 898 the same preset summary and court relationship remained visible with `scrollWidth = clientWidth = 752`; desktop and compact checks ended with zero console warnings/errors.
+
+### Remaining review gates
+
+- Owner/coach review of whether 68 km/h Topspin and a 9.5 m eventual landing are the preferred default volley feed, or whether the receiver-oriented preset needs its own baseline-feed speed/depth profile without changing opponent location.
