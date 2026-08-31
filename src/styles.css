@@ -88,9 +88,8 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .preset-toolbar { position: relative; min-width: 0; display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) auto; align-items: stretch; gap: 8px; padding: 8px 12px; border-top: 1px solid var(--divider); border-bottom: 1px solid var(--divider); background: #090f13; }
 .preset-group { min-width: 0; display: grid; grid-template-rows: 21px 1fr; }
 .preset-group header { min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; color: #dbe3e6; font-size: 11px; }
-.preset-group header span { display: flex; align-items: center; gap: 6px; font-weight: 650; }
+.preset-group header > span { flex: 0 0 auto; display: flex; align-items: center; gap: 6px; font-weight: 650; white-space: nowrap; }
 .preset-group header small { overflow: hidden; color: var(--muted); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
-.camera-control-status { min-width: 0; display: flex; align-items: center; justify-content: flex-end; gap: 7px; }
 .keyboard-lock-button { flex: 0 0 auto; padding: 2px 5px; border: 1px solid #34566d; border-radius: 4px; background: #0d1c26; color: var(--blue); font: inherit; font-size: 9px; cursor: pointer; white-space: nowrap; }
 .keyboard-lock-button:hover { border-color: var(--blue); color: #a7d8ff; }
 .keyboard-lock-button.active { border-color: #4c9369; background: #10271a; color: #9ce2b8; }
@@ -100,6 +99,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .preset-chip, .preset-add { flex: 0 0 auto; min-height: 38px; padding: 0 12px; border: 1px solid var(--divider); border-radius: 6px; background: #0c1419; color: #c6d0d4; font-size: 11px; cursor: pointer; }
 .preset-chip.active { border-color: var(--blue); background: #102237; color: white; box-shadow: inset 0 -2px var(--blue); }
 .preset-add { width: 42px; padding: 0; display: grid; place-items: center; color: var(--blue); }
+.preset-toolbar-actions { align-self: center; display: grid; justify-items: start; gap: 2px; }
 .reset-link { align-self: center; display: flex; align-items: center; gap: 7px; padding: 8px; border: 0; background: transparent; color: var(--blue); cursor: pointer; font-size: 11px; white-space: nowrap; }
 .preset-notice { position: absolute; right: 16px; bottom: 8px; padding: 5px 8px; border-radius: 4px; background: #173526; color: #9ce2b8; font-size: 9px; }
 .inspector { border-left: 1px solid var(--divider); padding: 26px 24px 90px; overflow-y: auto; position: relative; }
@@ -355,6 +355,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
   .rail-status { position: static; margin: 18px 8px 0; }
   .preview-column { height: 72vh; grid-template-rows: minmax(340px, 1fr) auto; }
   .preset-toolbar { grid-template-columns: 1fr; }
+  .preset-toolbar-actions { display: flex; align-items: center; gap: 6px; }
   .preset-toolbar .reset-link { justify-self: start; }
   .inspector { display: block; }
   .rehearsal-header { grid-template-columns: 1fr auto; }
