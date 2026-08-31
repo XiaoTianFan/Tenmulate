@@ -2,7 +2,7 @@
 
 - **Status:** Active
 - **Last updated:** 2026-08-31
-- **Current implementation commit:** `f11568c`
+- **Current implementation commit:** `beba108`
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The neutral humanoid carrier is now integrated; its tennis mocap and racket remain owner-supplied production inputs. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
@@ -405,3 +405,23 @@ The detailed status of every requirement is recorded in the [V1 release matrix](
 ### Remaining review gates
 
 - Owner/coach review of whether 68 km/h Topspin and a 9.5 m eventual landing are the preferred default volley feed, or whether the receiver-oriented preset needs its own baseline-feed speed/depth profile without changing opponent location.
+
+## Stage 16 — receiver-side Return setup and serve placement cycle
+
+- **Status:** Implemented locally on 2026-08-31; owner serve-placement calibration remains open
+- Changed the Return rail preset from the center Baseline camera to the Left corner receiver camera. Added a mirrored Right corner built-in so the user can switch receiver sides without coupling that choice to the perspective preset.
+- Mirrored the opponent to the service side diagonally opposite the selected receiver corner. Both serving positions now stand 0.35 m behind the far baseline (`z = 12.235 m`) rather than 0.18 m inside it; persisted legacy built-in cameras and serve origins migrate forward to the corrected contract.
+- Added one shared Return target contract for T, Body, and Wide locations inside the receiver-side service box. The setup preview cycles the three placements at the configured interval, and the compiled rehearsal repeats the same deterministic order across the full set.
+- The Return summary announces receiver side and current placement. Launched rehearsal readouts use the explicit `T serve`, `Body serve`, and `Wide serve` labels instead of unrelated bundled direction metadata.
+
+### Verification
+
+- Implementation commit: `beba108`.
+- Focused preset, storage, court, and session run: 4 files, 59 tests passed. Full `npm test -- --run`: 12 files, 115 tests passed.
+- `npm run build`: production TypeScript/Vite/PWA build passed; Setup is approximately 7.98 kB gzip, Rehearsal approximately 4.91 kB gzip, and the 29-entry precache approximately 1.88 MiB. The existing large-scene-chunk warning remains.
+- In-app Browser at 1280 × 720 verified the default Left corner and selectable Right corner, mirrored legal server origins (`-1.3, 12.2 m` and `+1.3, 12.2 m`), and the setup timer advancing T → Body → Wide at the configured 4.5-second interval.
+- The launched practice exposed `T serve · Service box`, `Body serve · Service box`, and `Wide serve · Service box` on consecutive repetitions. At 767 × 898 the Return summary and court remained free of horizontal overflow; the final browser console contained zero warnings or errors.
+
+### Remaining review gates
+
+- Owner/coach review of the selected T (`0.28 m`), Body (`2.25 m`), and Wide (`3.895 m`) service-box offsets and whether the default Return entry should remain Left corner or remember the last explicitly selected receiver side.
