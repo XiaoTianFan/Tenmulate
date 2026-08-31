@@ -2,7 +2,7 @@
 
 - **Status:** Active
 - **Last updated:** 2026-08-31
-- **Current implementation commit:** `4cdddfc`
+- **Current implementation commit:** `0b47910`
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The neutral humanoid carrier is now integrated; its tennis mocap and racket remain owner-supplied production inputs. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
@@ -328,7 +328,7 @@ The detailed status of every requirement is recorded in the [V1 release matrix](
 - Replaced the nine-entry venue catalogue with exactly three Outdoor Arena and three Indoor Court choices, each named by the same setting/surface template for hard, clay, and grass.
 - Removed the outdoor club, clay terrace, and grass park builders from the runtime. Stored selections for those scenes migrate to the retained arena with the matching surface; generic legacy outdoor selections migrate to Outdoor Arena · Hard.
 - Changed WASD from fixed court-axis movement to a normalized horizontal basis derived from the current 360-degree camera yaw. Pitch remains view-only, so looking up or down does not introduce unintended vertical travel.
-- Added Ctrl+W/S eye-height movement, bounded from 0.4 m through 8.0 m, while retaining frame-rate-independent held input, Shift acceleration, A/D strafing, and preset invalidation after free movement.
+- Added bounded eye-height movement from 0.4 m through 8.0 m, while retaining frame-rate-independent held input, Shift acceleration, A/D strafing, and preset invalidation after free movement. The final browser-reserved Ctrl+W/S contract is recorded in Stage 17.
 - Added ADR-0007 and updated the product, architecture, roadmap, and release contracts to make the six-scene catalogue and new camera coordinate system authoritative.
 
 ### Verification
@@ -337,7 +337,7 @@ The detailed status of every requirement is recorded in the [V1 release matrix](
 - Focused registry, storage, renderer, and camera-control run: 4 files, 29 tests passed. Full `npm test -- --run`: 10 files, 101 tests passed.
 - `npm run build`: production PWA build passed; Setup is approximately 7.61 kB gzip, SceneViewport approximately 170.95 kB gzip, and the 29-entry precache approximately 1.87 MiB. The existing large-scene-chunk warning remains.
 - In-app Browser at 1280 × 720 exposed exactly `Outdoor Arena · Hard/Clay/Grass` and `Indoor Court · Hard/Clay/Grass`; Indoor Court · Grass rendered successfully before the default hard arena was restored.
-- Browser interaction rotated yaw to 88°, accepted W as movement from that sideways view, accepted Ctrl+W/S as elevation input without browser navigation, and visibly raised then restored the viewpoint. The final console contained zero warnings or errors.
+- Browser interaction rotated yaw to 88° and accepted W as movement from that sideways view. The earlier automation also injected Ctrl+W/S into the page and visibly raised then restored the viewpoint, but that injection bypassed browser chrome and was not evidence that a physical Ctrl+W could be intercepted; Stage 17 supersedes that claim.
 
 ### Remaining review gates
 
@@ -426,21 +426,23 @@ The detailed status of every requirement is recorded in the [V1 release matrix](
 
 - Owner/coach review of the selected T (`0.28 m`), Body (`2.25 m`), and Wide (`3.895 m`) service-box offsets and whether the default Return entry should remain Left corner or remember the last explicitly selected receiver side.
 
-## Stage 17 — browser-safe camera-height shortcuts
+## Stage 17 — protected camera-height shortcuts
 
-- **Status:** Implemented locally on 2026-08-31; Firefox/Safari shortcut-policy comparison remains open
-- Registered setup keyboard movement in the capture phase and claims `Ctrl+W`/`Ctrl+S` before focused-field and dialog guards. The page prevents and stops those shortcut events before browser close/save handling; focused setup text fields no longer create an escape path.
-- Preserved the modal safety boundary: an open modal still suppresses camera movement, while the browser default remains blocked. Outside a modal, `Ctrl+W` raises the bounded eye height and `Ctrl+S` lowers it even when a setup text field retains focus.
-- Added a live metric camera-height output beside the bottom-bar shortcut hint and documented the binding in Help.
+- **Status:** Implemented locally on 2026-08-31; real browser permission acceptance and cross-browser policy review remain open
+- Corrected the earlier capture-listener assumption: a normal webpage cannot reliably cancel browser-chrome Ctrl+W because the browser may consume it before dispatching a cancelable DOM event. The earlier in-app automation reached the page directly and therefore did not exercise that boundary.
+- Added an explicit `Protect Ctrl+W/S` control. From that user gesture, the setup requests fullscreen and Chromium Keyboard Lock for physical `KeyW` and `KeyS`; only after the lock succeeds does Ctrl+W/S raise or lower the camera. Leaving fullscreen or selecting Unlock releases the lock, and failed or unsupported requests remain visible through the control's state and explanation.
+- Added Page Up/Page Down as the conflict-free height binding outside protected mode. Unlocked Ctrl+W/S are deliberately not treated as camera input, preventing synthetic page-event tests from implying browser-chrome protection that is not active.
+- Preserved bounded, held-key movement, Shift acceleration, focused-field behavior for protected height input, modal movement suppression, preset invalidation, and the live metric height output. Help now explains the permission/fullscreen requirement and Escape exit path.
 
 ### Verification
 
-- Implementation commit: `4cdddfc`.
-- Focused camera-control run: 1 file, 9 tests passed. Full `npm test -- --run`: 12 files, 116 tests passed.
-- `npm run build`: production TypeScript/Vite/PWA build passed; Setup is approximately 8.12 kB gzip and the 29-entry precache approximately 1.88 MiB. The existing large-scene-chunk warning remains.
-- In-app Browser at 1280 × 720 kept the Seed field focused while `Ctrl+W` changed camera height from `1.680 m` to `1.720 m` and `Ctrl+S` restored `1.680 m`; the tab remained at `http://localhost:4173/` without opening browser close/save behavior.
-- Ten repeated `Ctrl+W` inputs raised the visible output from `1.68 m` to `2.09 m` and cleared the active position preset. At 767 × 898, `Ctrl+S` lowered the output from `2.05 m` to `2.01 m` with `scrollWidth = clientWidth = 752`; the final browser console contained zero warnings or errors.
+- Implementation commits: `2368198`, `0b47910` (supersede the incomplete `4cdddfc` capture-listener approach).
+- Focused camera-control run: 1 file, 10 tests passed. Full `npm test -- --run`: 12 files, 117 tests passed.
+- `npm run build`: production TypeScript/Vite/PWA build passed; the existing large-scene-chunk warning remains.
+- `http://localhost:4173/` returned HTTP 200 after the change. A 1280 × 720 Chrome smoke screenshot confirmed that the fallback height, live metric value, Protect Ctrl+W/S action, perspective controls, and Reset view remain visible without toolbar overlap.
+- The actual Ctrl+W lock still requires an interactive browser permission/fullscreen acceptance test; automated page-level key injection is no longer accepted as proof of browser-chrome interception.
 
 ### Remaining review gates
 
-- Repeat the reserved-shortcut check in current Firefox and Safari on target hardware because browser-chrome shortcut policies are controlled outside the application and can differ from the verified Chromium in-app Browser path.
+- In current Chromium on the target display, select Protect Ctrl+W/S, grant fullscreen/keyboard-lock permission, verify repeated physical Ctrl+W/S height movement, then hold Escape and confirm ordinary browser shortcut behavior returns.
+- Compare current Firefox and Safari. Browsers without the Keyboard Lock API retain Page Up/Page Down but cannot promise Ctrl+W interception from webpage code.
