@@ -1,4 +1,4 @@
-import { COURT } from '../../domain/court';
+import { COURT, DEFAULT_RALLY_OPPONENT_POSITION } from '../../domain/court';
 import type { SpinKind } from './physics';
 
 export type PracticeShotType = 'groundstroke' | 'serve' | 'volley' | 'lob';
@@ -27,7 +27,7 @@ export const PRACTICE_SHOT_PROFILES: Readonly<Record<PracticeShotType, PracticeS
   groundstroke: {
     label: 'Groundstroke',
     contactHeight: 1.15,
-    opponentPosition: { x: 0, z: COURT.halfLength - 0.65 },
+    opponentPosition: DEFAULT_RALLY_OPPONENT_POSITION,
     defaultLaunchSpeedKmh: 68,
     launchSpeedRangeKmh: { min: 45, max: 140 },
     minimumNetClearanceM: 0.12,

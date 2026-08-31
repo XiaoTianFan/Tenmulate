@@ -1,5 +1,5 @@
 import { useRef, type PointerEvent as ReactPointerEvent } from 'react';
-import { COURT, playerViewHorizontalToWorldX, worldXToPlayerViewHorizontal } from '../domain/court';
+import { COURT, OPPONENT_POSITION_LIMITS, clampOpponentPosition, playerViewHorizontalToWorldX, worldXToPlayerViewHorizontal } from '../domain/court';
 import { aimDirectionToCourtPoint } from '../engine/trajectory/physics';
 
 export type CourtPoint = Readonly<{ x: number; z: number }>;
@@ -14,14 +14,20 @@ type CourtPlanProps = Readonly<{
 
 const VIEW_WIDTH = 360;
 const VIEW_HEIGHT = 620;
-const COURT_LEFT = 70;
-const COURT_TOP = 30;
-const COURT_WIDTH = 220;
-const COURT_HEIGHT = 560;
+const PLACEMENT_LEFT = 40;
+const PLACEMENT_TOP = 30;
+const PLACEMENT_WIDTH = 280;
+const PLACEMENT_SCALE = PLACEMENT_WIDTH / (OPPONENT_POSITION_LIMITS.halfWidth * 2);
+const PLACEMENT_HEIGHT = OPPONENT_POSITION_LIMITS.halfLength * 2 * PLACEMENT_SCALE;
+const COURT_LEFT = PLACEMENT_LEFT + COURT.internationalSideRunoff * PLACEMENT_SCALE;
+const COURT_TOP = PLACEMENT_TOP + COURT.internationalBackRunoff * PLACEMENT_SCALE;
+const COURT_WIDTH = COURT.doublesWidth * PLACEMENT_SCALE;
+const COURT_HEIGHT = COURT.fullLength * PLACEMENT_SCALE;
+const NET_Y = COURT_TOP + COURT_HEIGHT / 2;
 
 const toPlan = (point: CourtPoint) => ({
-  x: COURT_LEFT + ((worldXToPlayerViewHorizontal(point.x) + COURT.doublesWidth / 2) / COURT.doublesWidth) * COURT_WIDTH,
-  y: COURT_TOP + ((COURT.halfLength - point.z) / COURT.fullLength) * COURT_HEIGHT,
+  x: PLACEMENT_LEFT + ((worldXToPlayerViewHorizontal(point.x) + OPPONENT_POSITION_LIMITS.halfWidth) / (OPPONENT_POSITION_LIMITS.halfWidth * 2)) * PLACEMENT_WIDTH,
+  y: PLACEMENT_TOP + ((OPPONENT_POSITION_LIMITS.halfLength - point.z) / (OPPONENT_POSITION_LIMITS.halfLength * 2)) * PLACEMENT_HEIGHT,
 });
 
 export function CourtPlan({ opponent, landing = null, aimDirectionDeg = 0, onOpponentChange, onAimChange }: CourtPlanProps) {
@@ -33,10 +39,10 @@ export function CourtPlan({ opponent, landing = null, aimDirectionDeg = 0, onOpp
     const bounds = event.currentTarget.getBoundingClientRect();
     const planX = ((event.clientX - bounds.left) / bounds.width) * VIEW_WIDTH;
     const planY = ((event.clientY - bounds.top) / bounds.height) * VIEW_HEIGHT;
-    return {
-      x: playerViewHorizontalToWorldX(Math.min(COURT.doublesWidth / 2, Math.max(-COURT.doublesWidth / 2, ((planX - COURT_LEFT) / COURT_WIDTH) * COURT.doublesWidth - COURT.doublesWidth / 2))),
-      z: Math.min(COURT.halfLength, Math.max(-COURT.halfLength, COURT.halfLength - ((planY - COURT_TOP) / COURT_HEIGHT) * COURT.fullLength)),
-    };
+    return clampOpponentPosition({
+      x: playerViewHorizontalToWorldX(((planX - PLACEMENT_LEFT) / PLACEMENT_WIDTH) * OPPONENT_POSITION_LIMITS.halfWidth * 2 - OPPONENT_POSITION_LIMITS.halfWidth),
+      z: OPPONENT_POSITION_LIMITS.halfLength - ((planY - PLACEMENT_TOP) / PLACEMENT_HEIGHT) * OPPONENT_POSITION_LIMITS.halfLength * 2,
+    });
   };
 
   const updateFromPointer = (event: ReactPointerEvent<SVGSVGElement>) => {
@@ -69,20 +75,22 @@ export function CourtPlan({ opponent, landing = null, aimDirectionDeg = 0, onOpp
       className="court-plan"
       viewBox={`0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`}
       role="img"
-      aria-label="Interactive top-down tennis court"
+      aria-label="Interactive top-down tennis court and ITF runoff"
       onContextMenu={(event) => event.preventDefault()}
       onPointerDown={startPointer}
       onPointerMove={(event) => { if (dragMode.current) updateFromPointer(event); }}
       onPointerUp={(event) => { dragMode.current = null; event.currentTarget.releasePointerCapture(event.pointerId); }}
       onPointerCancel={() => { dragMode.current = null; }}
     >
-      <rect x={COURT_LEFT - 18} y={COURT_TOP - 18} width={COURT_WIDTH + 36} height={COURT_HEIGHT + 36} rx="18" className="court-plan-surround" />
+      <rect x={PLACEMENT_LEFT} y={PLACEMENT_TOP} width={PLACEMENT_WIDTH} height={PLACEMENT_HEIGHT} rx="18" className="court-plan-surround" />
       <rect x={COURT_LEFT} y={COURT_TOP} width={COURT_WIDTH} height={COURT_HEIGHT} className="court-plan-surface" />
       <rect x={COURT_LEFT + singlesInset} y={COURT_TOP} width={COURT_WIDTH - singlesInset * 2} height={COURT_HEIGHT} className="court-plan-line" />
-      <line x1={COURT_LEFT} y1={VIEW_HEIGHT / 2} x2={COURT_LEFT + COURT_WIDTH} y2={VIEW_HEIGHT / 2} className="court-plan-net" />
-      <line x1={COURT_LEFT + singlesInset} y1={VIEW_HEIGHT / 2 - serviceOffset} x2={COURT_LEFT + COURT_WIDTH - singlesInset} y2={VIEW_HEIGHT / 2 - serviceOffset} className="court-plan-line" />
-      <line x1={COURT_LEFT + singlesInset} y1={VIEW_HEIGHT / 2 + serviceOffset} x2={COURT_LEFT + COURT_WIDTH - singlesInset} y2={VIEW_HEIGHT / 2 + serviceOffset} className="court-plan-line" />
-      <line x1={VIEW_WIDTH / 2} y1={VIEW_HEIGHT / 2 - serviceOffset} x2={VIEW_WIDTH / 2} y2={VIEW_HEIGHT / 2 + serviceOffset} className="court-plan-line" />
+      <line x1={COURT_LEFT} y1={NET_Y} x2={COURT_LEFT + COURT_WIDTH} y2={NET_Y} className="court-plan-net" />
+      <line x1={COURT_LEFT + singlesInset} y1={NET_Y - serviceOffset} x2={COURT_LEFT + COURT_WIDTH - singlesInset} y2={NET_Y - serviceOffset} className="court-plan-line" />
+      <line x1={COURT_LEFT + singlesInset} y1={NET_Y + serviceOffset} x2={COURT_LEFT + COURT_WIDTH - singlesInset} y2={NET_Y + serviceOffset} className="court-plan-line" />
+      <line x1={VIEW_WIDTH / 2} y1={NET_Y - serviceOffset} x2={VIEW_WIDTH / 2} y2={NET_Y + serviceOffset} className="court-plan-line" />
+      <text x={VIEW_WIDTH / 2} y={PLACEMENT_TOP + 17} textAnchor="middle" className="court-plan-runoff-label">6.40 m BACK RUNOFF</text>
+      <text x={PLACEMENT_LEFT + 11} y={NET_Y} textAnchor="middle" transform={`rotate(-90 ${PLACEMENT_LEFT + 11} ${NET_Y})`} className="court-plan-runoff-label">3.66 m SIDE RUNOFF</text>
       {onAimChange ? <line x1={opponentMarker.x} y1={opponentMarker.y} x2={aimEnd.x} y2={aimEnd.y} className="court-plan-aim" /> : null}
       {landingMarker ? <g transform={`translate(${landingMarker.x} ${landingMarker.y})`} className="court-plan-landing"><circle r="11" /><path d="M-15 0H15M0-15V15" /></g> : null}
       <g transform={`translate(${opponentMarker.x} ${opponentMarker.y})`} className="court-plan-opponent"><circle r="13" /><circle cy="-3" r="4" /><path d="M-7 9Q0 1 7 9" /></g>

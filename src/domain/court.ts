@@ -7,6 +7,9 @@ export const COURT = Object.freeze({
   netCenterHeight: 0.914,
   netPostHeight: 1.07,
   ballRadius: 0.0335,
+  internationalSideRunoff: 3.66,
+  internationalBackRunoff: 6.4,
+  defaultOpponentRunback: 1,
   defaultEyeHeight: 1.7,
   defaultBehindBaseline: 1.5,
 });
@@ -58,10 +61,27 @@ export const cameraMovementDelta = (
 export const worldXToPlayerViewHorizontal = (worldX: number): number => -worldX;
 export const playerViewHorizontalToWorldX = (horizontal: number): number => -horizontal;
 
+export type CourtPosition = Readonly<{ x: number; z: number }>;
+
+export const OPPONENT_POSITION_LIMITS = Object.freeze({
+  halfWidth: COURT.doublesWidth / 2 + COURT.internationalSideRunoff,
+  halfLength: COURT.halfLength + COURT.internationalBackRunoff,
+});
+
+export const DEFAULT_RALLY_OPPONENT_POSITION: CourtPosition = Object.freeze({
+  x: 0,
+  z: COURT.halfLength + COURT.defaultOpponentRunback,
+});
+
+export const clampOpponentPosition = (position: CourtPosition): CourtPosition => ({
+  x: Math.min(OPPONENT_POSITION_LIMITS.halfWidth, Math.max(-OPPONENT_POSITION_LIMITS.halfWidth, position.x)),
+  z: Math.min(OPPONENT_POSITION_LIMITS.halfLength, Math.max(-OPPONENT_POSITION_LIMITS.halfLength, position.z)),
+});
+
 export const OPPONENT_POSITION_PRESETS = Object.freeze([
-  { name: 'Baseline center', point: { x: 0, z: COURT.halfLength - 0.65 } },
-  { name: 'Deuce corner', point: { x: 3.4, z: COURT.halfLength - 0.65 } },
-  { name: 'Ad corner', point: { x: -3.4, z: COURT.halfLength - 0.65 } },
+  { name: 'Baseline center', point: DEFAULT_RALLY_OPPONENT_POSITION },
+  { name: 'Deuce corner', point: { x: 3.4, z: DEFAULT_RALLY_OPPONENT_POSITION.z } },
+  { name: 'Ad corner', point: { x: -3.4, z: DEFAULT_RALLY_OPPONENT_POSITION.z } },
   { name: 'Deuce serve', point: { x: 1.25, z: COURT.halfLength - 0.18 } },
   { name: 'Ad serve', point: { x: -1.25, z: COURT.halfLength - 0.18 } },
   { name: 'Service line center', point: { x: 0, z: COURT.serviceLineFromNet } },

@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
+  COURT,
+  DEFAULT_RALLY_OPPONENT_POSITION,
   OPPONENT_POSITION_PRESETS,
+  OPPONENT_POSITION_LIMITS,
   cameraMovementDelta,
   cameraMovementForKeys,
+  clampOpponentPosition,
   playerViewHorizontalToWorldX,
   worldXToPlayerViewHorizontal,
 } from '../src/domain/court';
@@ -44,5 +48,19 @@ describe('player-view court controls', () => {
     expect(deuce?.point.x).toBeGreaterThan(0);
     expect(ad?.point.x).toBeLessThan(0);
     expect(deuce?.point.z).toBe(ad?.point.z);
+  });
+
+  it('uses the ITF international-competition runoff as the opponent placement envelope', () => {
+    expect(OPPONENT_POSITION_LIMITS.halfWidth).toBeCloseTo(COURT.doublesWidth / 2 + 3.66, 8);
+    expect(OPPONENT_POSITION_LIMITS.halfLength).toBeCloseTo(COURT.halfLength + 6.4, 8);
+    expect(clampOpponentPosition({ x: 99, z: -99 })).toEqual({
+      x: OPPONENT_POSITION_LIMITS.halfWidth,
+      z: -OPPONENT_POSITION_LIMITS.halfLength,
+    });
+  });
+
+  it('places the default rally opponent one metre behind the far baseline', () => {
+    expect(DEFAULT_RALLY_OPPONENT_POSITION).toEqual({ x: 0, z: COURT.halfLength + 1 });
+    expect(OPPONENT_POSITION_PRESETS.find((preset) => preset.name === 'Baseline center')?.point).toEqual(DEFAULT_RALLY_OPPONENT_POSITION);
   });
 });

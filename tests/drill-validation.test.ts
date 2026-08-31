@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { DRILLS } from '../src/content/bundled';
 import { materializeEvents } from '../src/content/editing';
 import { parseDrillJson, validateDrill } from '../src/content/validation';
+import { OPPONENT_POSITION_LIMITS } from '../src/domain/court';
 import { compileSession } from '../src/engine/session/compileSession';
 
 describe('versioned drill documents', () => {
@@ -85,5 +86,24 @@ describe('versioned drill documents', () => {
     });
     expect(result.valid).toBe(false);
     expect(result.errors.join(' ')).toMatch(/camera motion is invalid/);
+  });
+
+  it('accepts opponent positions in ITF runoff and rejects positions beyond it', () => {
+    const source = DRILLS[0]!;
+    const withinRunoff = validateDrill({
+      ...source,
+      id: 'runoff-position',
+      events: [{ id: 'event-one', shotId: source.shotIds[0], opponentPosition: { x: OPPONENT_POSITION_LIMITS.halfWidth, z: OPPONENT_POSITION_LIMITS.halfLength } }],
+      shotIds: [source.shotIds[0]],
+    });
+    const beyondRunoff = validateDrill({
+      ...source,
+      id: 'beyond-runoff-position',
+      events: [{ id: 'event-one', shotId: source.shotIds[0], opponentPosition: { x: OPPONENT_POSITION_LIMITS.halfWidth + 0.01, z: 0 } }],
+      shotIds: [source.shotIds[0]],
+    });
+    expect(withinRunoff.valid).toBe(true);
+    expect(beyondRunoff.valid).toBe(false);
+    expect(beyondRunoff.errors.join(' ')).toMatch(/outside the ITF competition runoff/);
   });
 });

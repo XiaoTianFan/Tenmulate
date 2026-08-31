@@ -32,6 +32,15 @@ describe('local application data', () => {
     expect(loadAppData().preferences).toEqual(DEFAULT_PREFERENCES);
   });
 
+  it('migrates the old on-court rally default behind the baseline', () => {
+    localStorage.setItem('tenmulate.appData.v1', JSON.stringify({
+      schemaVersion: 1,
+      customDrills: [],
+      preferences: { shotType: 'groundstroke', opponentPosition: { x: 0, z: 11.235 } },
+    }));
+    expect(loadAppData().preferences.opponentPosition).toEqual(DEFAULT_PREFERENCES.opponentPosition);
+  });
+
   it('migrates the removed spin preset into a legal shot-aware selection', () => {
     localStorage.setItem('tenmulate.appData.v1', JSON.stringify({
       schemaVersion: 1,

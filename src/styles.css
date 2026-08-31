@@ -169,8 +169,16 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .court-plan-landing circle { fill: rgb(74 168 255 / 20%); stroke: #4aa8ff; stroke-width: 3; }
 .court-plan-landing path { fill: none; stroke: #4aa8ff; stroke-width: 2; }
 .court-plan-label { fill: #83949e; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; writing-mode: vertical-rl; }
+.court-plan-runoff-label { fill: #7791a0; font-size: 9px; font-weight: 700; letter-spacing: 0.06em; }
 .court-preset-list { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
 .court-preset-list button { min-height: 34px; padding: 0 10px; border: 1px solid var(--divider); border-radius: 5px; background: #101a20; color: #cdd6da; font-size: 11px; cursor: pointer; }
+@media (min-width: 700px) {
+  .modal:has(.court-plan) .modal-body { display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: 14px 22px; align-items: start; }
+  .modal:has(.court-plan) .modal-body > p:first-child { grid-column: 1; margin-bottom: 0; }
+  .modal:has(.court-plan) .court-preset-list { grid-column: 1; margin: 0; }
+  .modal:has(.court-plan) .court-plan { grid-column: 2; grid-row: 1 / span 3; width: 220px; max-height: none; margin: 0 auto; }
+  .modal:has(.court-plan) .calculation { grid-column: 1; margin: 0; }
+}
 .editor-position-action { margin-top: 12px; }
 .shortcut-list { display: grid; gap: 1px; margin: 0; border: 1px solid var(--divider); }
 .shortcut-list div { display: grid; grid-template-columns: 90px 1fr; padding: 12px; background: #0a0f12; }

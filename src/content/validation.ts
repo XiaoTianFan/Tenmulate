@@ -1,4 +1,5 @@
 import { SHOT_BY_ID } from './bundled';
+import { OPPONENT_POSITION_LIMITS } from '../domain/court';
 import type { DrillDefinitionV1, DrillEventV1, SessionCategory } from './types';
 
 export type ValidationResult = Readonly<{
@@ -51,7 +52,7 @@ const validateEvent = (value: unknown, index: number, errors: string[]): value i
   }
   if (value.opponentPosition !== undefined) {
     if (!isRecord(value.opponentPosition) || typeof value.opponentPosition.x !== 'number' || typeof value.opponentPosition.z !== 'number') errors.push(`Event ${index + 1} opponent position is invalid.`);
-    else if (Math.abs(value.opponentPosition.x) > 5.485 || Math.abs(value.opponentPosition.z) > 11.885) errors.push(`Event ${index + 1} opponent position is outside the court.`);
+    else if (Math.abs(value.opponentPosition.x) > OPPONENT_POSITION_LIMITS.halfWidth || Math.abs(value.opponentPosition.z) > OPPONENT_POSITION_LIMITS.halfLength) errors.push(`Event ${index + 1} opponent position is outside the ITF competition runoff.`);
   }
   if (value.cameraMotion !== undefined && value.cameraMotion !== null) {
     const motion = value.cameraMotion;

@@ -2,7 +2,7 @@ import type { CameraConfiguration } from '../engine/rendering/TennisScene';
 import type { QualityMode } from '../engine/rendering/TennisScene';
 import type { DrillDefinitionV1 } from '../content/types';
 import { validateDrill } from '../content/validation';
-import type { SurfaceId } from '../domain/court';
+import { DEFAULT_RALLY_OPPONENT_POSITION, clampOpponentPosition, type SurfaceId } from '../domain/court';
 import { DEFAULT_ENVIRONMENT, normalizeEnvironmentConfiguration, type EnvironmentConfiguration } from '../domain/environment';
 import type { SpinKind } from '../engine/trajectory/physics';
 import { PRACTICE_SHOT_PROFILES, isPracticeShotType, spinForPracticeShot, spinRateForPracticeShot, type PracticeShotType } from '../engine/trajectory/practiceProfiles';
@@ -73,7 +73,7 @@ export const DEFAULT_PREFERENCES: PracticePreferencesV1 = {
   sessionCategory: 'Quick Rally', trajectoryEnabled: false, launchSpeedKmh: 68, interval: 3.2, repetitions: 12, variation: 8, timingVariation: 0,
   workBlockSize: 4, restSeconds: 20, surface: 'hard', shotType: 'groundstroke', spin: 'topspin', spinRateRpm: 1814, bounceFactor: 1,
   opponentHand: 'right', serveRhythm: 'preset', landingDepthM: 9.5,
-  aimDirectionDeg: 0, opponentPosition: { x: 0, z: 11.235 },
+  aimDirectionDeg: 0, opponentPosition: DEFAULT_RALLY_OPPONENT_POSITION,
   camera: { eyeHeight: 1.7, behindBaseline: 1.5, lateral: 0, yaw: 0, pitch: -1.7, fov: 70 },
   environment: DEFAULT_ENVIRONMENT, quality: 'auto', screenWidthCm: 120, screenHeightCm: 67.5, viewDistanceCm: 250,
 };
@@ -147,6 +147,15 @@ export const loadAppData = (): AppDataV1 => {
     const shotProfile = PRACTICE_SHOT_PROFILES[shotType];
     const depthRange = shotProfile.landingDepthRangeM;
     const spin = spinForPracticeShot(shotType, candidate.spin);
+    const storedOpponentPosition = isRecord(candidate.opponentPosition)
+      && typeof candidate.opponentPosition.x === 'number' && Number.isFinite(candidate.opponentPosition.x)
+      && typeof candidate.opponentPosition.z === 'number' && Number.isFinite(candidate.opponentPosition.z)
+      ? { x: candidate.opponentPosition.x, z: candidate.opponentPosition.z }
+      : shotProfile.opponentPosition;
+    const opponentPosition = shotType === 'groundstroke'
+      && storedOpponentPosition.x === 0 && storedOpponentPosition.z === 11.235
+      ? DEFAULT_RALLY_OPPONENT_POSITION
+      : clampOpponentPosition(storedOpponentPosition);
     const preferences = {
       ...DEFAULT_PREFERENCES,
       ...canonicalCandidate,
@@ -166,6 +175,7 @@ export const loadAppData = (): AppDataV1 => {
       landingDepthM: typeof candidate.landingDepthM === 'number'
         ? Math.min(depthRange.max, Math.max(depthRange.min, candidate.landingDepthM))
         : shotProfile.defaultLandingDepthM,
+      opponentPosition,
       camera,
       environment,
     } as PracticePreferencesV1;

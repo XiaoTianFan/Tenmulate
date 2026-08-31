@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { COURT } from '../../domain/court';
+import { DEFAULT_RALLY_OPPONENT_POSITION } from '../../domain/court';
 import {
   OPPONENT_ASSET,
   OPPONENT_SKELETON_ADAPTER,
@@ -47,7 +47,7 @@ export class OpponentRig {
 
   constructor() {
     this.group.name = 'neutral-opponent-rig';
-    this.group.position.set(0, 0, COURT.halfLength + 0.95);
+    this.group.position.set(DEFAULT_RALLY_OPPONENT_POSITION.x, 0, DEFAULT_RALLY_OPPONENT_POSITION.z);
     this.group.rotation.y = Math.PI;
     this.group.visible = false;
   }
