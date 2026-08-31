@@ -118,7 +118,7 @@ export const DRILLS: readonly DrillDefinitionV1[] = [
     description: 'Alternating deep and medium groundstrokes for timing and recovery.',
     category: 'Quick Rally',
     shotIds: ['fh-cross-deep', 'bh-cross-deep', 'fh-cross-mid', 'bh-cross-high'],
-    defaultInterval: 3.2,
+    defaultInterval: 3.5,
     defaultRepetitions: 12,
   },
   {

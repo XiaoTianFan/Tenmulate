@@ -1,7 +1,7 @@
 import { COURT, type SurfaceId } from '../../domain/court';
 import { add, cross, magnitude, scale, subtract, vec3, type Vec3 } from '../../domain/vector';
 import type { PracticeShotType } from './practiceProfiles';
-import { GROUNDSTROKE_FLAT_SPIN_PROFILE } from './spinCalibration';
+import { GROUNDSTROKE_FLAT_SPIN_PROFILE, GROUNDSTROKE_TOPSPIN_DEFAULT_RPM } from './spinCalibration';
 
 const GRAVITY = vec3(0, -9.81, 0);
 const FIXED_STEP = 1 / 240;
@@ -104,7 +104,7 @@ const defaultSpinRateRpm = (intent: Pick<ShotIntent, 'spin' | 'shotType' | 'fami
     if (intent.spin === 'slice') return 819;
     return 0;
   }
-  if (intent.spin === 'topspin') return 1814;
+  if (intent.spin === 'topspin') return GROUNDSTROKE_TOPSPIN_DEFAULT_RPM;
   if (intent.spin === 'slice') return 1253;
   if (intent.spin === 'kick') return 2285;
   if (intent.spin === 'sidespin') return 1432;

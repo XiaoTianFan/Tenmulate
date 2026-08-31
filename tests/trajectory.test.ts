@@ -120,6 +120,7 @@ describe('fixed-step trajectory solver', () => {
       target: { x: 0, z: -8 },
       aimDirectionDeg: 0,
       spin: 'topspin' as const,
+      spinRateRpm: 1814,
       surface: 'hard' as const,
     };
     const slower = resolveTrajectory({ ...base, launchSpeedKmh: 62, minimumNetClearanceM: 0.24 });
@@ -204,6 +205,7 @@ describe('fixed-step trajectory solver', () => {
 
   it('clamps saved spin rates to each shot and spin profile', () => {
     expect(PRACTICE_SHOT_PROFILES.groundstroke.spinRates.flat).toEqual({ defaultRpm: 760, minRpm: 250, maxRpm: 1600 });
+    expect(spinRateForPracticeShot('groundstroke', 'topspin', undefined)).toBe(1103);
     expect(spinRateForPracticeShot('groundstroke', 'flat', undefined)).toBe(760);
     expect(spinRateForPracticeShot('groundstroke', 'flat', 0)).toBe(250);
     expect(spinRateForPracticeShot('groundstroke', 'topspin', 99999)).toBe(4000);
@@ -290,6 +292,7 @@ describe('fixed-step trajectory solver', () => {
       launchSpeedKmh: 78,
       minimumNetClearanceM: 0.35,
       spin: 'topspin',
+      spinRateRpm: 1814,
       surface: 'hard',
     });
     const bounce = trajectory.events.find((event) => event.type === 'bounce')!;

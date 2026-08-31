@@ -366,6 +366,7 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
     const nextDrill = DRILL_BY_CATEGORY.get(preset.category);
     setPracticePreset(preset.id);
     setSessionCategory(preset.category);
+    if (preset.id === 'rally') setTrajectoryEnabled(true);
     changeShotType(preset.shotType);
     if (preset.returnReceiverSide) {
       setReturnReceiverSide(preset.returnReceiverSide);

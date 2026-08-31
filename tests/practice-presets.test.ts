@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { DRILL_BY_CATEGORY } from '../src/content/bundled';
 import { PRACTICE_PRESETS } from '../src/components/SetupScreen';
 import { DEFAULT_RALLY_OPPONENT_POSITION } from '../src/domain/court';
 import { RETURN_SERVE_PATTERN, returnServeTarget, returnServerPosition } from '../src/domain/returnPractice';
@@ -6,6 +7,16 @@ import { PRACTICE_SHOT_PROFILES } from '../src/engine/trajectory/practiceProfile
 import { DEFAULT_CAMERA_POSITION_PRESETS } from '../src/storage/appStorage';
 
 describe('Quick Practice setup presets', () => {
+  it('uses the reference recreational Groundstroke ball defaults for Rally', () => {
+    expect(PRACTICE_SHOT_PROFILES.groundstroke).toMatchObject({
+      defaultLaunchSpeedKmh: 70,
+      defaultLandingDepthM: 8.5,
+      defaultSpin: 'topspin',
+      spinRates: { topspin: { defaultRpm: 1103 } },
+    });
+    expect(DRILL_BY_CATEGORY.get('Quick Rally')?.defaultInterval).toBe(3.5);
+  });
+
   it('keeps Volley as a net-side receiver setup with a baseline groundstroke feed', () => {
     const volley = PRACTICE_PRESETS.find((preset) => preset.id === 'volley');
     const netCamera = DEFAULT_CAMERA_POSITION_PRESETS.find((preset) => preset.id === volley?.cameraPresetId);

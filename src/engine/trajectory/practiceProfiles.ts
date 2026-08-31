@@ -1,6 +1,6 @@
 import { COURT, DEFAULT_RALLY_OPPONENT_POSITION, DEUCE_SERVE_OPPONENT_POSITION } from '../../domain/court';
 import type { SpinKind } from './physics';
-import { GROUNDSTROKE_FLAT_SPIN_PROFILE } from './spinCalibration';
+import { GROUNDSTROKE_FLAT_SPIN_PROFILE, GROUNDSTROKE_TOPSPIN_DEFAULT_RPM } from './spinCalibration';
 
 export type PracticeShotType = 'groundstroke' | 'serve' | 'volley' | 'lob';
 
@@ -29,16 +29,16 @@ export const PRACTICE_SHOT_PROFILES: Readonly<Record<PracticeShotType, PracticeS
     label: 'Groundstroke',
     contactHeight: 1.15,
     opponentPosition: DEFAULT_RALLY_OPPONENT_POSITION,
-    defaultLaunchSpeedKmh: 68,
+    defaultLaunchSpeedKmh: 70,
     launchSpeedRangeKmh: { min: 45, max: 140 },
     minimumNetClearanceM: 0.12,
-    defaultLandingDepthM: 9.5,
+    defaultLandingDepthM: 8.5,
     landingDepthRangeM: { min: 1.2, max: COURT.halfLength - 0.25 },
     defaultSpin: 'topspin',
     spins: ['flat', 'topspin', 'slice'],
     spinRates: {
       flat: GROUNDSTROKE_FLAT_SPIN_PROFILE,
-      topspin: { defaultRpm: 1814, minRpm: 300, maxRpm: 4000 },
+      topspin: { defaultRpm: GROUNDSTROKE_TOPSPIN_DEFAULT_RPM, minRpm: 300, maxRpm: 4000 },
       slice: { defaultRpm: 1253, minRpm: 300, maxRpm: 3000 },
     },
   },

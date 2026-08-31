@@ -15,6 +15,19 @@ class MemoryStorage {
 describe('local application data', () => {
   beforeEach(() => vi.stubGlobal('localStorage', new MemoryStorage()));
 
+  it('uses the reference Rally ball settings for a clean application', () => {
+    expect(DEFAULT_PREFERENCES).toMatchObject({
+      sessionCategory: 'Quick Rally',
+      trajectoryEnabled: true,
+      shotType: 'groundstroke',
+      launchSpeedKmh: 70,
+      spin: 'topspin',
+      spinRateRpm: 1103,
+      landingDepthM: 8.5,
+      interval: 3.5,
+    });
+  });
+
   it('round-trips custom drills, split presets, and practice preferences', () => {
     const data = {
       ...DEFAULT_APP_DATA,
