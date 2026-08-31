@@ -14,36 +14,44 @@ export const COURT = Object.freeze({
 export type SurfaceId = 'hard' | 'clay' | 'grass';
 
 export type CameraMoveKey = 'w' | 'a' | 's' | 'd';
+export const CAMERA_EYE_HEIGHT_MIN = 0.4;
+export const CAMERA_EYE_HEIGHT_MAX = 8;
 
-export const cameraMovementDelta = (
-  key: CameraMoveKey,
-  step: number,
-): Readonly<{ behindBaseline: number; lateral: number }> => {
-  switch (key) {
-    case 'w':
-      return { behindBaseline: -step, lateral: 0 };
-    case 's':
-      return { behindBaseline: step, lateral: 0 };
-    case 'a':
-      return { behindBaseline: 0, lateral: step };
-    case 'd':
-      return { behindBaseline: 0, lateral: -step };
-  }
-};
+export type CameraMovement = Readonly<{
+  behindBaseline: number;
+  lateral: number;
+  eyeHeight: number;
+}>;
 
 export const cameraMovementForKeys = (
   keys: ReadonlySet<CameraMoveKey>,
   distance: number,
-): Readonly<{ behindBaseline: number; lateral: number }> => {
-  const longitudinal = (keys.has('s') ? 1 : 0) - (keys.has('w') ? 1 : 0);
-  const horizontal = (keys.has('a') ? 1 : 0) - (keys.has('d') ? 1 : 0);
-  const length = Math.hypot(longitudinal, horizontal);
-  if (length === 0) return { behindBaseline: 0, lateral: 0 };
+  yawDegrees = 0,
+  verticalMode = false,
+): CameraMovement => {
+  const forward = verticalMode ? 0 : (keys.has('w') ? 1 : 0) - (keys.has('s') ? 1 : 0);
+  const left = (keys.has('a') ? 1 : 0) - (keys.has('d') ? 1 : 0);
+  const vertical = verticalMode ? (keys.has('w') ? 1 : 0) - (keys.has('s') ? 1 : 0) : 0;
+  const horizontalLength = Math.hypot(forward, left);
+  const normalizedForward = horizontalLength === 0 ? 0 : forward / horizontalLength;
+  const normalizedLeft = horizontalLength === 0 ? 0 : left / horizontalLength;
+  const yaw = yawDegrees * Math.PI / 180;
+  const worldX = normalizedForward * Math.sin(yaw) + normalizedLeft * Math.cos(yaw);
+  const worldZ = normalizedForward * Math.cos(yaw) - normalizedLeft * Math.sin(yaw);
+  const clean = (value: number): number => Math.abs(value) < 1e-12 ? 0 : value;
   return {
-    behindBaseline: longitudinal * distance / length,
-    lateral: horizontal * distance / length,
+    behindBaseline: clean(-worldZ * distance),
+    lateral: clean(worldX * distance),
+    eyeHeight: clean(vertical * distance),
   };
 };
+
+export const cameraMovementDelta = (
+  key: CameraMoveKey,
+  step: number,
+  yawDegrees = 0,
+  verticalMode = false,
+): CameraMovement => cameraMovementForKeys(new Set([key]), step, yawDegrees, verticalMode);
 
 // The FPV camera looks from negative z toward positive z, so positive world x
 // appears on the player's left. Keep top-down controls in that player view.

@@ -109,7 +109,7 @@ describe('local application data', () => {
       preferences: { environment: { venue: 'outdoor-club', lightIntensity: 99, weather: 'hail', windSpeedMps: -4 } },
     }));
     expect(loadAppData().preferences.environment).toMatchObject({
-      venue: 'outdoor-club', weather: 'clear', weatherIntensity: 0, windSpeedMps: 0, timeOfDay: 14, lightIntensity: 1.5,
+      venue: 'hard-open-arena', weather: 'clear', weatherIntensity: 0, windSpeedMps: 0, timeOfDay: 14, lightIntensity: 1.5,
     });
   });
 

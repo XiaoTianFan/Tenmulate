@@ -3,7 +3,7 @@ import { Activity, Eye, Gauge, MapPin, Plus, RotateCcw, Target, Trophy, UserRoun
 import { DRILL_BY_CATEGORY } from '../content/bundled';
 import type { SessionCategory } from '../content/types';
 import { CAMERA_FOV_MAX, CAMERA_FOV_MIN, clampCameraFov, type CameraLook } from '../domain/camera';
-import { COURT, OPPONENT_POSITION_PRESETS, cameraMovementForKeys, type CameraMoveKey, type SurfaceId } from '../domain/court';
+import { CAMERA_EYE_HEIGHT_MAX, CAMERA_EYE_HEIGHT_MIN, COURT, OPPONENT_POSITION_PRESETS, cameraMovementForKeys, type CameraMoveKey, type SurfaceId } from '../domain/court';
 import { SCENE_DEFINITIONS, VENUE_LABELS, isOutdoorVenue, windVelocityFromEnvironment, type EnvironmentConfiguration, type LightingPreset, type VenueId, type WeatherCondition } from '../domain/environment';
 import type { CameraConfiguration, QualityMode, SceneMetrics } from '../engine/rendering/TennisScene';
 import { compileSession } from '../engine/session/compileSession';
@@ -140,12 +140,18 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
   const [presetNotice, setPresetNotice] = useState<string | null>(null);
   const heldMovementKeys = useRef(new Set<CameraMoveKey>());
   const fastMovement = useRef(false);
+  const verticalMovement = useRef(false);
+  const cameraYaw = useRef(yaw);
   const onMetrics = useCallback((next: SceneMetrics) => setMetrics(next), []);
+  const updateCameraYaw = useCallback((nextYaw: number) => {
+    cameraYaw.current = nextYaw;
+    setYaw(nextYaw);
+  }, []);
   const updateCameraLook = useCallback((look: CameraLook) => {
-    setYaw(look.yaw);
+    updateCameraYaw(look.yaw);
     setPitch(look.pitch);
     setSelectedPerspectivePreset('');
-  }, []);
+  }, [updateCameraYaw]);
   const updateCameraFov = useCallback((nextFov: number) => {
     setFov(clampCameraFov(nextFov));
     setSelectedPerspectivePreset('');
@@ -191,14 +197,16 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
     const clearMovement = () => {
       heldMovementKeys.current.clear();
       fastMovement.current = false;
+      verticalMovement.current = false;
       if (frame) cancelAnimationFrame(frame);
       frame = 0;
     };
     const applyMovement = (distance: number) => {
-      const movement = cameraMovementForKeys(heldMovementKeys.current, distance);
+      const movement = cameraMovementForKeys(heldMovementKeys.current, distance, cameraYaw.current, verticalMovement.current);
       if (movement.behindBaseline) setBehindBaseline((value) => Math.min(6, Math.max(-10, value + movement.behindBaseline)));
       if (movement.lateral) setLateral((value) => Math.min(7, Math.max(-7, value + movement.lateral)));
-      if (movement.behindBaseline || movement.lateral) setSelectedPositionPreset('');
+      if (movement.eyeHeight) setEyeHeight((value) => Math.min(CAMERA_EYE_HEIGHT_MAX, Math.max(CAMERA_EYE_HEIGHT_MIN, value + movement.eyeHeight)));
+      if (movement.behindBaseline || movement.lateral || movement.eyeHeight) setSelectedPositionPreset('');
     };
     const moveFrame = (now: number) => {
       if (!heldMovementKeys.current.size || dialog) {
@@ -213,11 +221,13 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
     const onKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
       if (event.key === 'Shift') fastMovement.current = true;
+      if (event.key === 'Control') verticalMovement.current = true;
       if (dialog || target?.matches('input:not([type="range"]), textarea, [contenteditable="true"]')) return;
       const key = event.key.toLowerCase();
       if (!['w', 'a', 's', 'd'].includes(key)) return;
       event.preventDefault();
       fastMovement.current = event.shiftKey;
+      verticalMovement.current = event.ctrlKey;
       const movementKey = key as CameraMoveKey;
       const isNewPress = !heldMovementKeys.current.has(movementKey);
       heldMovementKeys.current.add(movementKey);
@@ -229,6 +239,7 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
     };
     const onKeyUp = (event: KeyboardEvent) => {
       if (event.key === 'Shift') fastMovement.current = false;
+      if (event.key === 'Control') verticalMovement.current = false;
       const key = event.key.toLowerCase();
       if (['w', 'a', 's', 'd'].includes(key)) heldMovementKeys.current.delete(key as CameraMoveKey);
     };
@@ -280,7 +291,7 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
   };
 
   const applyPerspective = (preset: PerspectivePresetV1) => {
-    setYaw(preset.perspective.yaw);
+    updateCameraYaw(preset.perspective.yaw);
     setPitch(preset.perspective.pitch);
     setFov(preset.perspective.fov);
     setSelectedPerspectivePreset(preset.id);
@@ -384,7 +395,7 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
           </div>
           <div className="preset-toolbar">
             <div className="preset-group" aria-label="Camera position presets">
-              <header><span><MapPin size={14} /> Camera positions</span><small>WASD to move · right-click to update</small></header>
+              <header><span><MapPin size={14} /> Camera positions</span><small>WASD move · Ctrl+W/S height · right-click update</small></header>
               <div>{cameraPositionPresets.map((preset) => <button key={preset.id} type="button" className={selectedPositionPreset === preset.id ? 'preset-chip active' : 'preset-chip'} onClick={() => applyCameraPosition(preset)} onContextMenu={(event) => { event.preventDefault(); updatePositionPreset(preset); }}>{preset.name}</button>)}<button className="preset-add" type="button" aria-label="Create camera position preset" onClick={() => { setPresetName('My position'); setDialog('new-position'); }}><Plus size={15} /></button></div>
             </div>
             <div className="preset-group" aria-label="Perspective presets">
@@ -417,7 +428,7 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
             {isOutdoorVenue(venue) ? <><RangeField label="Time of day" value={timeOfDay} min={5} max={23} step={0.25} unit="h" onChange={setTimeOfDay} /><label className="select-field"><span>Weather</span><select value={weather} onChange={(event) => { const next = event.target.value as WeatherCondition; setWeather(next); setWeatherIntensity(next === 'clear' ? 0 : Math.max(0.45, weatherIntensity)); }}><option value="clear">Clear</option><option value="overcast">Overcast</option><option value="rain">Rain</option></select></label>{weather !== 'clear' ? <RangeField label="Weather level" value={weatherIntensity} min={0.1} max={1} step={0.05} unit="×" onChange={setWeatherIntensity} /> : null}</> : null}
             <RangeField label={isOutdoorVenue(venue) ? 'Sun direction' : 'Light direction'} value={lightDirection} min={-180} max={180} step={5} unit="°" onChange={setLightDirection} /><RangeField label="Light level" value={lightIntensity} min={0.35} max={1.5} step={0.05} unit="×" onChange={setLightIntensity} /><RangeField label="Wind direction" value={windDirection} min={-180} max={180} step={5} unit="°" onChange={setWindDirection} /><RangeField label="Wind speed" value={windSpeedMps} min={0} max={15} step={0.5} unit="m/s" onChange={setWindSpeedMps} />
           </SetupSection>
-          <SetupSection title="Perspective" subtitle="360° look and field of view"><RangeField label="Yaw" value={yaw} min={-180} max={180} step={0.1} unit="°" onChange={(value) => { setYaw(value); setSelectedPerspectivePreset(''); }} /><RangeField label="Pitch" value={pitch} min={-180} max={180} step={0.1} unit="°" onChange={(value) => { setPitch(value); setSelectedPerspectivePreset(''); }} /><RangeField label="FOV" value={fov} min={CAMERA_FOV_MIN} max={CAMERA_FOV_MAX} step={1} unit="° H" onChange={updateCameraFov} /><button type="button" className="text-action" onClick={() => setDialog('display')}>Use physical display measurements</button></SetupSection>
+          <SetupSection title="Perspective" subtitle="360° look and field of view"><RangeField label="Yaw" value={yaw} min={-180} max={180} step={0.1} unit="°" onChange={(value) => { updateCameraYaw(value); setSelectedPerspectivePreset(''); }} /><RangeField label="Pitch" value={pitch} min={-180} max={180} step={0.1} unit="°" onChange={(value) => { setPitch(value); setSelectedPerspectivePreset(''); }} /><RangeField label="FOV" value={fov} min={CAMERA_FOV_MIN} max={CAMERA_FOV_MAX} step={1} unit="° H" onChange={updateCameraFov} /><button type="button" className="text-action" onClick={() => setDialog('display')}>Use physical display measurements</button></SetupSection>
           <SetupSection title="System" subtitle="Quality and repeatability"><label className="select-field"><span>Quality</span><select value={quality} onChange={(event) => setQuality(event.target.value as QualityMode)}><option value="auto">Auto adaptive</option><option value="performance">Performance</option><option value="quality">Quality</option></select></label><label className="text-field"><span>Seed</span><input aria-label="Seed" value={seed} inputMode="numeric" onChange={(event) => setSeed(event.target.value.replace(/\D/g, '').slice(0, 10) || '0')} /></label></SetupSection>
           <div className="inspector-actions"><button className="primary-button" type="button" onClick={requestStart}>Start practice</button></div>
         </aside>

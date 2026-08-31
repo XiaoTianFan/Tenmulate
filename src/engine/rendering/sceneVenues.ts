@@ -3,115 +3,11 @@ import { VENUE_IDS, type VenueId } from '../../domain/environment';
 import type { SceneMaterialLibrary } from './sceneMaterials';
 import { box } from './scenePrimitives';
 import {
-  createBleachers,
-  createBroadleafTree,
   createCeilingFixture,
-  createCypressTree,
-  createFenceEnclosure,
-  createHedge,
-  createLightPole,
   createRoundedArenaTier,
   createSuperellipseFascia,
   createSuperellipseRoofRing,
 } from './sceneProps';
-
-const addPathNetwork = (group: THREE.Group, materials: SceneMaterialLibrary, width: number, length: number): void => {
-  group.add(box(width, 0.08, 2.2, materials.paleConcrete, 0, -0.09, -20));
-  group.add(box(2.4, 0.08, length, materials.paleConcrete, -15, -0.09, 2));
-  group.add(box(2.4, 0.08, length, materials.paleConcrete, 15, -0.09, 2));
-  for (const side of [-1, 1]) {
-    group.add(box(0.16, 0.34, length, materials.clayStone, side * 16.35, 0.08, 2));
-  }
-};
-
-const createClubhouse = (materials: SceneMaterialLibrary): THREE.Group => {
-  const group = new THREE.Group();
-  group.name = 'clubhouse-veranda-context';
-  group.add(box(20, 0.18, 8.2, materials.concrete, 0, 0.08, 0));
-  group.add(box(17.8, 4.8, 6.2, materials.warmWall, 0, 2.5, 0.5));
-  for (const x of [-6.5, -3.2, 0, 3.2, 6.5]) {
-    group.add(box(2.1, 2.25, 0.1, materials.glass, x, 2.25, -2.65));
-    group.add(box(0.12, 3.4, 0.14, materials.darkMetal, x - 1.18, 2.3, -2.7));
-  }
-  for (const x of [-7.8, -5.2, -2.6, 0, 2.6, 5.2, 7.8]) group.add(box(0.14, 3.2, 0.14, materials.lightMetal, x, 1.6, -4.15));
-  const roofLeft = box(10.2, 0.22, 7.2, materials.roof, -4.8, 5.35, 0.4);
-  roofLeft.rotation.z = 0.12;
-  const roofRight = box(10.2, 0.22, 7.2, materials.roof, 4.8, 5.35, 0.4);
-  roofRight.rotation.z = -0.12;
-  group.add(roofLeft, roofRight);
-  group.position.set(0, 0, 25);
-  return group;
-};
-
-const createOutdoorClub = (materials: SceneMaterialLibrary): THREE.Group => {
-  const group = new THREE.Group();
-  group.name = 'scene-outdoor-club';
-  group.add(box(72, 0.18, 92, materials.grass, 0, -0.2, 6));
-  addPathNetwork(group, materials, 34, 54);
-  group.add(createFenceEnclosure(materials));
-  group.add(createBleachers(materials, -1, 4, 12, 9.4));
-  group.add(createBleachers(materials, 1, 4, 12, 9.4));
-  group.add(createClubhouse(materials));
-  group.add(createHedge(materials, 9.2, 1.55, 1.4, -8, 17.7));
-  group.add(createHedge(materials, 9.2, 1.55, 1.4, 8, 17.7));
-  for (const [x, z] of [[-13.2, -14], [13.2, -14], [-13.2, 12.2], [13.2, 12.2]] as const) group.add(createLightPole(materials, x, z, z < 0 ? 1 : -1));
-  const trees: readonly [number, number, number, number][] = [
-    [-21, -12, 1.25, 0], [-20, -2, 1.5, 1], [-21, 10, 1.35, 2], [-20, 22, 1.55, 0],
-    [21, -12, 1.35, 1], [20, -2, 1.45, 0], [21, 10, 1.4, 2], [20, 22, 1.5, 1],
-    [-14, 32, 1.25, 1], [-7, 34, 1.45, 2], [7, 34, 1.4, 0], [14, 32, 1.3, 1],
-  ];
-  for (const tree of trees) group.add(createBroadleafTree(materials, ...tree));
-  group.add(box(11, 3.4, 5.2, materials.warmWall, -25, 1.7, 23));
-  group.add(box(12, 0.22, 6.2, materials.roof, -25, 3.55, 23));
-  return group;
-};
-
-const createClayTerrace = (materials: SceneMaterialLibrary): THREE.Group => {
-  const group = new THREE.Group();
-  group.name = 'scene-clay-terrace';
-  group.add(box(72, 0.18, 94, materials.clayStone, 0, -0.2, 7));
-  group.add(createFenceEnclosure(materials, 22, 36.5, 3));
-  for (const side of [-1, 1]) {
-    for (let tier = 0; tier < 7; tier += 1) {
-      const x = side * (7.8 + tier * 0.8);
-      group.add(box(0.9, 0.44 + tier * 0.38, 23, materials.clayStone, x, (0.44 + tier * 0.38) / 2, 2));
-      group.add(box(0.68, 0.09, 22.4, materials.terracotta, x - side * 0.08, 0.5 + tier * 0.38, 2));
-    }
-    group.add(box(0.28, 4.2, 34, materials.clayStone, side * 14.2, 2.1, 2));
-    group.add(createHedge(materials, 1.4, 1.45, 34, side * 15.4, 2));
-  }
-  group.add(box(30, 3.8, 1.4, materials.clayStone, 0, 1.9, 20));
-  group.add(box(19, 5.2, 7, materials.warmWall, 0, 5.8, 25));
-  group.add(box(21, 0.32, 8.1, materials.terracotta, 0, 8.55, 25));
-  for (const x of [-6.5, -2.2, 2.2, 6.5]) group.add(box(2.4, 2.8, 0.12, materials.glass, x, 5.8, 21.45));
-  for (let step = 0; step < 13; step += 1) group.add(box(5 + step * 0.4, 0.22, 0.5, materials.clayStone, 0, 0.12 + step * 0.23, 17 + step * 0.43));
-  for (const side of [-1, 1]) for (let z = -15; z <= 33; z += 6) group.add(createCypressTree(materials, side * 18, z, 1.15));
-  for (const x of [-11, -7, 7, 11]) group.add(createCypressTree(materials, x, 34, 1.25));
-  for (const [x, z] of [[-13.4, -14], [13.4, -14], [-13.4, 13], [13.4, 13]] as const) group.add(createLightPole(materials, x, z, z < 0 ? 1 : -1));
-  return group;
-};
-
-const createGrassPark = (materials: SceneMaterialLibrary): THREE.Group => {
-  const group = new THREE.Group();
-  group.name = 'scene-grass-park-night';
-  group.add(box(84, 0.18, 104, materials.grass, 0, -0.2, 8));
-  group.add(createFenceEnclosure(materials, 23, 37, 2.8));
-  addPathNetwork(group, materials, 38, 64);
-  group.add(createHedge(materials, 32, 1.6, 2, 0, 19.5));
-  group.add(createHedge(materials, 2, 1.5, 44, -14.7, 2));
-  group.add(createHedge(materials, 2, 1.5, 44, 14.7, 2));
-  group.add(box(17, 3.6, 6, materials.warmWall, 0, 1.8, 28));
-  const pavilionRoof = box(19, 0.24, 7.2, materials.roof, 0, 3.85, 28);
-  pavilionRoof.rotation.x = 0.08;
-  group.add(pavilionRoof);
-  for (const [x, z] of [[-12.8, -13], [12.8, -13], [-12.8, 13], [12.8, 13]] as const) group.add(createLightPole(materials, x, z, z < 0 ? 1 : -1));
-  for (let index = 0; index < 22; index += 1) {
-    const side = index % 2 === 0 ? -1 : 1;
-    const z = -20 + Math.floor(index / 2) * 5.6;
-    group.add(createBroadleafTree(materials, side * (20 + (index % 3) * 1.8), z, 1.25 + (index % 4) * 0.1, index));
-  }
-  return group;
-};
 
 const createAdRing = (materials: SceneMaterialLibrary): THREE.Group => {
   const group = new THREE.Group();
@@ -409,9 +305,6 @@ const createBarrelGrassHall = (materials: SceneMaterialLibrary): THREE.Group => 
 
 export const createVenueGroups = (materials: SceneMaterialLibrary): Readonly<Record<VenueId, THREE.Group>> => {
   const groups = {
-    'outdoor-club': createOutdoorClub(materials),
-    'clay-terrace': createClayTerrace(materials),
-    'grass-park-night': createGrassPark(materials),
     'hard-open-arena': createHardOpenArena(materials),
     'clay-sunset-arena': createClaySunsetArena(materials),
     'grass-center-court': createGrassCenterCourt(materials),
@@ -419,6 +312,6 @@ export const createVenueGroups = (materials: SceneMaterialLibrary): Readonly<Rec
     'clay-stadium': createClayHall(materials),
     'covered-grass-arena': createBarrelGrassHall(materials),
   } satisfies Record<VenueId, THREE.Group>;
-  for (const venue of VENUE_IDS) groups[venue].visible = venue === 'outdoor-club';
+  for (const venue of VENUE_IDS) groups[venue].visible = venue === 'hard-open-arena';
   return groups;
 };

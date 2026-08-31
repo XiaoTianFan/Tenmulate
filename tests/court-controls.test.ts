@@ -9,17 +9,28 @@ import {
 
 describe('player-view court controls', () => {
   it('maps A to player-view left and D to player-view right', () => {
-    expect(cameraMovementDelta('a', 0.16)).toEqual({ behindBaseline: 0, lateral: 0.16 });
-    expect(cameraMovementDelta('d', 0.16)).toEqual({ behindBaseline: 0, lateral: -0.16 });
+    expect(cameraMovementDelta('a', 0.16)).toEqual({ behindBaseline: 0, lateral: 0.16, eyeHeight: 0 });
+    expect(cameraMovementDelta('d', 0.16)).toEqual({ behindBaseline: 0, lateral: -0.16, eyeHeight: 0 });
   });
 
   it('normalizes held-key movement so diagonals are smooth and repeat-rate independent', () => {
-    expect(cameraMovementForKeys(new Set(['w']), 0.2)).toEqual({ behindBaseline: -0.2, lateral: 0 });
+    expect(cameraMovementForKeys(new Set(['w']), 0.2)).toEqual({ behindBaseline: -0.2, lateral: 0, eyeHeight: 0 });
     const diagonal = cameraMovementForKeys(new Set(['w', 'a']), 0.2);
     expect(Math.hypot(diagonal.behindBaseline, diagonal.lateral)).toBeCloseTo(0.2, 8);
     expect(diagonal.behindBaseline).toBeLessThan(0);
     expect(diagonal.lateral).toBeGreaterThan(0);
-    expect(cameraMovementForKeys(new Set(['w', 's']), 0.2)).toEqual({ behindBaseline: 0, lateral: 0 });
+    expect(cameraMovementForKeys(new Set(['w', 's']), 0.2)).toEqual({ behindBaseline: 0, lateral: 0, eyeHeight: 0 });
+  });
+
+  it('rotates horizontal movement with the current camera yaw', () => {
+    expect(cameraMovementForKeys(new Set(['w']), 0.2, 90)).toEqual({ behindBaseline: 0, lateral: 0.2, eyeHeight: 0 });
+    expect(cameraMovementForKeys(new Set(['w']), 0.2, -90)).toEqual({ behindBaseline: 0, lateral: -0.2, eyeHeight: 0 });
+    expect(cameraMovementForKeys(new Set(['a']), 0.2, 90)).toEqual({ behindBaseline: 0.2, lateral: 0, eyeHeight: 0 });
+  });
+
+  it('reserves Ctrl+W/S for camera height without horizontal drift', () => {
+    expect(cameraMovementForKeys(new Set(['w']), 0.2, 137, true)).toEqual({ behindBaseline: 0, lateral: 0, eyeHeight: 0.2 });
+    expect(cameraMovementForKeys(new Set(['s']), 0.2, -48, true)).toEqual({ behindBaseline: 0, lateral: 0, eyeHeight: -0.2 });
   });
 
   it('mirrors world x into the FPV horizontal direction and round-trips it', () => {

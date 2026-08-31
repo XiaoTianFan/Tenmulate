@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { COURT } from '../src/domain/court';
-import { VENUE_IDS } from '../src/domain/environment';
+import { VENUE_IDS, isOutdoorVenue } from '../src/domain/environment';
 import { createCourt } from '../src/engine/rendering/buildCourt';
 
 describe('regulation court constants', () => {
@@ -13,10 +13,10 @@ describe('regulation court constants', () => {
     expect(COURT.netPostHeight).toBe(1.07);
   });
 
-  it.each(['hard', 'clay', 'grass'] as const)('builds all nine canonical scenes independently of the %s court surface', (surface) => {
+  it.each(['hard', 'clay', 'grass'] as const)('builds all six canonical scenes independently of the %s court surface', (surface) => {
     const court = createCourt(surface);
     expect(Object.keys(court.venueGroups)).toEqual(VENUE_IDS);
-    expect(court.venueGroups['outdoor-club'].visible).toBe(true);
+    expect(court.venueGroups['hard-open-arena'].visible).toBe(true);
     for (const venue of VENUE_IDS.slice(1)) expect(court.venueGroups[venue].visible).toBe(false);
     for (const venue of VENUE_IDS) expect(court.group.children).toContain(court.venueGroups[venue]);
   });
@@ -91,7 +91,7 @@ describe('regulation court constants', () => {
 
   it('provides positioned artificial floodlights in every outdoor venue', () => {
     const court = createCourt('hard');
-    for (const venue of VENUE_IDS.slice(0, 6)) {
+    for (const venue of VENUE_IDS.filter(isOutdoorVenue)) {
       let lightCount = 0;
       court.venueGroups[venue].traverse((object) => {
         if (object instanceof THREE.SpotLight) lightCount += 1;

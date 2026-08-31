@@ -1,9 +1,6 @@
 import type { SurfaceId } from './court';
 
 export const VENUE_IDS = [
-  'outdoor-club',
-  'clay-terrace',
-  'grass-park-night',
   'hard-open-arena',
   'clay-sunset-arena',
   'grass-center-court',
@@ -30,40 +27,28 @@ export type SceneDefinition = Readonly<{
 }>;
 
 export const SCENE_DEFINITIONS: Readonly<Record<VenueId, SceneDefinition>> = Object.freeze({
-  'outdoor-club': {
-    id: 'outdoor-club', label: 'Outdoor blue & green club', shortLabel: 'Outdoor club', setting: 'outdoor',
-    defaultSurface: 'hard', defaultLighting: 'day', background: 0x8fc5eb, fogNear: 48, fogFar: 108,
-  },
-  'clay-terrace': {
-    id: 'clay-terrace', label: 'Mediterranean clay terrace', shortLabel: 'Clay terrace', setting: 'outdoor',
-    defaultSurface: 'clay', defaultLighting: 'golden-hour', background: 0xd7a46d, fogNear: 50, fogFar: 112,
-  },
-  'grass-park-night': {
-    id: 'grass-park-night', label: 'Grass park under lights', shortLabel: 'Grass park', setting: 'outdoor',
-    defaultSurface: 'grass', defaultLighting: 'night', background: 0x07121d, fogNear: 42, fogFar: 88,
-  },
   'hard-open-arena': {
-    id: 'hard-open-arena', label: 'Open-roof blue hard arena', shortLabel: 'Blue hard arena', setting: 'outdoor',
+    id: 'hard-open-arena', label: 'Outdoor Arena · Hard', shortLabel: 'Outdoor · Hard', setting: 'outdoor',
     defaultSurface: 'hard', defaultLighting: 'day', background: 0x82bce4, fogNear: 62, fogFar: 150,
   },
   'clay-sunset-arena': {
-    id: 'clay-sunset-arena', label: 'Sunset clay arena', shortLabel: 'Clay arena', setting: 'outdoor',
+    id: 'clay-sunset-arena', label: 'Outdoor Arena · Clay', shortLabel: 'Outdoor · Clay', setting: 'outdoor',
     defaultSurface: 'clay', defaultLighting: 'golden-hour', background: 0xd9976f, fogNear: 64, fogFar: 152,
   },
   'grass-center-court': {
-    id: 'grass-center-court', label: 'Open-roof grass center court', shortLabel: 'Grass center court', setting: 'outdoor',
+    id: 'grass-center-court', label: 'Outdoor Arena · Grass', shortLabel: 'Outdoor · Grass', setting: 'outdoor',
     defaultSurface: 'grass', defaultLighting: 'day', background: 0x8cc5e8, fogNear: 64, fogFar: 154,
   },
   'timber-hall': {
-    id: 'timber-hall', label: 'Timber & steel club hall', shortLabel: 'Timber hall', setting: 'indoor',
+    id: 'timber-hall', label: 'Indoor Court · Hard', shortLabel: 'Indoor · Hard', setting: 'indoor',
     defaultSurface: 'hard', defaultLighting: 'indoor-warm', background: 0x32383a, fogNear: 46, fogFar: 90,
   },
   'clay-stadium': {
-    id: 'clay-stadium', label: 'Simple indoor clay hall', shortLabel: 'Clay hall', setting: 'indoor',
+    id: 'clay-stadium', label: 'Indoor Court · Clay', shortLabel: 'Indoor · Clay', setting: 'indoor',
     defaultSurface: 'clay', defaultLighting: 'indoor-bright', background: 0x24282d, fogNear: 48, fogFar: 96,
   },
   'covered-grass-arena': {
-    id: 'covered-grass-arena', label: 'Barrel-vault indoor grass hall', shortLabel: 'Grass hall', setting: 'indoor',
+    id: 'covered-grass-arena', label: 'Indoor Court · Grass', shortLabel: 'Indoor · Grass', setting: 'indoor',
     defaultSurface: 'grass', defaultLighting: 'indoor-neutral', background: 0x8b9da6, fogNear: 52, fogFar: 104,
   },
 });
@@ -81,7 +66,7 @@ export type EnvironmentConfiguration = Readonly<{
 }>;
 
 export const DEFAULT_ENVIRONMENT: EnvironmentConfiguration = Object.freeze({
-  venue: 'outdoor-club',
+  venue: 'hard-open-arena',
   lighting: 'day',
   lightDirection: -35,
   lightIntensity: 1,
@@ -100,7 +85,9 @@ export const isOutdoorVenue = (venue: VenueId): boolean => SCENE_DEFINITIONS[ven
 
 export const normalizeVenueId = (value: unknown): VenueId => {
   if (typeof value === 'string' && (VENUE_IDS as readonly string[]).includes(value)) return value as VenueId;
-  if (value === 'outdoor') return 'outdoor-club';
+  if (value === 'outdoor' || value === 'outdoor-club') return 'hard-open-arena';
+  if (value === 'clay-terrace') return 'clay-sunset-arena';
+  if (value === 'grass-park-night') return 'grass-center-court';
   if (value === 'club-hall') return 'timber-hall';
   if (value === 'stadium') return 'clay-stadium';
   return DEFAULT_ENVIRONMENT.venue;
