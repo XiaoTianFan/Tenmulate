@@ -7,6 +7,7 @@ import {
   cameraMovementDelta,
   cameraMovementForKeys,
   clampOpponentPosition,
+  isCameraHeightShortcut,
   playerViewHorizontalToWorldX,
   worldXToPlayerViewHorizontal,
 } from '../src/domain/court';
@@ -35,6 +36,14 @@ describe('player-view court controls', () => {
   it('reserves Ctrl+W/S for camera height without horizontal drift', () => {
     expect(cameraMovementForKeys(new Set(['w']), 0.2, 137, true)).toEqual({ behindBaseline: 0, lateral: 0, eyeHeight: 0.2 });
     expect(cameraMovementForKeys(new Set(['s']), 0.2, -48, true)).toEqual({ behindBaseline: 0, lateral: 0, eyeHeight: -0.2 });
+  });
+
+  it('claims only unmodified Ctrl+W/S as camera-height shortcuts', () => {
+    expect(isCameraHeightShortcut({ key: 'w', ctrlKey: true, altKey: false, metaKey: false })).toBe(true);
+    expect(isCameraHeightShortcut({ key: 'S', ctrlKey: true, altKey: false, metaKey: false })).toBe(true);
+    expect(isCameraHeightShortcut({ key: 'w', ctrlKey: false, altKey: false, metaKey: false })).toBe(false);
+    expect(isCameraHeightShortcut({ key: 'w', ctrlKey: true, altKey: true, metaKey: false })).toBe(false);
+    expect(isCameraHeightShortcut({ key: 's', ctrlKey: true, altKey: false, metaKey: true })).toBe(false);
   });
 
   it('mirrors world x into the FPV horizontal direction and round-trips it', () => {

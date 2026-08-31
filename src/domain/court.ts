@@ -21,6 +21,15 @@ export type CameraMoveKey = 'w' | 'a' | 's' | 'd';
 export const CAMERA_EYE_HEIGHT_MIN = 0.4;
 export const CAMERA_EYE_HEIGHT_MAX = 8;
 
+export const isCameraHeightShortcut = (
+  event: Readonly<Pick<KeyboardEvent, 'altKey' | 'ctrlKey' | 'key' | 'metaKey'>>,
+): boolean => (
+  event.ctrlKey
+  && !event.altKey
+  && !event.metaKey
+  && (event.key.toLowerCase() === 'w' || event.key.toLowerCase() === 's')
+);
+
 export type CameraMovement = Readonly<{
   behindBaseline: number;
   lateral: number;
