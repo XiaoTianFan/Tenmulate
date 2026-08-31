@@ -245,6 +245,7 @@ The full contract and provider comparison are in [Mocap to web opponent](researc
 - The renderer adapter owns initialization, resize, pixel ratio, render passes, color management, and capability reporting.
 - The scene layer owns regulation court geometry, net, ball, opponent, lighting, venue adapters, and debug overlays.
 - Standard PBR materials first. Custom effects must work on the chosen backend path or have a tested accessible fallback.
+- Gameplay visibility materials are renderer-owned. The ball uses one shared optic yellow-green PBR material for every overlapping instance; the opponent uses one shared white PBR fill plus back-face outline clones bound to the source skinned meshes and skeletons. The outline writes no depth or shadow and never enters physics or collision state.
 - External asset loading is manifest-driven with explicit URL, byte size, hash, cache group, version, compatible skeleton/content versions, and a progress/error state.
 - The critical route loads UI, the selected typed Three.js venue composition, court, ball, and drill first. Only the neutral opponent mesh and animation bundles are external lazy GLB assets.
 - Build six scene identities from shared composition modules: hard, clay, and grass variants of Outdoor Arena and Indoor Court. Each scene owns context, access, architecture, and aligned lighting fixtures; outdoor arenas additionally own seating bowls, ad boards, aisles, and roof/canopy massing. Exact court/net and near-court props remain separately testable groups.

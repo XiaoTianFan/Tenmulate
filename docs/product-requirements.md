@@ -99,6 +99,7 @@ No single TV/projector, viewing distance, room, or GPU defines the product. Refe
   - **Compact:** low toss and immediate upward swing with shorter preparation and a faster visual rhythm.
 - Serve-motion rhythm and ball pace are independent; choosing compact cannot silently force a faster ball.
 - Opponent production prioritizes motion silhouette, footwork, racket path, contact, and clean deformation over facial close-up detail; the normal opponent distance does not justify expensive high-resolution facial assets.
+- The active ball uses an optic yellow-green, felt-like renderer presentation with a restrained emissive lift. The neutral opponent uses a white relightable surface plus a persistent black silhouette contour; both treatments are presentation-only and cannot alter physical paths, collisions, or opponent scale.
 - Opponent rackets are reusable rigid props attached to named left/right hand sockets; they are not fused into the base character mesh.
 - The regular Rally origin defaults to 1.0 m behind the far baseline. Free opponent placement covers the full international-competition floor envelope: 6.40 m behind each baseline and 3.66 m outside each doubles sideline.
 

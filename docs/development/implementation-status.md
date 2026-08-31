@@ -1,8 +1,8 @@
 # V1 implementation status
 
 - **Status:** Active
-- **Last updated:** 2026-08-30
-- **Current implementation commit:** updated at each completed stage
+- **Last updated:** 2026-08-31
+- **Current implementation commit:** `6591368`
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The neutral humanoid carrier is now integrated; its tennis mocap and racket remain owner-supplied production inputs. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
@@ -365,3 +365,24 @@ The detailed status of every requirement is recorded in the [V1 release matrix](
 
 - Owner/coach review of whether one metre is the preferred neutral Rally runback and whether an additional deep-recovery preset would be useful.
 - Target-device pointer/touch review at the extreme runoff edges, plus content review for intentionally authored shots whose source is far enough away that the solver reports a closest reachable landing rather than the exact target.
+
+## Stage 14 — optic ball and outlined-opponent visibility
+
+- **Status:** Implemented locally on 2026-08-31; target-display and production-mocap review remain open
+- Replaced the previous yellow-biased ball with one shared optic yellow-green PBR presentation for every active ball instance. Standard and high-contrast modes retain felt-like roughness and use bounded emissive lift; trajectory/trail cues use the same color family.
+- Re-materialized the neutral opponent as warm white and added a near-black inverted-hull shader clone for every visible mesh. Skinned clones share the live skeleton, geometry, and animation deformation with their fill mesh.
+- Kept the 45 mm hull entirely in the presentation layer: it writes no depth, casts no shadow, ignores fog/tone mapping, and cannot affect opponent scale, collision, placement, or ball physics.
+- Recorded that the ITF permits white or yellow but does not publish a numeric yellow/fluorescence standard. The selected sRGB values are renderer calibration informed by common manufacturer "optic yellow" language, not an ITF color claim.
+
+### Verification
+
+- Implementation commit: `6591368`.
+- Focused rendering/playback run: 2 files, 7 tests passed. Full `npm test -- --run`: 11 files, 108 tests passed. New coverage checks yellow-green hue/saturation, bounded emissive lift, back-face/depth/tone-map outline settings, vertex expansion, and shared skinned-skeleton identity.
+- `npm run build`: production TypeScript/Vite/PWA build passed; SceneViewport is approximately 171.38 kB gzip and the 29-entry precache approximately 1.83 MiB. The existing large-scene-chunk warning remains.
+- In-app Browser comparison at the normal desktop viewport verified the optic ball and black-edged white opponent against Outdoor Arena · Hard and Indoor Court · Hard. Selecting Return exercised a changed serve origin and live ball feed without renderer warnings.
+- At 767 × 898 the white/outlined opponent remained legible in the compact court view with `scrollWidth = clientWidth = 752`; desktop and compact passes ended with zero console warnings/errors.
+
+### Remaining review gates
+
+- Owner approval on the intended TV/monitor and across all retained venue/light combinations.
+- Firefox/Safari comparison plus real production mocap and racket poses to catch browser antialiasing or outline seam differences.

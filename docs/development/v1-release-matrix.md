@@ -96,7 +96,7 @@ Status meanings:
 | Browser coverage | Automated Chrome/WebGL 2 pass with zero errors/warnings | Validate current Chrome/Edge on Windows, Firefox on Windows, and Safari on macOS. |
 | Large-display fit | Physical FOV calculation and responsive setup are implemented | Observe real TV/projector scale, comfort, ball readability, and safe-space workflow. |
 | Human usefulness | No technique or medical claims are made | Owner, one coach, and at least three other target players across levels complete observed sessions. |
-| Production visual layer | Six authored Three.js venues and the CC0 neutral opponent carrier render in-browser; source/runtime hashes and fallback are recorded | Complete owner visual approval, import the racket and accepted mocap, then pass contact, deformation, handedness, depth, lighting, load, and provenance reviews. |
+| Production visual layer | Six authored Three.js venues, an optic yellow-green shared ball material, and a white/black-contour CC0 opponent carrier render in-browser; source/runtime hashes and fallback are recorded | Complete owner visual approval on the target display, import the racket and accepted mocap, then pass contact, deformation, handedness, depth, lighting, load, and provenance reviews. |
 | Accessibility/privacy/legal | Keyboard, reduced motion, mute/levels, visual cues, contrast ball, safety acknowledgement, and no camera request exist | Complete formal accessibility, privacy text, license/provenance, and public legal review. |
 | Hosting/operations | Production PWA build and offline shell pass locally | Validate public origin/CDN headers, immutable asset paths, monitoring, release notes, and rollback runbook. |
 

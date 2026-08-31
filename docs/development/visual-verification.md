@@ -165,3 +165,13 @@ The first implementation used one spin taxonomy and surface-retention scalar acr
 | Runtime health | The broader angle search must not introduce visible faults | Groundstroke/Spin and Overhead/Lob interactions completed with zero console warnings/errors; 96 tests and production build pass | Correctness pass. Browser FPS observed during automation is not accepted as target-device performance evidence. |
 
 The previous minimum-angle solve conflated obstacle clearance with depth and could even report a net crossing after a first bounce on an impossible low-speed feed. This pass makes that mismatch explicit and corrects the authoring model. The remaining ledger is calibration rather than architecture: measured recreational speed/spin distributions, lob apex preferences, and target-display perception still require player or instrumented evidence.
+
+## Visibility calibration: optic ball and outlined opponent
+
+| Comparison point | Intended behavior | Browser evidence | Result / remaining refinement |
+| --- | --- | --- | --- |
+| Ball hue | Competition-yellow compliance without the previous pure-yellow appearance | The shared ball material moved to a saturated optic yellow-green authoring value with high felt-like roughness and restrained emissive lift; Return visibly retained the hue from the far launch through the near court | Pass for renderer intent. The ITF specifies only white or yellow, not a numeric display value; target-display approval remains open. |
+| Opponent fill | The distant neutral carrier remains visible across light and dark scenes | The texture-free GLB now renders warm white under scene lights in both Outdoor Arena · Hard and Indoor Court · Hard | Pass at baseline distance. This is still a low-detail carrier, not close-up character art. |
+| Silhouette edge | A black contour follows the opponent without becoming a second static character | Back-face outline clones share each source mesh's geometry and live skeleton. The first 18 mm hull fell below one pixel; the calibrated 45 mm render hull remained visible at the far baseline | Pass in the current browser. Verify extreme mocap poses and other browser/display antialiasing paths later. |
+| Physics isolation | Visibility cannot change gameplay | Ball scale/material and opponent outline remain renderer-only; collision, trajectory, opponent height, court position, and animation contracts are unchanged | Architectural and automated-test pass. |
+| Responsive/runtime health | The new pass cannot overflow UI or introduce shader failures | Desktop and 767 × 898 comparisons showed the new materials in the court view, compact `scrollWidth = clientWidth = 752`, and zero console warnings/errors | Pass. Target-device GPU profiling remains open. |
