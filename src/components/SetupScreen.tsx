@@ -20,7 +20,7 @@ import { SceneViewport } from './SceneViewport';
 type PracticePresetId = 'rally' | 'return' | 'volley' | 'overhead';
 type DialogId = 'safety' | 'display' | 'help' | 'opponent' | 'new-position' | 'new-perspective' | null;
 
-const PRACTICE_PRESETS: ReadonlyArray<{
+export const PRACTICE_PRESETS: ReadonlyArray<{
   id: PracticePresetId;
   label: string;
   category: SessionCategory;
@@ -31,7 +31,7 @@ const PRACTICE_PRESETS: ReadonlyArray<{
 }> = [
   { id: 'rally', label: 'Rally', category: 'Quick Rally', icon: Activity, cameraPresetId: 'position-baseline', opponent: DEFAULT_RALLY_OPPONENT_POSITION, shotType: 'groundstroke' },
   { id: 'return', label: 'Return', category: 'Return Practice', icon: Target, cameraPresetId: 'position-baseline', opponent: { x: 1.25, z: COURT.halfLength - 0.18 }, shotType: 'serve' },
-  { id: 'volley', label: 'Volley', category: 'Serve & Volley', icon: Trophy, cameraPresetId: 'position-net', opponent: { x: 0, z: 3.7 }, shotType: 'volley' },
+  { id: 'volley', label: 'Volley', category: 'Serve & Volley', icon: Trophy, cameraPresetId: 'position-net', opponent: DEFAULT_RALLY_OPPONENT_POSITION, shotType: 'groundstroke' },
   { id: 'overhead', label: 'Overhead', category: 'Net & Overhead', icon: Gauge, cameraPresetId: 'position-overhead', opponent: { x: 1.1, z: 6.0 }, shotType: 'lob' },
 ];
 
