@@ -9,6 +9,7 @@ import { OpponentRig, OpponentRigDisposedError } from './OpponentRig';
 import { DynamicSkySystem } from './DynamicSkySystem';
 import { WeatherSystem } from './WeatherSystem';
 import { updateSceneMaterialEnvironment, type SceneMaterialBundle } from './sceneMaterials';
+import { BALL_PRESENTATION } from './presentationMaterials';
 
 export type CameraConfiguration = Readonly<{
   eyeHeight: number;
@@ -187,10 +188,11 @@ export class TennisScene {
     });
 
     this.ballMaterial = new THREE.MeshStandardMaterial({
-      color: 0xe8ef32,
-      emissive: 0x697214,
-      emissiveIntensity: 0.28,
-      roughness: 0.62,
+      color: BALL_PRESENTATION.standard.color,
+      emissive: BALL_PRESENTATION.standard.emissive,
+      emissiveIntensity: BALL_PRESENTATION.standard.emissiveIntensity,
+      roughness: 0.84,
+      metalness: 0,
     });
     this.ball = new THREE.Mesh(new THREE.SphereGeometry(COURT.ballRadius * 1.34, 24, 16), this.ballMaterial);
     this.ball.castShadow = true;
@@ -199,12 +201,12 @@ export class TennisScene {
 
     this.trajectoryLine = new THREE.Line(
       new THREE.BufferGeometry(),
-      new THREE.LineBasicMaterial({ color: 0xf2df21, transparent: true, opacity: 0.56 }),
+      new THREE.LineBasicMaterial({ color: BALL_PRESENTATION.trajectoryColor, transparent: true, opacity: 0.56 }),
     );
     this.scene.add(this.trajectoryLine);
     this.ballTrail = new THREE.Line(
       new THREE.BufferGeometry(),
-      new THREE.LineBasicMaterial({ color: 0xf5f77b, transparent: true, opacity: 0.52 }),
+      new THREE.LineBasicMaterial({ color: BALL_PRESENTATION.trailColor, transparent: true, opacity: 0.52 }),
     );
     this.ballTrail.visible = false;
     this.scene.add(this.ballTrail);
@@ -240,9 +242,10 @@ export class TennisScene {
     this.showBallTrail = showTrail;
     this.ballTrail.visible = showTrail;
     for (const ball of this.balls) ball.scale.setScalar(highContrast ? 1.24 : 1);
-    this.ballMaterial.color.setHex(highContrast ? 0xf8ff24 : 0xe8ef32);
-    this.ballMaterial.emissive.setHex(highContrast ? 0xb0bd1a : 0x697214);
-    this.ballMaterial.emissiveIntensity = highContrast ? 0.62 : 0.28;
+    const presentation = highContrast ? BALL_PRESENTATION.highContrast : BALL_PRESENTATION.standard;
+    this.ballMaterial.color.setHex(presentation.color);
+    this.ballMaterial.emissive.setHex(presentation.emissive);
+    this.ballMaterial.emissiveIntensity = presentation.emissiveIntensity;
   }
 
   setPlaybackRate(rate: number): void {

@@ -6,6 +6,11 @@ import {
   inspectOpponentBoneNames,
   type OpponentHand,
 } from '../../domain/opponent';
+import {
+  createOpponentOutlineClone,
+  createOpponentOutlineMaterial,
+  OPPONENT_PRESENTATION,
+} from './presentationMaterials';
 
 export type OpponentLoadReport = Readonly<{
   sourceHeightMeters: number;
@@ -34,10 +39,11 @@ const canonicalBoneNames = new Set<string>(Object.values(OPPONENT_SKELETON_ADAPT
 export class OpponentRig {
   readonly group = new THREE.Group();
   private readonly neutralMaterial = new THREE.MeshStandardMaterial({
-    color: 0x13283d,
-    roughness: 0.78,
+    color: OPPONENT_PRESENTATION.fillColor,
+    roughness: 0.84,
     metalness: 0,
   });
+  private outlineMaterial: THREE.MeshBasicMaterial | null = null;
   private model: THREE.Object3D | null = null;
   private mixer: THREE.AnimationMixer | null = null;
   private clips = new Map<string, THREE.AnimationClip>();
@@ -142,6 +148,15 @@ export class OpponentRig {
       throw new Error(`Opponent rig is missing bones: ${boneReport.missing.map(({ bone }) => bone).join(', ')}`);
     }
 
+    this.outlineMaterial = createOpponentOutlineMaterial(scale);
+    const outlinedMeshes: THREE.Mesh[] = [];
+    model.traverse((object) => {
+      if ((object instanceof THREE.Mesh || object instanceof THREE.SkinnedMesh) && object.visible) {
+        outlinedMeshes.push(object);
+      }
+    });
+    for (const mesh of outlinedMeshes) mesh.parent?.add(createOpponentOutlineClone(mesh, this.outlineMaterial));
+
     this.model = model;
     this.mixer = new THREE.AnimationMixer(model);
     this.racketSockets = {
@@ -211,10 +226,14 @@ export class OpponentRig {
     this.disposed = true;
     this.mixer?.stopAllAction();
     this.group.removeFromParent();
+    const geometries = new Set<THREE.BufferGeometry>();
     this.model?.traverse((object) => {
-      if (object instanceof THREE.Mesh || object instanceof THREE.SkinnedMesh) object.geometry.dispose();
+      if (object instanceof THREE.Mesh || object instanceof THREE.SkinnedMesh) geometries.add(object.geometry);
     });
+    for (const geometry of geometries) geometry.dispose();
     this.neutralMaterial.dispose();
+    this.outlineMaterial?.dispose();
+    this.outlineMaterial = null;
     this.model = null;
     this.mixer = null;
     this.activeAction = null;
