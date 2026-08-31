@@ -94,6 +94,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .keyboard-lock-button:hover { border-color: var(--blue); color: #a7d8ff; }
 .keyboard-lock-button.active { border-color: #4c9369; background: #10271a; color: #9ce2b8; }
 .keyboard-lock-button:disabled { opacity: 0.5; cursor: not-allowed; }
+.keyboard-lock-message { grid-column: 1 / -1; color: #efb07c; font-size: 9px; line-height: 1.35; }
 .preset-group > div { min-width: 0; display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 5px; scrollbar-width: none; }
 .preset-group > div::-webkit-scrollbar { display: none; }
 .preset-chip, .preset-add { flex: 0 0 auto; min-height: 38px; padding: 0 12px; border: 1px solid var(--divider); border-radius: 6px; background: #0c1419; color: #c6d0d4; font-size: 11px; cursor: pointer; }
