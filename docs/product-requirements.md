@@ -100,6 +100,7 @@ No single TV/projector, viewing distance, room, or GPU defines the product. Refe
 - Serve-motion rhythm and ball pace are independent; choosing compact cannot silently force a faster ball.
 - Opponent production prioritizes motion silhouette, footwork, racket path, contact, and clean deformation over facial close-up detail; the normal opponent distance does not justify expensive high-resolution facial assets.
 - Opponent rackets are reusable rigid props attached to named left/right hand sockets; they are not fused into the base character mesh.
+- The regular Rally origin defaults to 1.0 m behind the far baseline. Free opponent placement covers the full international-competition floor envelope: 6.40 m behind each baseline and 3.66 m outside each doubles sideline.
 
 ### Drills, editor, and feedback
 
@@ -185,7 +186,7 @@ Accounts, premium entitlements, cloud content, and payments belong to a separate
 | OPP-04 | Ship both opponent hands. | All required drill families work with a left- and right-handed opponent; each mirrored use has a recorded acceptance review. |
 | OPP-05 | Ship normal and compact serves. | Both rhythms have distinct toss/loading/contact timing, remain readable at normal speed, and can drive the same legal ball-pace preset. |
 | OPP-06 | Preserve readable preparation. | Preparation and contact timing are authored independently of ball flight speed and expose valid playback-rate bounds. |
-| OPP-07 | Position the opponent on court. | Quick Practice and editor events share player-view-correct position presets, including deuce/ad serving positions, plus free floor-plan dragging; every event can store and preview its own validated opponent floor position. |
+| OPP-07 | Position the opponent across the playable floor envelope. | Quick Practice and editor events share player-view-correct position presets, including a regular Rally origin 1.0 m behind the far baseline and deuce/ad serving positions. Free dragging and imported event positions are bounded by the ITF international-competition runoff: 6.40 m behind baselines and 3.66 m beyond doubles sidelines. |
 
 ### 9.5 Drills, timeline, and local content
 

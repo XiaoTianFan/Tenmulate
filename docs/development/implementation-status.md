@@ -343,3 +343,25 @@ The detailed status of every requirement is recorded in the [V1 release matrix](
 
 - Owner comfort review of normal/Shift horizontal speed, vertical speed, and the 0.4–8.0 m height envelope on the target display.
 - Final owner visual approval for the three retained outdoor arenas and three indoor courts; browser FPS shown during background automation is not accepted as foreground performance evidence.
+
+## Stage 13 — ITF-runoff opponent positioning
+
+- **Status:** Implemented locally on 2026-08-31; owner drag-precision and extreme-source trajectory review remain open
+- Added the 2026 ITF international-competition clearances to the court domain: 6.40 m behind each baseline and 3.66 m outside each doubles sideline. Opponent placement now spans `x = ±9.145 m` and `z = ±18.285 m` in both Quick Practice and the drill editor.
+- Rebuilt the shared SVG court plan at one physical scale so the complete runoff surrounds the regulation markings. Added visible back/side runoff labels and a desktop two-column modal layout that enlarges the plan without changing the compact layout contract.
+- Moved the regular Groundstroke/Rally origin and baseline/corner presets to 1.0 m behind the far baseline (`z = 12.885 m`). Serve, volley, service-line, and net origins remain shot-specific.
+- Migrated the exact former Rally default `(0, 11.235)` to the new runback, clamp saved preferences to the shared envelope, and validate imported per-event opponent positions against the same bounds.
+- Added ADR-0008 and updated the product, architecture, and release contracts with the official source and the distinction between facility clearance and the product-selected one-metre rally runback.
+
+### Verification
+
+- Implementation commit: `e28d6b4`.
+- Focused opponent, storage, content-validation, trajectory, and session run: 5 files, 81 tests passed. Full `npm test -- --run`: 10 files, 105 tests passed.
+- `npm run build`: production PWA build passed; CourtPlan is approximately 1.51 kB gzip, Setup approximately 7.66 kB gzip, SceneViewport approximately 170.94 kB gzip, and the 29-entry precache approximately 1.87 MiB. The existing large-scene-chunk warning remains.
+- In-app Browser at 1280 × 720 confirmed the modal text and runoff labels, placed the opponent at `9.14, 18.06 m` in simultaneous side/back runoff, and restored Baseline center to `0.00, 12.88 m`. The opponent-setting button retained `0.0, 12.9 m` after closing the modal.
+- At 767 × 898 the expanded modal remained fully visible with `scrollWidth = clientWidth = 752`; both browser passes ended with zero console warnings or errors. Browser-reported background FPS is not accepted as target-device performance evidence.
+
+### Remaining review gates
+
+- Owner/coach review of whether one metre is the preferred neutral Rally runback and whether an additional deep-recovery preset would be useful.
+- Target-device pointer/touch review at the extreme runoff edges, plus content review for intentionally authored shots whose source is far enough away that the solver reports a closest reachable landing rather than the exact target.

@@ -61,6 +61,7 @@ Status meanings:
 | OPP-04 | Metadata implemented; production asset pending | Every compiled shot accepts left/right opponent metadata and both hand sockets exist; visual mirror/distinct-clip review remains. |
 | OPP-05 | Trajectory/rhythm implemented; production asset pending | Eight legal serve trajectories span both hands and independent normal/compact metadata; distinct serve-motion timing remains. |
 | OPP-06 | Schema/runtime seam implemented; production asset pending | Serve rhythm is independent of pace in schema/editor/compiler; readable preparation and playback bounds require animation review. |
+| OPP-07 | Implemented; owner interaction review pending | Quick Practice and editor court plans expose the full 6.40 m baseline/3.66 m sideline ITF competition runoff. Rally defaults one metre behind the far baseline; storage migration, bounds, presets, and import rejection have automated coverage. |
 
 ## Drills and local content
 

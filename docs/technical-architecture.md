@@ -63,9 +63,10 @@ React owns menus and low-frequency state. The session controller owns active pla
 - Near baseline at `z = -11.885`; far baseline at `z = +11.885`.
 - Singles sidelines at `x = ±4.115`; doubles sidelines at `x = ±5.485`.
 - Service lines at `z = ±6.40`.
+- Opponent placement extends through the ITF international-competition runoff to `x = ±9.145` and `z = ±18.285`, derived from 3.66 m sideline and 6.40 m baseline clearances. Rally defaults to `(0, 0, 12.885)`, one metre behind the far baseline; serve/net presets keep their authored origins.
 - A single validated surface identifier selects the matching visual material and bounce profile. Legacy independent appearance/physics preferences normalize to one canonical value during local-storage loading, with the former physics choice taking precedence when both exist.
 
-All geometry constants live in one tested `courtDimensions` module sourced from the current ITF rules.
+All geometry constants live in one tested court-domain module sourced from the current ITF rules and the [2026 ITF technical booklet](https://www.itftennis.com/media/15648/2026-technical-booklet.pdf), Table 5 on pages 43–44.
 
 ## 5. Display and camera calibration
 
@@ -294,7 +295,7 @@ Proposed top-level records:
 - `DrillDefinitionV1`
 - `AssetManifestV1`
 
-All records have an explicit schema version. Bundled content definitions are immutable build assets; camera-position and perspective preset instances are locally customizable. Legacy coupled saved views migrate into the two independent preset collections. User-created drills are copies with separate IDs, and each event may store a validated opponent floor position. JSON import rejects executable content, unknown remote asset references, out-of-court positions, and incompatible schema versions.
+All records have an explicit schema version. Bundled content definitions are immutable build assets; camera-position and perspective preset instances are locally customizable. Legacy coupled saved views migrate into the two independent preset collections, and the former on-court Rally default migrates to the one-metre runback. User-created drills are copies with separate IDs, and each event may store an opponent floor position validated against the ITF competition runoff. JSON import rejects executable content, unknown remote asset references, out-of-envelope positions, and incompatible schema versions.
 
 V1 stores calibration, preferences, custom drills, and offline-content selection locally. A service worker precaches the shell and explicitly selected drill asset groups, exposes storage/cache state, and degrades clearly when storage quota prevents an offline promise. No personal data leaves the device unless an explicitly initiated export or a later separately approved analytics/account feature does so.
 
