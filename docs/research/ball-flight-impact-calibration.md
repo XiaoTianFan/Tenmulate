@@ -19,7 +19,7 @@
 
 | Shot type | Contact/source | Legal spin choices | Default launch |
 | --- | --- | --- | --- |
-| Groundstroke | 1.15 m, far baseline centre | Flat drive, topspin, slice | 68 km/h, 1,814 rpm topspin, 9.5 m landing depth; Flat drive defaults to 760 rpm |
+| Groundstroke | 1.15 m, far baseline centre | Flat drive, topspin, slice | 70 km/h, 1,103 rpm topspin, 8.5 m landing depth; Flat drive defaults to 760 rpm |
 | Serve | 2.75 m, far deuce service position | Flat, slice, kick | 135 km/h, 1,179 rpm flat spin, 5.05 m service-box depth |
 | Volley | 1.32 m, 3.7 m from the net | None | 62 km/h, zero spin, 4.5 m landing depth |
 | Lob / overhead feed | 1.05 m, 6.0 m from the net | Flat, topspin, slice | 52 km/h, 1,199 rpm topspin, 9.3 m landing depth |

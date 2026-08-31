@@ -2,7 +2,7 @@
 
 - **Status:** Active
 - **Last updated:** 2026-08-31
-- **Current implementation commit:** `6f06e3b`
+- **Current implementation commit:** `2991612`
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The neutral humanoid carrier is now integrated; its tennis mocap and racket remain owner-supplied production inputs. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
@@ -468,3 +468,16 @@ The detailed status of every requirement is recorded in the [V1 release matrix](
 
 - Coach/player review of whether the 250–1,600 rpm Flat-drive envelope and 760 rpm default feel appropriate across recreational forehand and backhand feeds.
 - Instrumented trajectory comparison before describing the profile as player-measured rather than research-calibrated.
+
+## Stage 19 — reference-aligned Rally ball defaults
+
+- **Status:** Implemented and browser-verified on 2026-08-31
+- Updated the clean application and Rally quick-practice preset to Trajectory On, Groundstroke, 70 km/h launch speed, Topspin at 1,103 rpm, 8.50 m landing depth, and a 3.50 s interval.
+- Centralized the 1,103 rpm groundstroke-topspin fallback so the practice profile and direct physics intent resolve the same default. Explicitly saved user settings remain untouched until the user selects Rally again.
+- Implementation commit: `2991612`.
+
+### Verification
+
+- Focused storage, practice-preset, and trajectory run: 3 files, 44 tests passed. Full `npm test -- --run`: 12 files, 122 tests passed.
+- `npm run build`: production TypeScript/Vite/PWA build passed; the existing large-scene-chunk warning remains.
+- In-app Browser at 1280 × 720 selected Rally and rendered the six requested values exactly. The live court reported WebGL 2 at 238 fps, used the 3.5-second setup cadence, and produced no browser warnings or errors.
