@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { DRILLS, SHOTS } from '../src/content/bundled';
 import { COURT } from '../src/domain/court';
+import { RETURN_SERVE_PATTERN, returnServerPosition } from '../src/domain/returnPractice';
 import { compileSession } from '../src/engine/session/compileSession';
 import { resolveTrajectory } from '../src/engine/trajectory/physics';
 
@@ -108,7 +109,7 @@ describe('session compiler', () => {
       launchSpeedKmh: 135,
       landingDepthM: 5.05,
       bounceFactor: 1.2,
-      opponentPosition: { x: 1.25, z: COURT.halfLength - 0.18 },
+      opponentPosition: returnServerPosition('right'),
       aimDirectionDeg: 0,
     });
     const repetition = session.repetitions[0]!;
@@ -119,6 +120,37 @@ describe('session compiler', () => {
     expect(bounce.position.z).toBeGreaterThanOrEqual(-COURT.serviceLineFromNet);
     expect(bounce.position.z).toBeLessThan(0);
     expect(bounce.position.x).toBeLessThan(0);
+  });
+
+  it('alternates T, body, and wide serves toward the selected receiver corner', () => {
+    const leftSession = compileSession(drill, {
+      ...settings,
+      repetitions: 6,
+      practiceShotType: 'serve',
+      spin: 'flat',
+      spinRateRpm: 1179,
+      launchSpeedKmh: 135,
+      landingDepthM: 5.05,
+      opponentPosition: returnServerPosition('left'),
+      returnReceiverSide: 'left',
+    });
+    const rightSession = compileSession(drill, {
+      ...settings,
+      repetitions: 3,
+      practiceShotType: 'serve',
+      spin: 'flat',
+      spinRateRpm: 1179,
+      launchSpeedKmh: 135,
+      landingDepthM: 5.05,
+      opponentPosition: returnServerPosition('right'),
+      returnReceiverSide: 'right',
+    });
+
+    expect(leftSession.repetitions.map((entry) => entry.returnServePlacement)).toEqual([...RETURN_SERVE_PATTERN, ...RETURN_SERVE_PATTERN]);
+    expect(leftSession.repetitions.map((entry) => entry.shot.target.x)).toEqual([0.28, 2.25, 3.895, 0.28, 2.25, 3.895]);
+    expect(leftSession.repetitions.every((entry) => entry.shot.source.x < 0 && entry.shot.source.z > COURT.halfLength)).toBe(true);
+    expect(rightSession.repetitions.map((entry) => entry.shot.target.x)).toEqual([-0.28, -2.25, -3.895]);
+    expect(rightSession.repetitions.every((entry) => entry.shot.source.x > 0 && entry.shot.source.z > COURT.halfLength)).toBe(true);
   });
 
   it('compiles overhead practice as a high lob to the selected landing depth', () => {

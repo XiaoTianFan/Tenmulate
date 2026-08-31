@@ -1,4 +1,4 @@
-import { COURT, DEFAULT_RALLY_OPPONENT_POSITION } from '../../domain/court';
+import { COURT, DEFAULT_RALLY_OPPONENT_POSITION, DEUCE_SERVE_OPPONENT_POSITION } from '../../domain/court';
 import type { SpinKind } from './physics';
 
 export type PracticeShotType = 'groundstroke' | 'serve' | 'volley' | 'lob';
@@ -44,7 +44,7 @@ export const PRACTICE_SHOT_PROFILES: Readonly<Record<PracticeShotType, PracticeS
   serve: {
     label: 'Serve',
     contactHeight: 2.75,
-    opponentPosition: { x: 1.25, z: COURT.halfLength - 0.18 },
+    opponentPosition: DEUCE_SERVE_OPPONENT_POSITION,
     defaultLaunchSpeedKmh: 135,
     launchSpeedRangeKmh: { min: 80, max: 200 },
     minimumNetClearanceM: 0.08,

@@ -20,6 +20,7 @@ import type { CameraMotion } from '../engine/rendering/TennisScene';
 import { useSessionPlayer } from '../hooks/useSessionPlayer';
 import { Modal } from './Modal';
 import { SceneViewport } from './SceneViewport';
+import { RETURN_SERVE_PLACEMENT_LABELS } from '../domain/returnPractice';
 
 type RehearsalScreenProps = Readonly<{
   launch: SessionLaunch;
@@ -174,7 +175,9 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
       <aside className="shot-readout">
         <strong>{resolvedSpeed} <small>km/h</small></strong>
         <span>{shot.spin[0]?.toUpperCase()}{shot.spin.slice(1)}</span>
-        <span>{shot.direction} · {shot.depth}{shot.serveRhythm ? ` · ${shot.serveRhythm}` : ''}</span>
+        <span>{repetition?.returnServePlacement
+          ? `${RETURN_SERVE_PLACEMENT_LABELS[repetition.returnServePlacement]} serve · ${shot.depth}${shot.serveRhythm ? ` · ${shot.serveRhythm}` : ''}`
+          : `${shot.direction} · ${shot.depth}${shot.serveRhythm ? ` · ${shot.serveRhythm}` : ''}`}</span>
         <button type="button" aria-label={soundEnabled ? 'Mute cues' : 'Unmute cues'} onClick={() => setSoundEnabled((value) => !value)}>{soundEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}</button>
       </aside>
 

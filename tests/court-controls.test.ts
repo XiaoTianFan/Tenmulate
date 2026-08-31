@@ -48,6 +48,7 @@ describe('player-view court controls', () => {
     expect(deuce?.point.x).toBeGreaterThan(0);
     expect(ad?.point.x).toBeLessThan(0);
     expect(deuce?.point.z).toBe(ad?.point.z);
+    expect(deuce?.point.z).toBeGreaterThan(COURT.halfLength);
   });
 
   it('uses the ITF international-competition runoff as the opponent placement envelope', () => {

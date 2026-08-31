@@ -50,6 +50,15 @@ describe('local application data', () => {
     expect(loadAppData().preferences).toMatchObject({ shotType: 'serve', spin: 'flat', bounceFactor: 1.4 });
   });
 
+  it('migrates the former on-court serve origin behind the baseline', () => {
+    localStorage.setItem('tenmulate.appData.v1', JSON.stringify({
+      schemaVersion: 1,
+      customDrills: [],
+      preferences: { shotType: 'serve', opponentPosition: { x: -1.25, z: 11.705 } },
+    }));
+    expect(loadAppData().preferences.opponentPosition).toEqual({ x: -1.25, z: 12.235 });
+  });
+
   it('migrates overhead practice to a bounded lob profile with independent landing depth', () => {
     localStorage.setItem('tenmulate.appData.v1', JSON.stringify({
       schemaVersion: 1,
@@ -84,6 +93,15 @@ describe('local application data', () => {
       ],
     }));
     expect(loadAppData().cameraPositionPresets[0]?.position.lateral).toBe(2.6);
+  });
+
+  it('adds the right receiver corner to a persisted legacy built-in camera set', () => {
+    localStorage.setItem('tenmulate.appData.v1', JSON.stringify({
+      ...DEFAULT_APP_DATA,
+      cameraPositionPresets: DEFAULT_APP_DATA.cameraPositionPresets.filter((preset) => preset.id !== 'position-right'),
+    }));
+    const ids = loadAppData().cameraPositionPresets.map((preset) => preset.id);
+    expect(ids).toEqual(['position-baseline', 'position-left', 'position-right', 'position-net', 'position-overhead']);
   });
 
   it('migrates legacy surface preferences into the canonical visual-and-physics surface', () => {

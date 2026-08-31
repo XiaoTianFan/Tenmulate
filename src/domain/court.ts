@@ -10,6 +10,7 @@ export const COURT = Object.freeze({
   internationalSideRunoff: 3.66,
   internationalBackRunoff: 6.4,
   defaultOpponentRunback: 1,
+  defaultServeRunback: 0.35,
   defaultEyeHeight: 1.7,
   defaultBehindBaseline: 1.5,
 });
@@ -73,6 +74,16 @@ export const DEFAULT_RALLY_OPPONENT_POSITION: CourtPosition = Object.freeze({
   z: COURT.halfLength + COURT.defaultOpponentRunback,
 });
 
+export const DEUCE_SERVE_OPPONENT_POSITION: CourtPosition = Object.freeze({
+  x: 1.25,
+  z: COURT.halfLength + COURT.defaultServeRunback,
+});
+
+export const AD_SERVE_OPPONENT_POSITION: CourtPosition = Object.freeze({
+  x: -1.25,
+  z: COURT.halfLength + COURT.defaultServeRunback,
+});
+
 export const clampOpponentPosition = (position: CourtPosition): CourtPosition => ({
   x: Math.min(OPPONENT_POSITION_LIMITS.halfWidth, Math.max(-OPPONENT_POSITION_LIMITS.halfWidth, position.x)),
   z: Math.min(OPPONENT_POSITION_LIMITS.halfLength, Math.max(-OPPONENT_POSITION_LIMITS.halfLength, position.z)),
@@ -82,8 +93,8 @@ export const OPPONENT_POSITION_PRESETS = Object.freeze([
   { name: 'Baseline center', point: DEFAULT_RALLY_OPPONENT_POSITION },
   { name: 'Deuce corner', point: { x: 3.4, z: DEFAULT_RALLY_OPPONENT_POSITION.z } },
   { name: 'Ad corner', point: { x: -3.4, z: DEFAULT_RALLY_OPPONENT_POSITION.z } },
-  { name: 'Deuce serve', point: { x: 1.25, z: COURT.halfLength - 0.18 } },
-  { name: 'Ad serve', point: { x: -1.25, z: COURT.halfLength - 0.18 } },
+  { name: 'Deuce serve', point: DEUCE_SERVE_OPPONENT_POSITION },
+  { name: 'Ad serve', point: AD_SERVE_OPPONENT_POSITION },
   { name: 'Service line center', point: { x: 0, z: COURT.serviceLineFromNet } },
   { name: 'At the net', point: { x: 0, z: 1.2 } },
 ] as const);

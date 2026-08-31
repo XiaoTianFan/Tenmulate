@@ -2,7 +2,7 @@ import type { CameraConfiguration } from '../engine/rendering/TennisScene';
 import type { QualityMode } from '../engine/rendering/TennisScene';
 import type { DrillDefinitionV1 } from '../content/types';
 import { validateDrill } from '../content/validation';
-import { DEFAULT_RALLY_OPPONENT_POSITION, clampOpponentPosition, type SurfaceId } from '../domain/court';
+import { AD_SERVE_OPPONENT_POSITION, COURT, DEFAULT_RALLY_OPPONENT_POSITION, DEUCE_SERVE_OPPONENT_POSITION, clampOpponentPosition, type SurfaceId } from '../domain/court';
 import { DEFAULT_ENVIRONMENT, normalizeEnvironmentConfiguration, type EnvironmentConfiguration } from '../domain/environment';
 import type { SpinKind } from '../engine/trajectory/physics';
 import { PRACTICE_SHOT_PROFILES, isPracticeShotType, spinForPracticeShot, spinRateForPracticeShot, type PracticeShotType } from '../engine/trajectory/practiceProfiles';
@@ -23,6 +23,7 @@ export type PerspectivePresetV1 = Readonly<{ id: string; name: string; perspecti
 export const DEFAULT_CAMERA_POSITION_PRESETS: readonly CameraPositionPresetV1[] = [
   { id: 'position-baseline', name: 'Baseline', position: { eyeHeight: 1.7, behindBaseline: 1.5, lateral: 0 } },
   { id: 'position-left', name: 'Left corner', position: { eyeHeight: 1.68, behindBaseline: 1.4, lateral: 2.6 } },
+  { id: 'position-right', name: 'Right corner', position: { eyeHeight: 1.68, behindBaseline: 1.4, lateral: -2.6 } },
   { id: 'position-net', name: 'At the net', position: { eyeHeight: 1.66, behindBaseline: -6.7, lateral: -0.4 } },
   { id: 'position-overhead', name: 'Overhead', position: { eyeHeight: 1.7, behindBaseline: -3.2, lateral: 0 } },
 ];
@@ -98,6 +99,16 @@ const normalizePlayerViewCameraPreset = (preset: CameraPositionPresetV1): Camera
     : preset
 );
 
+const addRightCornerToLegacyBuiltIns = (presets: readonly CameraPositionPresetV1[]): readonly CameraPositionPresetV1[] => {
+  if (presets.some((preset) => preset.id === 'position-right')) return presets;
+  const isLegacyBuiltInSet = ['position-baseline', 'position-left', 'position-net', 'position-overhead']
+    .every((id) => presets.some((preset) => preset.id === id));
+  const rightCorner = DEFAULT_CAMERA_POSITION_PRESETS.find((preset) => preset.id === 'position-right');
+  if (!isLegacyBuiltInSet || !rightCorner) return presets;
+  const leftIndex = presets.findIndex((preset) => preset.id === 'position-left');
+  return [...presets.slice(0, leftIndex + 1), rightCorner, ...presets.slice(leftIndex + 1)];
+};
+
 export const loadAppData = (): AppDataV1 => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -111,7 +122,7 @@ export const loadAppData = (): AppDataV1 => {
       ? ((parsed as Partial<AppDataV1> & { savedViews?: unknown[] }).savedViews ?? []).filter((view): view is SavedViewV1 => Boolean(view && typeof view === 'object' && 'id' in view && 'name' in view && 'camera' in view))
       : [];
     const cameraPositionPresets = Array.isArray(parsed.cameraPositionPresets) && parsed.cameraPositionPresets.length
-      ? parsed.cameraPositionPresets.map(normalizePlayerViewCameraPreset)
+      ? addRightCornerToLegacyBuiltIns(parsed.cameraPositionPresets.map(normalizePlayerViewCameraPreset))
       : legacyViews.length
         ? legacyViews.map((view) => ({ id: `position-${view.id}`, name: view.name, position: { eyeHeight: view.camera.eyeHeight, behindBaseline: view.camera.behindBaseline, lateral: view.camera.lateral } }))
         : DEFAULT_CAMERA_POSITION_PRESETS;
@@ -155,7 +166,9 @@ export const loadAppData = (): AppDataV1 => {
     const opponentPosition = shotType === 'groundstroke'
       && storedOpponentPosition.x === 0 && storedOpponentPosition.z === 11.235
       ? DEFAULT_RALLY_OPPONENT_POSITION
-      : clampOpponentPosition(storedOpponentPosition);
+      : shotType === 'serve' && Math.abs(storedOpponentPosition.x) === 1.25 && storedOpponentPosition.z === COURT.halfLength - 0.18
+        ? storedOpponentPosition.x < 0 ? AD_SERVE_OPPONENT_POSITION : DEUCE_SERVE_OPPONENT_POSITION
+        : clampOpponentPosition(storedOpponentPosition);
     const preferences = {
       ...DEFAULT_PREFERENCES,
       ...canonicalCandidate,

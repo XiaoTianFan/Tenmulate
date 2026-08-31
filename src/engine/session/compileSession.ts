@@ -7,6 +7,12 @@ import { resolveTrajectory, type SpinKind } from '../trajectory/physics';
 import { createSeededRandom } from '../random/seeded';
 import type { Vec3 } from '../../domain/vector';
 import {
+  RETURN_SERVE_PATTERN,
+  returnServeTarget,
+  type ReturnReceiverSide,
+  type ReturnServePlacement,
+} from '../../domain/returnPractice';
+import {
   PRACTICE_SHOT_PROFILES,
   legalServeTarget,
   practiceLandingTarget,
@@ -33,6 +39,7 @@ export type SessionSettings = Readonly<{
   landingDepthM?: number;
   aimDirectionDeg?: number;
   opponentPosition?: Readonly<{ x: number; z: number }>;
+  returnReceiverSide?: ReturnReceiverSide;
   windVelocity?: Vec3;
 }>;
 
@@ -41,6 +48,7 @@ export type CompiledRepetition = Readonly<{
   shot: ShotDefinitionV1;
   trajectory: ResolvedTrajectory;
   startTime: number;
+  returnServePlacement?: ReturnServePlacement;
 }>;
 
 export type CompiledSession = Readonly<{
@@ -105,8 +113,13 @@ export const compileSession = (
       x: (sourceEvent && 'target' in sourceEvent && sourceEvent.target ? sourceEvent.target.x : sourceShot.target.x) + xJitter,
       z: (sourceEvent && 'target' in sourceEvent && sourceEvent.target ? sourceEvent.target.z : sourceShot.target.z) + zJitter,
     };
-    const target = settings.practiceShotType === 'serve'
-      ? legalServeTarget(source, settings.aimDirectionDeg ?? 0, settings.landingDepthM ?? PRACTICE_SHOT_PROFILES.serve.defaultLandingDepthM)
+    const returnServePlacement = settings.practiceShotType === 'serve' && settings.returnReceiverSide
+      ? RETURN_SERVE_PATTERN[index % RETURN_SERVE_PATTERN.length]
+      : undefined;
+    const target = returnServePlacement && settings.returnReceiverSide
+      ? returnServeTarget(settings.returnReceiverSide, returnServePlacement, settings.landingDepthM ?? PRACTICE_SHOT_PROFILES.serve.defaultLandingDepthM)
+      : settings.practiceShotType === 'serve'
+        ? legalServeTarget(source, settings.aimDirectionDeg ?? 0, settings.landingDepthM ?? PRACTICE_SHOT_PROFILES.serve.defaultLandingDepthM)
       : practiceProfile
         ? practiceLandingTarget(source, settings.aimDirectionDeg ?? 0, settings.landingDepthM ?? practiceProfile.defaultLandingDepthM)
         : authoredTarget;
@@ -144,11 +157,12 @@ export const compileSession = (
         spinRateRpm: settings.practiceShotType ? settings.spinRateRpm : undefined,
         minimumNetClearanceM: shot.netClearanceM,
         shotType: settings.practiceShotType,
-        aimDirectionDeg: settings.aimDirectionDeg,
+        aimDirectionDeg: returnServePlacement ? undefined : settings.aimDirectionDeg,
         windVelocity: settings.windVelocity,
         bounceFactor: settings.bounceFactor,
       }),
       startTime,
+      returnServePlacement,
     });
     const timingVariation = Math.min(0.5, Math.max(0, settings.timingVariationPercent / 100));
     const gap = Math.max(0.5, settings.interval * (1 + (timingRandom() * 2 - 1) * timingVariation));
