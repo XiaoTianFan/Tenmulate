@@ -2,7 +2,7 @@
 
 - **Status:** Active
 - **Last updated:** 2026-08-31
-- **Current implementation commit:** `7d3618c`
+- **Current implementation commit:** `5ba0afa`
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The neutral humanoid carrier is now integrated; its tennis mocap and racket remain owner-supplied production inputs. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
@@ -428,19 +428,19 @@ The detailed status of every requirement is recorded in the [V1 release matrix](
 
 ## Stage 17 — protected camera-height shortcuts
 
-- **Status:** Implemented locally on 2026-08-31; real browser permission acceptance and cross-browser policy review remain open
+- **Status:** Implemented and verified in the in-app Chromium browser on 2026-08-31; physical-key and cross-browser policy review remain open
 - Corrected the earlier capture-listener assumption: a normal webpage cannot reliably cancel browser-chrome Ctrl+W because the browser may consume it before dispatching a cancelable DOM event. The earlier in-app automation reached the page directly and therefore did not exercise that boundary.
-- Added an explicit `Protect Ctrl+W/S` control. From that user gesture, the setup requests fullscreen and Chromium Keyboard Lock for physical `KeyW` and `KeyS`; only after the lock succeeds does Ctrl+W/S raise or lower the camera. Leaving fullscreen or selecting Unlock releases the lock, and failed or unsupported requests remain visible through the control's state and explanation.
+- Added an explicit `Protect Ctrl+W/S` control. From that user gesture, the setup requests fullscreen with the modern `keyboardLock: 'browser'` option and uses the legacy `navigator.keyboard.lock()` path only when that fullscreen option is unsupported. This avoids double-registering the lock in browsers that already acquired it through fullscreen. Only after acquisition succeeds does Ctrl+W/S raise or lower the camera. Leaving fullscreen or selecting Unlock releases the lock, and failed or unsupported requests remain visible through the control's state and explanation.
 - Added Page Up/Page Down as the conflict-free height binding outside protected mode. Unlocked Ctrl+W/S are deliberately not treated as camera input, preventing synthetic page-event tests from implying browser-chrome protection that is not active.
 - Preserved bounded, held-key movement, Shift acceleration, focused-field behavior for protected height input, modal movement suppression, preset invalidation, and the live metric height output. Help now explains the permission/fullscreen requirement and Escape exit path.
 
 ### Verification
 
-- Implementation commits: `2368198`, `0b47910` (supersede the incomplete `4cdddfc` capture-listener approach).
-- Focused camera-control run: 1 file, 10 tests passed. Full `npm test -- --run`: 12 files, 117 tests passed.
+- Implementation commits: `2368198`, `0b47910`, `5ba0afa` (supersede the incomplete `4cdddfc` capture-listener approach).
+- Focused camera-control run: 1 file, 10 tests passed. Full `npm test -- --run`: 12 files, 120 tests passed.
 - `npm run build`: production TypeScript/Vite/PWA build passed; the existing large-scene-chunk warning remains.
-- `http://localhost:4173/` returned HTTP 200 after the change. A 1280 × 720 Chrome smoke screenshot confirmed that the fallback height, live metric value, Protect Ctrl+W/S action, perspective controls, and Reset view remain visible without toolbar overlap.
-- The actual Ctrl+W lock still requires an interactive browser permission/fullscreen acceptance test; automated page-level key injection is no longer accepted as proof of browser-chrome interception.
+- A clean in-app Browser run at `http://localhost:4173/` activated the protected state (`Unlock Ctrl+W/S`, `aria-pressed=true`), changed height from 2.00 m to 2.04 m with Ctrl+W, restored it to 2.00 m with Ctrl+S, retained the same URL and single open tab, and reported zero browser warnings or errors. A screenshot confirmed that the active control, live height, presets, and court remained visible without toolbar overlap.
+- This protocol-driven browser interaction verifies the application route and active fullscreen-lock state. A human physical-key check remains the final acceptance gate for browser-chrome interception on the target installation.
 
 ### Remaining review gates
 
