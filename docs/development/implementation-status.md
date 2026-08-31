@@ -2,7 +2,7 @@
 
 - **Status:** Active
 - **Last updated:** 2026-08-31
-- **Current implementation commit:** `0b47910`
+- **Current implementation commit:** `7d3618c`
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The neutral humanoid carrier is now integrated; its tennis mocap and racket remain owner-supplied production inputs. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
@@ -446,3 +446,23 @@ The detailed status of every requirement is recorded in the [V1 release matrix](
 
 - In current Chromium on the target display, select Protect Ctrl+W/S, grant fullscreen/keyboard-lock permission, verify repeated physical Ctrl+W/S height movement, then hold Escape and confirm ordinary browser shortcut behavior returns.
 - Compare current Firefox and Safari. Browsers without the Keyboard Lock API retain Page Up/Page Down but cannot promise Ctrl+W interception from webpage code.
+
+## Stage 18 — non-zero Flat groundstroke calibration
+
+- **Status:** Implemented locally on 2026-08-31; owner/coach range review remains open
+- Reclassified the Groundstroke `Flat` option as `Flat drive`: a lower-topspin trajectory family rather than a spin-free ball. The shared profile defaults to 760 rpm and exposes 250–1,600 rpm, while ordinary Topspin remains a separate higher-spin choice.
+- Applied the same calibration at all target-practice boundaries: selecting Flat drive resets the control to 760 rpm, persisted legacy zero-spin preferences migrate to 250 rpm, compiled sessions normalize stale zero values, and the flight integrator clamps direct Flat-groundstroke input to the same positive range.
+- Kept Volley as the only deliberately spin-free Quick Practice family. Serve and Lob retain their existing family-specific behavior.
+
+### Evidence and verification
+
+- Protheroe measured nominally flat forehands at about 761 rpm and flat backhands at about 473 rpm; a separate junior-match sensor study reported flat groundstrokes around 1,000 rpm. The 760 rpm default follows the controlled forehand mean, while the broader control range remains an explicit product calibration rather than a universal population claim.
+- Implementation commit: `7d3618c`.
+- Focused trajectory, session, and storage run: 3 files, 73 tests passed. New coverage proves the default 760 rpm, 250 rpm lower bound, positive Magnus spin parameter, session normalization, and legacy preference migration.
+- Full `npm test -- --run`: 12 files, 120 tests passed. `npm run build`: production TypeScript/Vite/PWA build passed; the existing large-scene-chunk warning remains.
+- Chrome at 1280 × 720 and 767 × 898 selected `Flat drive`, displayed 760 rpm with a 250–1,600 slider range, retained zero horizontal overflow, and reported no console errors.
+
+### Remaining review gates
+
+- Coach/player review of whether the 250–1,600 rpm Flat-drive envelope and 760 rpm default feel appropriate across recreational forehand and backhand feeds.
+- Instrumented trajectory comparison before describing the profile as player-measured rather than research-calibrated.
