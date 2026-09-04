@@ -1,0 +1,15 @@
+{
+  "id": "hard-open-arena",
+  "version": 1,
+  "description": "Original Rod Laver-inspired open-roof tennis arena; blue court and green runoff, neutral branding.",
+  "court": {"width": 10.97, "length": 23.77, "singlesWidth": 8.23, "serviceLine": 6.4, "blue": "#24658d", "green": "#4c775a"},
+  "bowl": {"innerHalfWidth": 14.3, "innerHalfLength": 23.3, "cornerRadius": 8.0, "sections": 32, "lowerRows": 20, "upperRows": 18, "rowDepth": 0.82, "lowerRise": 0.46, "upperRise": 0.57, "concourseWidth": 3.2, "seatSpacing": 0.54},
+  "roof": {"height": 28.5, "openingHalfWidth": 21.5, "openingHalfLength": 29.5},
+  "paletteNote": "US Open blue/green arrangement; these sRGB display approximations are project art values, not certified Laykold color specifications.",
+  "references": [
+    "https://ausopen-rodlaverarena.io-media.com/web/index.html",
+    "https://www.coxarchitecture.com.au/project/rod-laver-arena-redevelopment/",
+    "https://www.robertbird.com/rbg-projects/rod-laver-arena/",
+    "https://www.laykold.com/us-open"
+  ]
+}

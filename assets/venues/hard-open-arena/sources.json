@@ -1,0 +1,14 @@
+{
+  "geometry": {"author": "Tenmulate", "source": "scripts/blender/build_hard_open_arena.py", "notes": "Original parametric meshes. The IOMEDIA viewer supplies reference views and image-map coordinates, not a reusable 3D stadium. No viewer images, brand marks or proprietary geometry are included in the runtime asset."},
+  "materials": [{
+    "id": "brushed_concrete", "provider": "Poly Haven", "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/brushed_concrete", "licenseUrl": "https://polyhaven.com/license",
+    "files": [
+      {"name": "brushed_concrete_diff_1k.jpg", "md5": "731d450cd11906e926adeb2d5caa29f9"},
+      {"name": "brushed_concrete_arm_1k.jpg", "md5": "1e7712c0e6f4094a594ac17e7b99b366"},
+      {"name": "brushed_concrete_nor_gl_1k.jpg", "md5": "fc8c03e505d0f2acb932dde6deae557a"}
+    ]
+  }],
+  "generatedTextures": "Acrylic albedo maps use a fixed noise seed. Cycles ambient occlusion is baked into vertex colors. Seat materials, roof seams and score text are original materials/geometry, not imported imagery.",
+  "referenceUse": "Architectural interpretation, not a surveyed reconstruction or affiliation claim. Court recoloring is an art direction choice and does not by itself establish reuse rights."
+}
