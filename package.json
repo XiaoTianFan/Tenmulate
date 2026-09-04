@@ -5,6 +5,9 @@
   "type": "module",
   "scripts": {
     "asset:neutralize-opponent": "node scripts/build-neutral-opponent.mjs",
+    "asset:venue:materials": "node scripts/blender/fetch_materials.mjs",
+    "asset:venue:build": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/blender/build.ps1",
+    "asset:venue:optimize": "node scripts/blender/optimize_venue.mjs",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "test": "vitest run",
@@ -18,11 +21,18 @@
     "three": "^0.185.1"
   },
   "devDependencies": {
+    "@gltf-transform/cli": "^4.5.0",
+    "@gltf-transform/core": "^4.5.0",
+    "@gltf-transform/extensions": "^4.5.0",
+    "@gltf-transform/functions": "^4.5.0",
     "@types/node": "^26.4.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "@types/three": "^0.185.0",
     "@vitejs/plugin-react": "^6.1.1",
+    "gltf-validator": "^2.0.0-dev.3.10",
+    "meshoptimizer": "^1.2.0",
+    "sharp": "^0.35.4",
     "typescript": "^7.0.2",
     "vite": "^8.2.2",
     "vite-plugin-pwa": "^1.3.0",
