@@ -5,6 +5,7 @@
 - **Decision owners:** Project owner and implementation lead
 - **Supersedes:** ADR-0003's generated-environment and generated-character assumptions; ADR-0004
 - **Extended by:** ADR-0006, which expands the venue catalogue to nine and replaces local texture maps/static skies with procedural shader materials and one dynamic atmosphere
+- **Pilot exception:** ADR-0009 permits one opt-in Blender-authored hard-open arena; procedural composition remains the default/fallback pending acceptance.
 
 ## Context
 

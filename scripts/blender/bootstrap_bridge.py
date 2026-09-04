@@ -12,7 +12,12 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / '.tools' / 'blender-mcp' / 'addon'))
 import addon_utils
 
-addon_utils.enable('blender_mcp_addon', default_set=False, persistent=False)
+# The official GUI register/start hooks require an AddonPreferences entry.
+# Create it in this factory-startup session; never call save_userpref().
+addon_utils.enable('blender_mcp_addon', default_set=True, persistent=False)
+preferences = bpy.context.preferences.addons['blender_mcp_addon'].preferences
+preferences.host = '127.0.0.1'
+preferences.port = 9876
 if not bpy.app.background:
     bpy.ops.blmcp.server_start()
 print('Tenmulate official Blender MCP add-on registered', flush=True)

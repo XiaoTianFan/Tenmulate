@@ -166,6 +166,23 @@ The first implementation used one spin taxonomy and surface-retention scalar acr
 
 The previous minimum-angle solve conflated obstacle clearance with depth and could even report a net crossing after a first bounce on an impossible low-speed feed. This pass makes that mismatch explicit and corrects the authoring model. The remaining ledger is calibration rather than architecture: measured recreational speed/spin distributions, lob apex preferences, and target-display perception still require player or instrumented evidence.
 
+## Stage 10: Blender-authored Hard Open Arena pilot — 2026-09-05
+
+Reference evidence: owner-supplied roof-removed overview and IOMEDIA Section 18 / Row L expanded interior view, supplemented by COX redevelopment and Robert Bird structural descriptions. No proprietary viewer imagery or geometry is shipped. These are visual proportions, not surveyed architectural plans.
+
+| Comparison point | Delivered / observed | Remaining mismatch or gate |
+| --- | --- | --- |
+| Bowl massing | Continuous rounded-rectangle two-tier bowl, 32 sections, 13,216 individual instanced seats, broad intermediate concourse, stairs, rails, entry tunnels and hospitality band | Row counts, curvature, facade and section zoning are original approximations; no exact capacity or as-built match is claimed. |
+| Roof silhouette | Fixed perimeter roof with ribbed dark underside, triangulated trusses, runways, parked sliding leaves and fixtures; explicit cutaway camera removes roof for overview comparison | Retraction machinery/animation and structural connection detail are simplified. |
+| Court and palette | Regulation 10.97 × 23.77 m visible court registered to gameplay anchors, net sag and court furniture; blue `#24658d` / green `#4c775a` acrylic | Intentional deviation from the Australian Open's all-blue floor. Values are project sRGB approximations of a US Open-style arrangement, not manufacturer-certified color codes. |
+| Materials and depth | CC0 concrete PBR maps, original acrylic textures, molded seat geometry and neutral vertex-AO bake | Three.js environment fill makes seats/roof brighter and flatter than the Cycles comparison; close-up wear, joinery and fine service details need refinement. No claim of final photorealism. |
+| Branding/context | Original Tenmulate-only signs and scoreboard; complete simplified facade/podium | No tournament/sponsor marks, crowd, Melbourne precinct or bespoke broadcast equipment. |
+| Runtime integration | Actual `TennisScene` renders the GLB; practice Return, venue switching and clay/hard changes work; gameplay and dynamic atmosphere remain TypeScript-owned | Only Hard Open Arena has an authored replacement. Default remains procedural pending owner acceptance. |
+| Failure/offline behavior | Forced aborted downloads retain procedural court/venue; final GLB reloads offline after a successful production visit; no venue URL in Workbox precache | First-ever offline visit cannot retrieve an uncached GLB and uses fallback. Target-device cold-load and quota behavior still need profiling. |
+| Responsive/runtime health | Player/corner/bowl/roof and day/night review; 1600 × 1000 and 390 × 844 layouts checked; a mobile header positioning bug was found and corrected; successful final production navigation logged zero console errors/warnings | 148 draws, about 1.81M rendered triangles and 11 textures in one desktop view. ANGLE selected Intel UHD; automated/background FPS is not a device performance gate. |
+
+Final source/asset correctness: 129 tests and production build pass; raw glTF validation has zero errors/warnings, with separate optimized Meshopt decode/hash/registration checks. Final payload is 5,724,948 bytes. Local evidence (ignored, not redistributed): `artifacts/venue-build/browser-{player,corner,bowl,roof}-final.png`, `browser-mobile-night.png`, `browser-failed-download.png`, `practice-return.png`, `practice-clay-surface.png`, and `blender-{player,corner,overview}.png`. The Cycles and browser images are deliberately distinguished; a good offline render does not constitute browser visual acceptance.
+
 ## Visibility calibration: optic ball and outlined opponent
 
 | Comparison point | Intended behavior | Browser evidence | Result / remaining refinement |

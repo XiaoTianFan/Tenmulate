@@ -40,6 +40,8 @@ Open `http://127.0.0.1:4173/venue-review.html` for player/corner/bowl/roof views
 
 The build fetches and verifies the CC0 Poly Haven concrete maps listed in `sources.json`, builds/exports in Blender, validates glTF and registration anchors, instances repeated seats, compresses textures and geometry, and publishes a content-hashed GLB plus manifest. The source archive and normal/roughness maps are packed into the `.blend`. The runtime uses Meshopt and WebP (not KTX2); the current small texture set does not justify a separate KTX decoder. Decoded texture memory still needs profiling for future larger asset sets.
 
+Cycles bakes neutral ambient occlusion into the terraces and the four shared seat meshes. The exported vertex colors add local depth while keeping time-of-day lighting dynamic. The representative seat bake is shared across each color variant; it is not a unique lightmap for every seat. The roof is modelled in a fixed open state; its assemblies are independently editable, but retraction animation is not implemented.
+
 Large venue assets are excluded from service-worker precaching. A successfully visited hashed GLB is runtime-cached, with at most two versions and quota-error eviction. The manifest is network-first with an offline cached fallback. A first visit while offline uses the existing procedural venue. No download happens in the ordinary procedural path.
 
 ## Reference and asset provenance
@@ -51,3 +53,15 @@ Large venue assets are excluded from service-worker precaching. A successfully v
 - [Poly Haven brushed concrete](https://polyhaven.com/a/brushed_concrete), [CC0 license](https://polyhaven.com/license): only imported texture source. Geometry, acrylic textures and neutral signs are original.
 
 No AO, US Open, sponsor or venue logos are embedded. The displayed name remains Hard Open Arena / Tenmulate.
+
+## Verified pilot delivery — 2026-09-05
+
+The editable master is 13,267,370 bytes with packed textures. The delivered GLB is `hard-open-arena.a72128d220f4.glb` (5,724,948 bytes / 5.46 MiB): 13,216 seats in four GPU-instanced batches, 83 meshes, 19 materials and 545,614 bytes of compressed texture payload. This is the model's constructed seat count, not a claim about Rod Laver Arena capacity.
+
+- Official MCP stdio/add-on/Blender round trip, scene construction, AO bake and three Cycles renders succeeded. A separate clean Blender process also verified the pinned add-on enables without changing saved preferences.
+- All 129 tests and the production build pass. Tests decode the actual shipped GLB and verify its hash, seat instances and independent gameplay anchors; lifecycle tests cover corruption, cancellation, late parsing and disposal.
+- Khronos validation of the uncompressed export reports zero errors, zero warnings and 143 informational unused-data notices. The optimized Meshopt binary is separately decoded and checked; this is not a claim that the validator itself decodes Meshopt.
+- Production browser review confirmed the final hashed asset; switching through the normal practice UI, alternate surfaces, forced network failure fallback and offline reload were exercised. Workbox precache contains no venue asset; runtime cache retains at most two visited GLB versions.
+- Desktop 1600 × 1000 and narrow 390 × 844 layouts were inspected. Browser captures use the actual Three.js renderer, not substituted Cycles images. Local evidence and the explicit mismatch ledger are in `artifacts/venue-build/` and `docs/development/visual-verification.md`.
+
+Remaining acceptance gates: browser lighting/material calibration against the references, close-up architectural refinement, target-device frame-time/memory/cold-load profiling, and owner visual approval. A desktop review sample was 148 draws / 1.81 million rendered triangles / 11 textures; the automation browser used Intel UHD via ANGLE, while Cycles used RTX OptiX. These observations do not establish a production performance pass. The existing large renderer-chunk warning remains in the build. The open roof is fixed, not animated; no audience or surrounding Melbourne precinct is modelled.

@@ -71,7 +71,7 @@ describe('regulation court constants', () => {
     expect(runoff.position.y).toBe(0);
     playingSurface.geometry.computeBoundingBox();
     expect(playingSurface.position.y + playingSurface.geometry.boundingBox!.max.y).toBeCloseTo(0, 6);
-    const lines = court.group.children.filter((child) => child.name === 'court-line') as THREE.Mesh[];
+    const lines = court.presentation.children.filter((child) => child.name === 'court-line') as THREE.Mesh[];
     expect(lines).toHaveLength(11);
     for (const line of lines) {
       line.geometry.computeBoundingBox();

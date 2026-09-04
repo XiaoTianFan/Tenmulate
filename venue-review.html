@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hard Open Arena — Tenmulate review</title><link rel="icon" href="/favicon.svg">
+<style>
+*{box-sizing:border-box}body{margin:0;background:#101c24;color:#e8edf1;font:13px system-ui}canvas{display:block;width:100vw;height:100dvh;touch-action:none}
+header{position:fixed;inset:18px 20px auto;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;pointer-events:none}
+header>*{pointer-events:auto}h1{font-size:15px;font-weight:500;margin:0;padding:10px 14px;background:#10232bdd;border:1px solid #ffffff24;border-radius:5px}
+nav{display:flex;gap:5px;flex-wrap:wrap;background:#10232be8;border:1px solid #ffffff24;border-radius:5px;padding:5px}
+button,select,a{font:inherit;border:0;background:transparent;color:inherit;padding:8px 12px;cursor:pointer;border-radius:3px;text-decoration:none}
+button[aria-pressed=true],button:hover,a:hover{background:#426475}select{background:#1a303d}footer{position:fixed;bottom:15px;left:20px;right:20px;display:flex;justify-content:space-between;gap:10px;pointer-events:none;color:#e1e8ec;text-shadow:0 1px 4px #000}
+@media(max-width:650px){header{inset:10px 10px auto}h1{font-size:13px}nav{gap:0}button,select,a{padding:7px}footer{left:12px;font-size:11px}}
+</style></head><body><canvas aria-label="Blender-authored hard open arena"></canvas>
+<header><h1>Hard Open Arena <span style="opacity:.55">/ venue study 01</span></h1>
+<nav aria-label="Venue review controls"><button data-camera="player" aria-pressed="true">Player</button><button data-camera="corner" aria-pressed="false">Corner</button><button data-camera="overview" aria-pressed="false">Bowl</button><button data-camera="roof" aria-pressed="false">Roof</button>
+<select aria-label="Time of day"><option value="14">Daylight</option><option value="18.5">Evening</option><option value="22">Night</option></select>
+<select aria-label="Render quality"><option value="quality">Quality</option><option value="auto">Auto</option><option value="performance">Performance</option></select>
+<select aria-label="Venue version"><option value="blender">Blender arena</option><option value="procedural">Procedural fallback</option></select>
+<a href="/?venueAsset=blender">Open in practice ↗</a></nav></header>
+<footer><span id="status" role="status">Loading arena…</span><span>Drag to look · Wheel to zoom</span></footer>
+<script type="module" src="/src/venueReview.ts"></script></body></html>

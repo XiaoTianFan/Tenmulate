@@ -8,6 +8,7 @@ import { createVenueGroups } from './sceneVenues';
 
 export type CourtBuildResult = Readonly<{
   group: THREE.Group;
+  presentation: THREE.Group;
   courtMaterial: THREE.MeshStandardMaterial;
   venueGroups: Readonly<Record<VenueId, THREE.Group>>;
   materialBundle: SceneMaterialBundle;
@@ -55,13 +56,15 @@ const createRunoffRing = (material: THREE.Material): THREE.Mesh => {
 export const createCourt = (surface: SurfaceId): CourtBuildResult => {
   const group = new THREE.Group();
   group.name = 'tenmulate-canonical-court-world';
+  const presentation = new THREE.Group();
+  presentation.name = 'procedural-court-presentation';
   const materialBundle = createSceneMaterialBundle(surface);
   const { materials } = materialBundle;
 
   const runoff = createRunoffRing(materials.runoff);
   const playingSurface = box(COURT.doublesWidth, 0.04, COURT.fullLength, materials.court, 0, -0.02, 0);
   playingSurface.name = 'regulation-playing-surface';
-  group.add(runoff, playingSurface);
+  presentation.add(runoff, playingSurface);
 
   const lineWidth = 0.055;
   addLine(group, materials.line, COURT.doublesWidth + lineWidth, lineWidth, 0, -COURT.halfLength);
@@ -76,17 +79,21 @@ export const createCourt = (surface: SurfaceId): CourtBuildResult => {
   addLine(group, materials.line, 0.1, 0.22, 0, -COURT.halfLength);
   addLine(group, materials.line, 0.1, 0.22, 0, COURT.halfLength);
 
-  group.add(createNet(materials));
+  // Move the regulation line meshes into the replaceable presentation layer.
+  for (const child of [...group.children]) presentation.add(child);
+  presentation.add(createNet(materials));
   group.add(createBallMachine(materials));
-  group.add(createUmpireChair(materials));
-  group.add(createRestBench(materials, -1));
-  group.add(createRestBench(materials, 1));
+  presentation.add(createUmpireChair(materials));
+  presentation.add(createRestBench(materials, -1));
+  presentation.add(createRestBench(materials, 1));
+  group.add(presentation);
 
   const venueGroups = createVenueGroups(materials);
   for (const venue of VENUE_IDS) group.add(venueGroups[venue]);
 
   return {
     group,
+    presentation,
     courtMaterial: materials.court,
     venueGroups,
     materialBundle,

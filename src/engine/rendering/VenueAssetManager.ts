@@ -1,0 +1,204 @@
+import * as THREE from 'three';
+import { COURT, type SurfaceId } from '../../domain/court';
+import type { SceneMaterialBundle } from './sceneMaterials';
+
+export type VenueAssetState = Readonly<{
+  status: 'idle' | 'loading' | 'ready' | 'error' | 'disposed';
+  loadedBytes: number;
+  totalBytes: number;
+  message?: string;
+}>;
+export type VenueManifest = Readonly<{
+  id: 'hard-open-arena'; version: number; compatibility: 'tenmulate-court-v1';
+  url: string; bytes: number; sha256: string;
+}>;
+
+export const COURT_ASSET_ANCHORS: Readonly<Record<string, readonly number[]>> = {
+  court_origin: [0, 0, 0], baseline_near: [0, 0, -COURT.halfLength],
+  baseline_far: [0, 0, COURT.halfLength], net_center: [0, COURT.netCenterHeight, 0],
+  doubles_left: [-COURT.doublesWidth / 2, 0, 0], doubles_right: [COURT.doublesWidth / 2, 0, 0],
+};
+
+export function validateVenueManifest(value: unknown): asserts value is VenueManifest {
+  const m = value as Partial<VenueManifest> | null;
+  if (!m || m.id !== 'hard-open-arena' || m.compatibility !== 'tenmulate-court-v1'
+    || m.version !== 1 || !Number.isInteger(m.bytes) || m.bytes! <= 0 || m.bytes! > 15 * 1024 * 1024
+    || typeof m.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(m.sha256)
+    || typeof m.url !== 'string' || !/^\/assets\/venues\/hard-open-arena\/hard-open-arena\.[a-f0-9]{12}\.glb$/.test(m.url)) {
+    throw new Error('Unsupported arena asset manifest');
+  }
+}
+
+export function validateCourtRegistration(root: THREE.Object3D): void {
+  root.updateMatrixWorld(true);
+  for (const [name, expected] of Object.entries(COURT_ASSET_ANCHORS)) {
+    const node = root.getObjectByName(name);
+    const position = node?.getWorldPosition(new THREE.Vector3());
+    if (!position || position.toArray().some((v, i) => Math.abs(v - expected[i]!) > .002)) {
+      throw new Error(`Arena court anchor mismatch: ${name}`);
+    }
+  }
+  const roles = new Set<string>();
+  root.traverse(object => { if (object instanceof THREE.Mesh) roles.add(String(object.userData.surfaceRole)); });
+  if (!roles.has('court') || !roles.has('runoff')) throw new Error('Arena surface metadata is missing');
+}
+
+export function disposeVenue(root: THREE.Object3D): void {
+  const geometries = new Set<THREE.BufferGeometry>();
+  const materials = new Set<THREE.Material>();
+  const textures = new Set<THREE.Texture>();
+  root.traverse(object => {
+    if (!(object instanceof THREE.Mesh)) return;
+    geometries.add(object.geometry);
+    for (const mat of Array.isArray(object.material) ? object.material : [object.material]) materials.add(mat);
+    // InstancedMesh owns an instance matrix/color buffer in addition to its shared geometry.
+    if (object instanceof THREE.InstancedMesh) object.dispose();
+  });
+  for (const mat of materials) {
+    for (const value of Object.values(mat)) if (value instanceof THREE.Texture) textures.add(value);
+    mat.dispose();
+  }
+  for (const geometry of geometries) geometry.dispose();
+  for (const texture of textures) {
+    const data = texture.source.data;
+    if (typeof ImageBitmap !== 'undefined' && data instanceof ImageBitmap) data.close();
+    texture.dispose();
+  }
+}
+
+/** Owns one optional venue. Network work is cancelled on deselection/unmount. */
+export class VenueAssetManager {
+  readonly group = new THREE.Group();
+  state: VenueAssetState = { status: 'idle', loadedBytes: 0, totalBytes: 0 };
+  private controller: AbortController | null = null;
+  private asset: THREE.Group | null = null;
+  private active = false;
+  private roofVisible = true;
+  private generation = 0;
+  private readonly surfaces = new Map<THREE.Mesh, THREE.Material | THREE.Material[]>();
+
+  constructor(private readonly changed: () => void) {
+    this.group.name = 'blender-hard-open-arena';
+    this.group.visible = false;
+  }
+
+  setActive(active: boolean): void {
+    if (this.state.status === 'disposed') return;
+    this.active = active;
+    this.group.visible = active && this.asset !== null;
+    if (!active && this.controller) {
+      this.generation += 1;
+      this.controller.abort();
+      this.controller = null;
+      this.update({ status: 'idle', loadedBytes: 0, totalBytes: 0 });
+    }
+    if (active && !this.asset && !this.controller && this.state.status !== 'error') void this.load();
+  }
+
+  applySurface(surface: SurfaceId, bundle: SceneMaterialBundle, wetness: number): void {
+    for (const [mesh, original] of this.surfaces) {
+      mesh.material = surface === 'hard' ? original
+        : mesh.userData.surfaceRole === 'court' ? bundle.materials.court : bundle.materials.runoff;
+      if (surface === 'hard') {
+        for (const material of Array.isArray(original) ? original : [original]) {
+          if (material instanceof THREE.MeshStandardMaterial) material.roughness = THREE.MathUtils.lerp(.9, .4, wetness);
+        }
+      }
+    }
+  }
+
+  setRoofVisible(visible: boolean): void {
+    this.roofVisible = visible;
+    this.asset?.traverse(object => { if (object.userData.arenaPart === 'roof') object.visible = visible; });
+  }
+
+  private update(state: VenueAssetState): void { this.state = state; this.changed(); }
+
+  private async load(): Promise<void> {
+    const generation = ++this.generation;
+    const controller = new AbortController();
+    this.controller = controller;
+    this.update({ status: 'loading', loadedBytes: 0, totalBytes: 0 });
+    let parsed: THREE.Group | null = null;
+    try {
+      const response = await fetch('/assets/venues/hard-open-arena/manifest.json', { signal: controller.signal });
+      if (!response.ok) throw new Error(`Arena manifest HTTP ${response.status}`);
+      const manifest: unknown = await response.json();
+      validateVenueManifest(manifest);
+      const model = await fetch(manifest.url, { signal: controller.signal });
+      if (!model.ok) throw new Error(`Arena model HTTP ${model.status}`);
+      const chunks: Uint8Array[] = [];
+      let loadedBytes = 0;
+      const reader = model.body?.getReader();
+      if (!reader) throw new Error('Arena response has no body');
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        loadedBytes += value.byteLength;
+        if (loadedBytes > manifest.bytes) { await reader.cancel(); throw new Error('Arena asset exceeds its declared size'); }
+        chunks.push(value);
+        if (generation === this.generation) this.update({ status: 'loading', loadedBytes, totalBytes: manifest.bytes });
+      }
+      if (loadedBytes !== manifest.bytes) throw new Error('Incomplete arena download');
+      const bytes = new Uint8Array(loadedBytes);
+      let offset = 0;
+      for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.length; }
+      const digest = await crypto.subtle.digest('SHA-256', bytes);
+      const hash = Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, '0')).join('');
+      if (hash !== manifest.sha256) throw new Error('Arena content hash mismatch');
+      if (generation !== this.generation) return;
+      const [{ GLTFLoader }, { MeshoptDecoder }] = await Promise.all([
+        import('three/addons/loaders/GLTFLoader.js'),
+        import('three/addons/libs/meshopt_decoder.module.js'),
+      ]);
+      if (generation !== this.generation) return;
+      parsed = (await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder)
+        .parseAsync(bytes.buffer, '/assets/venues/hard-open-arena/')).scene;
+      if (generation !== this.generation) { disposeVenue(parsed); return; }
+      validateCourtRegistration(parsed);
+      parsed.traverse(object => {
+        if (!(object instanceof THREE.Mesh)) return;
+        object.receiveShadow = true;
+        // A million seat triangles need not be redrawn into every shadow pass.
+        object.castShadow = !(object instanceof THREE.InstancedMesh) && !/seat pedestals|net cords/i.test(object.name);
+        if (object.userData.surfaceRole) this.surfaces.set(object, object.material);
+      });
+      for (const x of [-18, 18]) for (const z of [-20, 20]) {
+        const light = new THREE.SpotLight(0xe7f2ff, 0, 110, .95, .65, 2);
+        light.position.set(x, 24, z);
+        light.userData.baseIntensity = 4500;
+        light.target.position.set(0, 0, z * .2);
+        parsed.add(light, light.target);
+      }
+      this.asset = parsed;
+      this.setRoofVisible(this.roofVisible);
+      this.group.add(parsed);
+      this.group.visible = this.active;
+      this.update({ status: 'ready', loadedBytes, totalBytes: manifest.bytes });
+    } catch (error) {
+      if (parsed && parsed !== this.asset) disposeVenue(parsed);
+      if (generation === this.generation) {
+        this.update({ status: 'error', loadedBytes: 0, totalBytes: 0,
+          message: error instanceof Error ? error.message : 'Arena unavailable' });
+        console.warn('Authored arena unavailable; using the procedural venue.', error);
+      }
+    } finally {
+      if (generation === this.generation) this.controller = null;
+    }
+  }
+
+  dispose(): void {
+    if (this.state.status === 'disposed') return;
+    this.generation += 1;
+    this.controller?.abort();
+    this.controller = null;
+    // Restore owned materials before disposal: alternative surfaces borrow the court bundle.
+    for (const [mesh, original] of this.surfaces) mesh.material = original;
+    this.surfaces.clear();
+    this.group.removeFromParent();
+    if (this.asset) disposeVenue(this.asset);
+    this.group.clear();
+    this.asset = null;
+    this.state = { status: 'disposed', loadedBytes: 0, totalBytes: 0 };
+  }
+}

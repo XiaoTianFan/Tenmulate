@@ -10,6 +10,7 @@ import { DynamicSkySystem } from './DynamicSkySystem';
 import { WeatherSystem } from './WeatherSystem';
 import { updateSceneMaterialEnvironment, type SceneMaterialBundle } from './sceneMaterials';
 import { BALL_PRESENTATION } from './presentationMaterials';
+import { VenueAssetManager, type VenueAssetState } from './VenueAssetManager';
 
 export type CameraConfiguration = Readonly<{
   eyeHeight: number;
@@ -26,6 +27,10 @@ export type SceneMetrics = Readonly<{
   pixelRatio: number;
   renderer: string;
   quality: QualityMode;
+  drawCalls: number;
+  triangles: number;
+  textures: number;
+  venueAsset: VenueAssetState;
 }>;
 
 export type QualityMode = 'auto' | 'performance' | 'quality';
@@ -92,7 +97,7 @@ export const trajectoryPlaybackTimes = (
 export class TennisScene {
   private readonly renderer: THREE.WebGLRenderer;
   private readonly scene = new THREE.Scene();
-  private readonly camera = new THREE.PerspectiveCamera(54, 16 / 9, 0.05, 140);
+  private readonly camera = new THREE.PerspectiveCamera(54, 16 / 9, 0.05, 350);
   private readonly ball: THREE.Mesh;
   private readonly balls: THREE.Mesh[] = [];
   private readonly ballMaterial: THREE.MeshStandardMaterial;
@@ -103,6 +108,11 @@ export class TennisScene {
   private readonly opponent = new OpponentRig();
   private readonly fallbackBallMachine: THREE.Object3D | undefined;
   private readonly venueGroups: Readonly<Record<VenueId, THREE.Group>>;
+  private readonly authoredArena: VenueAssetManager;
+  private readonly authoredArenaEnabled: boolean;
+  private readonly courtPresentation: THREE.Group;
+  private surface: SurfaceId = 'hard';
+  private venueReview = false;
   private readonly setCourtSurface: (surface: SurfaceId) => void;
   private readonly materialBundle: SceneMaterialBundle;
   private readonly skySystem: DynamicSkySystem;
@@ -139,6 +149,7 @@ export class TennisScene {
   constructor(
     private readonly canvas: HTMLCanvasElement,
     private readonly onMetrics?: (metrics: SceneMetrics) => void,
+    options: Readonly<{ authoredArena?: boolean }> = {},
   ) {
     this.renderer = new THREE.WebGLRenderer({
       canvas,
@@ -176,6 +187,11 @@ export class TennisScene {
     this.setCourtSurface = court.setSurface;
     this.materialBundle = court.materialBundle;
     this.venueGroups = court.venueGroups;
+    this.courtPresentation = court.presentation;
+    this.authoredArenaEnabled = options.authoredArena ?? (import.meta.env.VITE_AUTHORED_ARENA === '1'
+      || new URLSearchParams(window.location.search).get('venueAsset') === 'blender');
+    this.authoredArena = new VenueAssetManager(() => this.syncArenaPresentation());
+    this.scene.add(this.authoredArena.group);
     this.scene.add(court.group);
     this.scene.add(this.opponent.group);
     this.fallbackBallMachine = court.group.getObjectByName('temporary-ball-machine');
@@ -266,7 +282,50 @@ export class TennisScene {
   }
 
   setSurface(surface: SurfaceId): void {
+    this.surface = surface;
     this.setCourtSurface(surface);
+    this.syncArenaPresentation();
+  }
+
+  private syncArenaPresentation(): void {
+    const ready = this.authoredArenaEnabled && this.environmentConfiguration.venue === 'hard-open-arena'
+      && this.authoredArena.state.status === 'ready';
+    this.courtPresentation.visible = !ready;
+    this.venueGroups['hard-open-arena'].visible = this.environmentConfiguration.venue === 'hard-open-arena' && !ready;
+    this.canvas.dataset.venueAsset = this.authoredArena.state.status;
+    this.canvas.dataset.venueSource = ready ? 'blender' : 'procedural';
+    this.authoredArena.applySurface(this.surface, this.materialBundle,
+      this.environmentConfiguration.weather === 'rain' ? this.environmentConfiguration.weatherIntensity : 0);
+    this.sun.shadow.camera.left = ready ? -60 : -19;
+    this.sun.shadow.camera.right = ready ? 60 : 19;
+    this.sun.shadow.camera.top = ready ? 60 : 25;
+    this.sun.shadow.camera.bottom = ready ? -60 : -20;
+    this.sun.shadow.camera.updateProjectionMatrix();
+    if (ready && this.scene.fog instanceof THREE.Fog && this.venueReview) {
+      this.scene.fog.near = 200;
+      this.scene.fog.far = 500;
+    }
+    if (ready) this.applyVenueFixtures(this.authoredArena.group);
+  }
+
+  /** Inspection-only cutaway; never changes gameplay or the exported master. */
+  setVenueReview(roofVisible: boolean): void {
+    this.venueReview = true;
+    this.authoredArena.setRoofVisible(roofVisible);
+    this.syncArenaPresentation();
+  }
+
+  private applyVenueFixtures(group: THREE.Group): void {
+    const configuration = this.environmentConfiguration;
+    const solarArc = Math.sin(THREE.MathUtils.clamp((configuration.timeOfDay - 5.5) / 15, 0, 1) * Math.PI);
+    const elevation = THREE.MathUtils.lerp(-4, 67, Math.pow(Math.max(0, solarArc), 1.5));
+    const fixtureScale = isOutdoorVenue(configuration.venue) ? 1 - THREE.MathUtils.smoothstep(elevation, -1, 7) : 1;
+    const intensity = Math.min(1.5, Math.max(.35, configuration.lightIntensity));
+    group.traverse(object => {
+      if (!(object instanceof THREE.PointLight || object instanceof THREE.SpotLight)) return;
+      object.intensity = Number(object.userData.baseIntensity ?? 35) * intensity * fixtureScale;
+      object.color.setHex(configuration.lighting === 'indoor-warm' ? 0xffd09a : 0xe7f2ff);
+    });
   }
 
   setEnvironment(configuration: EnvironmentConfiguration): void {
@@ -285,20 +344,11 @@ export class TennisScene {
     }
     this.skySystem.apply(configuration, definition);
     this.weatherSystem.apply(configuration);
-    const activeVenue = this.venueGroups[configuration.venue];
-    const warm = configuration.lighting === 'indoor-warm';
-    const solarArc = Math.sin(THREE.MathUtils.clamp((configuration.timeOfDay - 5.5) / 15, 0, 1) * Math.PI);
-    const solarElevation = THREE.MathUtils.lerp(-4, 67, Math.pow(Math.max(0, solarArc), 1.5));
-    const outdoorFixtureScale = 1 - THREE.MathUtils.smoothstep(solarElevation, -1, 7);
-    const fixtureScale = isOutdoorVenue(configuration.venue) ? outdoorFixtureScale : 1;
-    activeVenue.traverse((object) => {
-      if (!(object instanceof THREE.PointLight || object instanceof THREE.SpotLight)) return;
-      const baseIntensity = typeof object.userData.baseIntensity === 'number' ? object.userData.baseIntensity : 35;
-      object.intensity = baseIntensity * intensity * fixtureScale;
-      object.color.setHex(warm ? 0xffd09a : 0xe7f2ff);
-    });
+    this.applyVenueFixtures(this.venueGroups[configuration.venue]);
     const wind = windVelocityFromEnvironment(configuration);
     updateSceneMaterialEnvironment(this.materialBundle, this.elapsed, configuration.weather === 'rain' ? configuration.weatherIntensity * 0.86 : 0, wind.x, wind.z);
+    this.authoredArena.setActive(this.authoredArenaEnabled && configuration.venue === 'hard-open-arena');
+    this.syncArenaPresentation();
   }
 
   setQualityMode(mode: QualityMode): void {
@@ -483,6 +533,10 @@ export class TennisScene {
         pixelRatio: this.renderer.getPixelRatio(),
         renderer: this.renderer.capabilities.isWebGL2 ? 'WebGL 2' : 'WebGL 1',
         quality: this.qualityMode,
+        drawCalls: this.renderer.info.render.calls,
+        triangles: this.renderer.info.render.triangles,
+        textures: this.renderer.info.memory.textures,
+        venueAsset: this.authoredArena.state,
       });
       const fps = (this.metricFrames * 1000) / metricElapsed;
       if (this.qualityMode === 'auto') {
@@ -510,6 +564,7 @@ export class TennisScene {
   dispose(): void {
     this.resizeObserver.disconnect();
     this.renderer.setAnimationLoop(null);
+    this.authoredArena.dispose();
     const geometries = new Set<THREE.BufferGeometry>();
     const materials = new Set<THREE.Material>();
     const textures = new Set<THREE.Texture>();

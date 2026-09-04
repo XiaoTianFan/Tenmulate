@@ -217,6 +217,8 @@ At the marker frame:
 
 ### 8.3 Asset pipeline
 
+ADR-0009 adds one implemented Blender venue pilot. Its source, provenance, setup and deterministic build are documented in [Blender venues](development/blender-venues.md). The visible court/net may be authored in the GLB, but regulation coordinates and gameplay authority stay in TypeScript. A failed/unavailable authored venue retains the tested procedural presentation.
+
 1. Build exact court, net, ball, target-zone, trajectory/debug, and simple modular venue primitives directly in code where parametric precision and tiny payloads are valuable.
 2. Acquire, commission, model, scan, or generate a licensed game-realistic base character; record provider/model/version, prompts/references, input rights, output terms, and provenance.
 3. Normalize topology, separate materials/parts as needed, build/normalize the rig, and set meters/axes in Blender.
@@ -249,10 +251,11 @@ The full contract and provider comparison are in [Mocap to web opponent](researc
 - Standard PBR materials first. Custom effects must work on the chosen backend path or have a tested accessible fallback.
 - Gameplay visibility materials are renderer-owned. The ball uses one shared optic yellow-green PBR material for every overlapping instance; the opponent uses one shared white PBR fill plus back-face outline clones bound to the source skinned meshes and skeletons. The outline writes no depth or shadow and never enters physics or collision state.
 - External asset loading is manifest-driven with explicit URL, byte size, hash, cache group, version, compatible skeleton/content versions, and a progress/error state.
-- The critical route loads UI, the selected typed Three.js venue composition, court, ball, and drill first. Only the neutral opponent mesh and animation bundles are external lazy GLB assets.
+- The critical route loads UI, the selected typed Three.js venue composition, court, ball, and drill first. The neutral opponent/animation bundles and the opt-in hard-open arena are external lazy GLB assets. The arena's presentation replaces the procedural court/venue only after its hash and gameplay anchors pass; the default path does not fetch it.
 - Build six scene identities from shared composition modules: hard, clay, and grass variants of Outdoor Arena and Indoor Court. Each scene owns context, access, architecture, and aligned lighting fixtures; outdoor arenas additionally own seating bowls, ad boards, aisles, and roof/canopy massing. Exact court/net and near-court props remain separately testable groups.
 - One renderer-owned atmosphere uses Three.js `Sky`, directional sun, hemispheric fill, fog, and a PMREM environment map. Time of day and light direction drive the solar state; clear/overcast/rain weather drives scattering, diffusion, fog, precipitation, and procedural wetness. Indoor halls hide that atmosphere and use only venue-local lights positioned at their visible lenses.
 - Court, runoff, ground, seating, wall, roof, timber, concrete, planting, and ad-board appearance comes from deterministic procedural GLSL attached to physically based materials. Runtime time/wind/wetness values update uniforms rather than recreating geometry.
+- The authored arena uses exported PBR, CC0 concrete maps, original acrylic albedo and baked vertex occlusion. Its hard-court wetness updates PBR roughness, while alternate surfaces use the shared procedural court materials. Meshopt decoding and WebP textures are lazy runtime dependencies; large GLBs use a dedicated hash-keyed runtime cache rather than precaching.
 - Weather does not change bounce physics in V1. Wind changes air-relative drag and Magnus force; lighting and wetness remain presentation-only. Any future wet-court physics must be an explicit, calibrated surface profile.
 - Adaptive quality can lower pixel ratio, shadow map resolution, anisotropy, texture resolution, post-processing, and venue detail. It cannot reduce simulation frequency or change shot outcomes.
 
