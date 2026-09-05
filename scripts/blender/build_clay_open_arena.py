@@ -207,10 +207,62 @@ outer=upper_start+B['upperRows']*B['rowDepth']
 tiers=[(0,B['lowerRows'],2.47,B['lowerRise']),(upper_start,B['upperRows'],14.15,B['upperRise'])]
 seat_count=0
 seat_tiers=[]
+seat_rng=np.random.default_rng(6194)
+STANDS=('East','North','West','South')
+
+
+def stand_point(stand,d,t):
+    """Fixed tangential metre coordinates: no normalized-perimeter drift."""
+    x,y=B['innerHalfWidth']+d,B['innerHalfLength']+d
+    return Vector({'East':(x,t),'West':(-x,t),'North':(t,y),'South':(t,-y)}[stand])
+
+
+def stand_limit(stand,d):
+    half=B['innerHalfLength'] if stand in ('East','West') else B['innerHalfWidth']
+    return half+d-(B['cornerCut']+.4*d)
+
+
+def stand_strip(batch,stand,d1,d2,z1,z2,lo=-1e3,hi=1e3):
+    # Only the outside edge tapers into the corner. Internal divisions never move.
+    l1,l2=stand_limit(stand,d1),stand_limit(stand,d2)
+    a,b=max(lo,-l1),min(hi,l1)
+    c,d=max(lo,-l2),min(hi,l2)
+    if a>=b or c>=d: return
+    points=[stand_point(stand,d1,a),stand_point(stand,d2,c),
+            stand_point(stand,d2,d),stand_point(stand,d1,b)]
+    vertices=[(p.x,p.y,z) for p,z in zip(points,(z1,z2,z2,z1))]
+    if stand in ('North','West'): vertices.reverse()
+    batch.face(vertices)
+
+
+def corner_point(corner,d,t):
+    pts,_=path(d)
+    return pts[corner*2].lerp(pts[corner*2+1],t)
+
+
+def corner_strip(batch,corner,d1,d2,z1,z2,lo=0,hi=1):
+    points=[corner_point(corner,d1,lo),corner_point(corner,d2,lo),
+            corner_point(corner,d2,hi),corner_point(corner,d1,hi)]
+    batch.face([(p.x,p.y,z) for p,z in zip(points,(z1,z2,z2,z1))])
+
+
+def add_seat(name,p,h,angle,supports):
+    global seat_count
+    obj=bpy.data.objects.new(name,templates[int(seat_rng.integers(4))])
+    seating.objects.link(obj)
+    obj.location=(p.x,p.y,h)
+    obj.rotation_euler.z=angle
+    supports.box((p.x,p.y,h+.22),(.06,.065,.44),angle)
+    tangent=Vector((math.cos(angle),math.sin(angle)))
+    supports.box((p.x+tangent.x*.245,p.y+tangent.y*.245,h+.61),(.025,.33,.035),angle)
+    seat_count+=1
+
+
 for ti,(offset,rows,base,rise) in enumerate(tiers):
     tread=Batch(f'Tier {ti+1} precast terraces',stone,architecture)
     risers=Batch(f'Tier {ti+1} riser faces',riser,architecture)
-    stairs=Batch(f'Tier {ti+1} aisle stair treads',cream,architecture)
+    stairs={s:Batch(f'Tier {ti+1} {s} orthogonal aisle stair treads',cream,architecture) for s in STANDS}
+    corner_stairs=Batch(f'Tier {ti+1} corner fan aisle treads',cream,architecture)
     rails=Batch(f'Tier {ti+1} brushed handrails',steel,architecture)
     supports=Batch(f'Tier {ti+1} seat pedestals and arms',dark,seating)
     partition=Batch(f'Tier {ti+1} box seating partitions',cream,architecture)
@@ -219,63 +271,91 @@ for ti,(offset,rows,base,rise) in enumerate(tiers):
     count_before=seat_count
     for row in range(rows):
         d,h=offset+row*B['rowDepth'],base+row*rise
-        circumference=path(d+.42)[1][-1]
-        section_length=circumference/B['sections']
-        for sec in range(B['sections']):
-            start,end=sec/B['sections'],(sec+1)/B['sections']
-            middle=(start+end)/2
-            entry=sec%4==1 and ((ti==0 and 8<=row<13) or (ti==1 and 2<=row<6))
-            hole=1.35/circumference
-            spans=[(start,end)] if not entry else [(start,middle-hole),(middle+hole,end)]
+        entry_start,entry_end=(8,13) if ti==0 else (2,6)
+        entry=entry_start<=row<entry_end
+        for stand in STANDS:
+            sideline=stand in ('East','West')
+            aisle_spacing=B['sidelineAisleSpacing'] if sideline else B['baselineAisleSpacing']
+            limit=stand_limit(stand,d+.43)
+            # Exact centre/column coordinates are shared by every row AND both tiers.
+            aisle_centers=[i*aisle_spacing for i in range(-8,9) if abs(i*aisle_spacing)<stand_limit(stand,d)-.8]
+            entry_centers=(-16,0,16) if sideline else (-6,6)
+            holes=[(c-1.35,c+1.35) for c in entry_centers] if entry else []
+            spans=[]
+            cursor=-1e3
+            for lo,hi in holes:
+                spans.append((cursor,lo))
+                cursor=hi
+            spans.append((cursor,1e3))
             for lo,hi in spans:
-                strip(tread,d,d+B['rowDepth'],h,start=lo,end=hi)
-                strip(risers,d,d,h-rise,h,start=lo,end=hi)
-            num=max(0,int((section_length-1.3)/B['seatSpacing']))
-            for j in range(num):
-                fraction=start+(.68+(section_length-1.36)*(j+.5)/num)/circumference
-                if entry and abs(fraction-middle)<hole+.12/circumference: continue
-                p=point(d+.43,fraction)
-                tangent=(point(d+.43,fraction+.00001)-p).normalized()
-                angle=math.atan2(tangent.y,tangent.x)+math.pi
-                shade=(sec*7+row*3+j)%4
-                obj=bpy.data.objects.new(f'Seat T{ti+1}-{sec+1:02}-{row+1:02}-{j+1:02}',templates[shade])
-                seating.objects.link(obj)
-                obj.location=(p.x,p.y,h)
-                obj.rotation_euler.z=angle
-                supports.box((p.x,p.y,h+.22),(.06,.065,.44),angle)
-                # Shared arms read as fine dark lines, not enormous seat blocks.
-                tangent=Vector((math.cos(angle),math.sin(angle)))
-                supports.box((p.x+tangent.x*.245,p.y+tangent.y*.245,h+.61),(.025,.33,.035),angle)
-                seat_count+=1
-            half=.56/circumference
+                stand_strip(tread,stand,d,d+B['rowDepth'],h,h,lo,hi)
+                stand_strip(risers,stand,d,d,h-rise,h,lo,hi)
+            n=math.floor((limit-.48)/B['seatSpacing'])
+            angle={'East':-math.pi/2,'West':math.pi/2,'North':0,'South':math.pi}[stand]
+            for column in range(-n,n+1):
+                t=column*B['seatSpacing']
+                nearest=round(t/aisle_spacing)*aisle_spacing
+                if abs(t-nearest)<B['aisleWidth']/2+.31: continue
+                if any(lo-.31<t<hi+.31 for lo,hi in holes): continue
+                add_seat(f'Seat T{ti+1}-{stand}-{row+1:02}-{column:+04}',stand_point(stand,d+.43,t),h,angle,supports)
+            half=B['aisleWidth']/2
+            for c in aisle_centers:
+                if any(lo<c<hi for lo,hi in holes): continue
+                for step in range(2):
+                    sd=d+step*B['rowDepth']/2
+                    sh=h-rise/2+step*rise/2+.012
+                    stand_strip(stairs[stand],stand,sd,sd+B['rowDepth']/2,sh,sh,c-half,c+half)
+                    stand_strip(stairs[stand],stand,sd,sd,sh-rise/2,sh,c-half,c+half)
+                p,q=stand_point(stand,d,c),stand_point(stand,d+B['rowDepth'],c)
+                rails.beam((p.x,p.y,h+.9),(q.x,q.y,h+rise+.9),.018)
+                if row%3==0: rails.beam((p.x,p.y,h),(p.x,p.y,h+.9),.022)
+                # Low box walls follow the same fixed orthogonal grid as the aisles.
+                if ti==0 and row<7:
+                    for sign in (-1,1):
+                        p=stand_point(stand,d+B['rowDepth']/2,c+sign*(half+.10))
+                        partition.box((p.x,p.y,h+.34),(.07,B['rowDepth'],.64),angle)
+                if row%3==0 and row>6 and not (row<entry_start and row+2>=entry_start and c in entry_centers):
+                    p,q=stand_point(stand,d,c+half),stand_point(stand,d+B['rowDepth']*2,c+half)
+                    panes.face([(p.x,p.y,h+.12),(q.x,q.y,h+rise*2+.12),(q.x,q.y,h+rise*2+1),(p.x,p.y,h+1)])
+            if row==entry_start:
+                for c in entry_centers:
+                    depth=(entry_end-entry_start)*B['rowDepth']
+                    p=stand_point(stand,d+depth/2,c)
+                    tangent=(stand_point(stand,d,1)-stand_point(stand,d,0)).normalized()
+                    a=math.atan2(tangent.y,tangent.x)
+                    portals.box((p.x,p.y,h-1.05),(3.1,depth+.3,.12),a)
+                    for sign in (-1,1):
+                        portals.box((p.x+sign*tangent.x*1.34,p.y+sign*tangent.y*1.34,h+.1),(.13,depth,2.3),a)
+                    back=stand_point(stand,d+depth-.1,c)
+                    portals.box((back.x,back.y,h+.65),(2.7,.14,3.4),a)
+        # Separate symmetric corner fans absorb widening; no spiral around the bowl.
+        for corner in range(4):
+            corner_strip(tread,corner,d,d+B['rowDepth'],h,h)
+            corner_strip(risers,corner,d,d,h-rise,h)
+            p,q=corner_point(corner,d+.43,0),corner_point(corner,d+.43,1)
+            length=(q-p).length
+            tangent=(q-p).normalized()
+            angle=math.atan2(tangent.y,tangent.x)+math.pi
+            n=math.floor((length/2-.48)/B['seatSpacing'])
+            for column in range(-n,n+1):
+                t=column*B['seatSpacing']
+                if abs(t)<B['aisleWidth']/2+.31: continue
+                add_seat(f'Seat T{ti+1}-Corner{corner+1}-{row+1:02}-{column:+04}',
+                         corner_point(corner,d+.43,.5+t/length),h,angle,supports)
+            # Fan stair width stays in metres at each row, centred on its diagonal.
             for step in range(2):
                 sd=d+step*B['rowDepth']/2
                 sh=h-rise/2+step*rise/2+.012
-                strip(stairs,sd,sd+B['rowDepth']/2,sh,start=start-half,end=start+half)
-                strip(stairs,sd,sd,sh-rise/2,sh,start=start-half,end=start+half)
-            p,q=point(d,start),point(d+B['rowDepth'],start)
+                def edge(depth,sign):
+                    a,b=corner_point(corner,depth,0),corner_point(corner,depth,1)
+                    return (a+b)/2+(b-a).normalized()*sign*B['aisleWidth']/2
+                a,b,c,e=edge(sd,-1),edge(sd+B['rowDepth']/2,-1),edge(sd+B['rowDepth']/2,1),edge(sd,1)
+                corner_stairs.face([(v.x,v.y,sh) for v in (a,b,c,e)])
+                corner_stairs.face([(a.x,a.y,sh-rise/2),(a.x,a.y,sh),(e.x,e.y,sh),(e.x,e.y,sh-rise/2)])
+            p,q=corner_point(corner,d,.5),corner_point(corner,d+B['rowDepth'],.5)
             rails.beam((p.x,p.y,h+.9),(q.x,q.y,h+rise+.9),.018)
             if row%3==0: rails.beam((p.x,p.y,h),(p.x,p.y,h+.9),.022)
-            if ti==0 and row<7:
-                strip(partition,d,d+B['rowDepth'],h+.05,h+rise+.64,start=start+half+.0007,end=start+half+.0017)
-            if row%3==0 and row>6:
-                p,q=point(d,start+half),point(d+B['rowDepth']*2,start+half)
-                panes.face([(p.x,p.y,h+.12),(q.x,q.y,h+rise*2+.12),(q.x,q.y,h+rise*2+1),(p.x,p.y,h+1)])
-        if row in ([8] if ti==0 else [2]):
-            for sec in range(1,B['sections'],4):
-                f=(sec+.5)/B['sections']
-                p=point(d+1.8,f)
-                t=(point(d+1.8,f+.00001)-p).normalized()
-                a=math.atan2(t.y,t.x)
-                # Recess sits only inside the seat/terrace hole, never across an aisle.
-                portals.box((p.x,p.y,h-1.05),(3.1,4.5,.12),a)
-                for sign in (-1,1):
-                    portals.box((p.x+sign*t.x*1.34,p.y+sign*t.y*1.34,h+.1),(.13,3.7,2.3),a)
-                back=point(d+3.6,f)
-                # Close the rear all the way to the upper edge of the terrace cut.
-                # Leaving this at doorway height exposed the bright sky through it.
-                portals.box((back.x,back.y,h+.65),(2.7,.14,3.4),a)
-    for batch in (tread,risers,stairs,rails,supports,partition,panes,portals): batch.finish()
+    for batch in (tread,risers,*stairs.values(),corner_stairs,rails,supports,partition,panes,portals): batch.finish()
     seat_tiers.append(seat_count-count_before)
 
 # The glazed intermediate band and pale horizontal fascias are key to this arena.

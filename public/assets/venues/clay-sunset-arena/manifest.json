@@ -2,9 +2,9 @@
   "id": "clay-sunset-arena",
   "version": 1,
   "compatibility": "tenmulate-court-v1",
-  "url": "/assets/venues/clay-sunset-arena/clay-sunset-arena.3268b70b2ec2.glb",
-  "bytes": 7296132,
-  "sha256": "3268b70b2ec2659f86d715eb20abc1c92889cac518d3bf92c17c29f4c9bef847",
+  "url": "/assets/venues/clay-sunset-arena/clay-sunset-arena.fe716d0cf402.glb",
+  "bytes": 6168972,
+  "sha256": "fe716d0cf402261c984a38a3e8bf7ceb45b0f7f92c53d9abd7334410a1787c7e",
   "source": "assets/venues/clay-sunset-arena/clay-sunset-arena.blend",
   "anchors": {
     "court_origin": [
@@ -38,7 +38,7 @@
       0
     ]
   },
-  "seats": 14686,
+  "seats": 13664,
   "extensions": [
     "EXT_mesh_gpu_instancing",
     "EXT_texture_webp",
@@ -46,6 +46,6 @@
     "EXT_meshopt_compression"
   ],
   "materials": 17,
-  "meshes": 63,
+  "meshes": 71,
   "textureBytes": 590590
 }

@@ -1,5 +1,17 @@
 # Blender clay arena
 
+## Revision 2 — court-aligned seating, 2026-09-05
+
+The owner's three new Philippe-Chatrier photographs show main stands divided by perpendicular aisles and rectangular box seating. The initial builder instead held section positions at fractions of each row's complete perimeter. Because the straight sides and corner lengths grow at different rates, equal perimeter fractions drift tangentially as rows climb. This created the observed one-sided skew; it was not a camera or lighting issue.
+
+Clay now uses four independent court-aligned stands. Seat columns stay on a fixed **0.56 m grid**, with **1.12 m aisles** on fixed axes spaced 8 m along sidelines and 6 m along baselines. Both tiers share those axes. Widening outer rows add columns at the ends without redistributing existing columns. Corner chamfers are separate symmetric fans with centred diagonal aisles. Terrace recesses align with aisle axes; lower box partitions are rectangular and parallel to those axes. Natural shade variation is seeded without a repeating diagonal colour sequence. The roof, court, perimeter, shared lighting and entire hard arena are unchanged.
+
+Current `design.json` is revision 2 (the manifest's version 1 remains its transport schema). The editable master is **19,230,834 bytes** with **13,664 seats**: 6,264 lower and 7,400 upper. Asset: `clay-sunset-arena.fe716d0cf402.glb`, **6,168,972 bytes / 5.88 MiB**, 71 meshes, 17 materials and 590,590 compressed texture bytes. The superseded generated GLB is replaced in the current tree and remains recoverable in Git history.
+
+Validation: **144 tests / 15 files** and production build pass. New tests inspect actual decoded seat-instance transforms and all eight straight-stand stair meshes: fixed seat columns, court-facing orientation, and aisle edges exactly 0.56 m from fixed court-normal axes (within 3 mm export tolerance). Hash/size/registration, ground-doorway clearance and parked-roof checks continue to pass. Raw glTF has zero errors/warnings and 136 informational notices. Cycles also renders the rebuilt master successfully.
+
+The frontend-testing skill's Playwright fallback compares unchanged-camera before/after sideline views plus corner, bowl and mobile output with the supplied photos. Evidence is local-only in `C:/Users/20378/.codex/visualizations/2026/09/05/clay-seating/`; see [Stage 13](visual-verification.md#stage-13-clay-arena-orthogonal-seating--2026-09-05). This is closer seating organization, not an exact surveyed plan. Owner/device acceptance and fixed-open roof limitations remain. The following delivery and runtime statistics are the historical revision-1 record.
+
 ## Reference decisions — 2026-09-05
 
 The requested second authored venue uses the modern **Court Philippe-Chatrier** as a visual reference, not the entire Roland-Garros complex. The existing `clay-sunset-arena` ID and shared runtime lighting remain authoritative. The new source is original geometry with Tenmulate-only branding; reference photography is not embedded.
@@ -18,7 +30,7 @@ Research stopped after the material gaps were covered by primary venue/architect
 
 Local-only research PDFs and inspected captures are under `C:/Users/20378/.codex/visualizations/2026/09/05/clay-arena/`. Source provenance is also recorded in `assets/venues/clay-sunset-arena/sources.json`. Original geometry and changed details do not, by themselves, constitute a legal clearance opinion.
 
-## Rebuild and authored delivery
+## Rebuild and initial authored delivery (revision 1)
 
 ```powershell
 npm run asset:venue:build -- -Venue clay-sunset-arena
@@ -36,7 +48,7 @@ Final model: **14,686 seats** (6,517 lower / 8,169 upper), ten independently edi
 
 Khronos validation of the raw export reports zero errors and warnings (120 informational unused-data notices). The optimizer independently decodes the final Meshopt/WebP asset, checks six regulation registration anchors and enforces the 15 MiB budget. Browser comparison prompted reduced clay ripple contrast, completed tunnel floors/rear linings, clearance above ground entrances, radial canopy ribs and inward visibility of the opaque outer enclosure to prevent sky leaks through service recesses. The roof is a **fixed-open architectural model**, not an animated or structurally certified mechanism.
 
-## Runtime and verification
+## Runtime and initial verification (revision 1)
 
 Open `/venue-review.html?venue=clay-sunset-arena&camera=corner` on port 4173. The ordinary app remains procedural unless `?venueAsset=blender` or `VITE_AUTHORED_ARENA=1` is enabled; choose **Outdoor Arena · Clay** in practice. The review's practice link opens the standard setup, not a forced venue override of stored preferences. Hard/clay managers retain independent native materials and loading state, and both use the unchanged shared day/dusk/night lighting. Completed inactive assets remain resident until scene disposal; first selection transfers only the selected GLB (the constructor's initial hard-manifest request may be cancelled when clay is selected immediately).
 

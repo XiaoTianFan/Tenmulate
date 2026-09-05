@@ -1,6 +1,7 @@
 {
   "geometry": "Original parameterized Blender meshes authored for Tenmulate; no extracted third-party mesh or photographic texture.",
   "referenceOnly": [
+    {"source": "Owner-supplied three Philippe-Chatrier seating photographs, 2026-09-05", "used": "Revision 2: perpendicular main-stand aisles and fixed seat columns, aligned terrace entrances, rectangular lower box divisions, corner-only fanning. Local attachments 70dc6267, df512eac and a55a033b; images not redistributed."},
     {"url": "https://stade.rolandgarros.com/lieux/court-philippe-chatrier", "publisher": "FFT", "used": "Regulation court, 21.85 x 43.87 m published court-surround footprint, lower/upper seating split. Our apron is intentionally wider."},
     {"url": "https://www.dvvd.fr/le-court-philippe-chatrier-prime/", "publisher": "DVVD", "date": "2022-02-07", "used": "Laurent Kronental photograph: current timber bowl, hospitality, terrace access and closed-roof underside."},
     {"url": "https://faraone-s3.s3.amazonaws.com/uploads/2019/06/Storyteller-05-Roland-Garros-e-Impianti-Sportivi.pdf", "publisher": "Faraone", "date": "2019-06", "used": "PDF pages 5-10 and 13: multiple real court/seating photographs, glass parapets, portal details and external stair section. This is the rebuilt bowl before roof installation."},

@@ -33,7 +33,7 @@ function bounds(node: Node): THREE.Box3 {
 }
 
 describe('shipped Blender clay arena', () => {
-  it('has the declared hash, budget, regulation registration and 14,686 actual ash seats', () => {
+  it('has the declared hash, budget, regulation registration and actual ash seats', () => {
     validateVenueManifest(manifest, 'clay-sunset-arena');
     expect(bytes.length).toBe(manifest.bytes);
     expect(bytes.length).toBeLessThan(15 * 1024 * 1024);
@@ -45,7 +45,8 @@ describe('shipped Blender clay arena', () => {
     }
     const seats = nodes.filter(n => n.getMesh()?.listPrimitives().some(p => p.getMaterial()?.getName().startsWith('Laminated ash')));
     const count = seats.reduce((sum, n) => sum + (n.getExtension<InstancedMesh>(EXTMeshGPUInstancing.EXTENSION_NAME)?.getAttribute('TRANSLATION')?.getCount() ?? 0), 0);
-    expect(count).toBe(14686);
+    expect(count).toBeGreaterThan(13000);
+    expect(count).toBeLessThan(16500);
     expect(count).toBe(manifest.seats);
   });
 
@@ -70,7 +71,7 @@ describe('shipped Blender clay arena', () => {
       return new THREE.Box3(center.clone().sub(half), center.clone().add(half));
     });
     expect(lanes).toHaveLength(4);
-    const checked = nodes.filter(n => /Green perimeter|Recessed ground|Tier 1 (precast|riser|aisle|seat pedestals)|Player chair|player chair/.test(n.getName()));
+    const checked = nodes.filter(n => /Green perimeter|Recessed ground|Tier 1 (precast|riser|.*aisle|seat pedestals)|Player chair|player chair/.test(n.getName()));
     expect(checked.length).toBeGreaterThanOrEqual(7);
     for (const node of checked) {
       const matrix = new THREE.Matrix4().fromArray(node.getWorldMatrix());
@@ -87,6 +88,67 @@ describe('shipped Blender clay arena', () => {
       }
     }
     expect(bounds(nodes.find(n => n.getExtras().arenaPart === 'perimeterWall')!).max.y).toBeCloseTo(2.1, 2);
+  });
+
+  it('places straight-stand seats on fixed court-aligned columns in both tiers', () => {
+    const seats = nodes.filter(n => n.getMesh()?.listPrimitives().some(p => p.getMaterial()?.getName().startsWith('Laminated ash')));
+    const tiers = [{base:2.47,rise:.39,offset:0,rows:24}, {base:14.15,rise:.55,offset:22.32,rows:16}];
+    const counts = [0,0];
+    const stands = new Set<string>();
+    for (const node of seats) {
+      const instances = node.getExtension<InstancedMesh>(EXTMeshGPUInstancing.EXTENSION_NAME)!;
+      const positions = instances.getAttribute('TRANSLATION')!;
+      const rotations = instances.getAttribute('ROTATION');
+      const world = new THREE.Matrix4().fromArray(node.getWorldMatrix());
+      for (let i=0;i<positions.getCount();i++) {
+        const p = new THREE.Vector3().fromArray(positions.getElement(i, [])).applyMatrix4(world);
+        const ti = p.y<14 ? 0 : 1;
+        const tier = tiers[ti]!;
+        // Meshopt recentres the shell at its bounding-box midpoint: height
+        // (.41+.86)/2 and 0.042686875 m outward from the authored seat origin.
+        const row = Math.round((p.y-.635-tier.base)/tier.rise);
+        expect(row).toBeGreaterThanOrEqual(0);
+        expect(row).toBeLessThan(tier.rows);
+        expect(Math.abs(p.y-.635-(tier.base+row*tier.rise))).toBeLessThan(.003);
+        const d = tier.offset + row*.78 + .43 + .042686875;
+        const side = Math.abs(Math.abs(p.x)-(12.2+d))<.003;
+        const end = Math.abs(Math.abs(p.z)-(23.2+d))<.003;
+        if (!side&&!end) continue; // Four deliberately fanned corner blocks.
+        const t = side ? p.z : p.x;
+        // Actual decoded coordinates, not metadata: columns never shift sideways.
+        expect(Math.abs(t-Math.round(t/.56)*.56)).toBeLessThan(.003);
+        const spacing = side ? 8 : 6;
+        expect(Math.abs(t-Math.round(t/spacing)*spacing)).toBeGreaterThan(.867);
+        const rotation = new THREE.Quaternion().fromArray(rotations?.getElement(i, []) ?? [0,0,0,1]);
+        const forward = new THREE.Vector3(0,0,1).applyQuaternion(rotation).transformDirection(world);
+        expect(Math.abs(side ? forward.z : forward.x)).toBeLessThan(.001);
+        expect(side ? forward.x*Math.sign(p.x) : forward.z*Math.sign(p.z)).toBeLessThan(-.999);
+        counts[ti]!++;
+        stands.add(`${ti}:${side ? (p.x>0?'east':'west') : (p.z>0?'south':'north')}`);
+      }
+    }
+    expect(counts[0]).toBeGreaterThan(4000);
+    expect(counts[1]).toBeGreaterThan(5000);
+    expect(stands.size).toBe(8);
+  });
+
+  it('exports eight axis-aligned main-stand stair meshes on shared aisle axes', () => {
+    const aisles=nodes.filter(n=>n.getName().includes('orthogonal aisle stair treads'));
+    expect(aisles).toHaveLength(8);
+    for (const node of aisles) {
+      const side=/East|West/.test(node.getName());
+      const spacing=side?8:6;
+      const matrix=new THREE.Matrix4().fromArray(node.getWorldMatrix());
+      for (const primitive of node.getMesh()!.listPrimitives()) {
+        const positions=primitive.getAttribute('POSITION')!;
+        for (let i=0;i<positions.getCount();i++) {
+          const p=new THREE.Vector3().fromArray(positions.getElement(i,[])).applyMatrix4(matrix);
+          const t=side?p.z:p.x;
+          // Each edge is exactly +/-0.56 m from a fixed court-normal aisle axis.
+          expect(Math.abs(Math.abs(t-Math.round(t/spacing)*spacing)-.56)).toBeLessThan(.003);
+        }
+      }
+    }
   });
 
   it('parks ten roof wings together north of the opening and keeps four fixed light anchors', () => {

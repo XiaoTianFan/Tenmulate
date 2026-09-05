@@ -4,7 +4,7 @@ The hard-open arena is an original Rod Laver-inspired architectural study with a
 
 ## Second authored venue: clay arena
 
-The reference-led clay arena is now also built and integrated. Its Philippe-Chatrier research, source decisions, 14,686-seat master, 6.96 MiB optimized GLB and verification are in [Clay arena](clay-arena.md). Run `npm run asset:venue:build -- -Venue clay-sunset-arena`; the omitted argument still rebuilds hard. Review `/venue-review.html?venue=clay-sunset-arena&camera=corner`. The existing opt-in flag enables either selected arena, with per-venue loading/native materials and the same shared atmosphere. The hard source and hashed asset are unchanged. [ADR-0010](../decisions/0010-blender-clay-arena-and-multi-venue-boundary.md) extends the pilot boundary without making either asset the default.
+The reference-led clay arena is also built and integrated. Its Philippe-Chatrier research, source decisions, revision-2 **13,664-seat** court-aligned master, **5.88 MiB** optimized GLB and verification are in [Clay arena](clay-arena.md). Run `npm run asset:venue:build -- -Venue clay-sunset-arena`; the omitted argument still rebuilds hard. Review `/venue-review.html?venue=clay-sunset-arena&camera=sideline` for the perpendicular seating divisions. The existing opt-in flag enables either selected arena, with per-venue loading/native materials and the same shared atmosphere. The hard source and hashed asset are unchanged. [ADR-0010](../decisions/0010-blender-clay-arena-and-multi-venue-boundary.md) extends the pilot boundary without making either asset the default.
 
 ## Revision 2: perimeter and roof detail
 
