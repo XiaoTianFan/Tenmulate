@@ -3,6 +3,7 @@
 - **Status:** Active
 - **Last updated:** 2026-09-05
 - **Current implementation:** Three Blender-authored outdoor arenas under the opt-in gate: hard revision 3, clay revision 5 and grass revision 2, with darker grass and denser nets across authored/procedural venues. Initial source commits `f06675a` and `76ebd88` and older stage commits below remain historical.
+- **Local integration:** Owner-authorized fast-forward of the arena branch completed; all eleven local feature branches are included in `main`. Refinement commit `fdd28f5`; [branch audit](feature-branch-integration-2026-09-05.md). No remote push or deployment.
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The neutral humanoid carrier is now integrated; its tennis mocap and racket remain owner-supplied production inputs. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
