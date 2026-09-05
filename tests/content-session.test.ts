@@ -80,15 +80,16 @@ describe('session compiler', () => {
 
   it('inserts deterministic rest periods between configured work blocks', () => {
     const session = compileSession(drill, settings);
+    const withoutRest = compileSession(drill, { ...settings, restSeconds: 0 });
     expect(session.restPeriods.map((period) => period.afterIndex)).toEqual([3, 7]);
-    expect(session.restPeriods[0]!.startTime).toBeCloseTo(15.8, 8);
-    expect(session.restPeriods[0]!.endTime).toBeCloseTo(35.8, 8);
-    expect(session.restPeriods[1]!.startTime).toBeCloseTo(48.6, 8);
-    expect(session.restPeriods[1]!.endTime).toBeCloseTo(68.6, 8);
-    expect(session.repetitions[4]!.startTime).toBe(35.8);
+    for (const [index, period] of session.restPeriods.entries()) {
+      expect(period.startTime).toBeCloseTo(withoutRest.repetitions[period.afterIndex + 1]!.startTime + index * settings.restSeconds, 8);
+      expect(period.endTime - period.startTime).toBeCloseTo(settings.restSeconds, 8);
+      expect(session.repetitions[period.afterIndex + 1]!.startTime).toBeCloseTo(period.endTime, 8);
+    }
     // The last outgoing ball now finishes before the session completion screen.
     const last = session.repetitions.at(-1)!;
-    expect(session.duration).toBeCloseTo(Math.max(81.4, last.startTime + last.trajectory.samples.at(-1)!.time), 8);
+    expect(session.duration).toBeCloseTo(Math.max(withoutRest.duration + 40, last.startTime + last.trajectory.samples.at(-1)!.time), 8);
   });
 
   it('applies seeded timing variation without changing the three-second countdown or rest duration', () => {

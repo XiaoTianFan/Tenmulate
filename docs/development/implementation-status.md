@@ -9,9 +9,9 @@ This is the evidence ledger for the code-backed V1. “Implemented” means runn
 
 ## Local opponent motion — 2026-09-05
 
-The sibling motion lab produces nine baked clips on the neutral carrier, an original racket, source/provenance metadata and an editable Blender master. Stable takes are UCLA 02:00–02:02.4 forehand, January 10:39.8–10:42 backhand and January 13:54.85–13:57.9 serve. Observations inform timing/torso sequencing; hidden limbs, grip, feet and transitions are explicitly authored corrections.
+The sibling motion lab produces twelve clips on the neutral carrier, an original racket, provenance metadata and an editable Blender master. Stable takes remain UCLA 02:00–02:02.4 forehand, January 10:39.8–10:42 backhand and January 13:54.85–13:57.9 serve. The second iteration adds sustained unit turns, direction-facing running with large strides, both groundstroke slices and actual continental/semi-western grip geometry. Slices and running are explicitly authored technique.
 
-Gameplay uses one absolute clock for pose, launch and audio, deterministic travel/foot IK, contact alignment, toss, mirrored hand and reachable cadence. The 1.16 MB library has zero glTF errors/warnings. **171 tests / 20 files**, production build, desktop sequence review and real practice pause/seek/slow-play checks pass. [Contract, commands and limits](local-motion-pipeline.md). Exact style, close-up grip, other techniques, device endurance and owner approval remain distinct gates. Historical motion-pending notes below describe their original stages.
+Gameplay keeps one absolute clock for pose, launch and audio, deterministic travel/foot IK, contact alignment, toss, mirrored hand and reachable cadence. The 1.49 MB library has zero glTF errors/warnings. **196 tests / 21 files** and production build pass; geometry checks cover five contacts, unit turns, real grip bevels, slice paths, large directional strides and racket continuity. Desktop evidence includes the full-court eight-shot sequence, source/phase review, grip close-ups and production slice selection. [Contract, commands and limits](local-motion-pipeline.md). Other shot techniques, exact individual style, device endurance and owner aesthetic approval remain separate. Historical motion-pending notes below describe their original stages.
 
 ## Latest venue delivery — six Blender scenes, performance and audience
 

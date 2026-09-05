@@ -4,17 +4,18 @@
   "fps": 60,
   "blenderVersion": "5.2.1 LTS",
   "carrierSha256": "7cea6c92d2f78b07096948f0270bb4db7340505d27da6ffa52e292da858b33c4",
-  "recipeSha256": "20a860c166b4dc21581a4e9be344e4f8b22d522339adadbb0d4c46e88bd13bf2",
+  "recipeSha256": "c5a42c5c663e56a76d9600b345b860b1e8cb49135845e50f1d1a25be1a5fd887",
   "poseModelSha256": "64437af838a65d18e5ba7a0d39b465540069bc8aae8308de3e318aad31fcbc7b",
   "carrierLicense": "Quaternius Universal Base Characters, CC0; see the frontend carrier license notice.",
   "rootPolicy": "in-place carrier; pelvis stroke displacement baked; world root travel owned by session timeline",
-  "provenance": "Source-informed authored corrections: 35% measured shoulder sequence; explicit IK limbs, grip, foot contacts and racket. Not unedited automatic mocap.",
+  "provenance": "Source-phase-guided authored correction: reviewed unit turns; explicit limbs, bevel grips, foot contacts and racket. Slices and running are authored. Not unedited automatic mocap.",
   "nominalHeightMeters": 1.84,
   "clips": {
     "ready": {
       "duration": 1.2,
       "loop": true,
       "hand": "right",
+      "grip": "continental",
       "recovery": 0.75,
       "playbackRate": [
         0.75,
@@ -25,6 +26,7 @@
       "duration": 0.6,
       "loop": false,
       "hand": "right",
+      "grip": "continental",
       "recovery": 0.6,
       "playbackRate": [
         0.75,
@@ -35,6 +37,7 @@
       "duration": 2.4,
       "loop": false,
       "hand": "right",
+      "grip": "semi-western",
       "recovery": 1.733333,
       "playbackRate": [
         0.75,
@@ -42,9 +45,9 @@
       ],
       "contact": 0.9833333333333333,
       "contactLocal": [
-        -0.8714336156845093,
-        1.0398368835449219,
-        0.5931230187416077
+        -0.9061636924743652,
+        1.1904082298278809,
+        0.3852131962776184
       ],
       "source": {
         "source": "ucla",
@@ -72,6 +75,7 @@
       "duration": 2.2,
       "loop": false,
       "hand": "right",
+      "grip": "continental",
       "recovery": 1.79,
       "playbackRate": [
         0.75,
@@ -79,9 +83,9 @@
       ],
       "contact": 1.0333333333333334,
       "contactLocal": [
-        0.7139462232589722,
-        1.1092389822006226,
-        0.430842787027359
+        0.6630046963691711,
+        1.2116659879684448,
+        0.34835249185562134
       ],
       "source": {
         "source": "january",
@@ -109,6 +113,7 @@
       "duration": 3.05,
       "loop": false,
       "hand": "right",
+      "grip": "continental",
       "recovery": 2.383333,
       "playbackRate": [
         0.75,
@@ -116,9 +121,9 @@
       ],
       "contact": 1.6333333333333333,
       "contactLocal": [
-        -0.15451490879058838,
-        2.671475887298584,
-        0.3732578754425049
+        -0.11575087904930115,
+        2.6188600063323975,
+        0.34433984756469727
       ],
       "source": {
         "source": "january",
@@ -144,15 +149,63 @@
       "cleanedObservationSha256": "21c3f785471d8212d1c0c125eab85121b1dd08a2dba6b5f7bf599a1581fe8968",
       "tossRelease": 0.7666666666666667,
       "tossLocal": [
-        0.10967841744422913,
-        1.6147010326385498,
-        0.3406528830528259
+        0.10967835783958435,
+        1.6147011518478394,
+        0.34065279364585876
+      ]
+    },
+    "forehand-slice": {
+      "duration": 2.4,
+      "loop": false,
+      "hand": "right",
+      "grip": "continental",
+      "recovery": 1.8,
+      "playbackRate": [
+        0.75,
+        1.25
+      ],
+      "contact": 1.05,
+      "contactLocal": [
+        -0.8058896064758301,
+        1.230114221572876,
+        0.47519707679748535
+      ],
+      "provenance": "Authored technique; see docs/motion-revision-2.md. No Djokovic capture attribution."
+    },
+    "backhand-slice": {
+      "duration": 2.6,
+      "loop": false,
+      "hand": "right",
+      "grip": "continental",
+      "recovery": 1.9,
+      "playbackRate": [
+        0.75,
+        1.25
+      ],
+      "contact": 1.15,
+      "contactLocal": [
+        0.7488608360290527,
+        1.0499262809753418,
+        0.6078879833221436
+      ],
+      "provenance": "Authored technique; see docs/motion-revision-2.md. No Djokovic capture attribution."
+    },
+    "run-forward": {
+      "duration": 0.6,
+      "loop": true,
+      "hand": "right",
+      "grip": "continental",
+      "recovery": 0.6,
+      "playbackRate": [
+        0.75,
+        1.25
       ]
     },
     "move-left": {
       "duration": 0.6,
       "loop": true,
       "hand": "right",
+      "grip": "continental",
       "recovery": 0.6,
       "playbackRate": [
         0.75,
@@ -163,6 +216,7 @@
       "duration": 0.6,
       "loop": true,
       "hand": "right",
+      "grip": "continental",
       "recovery": 0.6,
       "playbackRate": [
         0.75,
@@ -173,6 +227,7 @@
       "duration": 0.6,
       "loop": true,
       "hand": "right",
+      "grip": "continental",
       "recovery": 0.6,
       "playbackRate": [
         0.75,
@@ -183,6 +238,7 @@
       "duration": 0.6,
       "loop": true,
       "hand": "right",
+      "grip": "continental",
       "recovery": 0.6,
       "playbackRate": [
         0.75,
@@ -190,8 +246,8 @@
       ]
     }
   },
-  "assetSha256": "5d58b024e87a1b431eb353028714fbfa65f1c2b6135b5246af7a26d03e73f96c",
-  "bytes": 1157060,
+  "assetSha256": "7bd907f40b37ba30f16d34d3e98e48bff2ea0c982912421edf12dacdbc884238",
+  "bytes": 1486416,
   "bindHeightMeters": 1.8195869406124976,
   "displayScale": 1.011218512801939,
   "bindMinY": -0.009510145233400723

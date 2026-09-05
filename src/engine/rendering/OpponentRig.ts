@@ -257,11 +257,21 @@ export class OpponentRig {
       action.enabled = true; action.paused = true; action.weight = layer.weight; action.time = layer.time;
     }
     this.mixer.update(0);
-    this.bakedCorrections = ['pelvis', 'thigh_l', 'calf_l', 'foot_l', 'thigh_r', 'calf_r', 'foot_r'].map(name => {
+    this.bakedCorrections = ['pelvis', 'thigh_l', 'calf_l', 'foot_l', 'thigh_r', 'calf_r', 'foot_r', 'neck_01', 'Head'].map(name => {
       const bone = this.model!.getObjectByName(name)!;
       return { bone, position: bone.position.clone(), quaternion: bone.quaternion.clone() };
     });
     this.group.updateMatrixWorld(true);
+    if (sample.lookYaw) {
+      // Split the counter-turn over the neck and head, respecting the mirrored rig.
+      const turn = sample.lookYaw * (sample.hand === 'left' ? -1 : 1);
+      for (const [name, weight] of [['neck_01', .4], ['Head', .6]] as const) {
+        const bone = this.model.getObjectByName(name)!;
+        const axis = new THREE.Vector3(0, 1, 0).applyQuaternion(bone.parent!.getWorldQuaternion(new THREE.Quaternion()).invert());
+        bone.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(axis, turn * weight));
+      }
+      this.group.updateMatrixWorld(true);
+    }
     const left = this.model.getObjectByName('foot_l')!.getWorldPosition(new THREE.Vector3());
     const right = this.model.getObjectByName('foot_r')!.getWorldPosition(new THREE.Vector3());
     if (Math.abs(sample.verticalCorrection) > 1e-7) {

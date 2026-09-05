@@ -29,7 +29,7 @@ The source body sculpt still contains simplified facial volume. It is treated as
 - One 65-joint skinned humanoid, including fingers.
 - A 23-role canonical adapter covers root, pelvis, spine, head, shoulders, arms, hands, legs, feet, and toes.
 - `hand_l` and `hand_r` are the stable detachable-racket attachment bones.
-- This original source carrier has no animation. The default display now loads the derived `tennis-local-v1` bundle with nine clips and an original locally authored racket, baked to this exact rig in the sibling motion lab.
+- This original source carrier has no animation. The default display loads the derived `tennis-local-v1` bundle with twelve clips, including both slices and a running cycle, and an original locally authored racket. It is baked to this exact rig in the sibling motion lab.
 - The static carrier retains procedural ready-stance support; gameplay now uses absolute-time skeletal sampling, root travel and leg IK. See the [motion ledger](../development/local-motion-pipeline.md) for hashes and evidence.
 - If the GLB or skeleton validation fails, the existing ball machine remains visible and the application continues to function.
 

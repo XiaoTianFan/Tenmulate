@@ -12,6 +12,8 @@ Keep the existing CC0 Quaternius carrier. A purchased skeleton or generated char
 
 The minimum continuous motion library is ready, split step, lateral adjustment in both directions, forward/backward movement, forehand, two-handed backhand, normal serve, and recovery. Use authored connectors with common boundary poses; evaluate open clips only where they improve this set. Do not make account access, payment, SMPL body-model licensing, or a cloud service a pipeline prerequisite.
 
+The owner's second iteration adds sustained unit turns, multi-metre direction-facing running, separate forehand/backhand groundstroke slices and stroke-specific grips. Continental serve/slices and backhand dominant hand, semi-western forehand and the supporting backhand grip must be expressed by the actual hand-to-handle geometry. Preserve the coil through preparation and unwind through the shot. Large travel strides settle into balance before the next stroke. Author slices transparently when bounded source review does not establish a complete suitable take. Acceptance includes actual exported geometry and normal-speed gameplay, not grip labels or angle metadata alone.
+
 ## Runtime contract
 
 Export baked motions for the exact existing skeleton, a separate racket, and versioned metadata. Metadata records source ranges, processing provenance, units, root policy, duration, contact/toss/recovery markers, and playback bounds. The frontend owns court placement, deterministic session time, trajectories, camera, and ball flight. Production tools and inference are build-time only.
