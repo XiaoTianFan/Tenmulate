@@ -2,6 +2,14 @@
 
 The hard-open arena is an original Rod Laver-inspired architectural study with a blue playing area and green surrounds. It is available for review before replacing the default procedural venue. Exact gameplay court dimensions remain in `src/domain/court.ts`; Blender owns the visible court, net, furniture, bowl and roof. Runtime lighting, atmosphere, opponent and trajectories remain in Three.js.
 
+## Revision 2: perimeter and roof detail
+
+The owner's annotated reference supersedes the pilot's freestanding tunnel frames. A 2.35 m padded retaining wall now follows the raised front tier; four 2.8 m wide / 2.18 m high entrances break that wall and recess underneath the seats. Separate 0.42 m courtside boards sit inward of the wall with aligned access breaks. Benches, coolers and umpire seating share the central player-service side, away from the door approaches. All wall/board branding is Tenmulate. The apron extends beneath the perimeter instead of leaving a bright unfilled strip.
+
+The roof's real opening now uses its declared 33 × 37 m aperture, rather than an unrelated bowl offset. Parked leaves clear it by 0.35 m and rest on modelled carriages, wheel bogies, transverse paired trusses and twin rails; catwalks and guards provide a service route. This is an original visual mechanical interpretation, not an engineering reconstruction or an animated roof simulation.
+
+The regenerated master has 13,304 seats. The revision's runtime asset is `hard-open-arena.8a6bb53797c2.glb` (5,750,320 bytes, 5.48 MiB). Four seat batches plus two repeated-sign batches total 13,326 instances. Tests decode the shipped binary, check both board heights, assert clear three-dimensional doorway approach volumes against the actual perimeter/furniture triangles, and check parked-leaf clearance. The 2026-09-05 pilot statistics below are retained as historical evidence, not current asset counts.
+
 ## Local tools
 
 Run `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/blender/setup.ps1` from the repository. The setup downloads the official **Blender 5.2.1 LTS Windows portable** archive, verifies its published SHA-256, and installs it under the ignored `.tools/` directory. This bypasses the Microsoft Store executable's CLI access restriction. A project-specific Blender profile is used; normal Blender preferences are untouched.

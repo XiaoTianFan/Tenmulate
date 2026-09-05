@@ -43,6 +43,7 @@ afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); parse.mockReset()
 describe('authored venue boundary', () => {
   it('ships the declared bytes, seat instances and gameplay anchors in the actual decoded asset', async () => {
     const shipped = JSON.parse(await readFile('public/assets/venues/hard-open-arena/manifest.json', 'utf8'));
+    const declaredSeats = shipped.seats;
     validateVenueManifest(shipped);
     const data = await readFile(`public${shipped.url}`);
     expect(data.length).toBe(shipped.bytes);
@@ -56,10 +57,65 @@ describe('authored venue boundary', () => {
       expect(actual, name).toBeDefined();
       expected.forEach((v, i) => expect(actual![i], name).toBeCloseTo(v, 3));
     }
-    const instances = nodes.reduce((sum, node) => sum + (node.getExtension<import('@gltf-transform/extensions').InstancedMesh>(EXTMeshGPUInstancing.EXTENSION_NAME)?.getAttribute('TRANSLATION')?.getCount() ?? 0), 0);
-    expect(instances).toBe(13216);
+    const seatNodes = nodes.filter(n => n.getMesh()?.listPrimitives().some(p => p.getMaterial()?.getName().startsWith('Moulded polypropylene')));
+    const instances = seatNodes.reduce((sum, node) => sum + (node.getExtension<import('@gltf-transform/extensions').InstancedMesh>(EXTMeshGPUInstancing.EXTENSION_NAME)?.getAttribute('TRANSLATION')?.getCount() ?? 0), 0);
+    expect(instances).toBe(13304);
+    expect(instances).toBe(declaredSeats);
     expect(nodes.some(n => n.getExtras().surfaceRole === 'court')).toBe(true);
     expect(nodes.some(n => n.getExtras().surfaceRole === 'runoff')).toBe(true);
+  });
+  it('keeps all four doorway approaches clear in the actual exported geometry', async () => {
+    const shipped = JSON.parse(await readFile('public/assets/venues/hard-open-arena/manifest.json', 'utf8'));
+    await MeshoptDecoder.ready;
+    const io = new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({ 'meshopt.decoder': MeshoptDecoder });
+    const nodes = (await io.readBinary(await readFile(`public${shipped.url}`))).getRoot().listNodes();
+    const lanes = nodes.filter(n => n.getExtras().role === 'clear-access-lane').map(node => {
+      const center = new THREE.Vector3().fromArray(node.getWorldTranslation());
+      const half = new THREE.Vector3().fromArray(node.getExtras().halfExtents as number[]).multiplyScalar(.98);
+      // Floor/threshold contact is intended; reserve a clear body-height volume.
+      return new THREE.Box3(center.clone().sub(half), center.clone().add(half));
+    });
+    expect(lanes).toHaveLength(4);
+    const checked = nodes.filter(n => /Outer padded|Separate low|Flush recessed|Access frame|Player bench/.test(n.getName()));
+    expect(checked.length).toBeGreaterThanOrEqual(6);
+    for (const node of checked) {
+      const matrix = new THREE.Matrix4().fromArray(node.getWorldMatrix());
+      for (const primitive of node.getMesh()?.listPrimitives() ?? []) {
+        const positions = primitive.getAttribute('POSITION')!;
+        const indices = primitive.getIndices();
+        const count = indices?.getCount() ?? positions.getCount();
+        for (let i = 0; i < count; i += 3) {
+          const box = new THREE.Box3();
+          for (let j = 0; j < 3; j++) {
+            const vertex = indices ? indices.getScalar(i + j) : i + j;
+            box.expandByPoint(new THREE.Vector3().fromArray(positions.getElement(vertex, [])).applyMatrix4(matrix));
+          }
+          expect(lanes.some(lane => lane.intersectsBox(box)), `${node.getName()} blocks an entrance`).toBe(false);
+        }
+      }
+    }
+    const wall = nodes.find(n => n.getExtras().arenaPart === 'perimeterWall');
+    const low = nodes.find(n => n.getExtras().arenaPart === 'lowBoards');
+    expect(wall).toBeDefined();
+    expect(low).toBeDefined();
+    const bounds = (node: NonNullable<typeof wall>) => {
+      const box = new THREE.Box3();
+      const matrix = new THREE.Matrix4().fromArray(node.getWorldMatrix());
+      for (const primitive of node.getMesh()!.listPrimitives()) {
+        const positions = primitive.getAttribute('POSITION')!;
+        for (let i = 0; i < positions.getCount(); i++) box.expandByPoint(new THREE.Vector3().fromArray(positions.getElement(i, [])).applyMatrix4(matrix));
+      }
+      return box;
+    };
+    expect(bounds(wall!).max.y).toBeCloseTo(2.35, 2);
+    expect(bounds(low!).max.y).toBeCloseTo(.42, 2);
+    const leaves = nodes.filter(n => n.getExtras().role === 'sliding-roof-leaf');
+    expect(leaves).toHaveLength(2);
+    for (const leaf of leaves) {
+      const box = bounds(leaf);
+      expect(box.min.x > 16.5 || box.max.x < -16.5).toBe(true);
+      expect(box.min.y).toBeGreaterThan(30);
+    }
   });
   it('rejects unbounded, foreign, and incompatible manifests', () => {
     expect(() => validateVenueManifest(manifest)).not.toThrow();

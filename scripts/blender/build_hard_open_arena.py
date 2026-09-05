@@ -21,6 +21,7 @@ DESIGN = json.loads((SOURCE / 'design.json').read_text())
 B = DESIGN['bowl']
 C = DESIGN['court']
 R = DESIGN['roof']
+P = DESIGN['perimeter']
 
 # Only this process's scene is rebuilt. Invoke in the dedicated project session.
 bpy.ops.object.select_all(action='SELECT')
@@ -229,8 +230,8 @@ def strip(batch, inner, outer, z1, z2=None, start=0, end=1, count=256):
 
 
 # Continuous stepped bowl, segmented stair aisles and deliberate entry openings.
-tiers = [(0, B['lowerRows'], .65, B['lowerRise']),
-         (B['lowerRows']*B['rowDepth']+B['concourseWidth'], B['upperRows'], 12.0, B['upperRise'])]
+tiers = [(0, B['lowerRows'], 2.65, B['lowerRise']),
+         (B['lowerRows']*B['rowDepth']+B['concourseWidth'], B['upperRows'], 13.8, B['upperRise'])]
 seat_count = 0
 seat_templates = []
 for i, mat in enumerate(seat_mats):
@@ -267,7 +268,9 @@ for tier, (offset, rows, base, rise) in enumerate(tiers):
         d, h = offset+row*B['rowDepth'], base+row*rise
         for sec in range(B['sections']):
             start, end = sec/B['sections'], (sec+1)/B['sections']
-            tunnel = row < 4 and sec in (3, 11, 19, 27)
+            # Court access is BELOW the raised front tier, not a shed pushed
+            # across the apron. Only the upper concourse cuts through seat rows.
+            tunnel = tier == 1 and row < 4 and sec in (3, 11, 19, 27)
             if not tunnel:
                 strip(treads,d,d+B['rowDepth'],h,start=start,end=end)
                 strip(risers,d,d,h-rise,h,start=start,end=end)
@@ -309,11 +312,11 @@ for tier, (offset, rows, base, rise) in enumerate(tiers):
 lower_end = B['lowerRows']*B['rowDepth']
 outer = tiers[1][0]+B['upperRows']*B['rowDepth']
 concourse = Batch('Mid-bowl continuous concourse',concrete)
-strip(concourse,lower_end,tiers[1][0],10.0)
+strip(concourse,lower_end,tiers[1][0],11.8)
 concourse.finish()
 faces = Batch('Mid-tier fascia and upper parapet',fascia)
-strip(faces,tiers[1][0],tiers[1][0],10.0,12.05)
-strip(faces,outer,outer,21.6,26.5)
+strip(faces,tiers[1][0],tiers[1][0],11.8,13.85)
+strip(faces,outer,outer,23.4,26.5)
 strip(faces,outer,outer+3.5,24.6)
 faces.finish()
 # Complete the external shell so aerial inspection does not reveal a floating roof.
@@ -343,7 +346,7 @@ for i in range(128):
 glazing.finish()
 frames.finish()
 barriers = Batch('Concourse edge railings',silver)
-for d,h in ((lower_end-.12,10.15),(tiers[1][0]-.12,12.1),(outer-.3,22.6)):
+for d,h in ((lower_end-.12,11.95),(tiers[1][0]-.12,13.9),(outer-.3,24.4)):
     for i in range(256):
         p,q = point(d,i/256),point(d,(i+1)/256)
         for z in (h+.5,h+1):
@@ -351,18 +354,48 @@ for d,h in ((lower_end-.12,10.15),(tiers[1][0]-.12,12.1),(outer-.3,22.6)):
         if i%2 == 0:
             barriers.beam((p.x,p.y,h),(p.x,p.y,h+1),.025)
 barriers.finish()
-tunnels = Batch('Four courtside tunnel frames',concrete)
-for sec in (3,11,19,27):
-    p = point(.15,(sec+.5)/32)
-    tangent = (point(.15,(sec+.501)/32)-p).normalized()
-    angle = math.atan2(tangent.y,tangent.x)
-    tunnels.box((p.x,p.y,2.6),(4.1,3.6,.35),angle)
-    for sign in (-1,1):
-        tunnels.box((p.x+sign*tangent.x*2,p.y+sign*tangent.y*2,1.2),(.3,3.6,2.5),angle)
-tunnels.finish()
+# Tall padded retaining wall follows the seating edge. Split its straight
+# sides at exact doorway edges, so neither wall nor low board crosses access.
+wall = Batch('Outer padded retaining wall with four access openings',board_mat,court_collection)
+wall_points = path(0)[0]
+for a,b in zip(wall_points,wall_points[1:]):
+    cuts = [0.0,1.0]
+    on_side = abs(abs(a.x)-B['innerHalfWidth']) < .001 and abs(a.x-b.x) < .001
+    if on_side and abs(b.y-a.y) > .001:
+        for center in P['portalCenters']:
+            for edge in (center-P['portalWidth']/2,center+P['portalWidth']/2):
+                t=(edge-a.y)/(b.y-a.y)
+                if 0<t<1: cuts.append(t)
+    for lo,hi in zip(sorted(cuts),sorted(cuts)[1:]):
+        u,v=a.lerp(b,lo),a.lerp(b,hi)
+        middle=(u+v)/2
+        opening=on_side and any(abs(middle.y-c)<P['portalWidth']/2 for c in P['portalCenters'])
+        bottom=P['portalHeight'] if opening else 0
+        height=P['wallHeight']-bottom
+        wall.box((middle.x,middle.y,bottom+height/2),((v-u).length,P['wallThickness'],height),math.atan2(v.y-u.y,v.x-u.x))
+wall.finish()['arenaPart']='perimeterWall'
+portal_lining=Batch('Flush recessed player access linings',fascia,court_collection)
+portal_trim=Batch('Access frame edge trims',steel,court_collection)
+for side in (-1,1):
+    for y in P['portalCenters']:
+        x=side*B['innerHalfWidth']
+        for sign in (-1,1):
+            portal_lining.box((x+side*1.05,y+sign*(P['portalWidth']/2+.065),P['portalHeight']/2),(2.1,.13,P['portalHeight']))
+            portal_trim.box((x-side*.18,y+sign*(P['portalWidth']/2+.035),P['portalHeight']/2),(.05,.07,P['portalHeight']))
+        portal_lining.box((x+side*1.05,y,P['portalHeight']+.07),(2.1,P['portalWidth'],.14))
+        portal_lining.box((x+side*2.15,y,P['portalHeight']/2),(.12,P['portalWidth'],P['portalHeight']))
+        portal_lining.box((x+side*1.05,y,-.035),(2.1,P['portalWidth'],.07))
+        # Metadata is an inspection contract, not a gameplay collider.
+        lane=bpy.data.objects.new(f'Clear player access {side:+} {y:+}',None)
+        anchors.objects.link(lane)
+        lane.location=(side*13.2,y,1)
+        lane['role']='clear-access-lane'
+        lane['halfExtents']=[2.4,1.0,1.28]  # glTF Y-up coordinates
+portal_lining.finish()
+portal_trim.finish()
 vestibules=Batch('Recessed dark access vestibules',board_mat)
-for offset,rows,base,rise in tiers:
-    floor=0 if offset==0 else 10.0
+for offset,rows,base,rise in tiers[1:]:
+    floor=11.8
     ceiling=base+4*rise-.08
     for sec in (3,11,19,27):
         fraction=(sec+.5)/32
@@ -378,64 +411,93 @@ for offset,rows,base,rise in tiers:
             vestibules.box((p.x+side*tangent.x*width/2,p.y+side*tangent.y*width/2,(floor+ceiling)/2),(.16,4,ceiling-floor),angle)
 vestibules.finish()
 
-# Fixed perimeter roof, two parked sliding leaves, paired runway trusses.
+# The physical aperture is independent of bowl offsets. The old ring's opening
+# exceeded its declared dimensions and therefore never shaded the court ends.
+def aperture(fraction):
+    # Same perimeter correspondence as the outer rounded bowl; rectangular opening.
+    p=point(0,fraction)
+    scale=min(R['openingHalfWidth']/max(abs(p.x),.001),R['openingHalfLength']/max(abs(p.y),.001))
+    return p*scale
+
+def roof_skin(batch,inner_z,outer_z,reverse=False):
+    for i in range(256):
+        a,b=i/256,(i+1)/256
+        u,v=aperture(a),aperture(b)
+        p,q=point(outer+5,a),point(outer+5,b)
+        verts=[(u.x,u.y,inner_z),(p.x,p.y,outer_z),(q.x,q.y,outer_z),(v.x,v.y,inner_z)]
+        batch.face(list(reversed(verts)) if reverse else verts)
+
+# Fixed perimeter roof and separately modelled sliding-panel assemblies.
 roof = Batch('Fixed perimeter standing-seam roof',roof_mat,roof_collection)
-strip(roof,outer-12,outer+5,R['height'],26.5)
+roof_skin(roof,R['height'],26.5)
 roof.finish()
 under = Batch('Roof soffit and perimeter rim',fascia,roof_collection)
-strip(under,outer-12,outer-12,R['height']-.55,R['height'])
+for i in range(256):
+    p,q=aperture(i/256),aperture((i+1)/256)
+    under.face([(p.x,p.y,R['height']-.55),(q.x,q.y,R['height']-.55),(q.x,q.y,R['height']),(p.x,p.y,R['height'])])
 strip(under,outer+5,outer+5,25.9,26.5)
-strip(under,outer-12,outer+5,R['height']-.3,26.2)
-# Face the broad soffit downward into the bowl.
-under.faces[-256:] = [tuple(reversed(face)) for face in under.faces[-256:]]
+roof_skin(under,R['height']-.3,26.2,reverse=True)
 under.finish()
 soffit_ribs=Batch('Underside radial roof purlins',steel,roof_collection)
 for i in range(128):
-    p,q=point(outer-12,i/128),point(outer+4,i/128)
+    p,q=aperture(i/128),point(outer+4,i/128)
     soffit_ribs.beam((p.x,p.y,R['height']-.5),(q.x,q.y,26.0),.08)
 soffit_ribs.finish()
 seams = Batch('Radial roof seams and rain gutters',roof_seam,roof_collection)
 for i in range(256):
-    p,q = point(outer-12,i/256),point(outer+5,i/256)
+    p,q = aperture(i/256),point(outer+5,i/256)
     seams.beam((p.x,p.y,R['height']+.05),(q.x,q.y,26.56),.035)
 seams.finish()
-trusses = Batch('Exposed triangulated roof rigging',silver,roof_collection)
-dark_truss = Batch('Open roof runway beams',steel,roof_collection)
+trusses=Batch('Deep paired transverse runway trusses',silver,roof_collection)
+tracks=Batch('Twin steel rails and carriage bearing plates',steel,roof_collection)
+catwalk=Batch('Roof maintenance catwalk and guard rails',silver,roof_collection)
+bogies=Batch('Sliding roof bogie wheels axles and drive motors',steel,roof_collection)
 for side in (-1,1):
-    x = side*R['openingHalfWidth']
-    for z in (27.0,30.0):
-        trusses.beam((x,-44,z),(x,44,z),.18,8)
-    for i in range(22):
-        y = -44+i*4
-        trusses.beam((x,y,27),(x,y+4,30),.085)
-        trusses.beam((x,y,30),(x,y+4,27),.085)
-        trusses.beam((x,y,27),(x,y,30),.09)
-    # Visible parked roof leaves clear the playing aperture completely.
-    parked = Batch(f'Parked retractable leaf {side:+}',roof_mat,roof_collection)
-    parked.box((side*31.5,0,30.45),(18.5,61,.28))
-    parked.finish()
-    ribs=Batch(f'Sliding leaf {side:+} underside ribs',steel,roof_collection)
-    for y in range(-30,31,3):
-        ribs.box((side*31.5,y,30.15),(18.5,.12,.25))
+    y=side*(R['openingHalfLength']+.7)
+    # Paired chords give the truss depth in both section and plan.
+    for dy in (-.48,.48):
+        for z in (27.0,30.0): trusses.beam((-43,y+dy,z),(43,y+dy,z),.14,8)
+        for i in range(22):
+            x=-43+i*86/22
+            trusses.beam((x,y+dy,27),(x+86/22,y+dy,30),.075)
+            trusses.beam((x,y+dy,30),(x+86/22,y+dy,27),.075)
+        tracks.box((0,y+dy,30.15),(86,.12,.18))
+    for i in range(23):
+        x=-43+i*86/22
+        trusses.beam((x,y-.48,30),(x,y+.48,30),.09)
+        catwalk.box((x,y+side*1.3,28.8),(86/22-.025,.7,.07))
+        catwalk.beam((x,y+side*1.65,28.8),(x,y+side*1.65,29.9),.025)
+    catwalk.beam((-43,y+side*1.65,29.9),(43,y+side*1.65,29.9),.026)
+for side in (-1,1):
+    width=R['openingHalfWidth']
+    center=side*(width*1.5+R['leafClearance'])
+    parked=Batch(f'Parked retractable leaf {side:+}',roof_mat,roof_collection)
+    parked.box((center,0,R['leafElevation']),(width,2*R['openingHalfLength'],.24))
+    parked.finish()['role']='sliding-roof-leaf'
+    ribs=Batch(f'Sliding leaf {side:+} triangulated support frame',silver,roof_collection)
+    for j in range(9):
+        y=-R['openingHalfLength']+j*R['openingHalfLength']/4
+        a,b=center-width/2,center+width/2
+        ribs.beam((a,y,30.55),(b,y,30.55),.08)
+        ribs.beam((a,y,29.95),(b,y,29.95),.08)
+        for i in range(6):
+            x=a+i*width/6
+            ribs.beam((x,y,29.95),(x+width/6,y,30.55),.045)
     ribs.finish()
-    dark_truss.beam((x,-44,30.15),(x,44,30.15),.24,8)
-    for i in range(17):
-        y = -30+i*3.75
-        trusses.beam((x,y,29.9),(side*41,y,28.8),.105)
-        trusses.beam((x,y,28.4),(side*41,y,28.1),.105)
-        for j in range(5):
-            a = x+side*j*3.9
-            trusses.beam((a,y,28.4),(a+side*3.9,y,29.9),.055)
-for side in (-1,1):
-    y = side*R['openingHalfLength']
-    for z in (27.1,29.7):
-        trusses.beam((-43,y,z),(43,y,z),.16,8)
-    for i in range(22):
-        x = -43+i*86/22
-        trusses.beam((x,y,27.1),(x+86/22,y,29.7),.075)
-        trusses.beam((x,y,29.7),(x+86/22,y,27.1),.075)
+    for x in (center-width/2+.7,center+width/2-.7):
+        for end in (-1,1):
+            y=end*(R['openingHalfLength']+.7)
+            bogies.box((x,y,30.58),(1.35,1.45,.18))
+            bogies.box((x,y-end*.6,30.87),(.48,.45,.34))
+            for dx in (-.4,.4):
+                for dy in (-.48,.48):
+                    bogies.beam((x+dx,y+dy-.065,30.43),(x+dx,y+dy+.065,30.43),.2,12)
+            # Bracket joins carriage to panel rather than floating beside it.
+            bogies.beam((x,y,30.68),(x,end*R['openingHalfLength'],30.68),.11)
 trusses.finish()
-dark_truss.finish()
+tracks.finish()
+catwalk.finish()
+bogies.finish()
 
 fixtures = Batch('Floodlight housings',steel,roof_collection)
 diffusers = Batch('Floodlight LED panels',lamp_mat,roof_collection)
@@ -457,10 +519,11 @@ blue.box((0,0,-.04),(C['width'],C['length'],.08))
 blue.finish()
 green = Batch('Green runback and sideline apron',runoff_green,court_collection,'runoff')
 w,h = C['width']/2,C['length']/2
-green.face([(-14,-23,0),(14,-23,0),(14,-h,0),(-14,-h,0)])
-green.face([(-14,h,0),(14,h,0),(14,23,0),(-14,23,0)])
-green.face([(-14,-h,0),(-w,-h,0),(-w,h,0),(-14,h,0)])
-green.face([(w,-h,0),(14,-h,0),(14,h,0),(w,h,0)])
+apron_x,apron_y=B['innerHalfWidth']+.3,B['innerHalfLength']+.3
+green.face([(-apron_x,-apron_y,0),(apron_x,-apron_y,0),(apron_x,-h,0),(-apron_x,-h,0)])
+green.face([(-apron_x,h,0),(apron_x,h,0),(apron_x,apron_y,0),(-apron_x,apron_y,0)])
+green.face([(-apron_x,-h,0),(-w,-h,0),(-w,h,0),(-apron_x,h,0)])
+green.face([(w,-h,0),(apron_x,-h,0),(apron_x,h,0),(w,h,0)])
 green.finish()
 lines = Batch('Regulation line markings',white,court_collection)
 for y in (-h,h):
@@ -503,16 +566,22 @@ net.finish()
 tape.finish()
 posts.finish()
 
-boards = Batch('Courtside padded walls',board_mat,court_collection)
+boards = Batch('Separate low courtside sponsor boards',board_mat,court_collection)
+board_signs=[]
 for side in (-1,1):
-    boards.box((side*13.65,0,.65),(.28,37.8,1.3))
-    boards.box((0,side*22.1,.65),(22,.28,1.3))
-    for y in (-18.5,18.5):
-        boards.box((side*12.35,y,.65),(2.8,.28,1.3),-side*math.copysign(math.pi/4,y))
-boards.finish()
+    # Deliberate breaks align with the doorway approaches. The central player
+    # zone is also open for benches and the umpire, without crossed boards.
+    for start,end in ((-15.5,-12.35),(-9.05,-7.1),(7.1,9.05),(12.35,15.5)):
+        y=(start+end)/2
+        boards.box((side*P['boardSideX'],y,P['boardHeight']/2),(.18,end-start,P['boardHeight']))
+        board_signs.append(((side*(P['boardSideX']-.105),y,.12),-side*math.pi/2))
+    for x in (-6.5,-2.2,2.2,6.5):
+        boards.box((x,side*P['boardEndY'],P['boardHeight']/2),(3.9,.18,P['boardHeight']))
+        board_signs.append(((x,side*(P['boardEndY']-.105),.12),math.pi if side<0 else 0))
+boards.finish()['arenaPart']='lowBoards'
 bench = Batch('Player bench frames and umpire chair',silver,court_collection)
 bench_seats = Batch('Player bench slats',seat_mats[1],court_collection)
-for y in (-7,7):
+for y in (-3.8,3.8):
     for x in (-10.8,-10.2):
         bench.beam((x,y-1.1,0),(x,y-1.1,.45),.033)
         bench.beam((x,y+1.1,0),(x,y+1.1,.45),.033)
@@ -522,12 +591,14 @@ for y in (-7,7):
     # Cooler beside each bench.
     bench_seats.box((-10.4,y+1.8,.3),(.7,.6,.6))
 for y in (-.48,.48):
-    for x in (9.2,10.1):
-        bench.beam((x,y,0),(9.65+(x-9.65)*.65,y,2.2),.036)
+    for x in (-9.15,-8.25):
+        bench.beam((x,y,0),(-8.7+(x+8.7)*.65,y,2.2),.036)
 for i in range(7):
-    bench.beam((10.1-i*.025,-.45,i*.30),(10.1-i*.025,.45,i*.30),.03)
-bench_seats.box((9.6,0,2.1),(.7,.9,.10))
-bench_seats.box((9.92,0,2.42),(.07,.9,.58))
+    bench.beam((-9.15+i*.025,-.45,i*.30),(-9.15+i*.025,.45,i*.30),.03)
+bench_seats.box((-8.7,0,2.1),(.7,.9,.10))
+bench_seats.box((-9.02,0,2.42),(.07,.9,.58))
+for y in (-.42,.42):
+    bench.beam((-9,y,2.28),(-8.4,y,2.28),.025)
 bench.finish()
 bench_seats.finish()
 
@@ -552,12 +623,17 @@ def text_object(name, body, location, size, owner=court_collection, rotation=(0,
 for side in (-1,1):
     text_object(f'Neutral end-court wordmark {side}', 'T E N M U L A T E', (0,side*18.5,.006),.46,
                 rotation=(0,0,math.pi if side<0 else 0))
-    text_object(f'End wall signage {side}', 'T E N M U L A T E', (0,side*21.93,.53),.4,
+    text_object(f'End wall signage {side}', 'T E N M U L A T E', (0,side*(B['innerHalfLength']-.18),1.35),.62,
                 rotation=(math.pi/2,0,math.pi if side<0 else 0))
+    for y in (-6,0,6):
+        text_object(f'Side wall signage {side} {y}', 'T E N M U L A T E', (side*(B['innerHalfWidth']-.18),y,1.35),.55,
+                    rotation=(math.pi/2,0,-side*math.pi/2))
+for i,(position,angle) in enumerate(board_signs):
+    text_object(f'Low board wordmark {i}', 'TENMULATE',position,.23,rotation=(math.pi/2,0,angle))
 for sec in range(32):
     p=point(tiers[1][0]-.06,(sec+.5)/32)
     tangent=(point(tiers[1][0]-.06,(sec+.501)/32)-p).normalized()
-    text_object(f'Section {sec+1:02}',f'{sec+1:02}',(p.x,p.y,10.65),.5,architecture,
+    text_object(f'Section {sec+1:02}',f'{sec+1:02}',(p.x,p.y,12.45),.5,architecture,
                 (math.pi/2,0,math.atan2(tangent.y,tangent.x)+math.pi))
 
 # A compact original score display at each end, with modelled frame and characters.

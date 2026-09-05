@@ -2,9 +2,9 @@
   "id": "hard-open-arena",
   "version": 1,
   "compatibility": "tenmulate-court-v1",
-  "url": "/assets/venues/hard-open-arena/hard-open-arena.a72128d220f4.glb",
-  "bytes": 5724948,
-  "sha256": "a72128d220f48e41dd013fb6fc42491dbf53a7411f231ab7310e6717a0f5b11e",
+  "url": "/assets/venues/hard-open-arena/hard-open-arena.8a6bb53797c2.glb",
+  "bytes": 5750320,
+  "sha256": "8a6bb53797c27715b1c7b6c4e24ba2509751a612a14bcd5fc7df34b0499f957d",
   "source": "assets/venues/hard-open-arena/hard-open-arena.blend",
   "anchors": {
     "court_origin": [
@@ -38,7 +38,7 @@
       0
     ]
   },
-  "seats": 13216,
+  "seats": 13304,
   "extensions": [
     "EXT_mesh_gpu_instancing",
     "EXT_texture_webp",
@@ -46,6 +46,6 @@
     "EXT_meshopt_compression"
   ],
   "materials": 19,
-  "meshes": 83,
+  "meshes": 89,
   "textureBytes": 545614
 }
