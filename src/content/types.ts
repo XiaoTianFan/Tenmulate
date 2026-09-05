@@ -34,6 +34,7 @@ export type ShotDefinitionV1 = Readonly<{
   opponentHand: OpponentHand;
   serveRhythm?: ServeRhythm;
   backhandStyle?: 'one-handed' | 'two-handed';
+  stroke?: 'forehand' | 'backhand';
   netClearanceM?: number;
   receiverZ?: number;
   direction: 'Near left' | 'Body' | 'Near right';

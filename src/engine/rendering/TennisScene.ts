@@ -12,6 +12,9 @@ import { updateSceneMaterialEnvironment, type SceneMaterialBundle } from './scen
 import { BALL_PRESENTATION } from './presentationMaterials';
 import { AUTHORED_VENUES, isAuthoredVenue, VenueAssetManager, type AuthoredVenueId, type VenueAssetState } from './VenueAssetManager';
 import { resolveVenueLighting } from './venueLighting';
+import type { CompiledSession } from '../session/compileSession';
+import { motionEvent, motionClip, sampleOpponentTimeline, type MotionEvent } from '../session/opponentTimeline';
+import { SHOTS } from '../../content/bundled';
 
 export type CameraConfiguration = Readonly<{
   eyeHeight: number;
@@ -124,6 +127,10 @@ export class TennisScene {
   private readonly courtPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
   private readonly courtIntersection = new THREE.Vector3();
   private trajectory: ResolvedTrajectory | null = null;
+  private session: CompiledSession | null = null;
+  private sessionClock: Readonly<{ current: number }> | null = null;
+  private motionEvents: readonly MotionEvent[] = [];
+  private previewEvent: MotionEvent | null = null;
   private elapsed = 0;
   private running = true;
   private playbackRate = 1;
@@ -247,7 +254,11 @@ export class TennisScene {
   setTrajectory(trajectory: ResolvedTrajectory): void {
     this.trajectory = trajectory;
     this.elapsed = 0;
-    this.opponent.group.position.set(trajectory.intent.source.x, 0, trajectory.intent.source.z);
+    const family = trajectory.intent.shotType ?? trajectory.intent.family;
+    this.previewEvent = motionEvent({ index: 0, startTime: 3, shot: {
+      ...SHOTS[0]!, ...trajectory.intent, family: family === 'serve' || family === 'overhead' || family === 'volley' || family === 'lob' ? family : 'groundstroke',
+      opponentHand: trajectory.intent.opponentHand ?? 'right', paceKmh: trajectory.resolved.launchSpeedKmh,
+    } });
     if (this.fallbackBallMachine) {
       this.fallbackBallMachine.position.x = trajectory.intent.source.x;
       this.fallbackBallMachine.position.z = trajectory.intent.source.z;
@@ -257,6 +268,12 @@ export class TennisScene {
     );
     this.trajectoryLine.geometry.dispose();
     this.trajectoryLine.geometry = new THREE.BufferGeometry().setFromPoints(points);
+  }
+
+  setSession(session: CompiledSession | null, clock: Readonly<{ current: number }> | null): void {
+    this.session = session;
+    this.sessionClock = clock;
+    this.motionEvents = session?.repetitions.map(motionEvent) ?? [];
   }
 
   setTrajectoryVisible(visible: boolean): void {
@@ -484,8 +501,8 @@ export class TennisScene {
   private readonly animate = (now: number): void => {
     const delta = Math.min(0.05, Math.max(0, (now - this.lastFrame) / 1000));
     this.lastFrame = now;
-    if (this.running) this.elapsed += delta * this.playbackRate;
-    this.opponent.update(this.running ? delta * this.playbackRate : 0);
+    if (this.sessionClock) this.elapsed = this.sessionClock.current;
+    else if (this.running) this.elapsed += delta * this.playbackRate;
     this.skySystem.update(now);
     this.weatherSystem.update(this.elapsed);
     const wind = windVelocityFromEnvironment(this.environmentConfiguration);
@@ -498,27 +515,57 @@ export class TennisScene {
     );
     if (this.trajectory) {
       const duration = this.trajectory.samples.at(-1)?.time ?? 0;
-      const sampleTimes = trajectoryPlaybackTimes(this.elapsed, duration, this.loopTrajectory, this.trajectoryInterval);
-      this.ensureBallCount(Math.max(1, sampleTimes.length));
+      let events = this.motionEvents;
+      let motionTime = this.elapsed;
+      const visibleFlights: { trajectory: ResolvedTrajectory; time: number }[] = [];
+      if (this.session) {
+        for (const repetition of this.session.repetitions) {
+          const age = this.elapsed - repetition.startTime;
+          if (age >= 0 && age <= (repetition.trajectory.samples.at(-1)?.time ?? 0)) visibleFlights.unshift({ trajectory: repetition.trajectory, time: age });
+        }
+      } else if (this.previewEvent) {
+        const clip = motionClip(this.previewEvent.clip);
+        const interval = Math.max(clip.duration + .18, this.trajectoryInterval ?? duration + .5);
+        const cycle = this.loopTrajectory ? Math.max(0, Math.floor((this.elapsed - 3) / interval)) : 0;
+        const shiftEvent = (offset: number): MotionEvent => ({ ...this.previewEvent!, index: offset,
+          start: this.previewEvent!.start + offset * interval, end: this.previewEvent!.end + offset * interval,
+          contactTime: 3 + offset * interval });
+        events = [shiftEvent(0), shiftEvent(1), shiftEvent(2)];
+        if (cycle > 0) motionTime = this.elapsed - (cycle - 1) * interval;
+        else events = this.loopTrajectory ? events : [shiftEvent(0)];
+        const first = this.loopTrajectory ? Math.max(0, cycle - Math.ceil(duration / interval)) : 0;
+        for (let index = cycle; index >= first; index -= 1) {
+          const age = this.elapsed - 3 - index * interval;
+          if (age >= 0 && age <= duration) visibleFlights.push({ trajectory: this.trajectory, time: age });
+        }
+      }
+      const motion = sampleOpponentTimeline(events, motionTime);
+      if (motion) {
+        this.opponent.sampleMotion(motion);
+        this.canvas.dataset.motionClip = motion.layers.find(layer => layer.weight > .5)?.clip ?? 'ready';
+        this.canvas.dataset.motionTime = motion.layers[0]?.time.toFixed(4) ?? '0';
+        this.canvas.dataset.opponentRoot = [motion.root.x, motion.root.z].map(v => v.toFixed(4)).join(',');
+        const contact = this.opponent.getContactPosition();
+        if (motion.event && contact && Math.abs(motionTime - motion.event.contactTime) < 1 / 60) this.canvas.dataset.contactError = contact.distanceTo(new THREE.Vector3(motion.event.source.x, motion.event.source.y, motion.event.source.z)).toFixed(5);
+        else delete this.canvas.dataset.contactError;
+      }
+      this.ensureBallCount(Math.max(1, visibleFlights.length + (motion?.toss ? 1 : 0)));
       for (let index = 0; index < this.balls.length; index += 1) {
         const ball = this.balls[index]!;
-        const sampleTime = sampleTimes[index];
-        ball.visible = sampleTime !== undefined;
-        if (sampleTime === undefined) continue;
-        const position = sampleTrajectoryAt(
-          this.trajectory,
-          sampleTime,
-          this.loopTrajectory && this.trajectoryInterval === null,
-        );
+        const flight = visibleFlights[index];
+        const toss = index === visibleFlights.length ? motion?.toss : null;
+        ball.visible = !!flight || !!toss;
+        if (!ball.visible) continue;
+        const position = toss ?? sampleTrajectoryAt(flight!.trajectory, flight!.time, false);
         ball.position.set(position.x, position.y, position.z);
       }
-      const cycleTime = sampleTimes[0] ?? 0;
-      const ballActive = sampleTimes.length > 0;
+      const cycleTime = visibleFlights[0]?.time ?? 0;
+      const ballActive = visibleFlights.length > 0;
       this.ballTrail.visible = this.showBallTrail && ballActive;
       if (this.showBallTrail && ballActive) {
         const points: THREE.Vector3[] = [];
         for (let index = 9; index >= 0; index -= 1) {
-          const trailPosition = sampleTrajectoryAt(this.trajectory, Math.max(0, cycleTime - index * 0.018), false);
+          const trailPosition = sampleTrajectoryAt(visibleFlights[0]!.trajectory, Math.max(0, cycleTime - index * 0.018), false);
           points.push(new THREE.Vector3(trailPosition.x, trailPosition.y, trailPosition.z));
         }
         this.ballTrail.geometry.dispose();
@@ -530,7 +577,8 @@ export class TennisScene {
     }
     if (this.cameraMotion) {
       const delay = this.cameraMotion.delay ?? 0;
-      const raw = Math.min(1, Math.max(0, (this.elapsed - delay) / Math.max(0.001, this.cameraMotion.duration)));
+      const currentContact = this.session ? [...this.session.repetitions].reverse().find(repetition => repetition.startTime <= this.elapsed)?.startTime ?? 3 : 3;
+      const raw = Math.min(1, Math.max(0, (this.elapsed - currentContact - delay) / Math.max(0.001, this.cameraMotion.duration)));
       const alpha = raw * raw * (3 - 2 * raw);
       const from = this.cameraMotion.from;
       const to = this.cameraMotion.to;

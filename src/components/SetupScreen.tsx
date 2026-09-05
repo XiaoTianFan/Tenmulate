@@ -206,6 +206,10 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
     });
   }, [aimDirectionDeg, bounceFactor, landingDepthM, launchSpeedKmh, opponentHand, opponentPosition, returnPatternActive, returnReceiverSide, returnServePlacement, shotProfile.contactHeight, shotProfile.minimumNetClearanceM, shotType, spin, spinRateRpm, surface, windVelocity]);
   const bounce = trajectory.events.find((event) => event.type === 'bounce');
+  const returnPreviewDuration = useRef(7);
+  // A preview includes preparation and the complete outgoing flight before the
+  // next placement replaces it. Read the newest duration in the timer callback.
+  returnPreviewDuration.current = 3 + Math.max(1.42, trajectory.samples.at(-1)?.time ?? 0) + .2;
   const camera = useMemo<CameraConfiguration>(() => ({ eyeHeight, behindBaseline, lateral, yaw, pitch, fov }), [behindBaseline, eyeHeight, fov, lateral, pitch, yaw]);
 
   useEffect(() => {
@@ -315,10 +319,15 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
       return;
     }
     setReturnPreviewIndex(0);
-    const timer = window.setInterval(() => {
-      setReturnPreviewIndex((index) => (index + 1) % RETURN_SERVE_PATTERN.length);
-    }, Math.max(1.5, interval) * 1_000);
-    return () => window.clearInterval(timer);
+    let timer = 0;
+    const schedule = () => {
+      timer = window.setTimeout(() => {
+        setReturnPreviewIndex((index) => (index + 1) % RETURN_SERVE_PATTERN.length);
+        schedule();
+      }, Math.max(returnPreviewDuration.current, interval) * 1_000);
+    };
+    schedule();
+    return () => window.clearTimeout(timer);
   }, [interval, returnPatternActive, returnReceiverSide]);
 
   const applyCameraPosition = (preset: CameraPositionPresetV1) => {

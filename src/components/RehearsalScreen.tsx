@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import type { SessionLaunch } from '../app/types';
 import { practiceAudio } from '../engine/audio/AudioCueEngine';
+import { crossedCues, sessionCues } from '../engine/audio/sessionCues';
 import type { CameraMotion } from '../engine/rendering/TennisScene';
 import { useSessionPlayer } from '../hooks/useSessionPlayer';
 import { Modal } from './Modal';
@@ -42,12 +43,12 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
   const [resetToken, setResetToken] = useState(0);
   const audioRef = useRef(practiceAudio);
   const previousCueRef = useRef('');
+  const audioTimeRef = useRef(0);
   const player = useSessionPlayer(launch.session, playbackRate);
   const repetition = launch.session.repetitions[player.currentIndex] ?? launch.session.repetitions[0];
   const trajectory = repetition?.trajectory;
   const shot = repetition?.shot;
-  const bounce = trajectory?.events.find((event) => event.type === 'bounce');
-  const receiver = trajectory?.events.find((event) => event.type === 'receiver-plane');
+  const timedCues = useMemo(() => sessionCues(launch.session), [launch.session]);
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const onMetrics = useCallback(() => undefined, []);
 
@@ -60,7 +61,6 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
     if (cueKey === previousCueRef.current) return;
     previousCueRef.current = cueKey;
     if (player.status === 'countdown') audioRef.current?.play('countdown', soundEnabled ? audioLevels.countdown : 0);
-    if (player.status === 'playing') audioRef.current?.play('contact', soundEnabled ? audioLevels.contact : 0);
     if (player.status === 'completed') audioRef.current?.play('complete', soundEnabled ? audioLevels.countdown : 0);
   }, [audioLevels.contact, audioLevels.countdown, player.countdown, player.currentIndex, player.status, soundEnabled]);
 
@@ -71,17 +71,18 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
   }, [player.currentIndex]);
 
   useEffect(() => {
-    if (player.status !== 'playing' || !bounce) return;
-    const timeout = window.setTimeout(() => audioRef.current?.play('bounce', soundEnabled ? audioLevels.bounce : 0), (bounce.time / playbackRate) * 1000);
-    return () => window.clearTimeout(timeout);
-  }, [audioLevels.bounce, bounce, playbackRate, player.currentIndex, player.status, soundEnabled]);
-
-  useEffect(() => {
-    if (player.status !== 'playing' || !receiver) return;
-    const cueTime = Math.max(0.08, receiver.time - 0.55);
-    const timeout = window.setTimeout(() => audioRef.current?.play('footwork', soundEnabled ? audioLevels.footwork : 0), (cueTime / playbackRate) * 1000);
-    return () => window.clearTimeout(timeout);
-  }, [audioLevels.footwork, playbackRate, player.currentIndex, player.status, receiver, soundEnabled]);
+    let frame = 0;
+    const tick = () => {
+      const current = player.clock.current;
+      if (player.status !== 'paused' && player.status !== 'completed') {
+        for (const cue of crossedCues(timedCues, audioTimeRef.current, current)) audioRef.current.play(cue.kind, soundEnabled ? audioLevels[cue.kind] : 0);
+      }
+      audioTimeRef.current = current;
+      frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [audioLevels, player.clock, player.status, soundEnabled, timedCues]);
 
   useEffect(() => {
     const onVisibility = () => {
@@ -137,7 +138,7 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
 
   return (
     <main className={hudHidden ? 'rehearsal-shell hud-hidden' : 'rehearsal-shell'} onMouseMove={() => { if (hudHidden) setHudHidden(false); }}>
-      <SceneViewport camera={launch.camera} trajectory={trajectory} surface={launch.surface} environment={launch.environment} quality={launch.quality} running={playing} resetToken={resetToken} showTrajectory={launch.trajectoryEnabled || showDiagnostics} playbackRate={playbackRate} loopTrajectory={false} cameraMotion={cameraMotion} highContrastBall={highContrastBall} showBallTrail={showBallTrail} onMetrics={onMetrics} />
+      <SceneViewport camera={launch.camera} trajectory={trajectory} surface={launch.surface} environment={launch.environment} quality={launch.quality} running={playing} resetToken={resetToken} showTrajectory={launch.trajectoryEnabled || showDiagnostics} playbackRate={playbackRate} loopTrajectory={false} cameraMotion={cameraMotion} highContrastBall={highContrastBall} showBallTrail={showBallTrail} onMetrics={onMetrics} session={launch.session} sessionClock={player.clock} />
       <header className="rehearsal-header">
         <strong>Tenmulate</strong>
         <span className="drill-title">{launch.session.drill.title}</span>
@@ -157,6 +158,7 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
       <aside className="rehearsal-mode-panel">
         <span className={launch.trajectoryEnabled ? 'active' : ''}>Trajectory {launch.trajectoryEnabled ? 'on' : 'off'}</span>
         <small>Seed {launch.session.settings.seed}</small>
+        {launch.session.motionTimingAdjusted ? <small>Rhythm includes stroke preparation and court movement.</small> : null}
       </aside>
 
       <div className="rehearsal-transport" aria-label="Playback controls">

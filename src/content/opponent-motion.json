@@ -1,0 +1,80 @@
+{
+  "id": "tennis-local-v1",
+  "url": "/assets/opponents/tennis-local-v1.5d58b024e87a.glb",
+  "sha256": "5d58b024e87a1b431eb353028714fbfa65f1c2b6135b5246af7a26d03e73f96c",
+  "bytes": 1157060,
+  "skeleton": "quaternius-neutral-male-v1",
+  "scale": 1.011218512801939,
+  "floorOffset": 0.009616834919449929,
+  "clips": {
+    "ready": {
+      "duration": 1.2,
+      "recovery": 0.75,
+      "loop": true
+    },
+    "split-step": {
+      "duration": 0.6,
+      "recovery": 0.6,
+      "loop": false
+    },
+    "forehand": {
+      "duration": 2.4,
+      "contact": 0.9833333333333333,
+      "contactLocal": [
+        -0.8714336156845093,
+        1.0398368835449219,
+        0.5931230187416077
+      ],
+      "recovery": 1.733333,
+      "loop": false
+    },
+    "backhand": {
+      "duration": 2.2,
+      "contact": 1.0333333333333334,
+      "contactLocal": [
+        0.7139462232589722,
+        1.1092389822006226,
+        0.430842787027359
+      ],
+      "recovery": 1.79,
+      "loop": false
+    },
+    "serve": {
+      "duration": 3.05,
+      "contact": 1.6333333333333333,
+      "tossRelease": 0.7666666666666667,
+      "contactLocal": [
+        -0.15451490879058838,
+        2.671475887298584,
+        0.3732578754425049
+      ],
+      "tossLocal": [
+        0.10967841744422913,
+        1.6147010326385498,
+        0.3406528830528259
+      ],
+      "recovery": 2.383333,
+      "loop": false
+    },
+    "move-left": {
+      "duration": 0.6,
+      "recovery": 0.6,
+      "loop": true
+    },
+    "move-right": {
+      "duration": 0.6,
+      "recovery": 0.6,
+      "loop": true
+    },
+    "move-forward": {
+      "duration": 0.6,
+      "recovery": 0.6,
+      "loop": true
+    },
+    "move-backward": {
+      "duration": 0.6,
+      "recovery": 0.6,
+      "loop": true
+    }
+  }
+}

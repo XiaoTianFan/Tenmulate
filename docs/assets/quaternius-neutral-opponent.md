@@ -29,14 +29,12 @@ The source body sculpt still contains simplified facial volume. It is treated as
 - One 65-joint skinned humanoid, including fingers.
 - A 23-role canonical adapter covers root, pelvis, spine, head, shoulders, arms, hands, legs, feet, and toes.
 - `hand_l` and `hand_r` are the stable detachable-racket attachment bones.
-- There are no bundled animation clips. The browser loader accepts separately exported GLB animation bundles baked to the exact same bone names/rest pose.
-- The default static display uses a small procedural ready-stance correction so the unanimated carrier never appears in a T-pose.
+- This original source carrier has no animation. The default display now loads the derived `tennis-local-v1` bundle with nine clips and an original locally authored racket, baked to this exact rig in the sibling motion lab.
+- The static carrier retains procedural ready-stance support; gameplay now uses absolute-time skeletal sampling, root travel and leg IK. See the [motion ledger](../development/local-motion-pipeline.md) for hashes and evidence.
 - If the GLB or skeleton validation fails, the existing ball machine remains visible and the application continues to function.
 
 ## Open acceptance gates
 
-1. Retarget the owner-supplied forehand, backhand, normal serve, and connector motions onto this exact rig.
-2. Add a separate rights-cleared racket GLB and calibrate its right/left hand socket transform.
-3. Record clip hashes, handedness, root-motion policy, contact/toss/recovery markers, and valid playback-rate ranges.
-4. Pass normal-speed and frame-step foot, deformation, racket-contact, and ball-launch review from the player camera.
-5. Re-run named-device loading, caching, frame-time, memory, and 30-minute soak evidence with the accepted motion library.
+Local implementation covers the three source-informed strokes, connectors, separate racket node, provenance hashes, contact/toss/recovery metadata, mirrored handedness and contact-clock integration. Exported-skin tests and desktop browser review pass. The corrections are partly authored, not exact automatic Djokovic reconstruction.
+
+Remaining acceptance: owner technique/close-up grip review; distinct secondary shot styles; named-device loading, frame-time, memory, cross-browser and long-session checks. Public deployment remains separate.

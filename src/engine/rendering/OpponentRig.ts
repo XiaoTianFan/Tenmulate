@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { OPPONENT_MOTION, type MotionSample } from '../session/opponentTimeline';
 import { DEFAULT_RALLY_OPPONENT_POSITION } from '../../domain/court';
 import {
   OPPONENT_ASSET,
@@ -49,6 +50,8 @@ export class OpponentRig {
   private clips = new Map<string, THREE.AnimationClip>();
   private racketSockets: Partial<Record<OpponentHand, THREE.Object3D>> = {};
   private activeAction: THREE.AnimationAction | null = null;
+  private readonly motionActions = new Map<string, THREE.AnimationAction>();
+  private bakedCorrections: { bone: THREE.Object3D; position: THREE.Vector3; quaternion: THREE.Quaternion }[] = [];
   private disposed = false;
 
   constructor() {
@@ -101,7 +104,7 @@ export class OpponentRig {
     this.aimBoneAt('lowerarm_r', 'hand_r', combine([left, 0.32], [down, 0.12], [forward, 0.94]));
   }
 
-  async load(url = OPPONENT_ASSET.url): Promise<OpponentLoadReport> {
+  async load(url = OPPONENT_MOTION.url): Promise<OpponentLoadReport> {
     const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js');
     const gltf = await new GLTFLoader().loadAsync(url);
     if (this.disposed) {
@@ -121,26 +124,28 @@ export class OpponentRig {
       if (object.name === 'Eyes' || object.name === 'Eyebrows') object.visible = false;
       if (object instanceof THREE.Mesh || object instanceof THREE.SkinnedMesh) {
         const sourceMaterials = Array.isArray(object.material) ? object.material : [object.material];
-        for (const material of sourceMaterials) {
+        if (object instanceof THREE.SkinnedMesh) for (const material of sourceMaterials) {
           if (material !== this.neutralMaterial) material.dispose();
         }
-        object.material = this.neutralMaterial;
+        // The skinned carrier stays neutral; the separate racket retains graphite/string materials.
+        if (object instanceof THREE.SkinnedMesh) object.material = this.neutralMaterial;
         object.castShadow = true;
         object.receiveShadow = true;
         object.frustumCulled = false;
       }
     });
     model.updateMatrixWorld(true);
-    const sourceBounds = new THREE.Box3().setFromObject(model);
+    const body = model.getObjectByName('NeutralOpponentBody') ?? model;
+    const sourceBounds = new THREE.Box3().setFromObject(body);
     const sourceHeight = sourceBounds.max.y - sourceBounds.min.y;
     if (!Number.isFinite(sourceHeight) || sourceHeight <= 0.01) {
       throw new Error(`Opponent source height is invalid: ${sourceHeight}`);
     }
-    const scale = OPPONENT_ASSET.nominalHeightMeters / sourceHeight;
+    const scale = url === OPPONENT_MOTION.url ? OPPONENT_MOTION.scale : OPPONENT_ASSET.nominalHeightMeters / sourceHeight;
     model.scale.setScalar(scale);
     model.updateMatrixWorld(true);
-    const normalizedBounds = new THREE.Box3().setFromObject(model);
-    model.position.y -= normalizedBounds.min.y;
+    const normalizedBounds = new THREE.Box3().setFromObject(body);
+    model.position.y = url === OPPONENT_MOTION.url ? OPPONENT_MOTION.floorOffset : -normalizedBounds.min.y;
     model.updateMatrixWorld(true);
 
     const boneReport = inspectOpponentBoneNames(collectNames(model));
@@ -148,10 +153,12 @@ export class OpponentRig {
       throw new Error(`Opponent rig is missing bones: ${boneReport.missing.map(({ bone }) => bone).join(', ')}`);
     }
 
-    this.outlineMaterial = createOpponentOutlineMaterial(scale);
+    // The animated fingers and crossed arms need a narrower hull than the static
+    // carrier; the old 4.5 cm shell obscured the grip and face during strokes.
+    this.outlineMaterial = createOpponentOutlineMaterial(scale, gltf.animations.length ? .012 : undefined);
     const outlinedMeshes: THREE.Mesh[] = [];
     model.traverse((object) => {
-      if ((object instanceof THREE.Mesh || object instanceof THREE.SkinnedMesh) && object.visible) {
+      if (object instanceof THREE.SkinnedMesh && object.visible) {
         outlinedMeshes.push(object);
       }
     });
@@ -164,11 +171,21 @@ export class OpponentRig {
       right: model.getObjectByName(OPPONENT_SKELETON_ADAPTER.rightHand),
     };
     this.group.add(model);
-    this.applyNeutralReadyStance();
-    const posedBounds = new THREE.Box3().setFromObject(model);
-    model.position.y -= posedBounds.min.y;
+    if (!gltf.animations.length) this.applyNeutralReadyStance();
     model.updateMatrixWorld(true);
     for (const clip of gltf.animations) this.clips.set(clip.name, clip);
+    if (url === OPPONENT_MOTION.url) {
+      for (const name of Object.keys(OPPONENT_MOTION.clips)) {
+        if (!this.clips.has(name)) throw new Error(`Motion library is missing ${name}.`);
+      }
+      if (!model.getObjectByName('RacketContact')) throw new Error('Motion library is missing the racket contact anchor.');
+      for (const clip of gltf.animations) {
+        const action = this.mixer.clipAction(clip).play();
+        action.paused = true;
+        action.enabled = false;
+        this.motionActions.set(clip.name, action);
+      }
+    }
     this.group.visible = true;
 
     const displayBounds = new THREE.Box3().setFromObject(model);
@@ -222,15 +239,110 @@ export class OpponentRig {
     this.mixer?.update(deltaSeconds);
   }
 
+  /** Sample the same absolute time as ball physics, including backwards seeks. */
+  sampleMotion(sample: MotionSample): void {
+    if (!this.model || !this.mixer || !this.motionActions.size) return;
+    // PropertyMixer skips unchanged values. Undo procedural corrections before
+    // sampling, otherwise a paused frame would accumulate pelvis/leg changes.
+    for (const { bone, position, quaternion } of this.bakedCorrections) {
+      bone.position.copy(position); bone.quaternion.copy(quaternion);
+    }
+    this.group.position.set(sample.root.x, 0, sample.root.z);
+    this.group.rotation.y = sample.yaw;
+    this.group.scale.x = sample.hand === 'left' ? -1 : 1;
+    for (const action of this.motionActions.values()) { action.enabled = false; action.weight = 0; }
+    for (const layer of sample.layers) {
+      const action = this.motionActions.get(layer.clip);
+      if (!action || layer.weight <= 0) continue;
+      action.enabled = true; action.paused = true; action.weight = layer.weight; action.time = layer.time;
+    }
+    this.mixer.update(0);
+    this.bakedCorrections = ['pelvis', 'thigh_l', 'calf_l', 'foot_l', 'thigh_r', 'calf_r', 'foot_r'].map(name => {
+      const bone = this.model!.getObjectByName(name)!;
+      return { bone, position: bone.position.clone(), quaternion: bone.quaternion.clone() };
+    });
+    this.group.updateMatrixWorld(true);
+    const left = this.model.getObjectByName('foot_l')!.getWorldPosition(new THREE.Vector3());
+    const right = this.model.getObjectByName('foot_r')!.getWorldPosition(new THREE.Vector3());
+    if (Math.abs(sample.verticalCorrection) > 1e-7) {
+      const pelvis = this.model.getObjectByName('pelvis')!;
+      const world = pelvis.getWorldPosition(new THREE.Vector3());
+      world.y += sample.verticalCorrection;
+      pelvis.position.copy(pelvis.parent!.worldToLocal(world));
+      this.group.updateMatrixWorld(true);
+      // Keep grounded strokes planted; serve jump correction also lifts the airborne feet.
+      const airborne = sample.event?.clip === 'serve' && Math.min(left.y, right.y) > .15;
+      if (!airborne) { this.solveFoot('l', left); this.solveFoot('r', right); }
+    }
+    if (sample.footTargets) {
+      // Lower the hips just enough that both authored stride anchors are reachable.
+      // This avoids stretching the legs or allowing a planted ankle to slide.
+      let hipDrop = 0;
+      for (const [side, target] of [['l', sample.footTargets.left], ['r', sample.footTargets.right]] as const) {
+        const hip = this.model.getObjectByName(`thigh_${side}`)!.getWorldPosition(new THREE.Vector3());
+        const knee = this.model.getObjectByName(`calf_${side}`)!.getWorldPosition(new THREE.Vector3());
+        const ankle = this.model.getObjectByName(`foot_${side}`)!.getWorldPosition(new THREE.Vector3());
+        const reach = hip.distanceTo(knee) + knee.distanceTo(ankle) - .006;
+        const horizontal = Math.hypot(hip.x - target.x, hip.z - target.z);
+        hipDrop = Math.max(hipDrop, hip.y - target.y - Math.sqrt(Math.max(.01, reach * reach - horizontal * horizontal)));
+      }
+      if (hipDrop > 0) {
+        const pelvis = this.model.getObjectByName('pelvis')!, world = pelvis.getWorldPosition(new THREE.Vector3());
+        world.y -= hipDrop;
+        pelvis.position.copy(pelvis.parent!.worldToLocal(world));
+        this.group.updateMatrixWorld(true);
+      }
+      this.solveFoot('l', new THREE.Vector3(sample.footTargets.left.x, sample.footTargets.left.y, sample.footTargets.left.z));
+      this.solveFoot('r', new THREE.Vector3(sample.footTargets.right.x, sample.footTargets.right.y, sample.footTargets.right.z));
+    }
+    this.group.updateMatrixWorld(true);
+  }
+
+  private solveFoot(side: 'l' | 'r', worldTarget: THREE.Vector3): void {
+    if (!this.model) return;
+    const model = this.model, upper = model.getObjectByName(`thigh_${side}`)!, lower = model.getObjectByName(`calf_${side}`)!, foot = model.getObjectByName(`foot_${side}`)!;
+    const point = (object: THREE.Object3D) => model.worldToLocal(object.getWorldPosition(new THREE.Vector3()));
+    const modelQuaternion = (object: THREE.Object3D) => {
+      const q = new THREE.Quaternion();
+      new THREE.Matrix4().copy(model.matrixWorld).invert().multiply(object.matrixWorld).decompose(new THREE.Vector3(), q, new THREE.Vector3());
+      return q;
+    };
+    const setModelQuaternion = (object: THREE.Object3D, q: THREE.Quaternion) => { object.quaternion.copy(modelQuaternion(object.parent!).invert().multiply(q)); this.group.updateMatrixWorld(true); };
+    const aim = (object: THREE.Object3D, child: THREE.Object3D, direction: THREE.Vector3) => {
+      const from = point(child).sub(point(object)).normalize();
+      const delta = new THREE.Quaternion().setFromUnitVectors(from, direction.clone().normalize());
+      setModelQuaternion(object, delta.multiply(modelQuaternion(object)));
+    };
+    const base = point(upper), knee = point(lower), ankle = point(foot), target = model.worldToLocal(worldTarget.clone());
+    const footRotation = modelQuaternion(foot), l1 = base.distanceTo(knee), l2 = knee.distanceTo(ankle);
+    const axis = target.clone().sub(base), length = THREE.MathUtils.clamp(axis.length(), Math.abs(l1 - l2) + .001, l1 + l2 - .001);
+    axis.normalize();
+    const bend = new THREE.Vector3(0, 0, 1).addScaledVector(axis, -axis.z).normalize();
+    const along = (l1 * l1 - l2 * l2 + length * length) / (2 * length);
+    const joint = base.clone().addScaledVector(axis, along).addScaledVector(bend, Math.sqrt(Math.max(0, l1 * l1 - along * along)));
+    aim(upper, lower, joint.sub(base));
+    aim(lower, foot, base.addScaledVector(axis, length).sub(point(lower)));
+    setModelQuaternion(foot, footRotation);
+  }
+
+  getContactPosition(): THREE.Vector3 | null {
+    return this.model?.getObjectByName('RacketContact')?.getWorldPosition(new THREE.Vector3()) ?? null;
+  }
+
   dispose(): void {
     this.disposed = true;
     this.mixer?.stopAllAction();
     this.group.removeFromParent();
     const geometries = new Set<THREE.BufferGeometry>();
+    const materials = new Set<THREE.Material>();
     this.model?.traverse((object) => {
-      if (object instanceof THREE.Mesh || object instanceof THREE.SkinnedMesh) geometries.add(object.geometry);
+      if (object instanceof THREE.Mesh) {
+        geometries.add(object.geometry);
+        for (const material of Array.isArray(object.material) ? object.material : [object.material]) materials.add(material);
+      }
     });
     for (const geometry of geometries) geometry.dispose();
+    for (const material of materials) material.dispose();
     this.neutralMaterial.dispose();
     this.outlineMaterial?.dispose();
     this.outlineMaterial = null;
@@ -238,5 +350,7 @@ export class OpponentRig {
     this.mixer = null;
     this.activeAction = null;
     this.clips.clear();
+    this.motionActions.clear();
+    this.bakedCorrections = [];
   }
 }

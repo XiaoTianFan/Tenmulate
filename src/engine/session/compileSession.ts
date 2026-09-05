@@ -5,6 +5,7 @@ import type { OpponentHand, ServeRhythm } from '../../content/types';
 import type { ResolvedTrajectory } from '../trajectory/physics';
 import { resolveTrajectory, type SpinKind } from '../trajectory/physics';
 import { createSeededRandom } from '../random/seeded';
+import { minimumMotionGap, motionEvent } from './opponentTimeline';
 import type { Vec3 } from '../../domain/vector';
 import {
   RETURN_SERVE_PATTERN,
@@ -60,6 +61,7 @@ export type CompiledSession = Readonly<{
   repetitions: readonly CompiledRepetition[];
   restPeriods: readonly Readonly<{ afterIndex: number; startTime: number; endTime: number }>[];
   duration: number;
+  motionTimingAdjusted: boolean;
 }>;
 
 export const compileSession = (
@@ -177,6 +179,24 @@ export const compileSession = (
     }
   }
 
+  // Contact times remain the only launch authority. Add enough time for a complete
+  // stroke and reachable travel instead of overlapping clips or teleporting the body.
+  const originalStarts = repetitions.map(repetition => repetition.startTime);
+  for (let index = 1; index < repetitions.length; index += 1) {
+    const previous = repetitions[index - 1]!, next = repetitions[index]!;
+    const authoredGap = originalStarts[index]! - originalStarts[index - 1]!;
+    const contactTime = previous.startTime + Math.max(authoredGap, minimumMotionGap(previous, next));
+    repetitions[index] = { ...next, startTime: contactTime };
+  }
+  const shiftAt = (index: number) => repetitions[index]!.startTime - originalStarts[index]!;
+  for (const rest of restPeriods) {
+    const shift = shiftAt(rest.afterIndex);
+    rest.startTime += shift; rest.endTime += shift;
+  }
+  const last = repetitions.at(-1);
+  const duration = last ? Math.max(startTime + shiftAt(last.index), motionEvent(last).end + .15,
+    last.startTime + (last.trajectory.samples.at(-1)?.time ?? 0)) : startTime;
+
   return {
     solverVersion: 'ball-v6-spin-target',
     contentVersion: '2026.08.29',
@@ -184,6 +204,7 @@ export const compileSession = (
     settings,
     repetitions,
     restPeriods,
-    duration: startTime,
+    duration,
+    motionTimingAdjusted: repetitions.some((rep, index) => Math.abs(rep.startTime - originalStarts[index]!) > .001),
   };
 };

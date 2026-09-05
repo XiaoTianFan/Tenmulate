@@ -1,0 +1,198 @@
+{
+  "schema": "tenmulate.motion-library.v1",
+  "skeleton": "quaternius-neutral-male-v1",
+  "fps": 60,
+  "blenderVersion": "5.2.1 LTS",
+  "carrierSha256": "7cea6c92d2f78b07096948f0270bb4db7340505d27da6ffa52e292da858b33c4",
+  "recipeSha256": "20a860c166b4dc21581a4e9be344e4f8b22d522339adadbb0d4c46e88bd13bf2",
+  "poseModelSha256": "64437af838a65d18e5ba7a0d39b465540069bc8aae8308de3e318aad31fcbc7b",
+  "carrierLicense": "Quaternius Universal Base Characters, CC0; see the frontend carrier license notice.",
+  "rootPolicy": "in-place carrier; pelvis stroke displacement baked; world root travel owned by session timeline",
+  "provenance": "Source-informed authored corrections: 35% measured shoulder sequence; explicit IK limbs, grip, foot contacts and racket. Not unedited automatic mocap.",
+  "nominalHeightMeters": 1.84,
+  "clips": {
+    "ready": {
+      "duration": 1.2,
+      "loop": true,
+      "hand": "right",
+      "recovery": 0.75,
+      "playbackRate": [
+        0.75,
+        1.25
+      ]
+    },
+    "split-step": {
+      "duration": 0.6,
+      "loop": false,
+      "hand": "right",
+      "recovery": 0.6,
+      "playbackRate": [
+        0.75,
+        1.25
+      ]
+    },
+    "forehand": {
+      "duration": 2.4,
+      "loop": false,
+      "hand": "right",
+      "recovery": 1.733333,
+      "playbackRate": [
+        0.75,
+        1.25
+      ],
+      "contact": 0.9833333333333333,
+      "contactLocal": [
+        -0.8714336156845093,
+        1.0398368835449219,
+        0.5931230187416077
+      ],
+      "source": {
+        "source": "ucla",
+        "start": 120,
+        "end": 122.4,
+        "crop": [
+          200,
+          350,
+          1000,
+          730
+        ],
+        "subjectCenter": [
+          0.4,
+          0.58
+        ],
+        "contact": 120.983333,
+        "view": "rear",
+        "performer": "primary-blue-shorts",
+        "notes": "Stable semi-open forehand; visible full body. Contact visually bracketed to 1-2 source frames. Camera pans, so image translation is not court root motion."
+      },
+      "observationSha256": "11314b154fa3834231317511e5944ae93a524011845b13871d79d791c384f4cf",
+      "cleanedObservationSha256": "62af30bef6e710889b5696d1855fcfd2ed998adcdeeafc3327d88fe258a12692"
+    },
+    "backhand": {
+      "duration": 2.2,
+      "loop": false,
+      "hand": "right",
+      "recovery": 1.79,
+      "playbackRate": [
+        0.75,
+        1.25
+      ],
+      "contact": 1.0333333333333334,
+      "contactLocal": [
+        0.7139462232589722,
+        1.1092389822006226,
+        0.430842787027359
+      ],
+      "source": {
+        "source": "january",
+        "start": 639.8,
+        "end": 642,
+        "crop": [
+          650,
+          100,
+          1220,
+          980
+        ],
+        "subjectCenter": [
+          0.48,
+          0.55
+        ],
+        "contact": 640.84,
+        "view": "front-three-quarter",
+        "performer": "primary-white-shirt-dark-shorts",
+        "notes": "Two-handed backhand, small approach and balanced finish; coach behind subject requires foreground selection. Short take ends before walk-away."
+      },
+      "observationSha256": "76d76b00ba098e18f099124beefade0e5e05e8b42b1205b507ff43c76e758f6c",
+      "cleanedObservationSha256": "f082284bcbbfec4a0db7cd1b46eaa1bd5e1688ecea145faf4e66c64af88025d4"
+    },
+    "serve": {
+      "duration": 3.05,
+      "loop": false,
+      "hand": "right",
+      "recovery": 2.383333,
+      "playbackRate": [
+        0.75,
+        1.25
+      ],
+      "contact": 1.6333333333333333,
+      "contactLocal": [
+        -0.15451490879058838,
+        2.671475887298584,
+        0.3732578754425049
+      ],
+      "source": {
+        "source": "january",
+        "start": 834.85,
+        "end": 837.9,
+        "crop": [
+          650,
+          50,
+          1100,
+          1030
+        ],
+        "subjectCenter": [
+          0.4,
+          0.6
+        ],
+        "contact": 836.48565,
+        "tossRelease": 835.6,
+        "view": "front-three-quarter",
+        "performer": "primary-white-shirt-dark-shorts",
+        "notes": "Stable serve with deep knee load, toss, overhead extension, left-foot landing and balanced recovery. Preferred over secondary UCLA serve. Source contact refined by dense frames."
+      },
+      "observationSha256": "97400433e555d54fbc95cc63877da8596a033f0ed1ec150f5f5108489bcdd062",
+      "cleanedObservationSha256": "21c3f785471d8212d1c0c125eab85121b1dd08a2dba6b5f7bf599a1581fe8968",
+      "tossRelease": 0.7666666666666667,
+      "tossLocal": [
+        0.10967841744422913,
+        1.6147010326385498,
+        0.3406528830528259
+      ]
+    },
+    "move-left": {
+      "duration": 0.6,
+      "loop": true,
+      "hand": "right",
+      "recovery": 0.6,
+      "playbackRate": [
+        0.75,
+        1.25
+      ]
+    },
+    "move-right": {
+      "duration": 0.6,
+      "loop": true,
+      "hand": "right",
+      "recovery": 0.6,
+      "playbackRate": [
+        0.75,
+        1.25
+      ]
+    },
+    "move-forward": {
+      "duration": 0.6,
+      "loop": true,
+      "hand": "right",
+      "recovery": 0.6,
+      "playbackRate": [
+        0.75,
+        1.25
+      ]
+    },
+    "move-backward": {
+      "duration": 0.6,
+      "loop": true,
+      "hand": "right",
+      "recovery": 0.6,
+      "playbackRate": [
+        0.75,
+        1.25
+      ]
+    }
+  },
+  "assetSha256": "5d58b024e87a1b431eb353028714fbfa65f1c2b6135b5246af7a26d03e73f96c",
+  "bytes": 1157060,
+  "bindHeightMeters": 1.8195869406124976,
+  "displayScale": 1.011218512801939,
+  "bindMinY": -0.009510145233400723
+}

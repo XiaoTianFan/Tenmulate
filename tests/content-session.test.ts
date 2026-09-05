@@ -86,7 +86,9 @@ describe('session compiler', () => {
     expect(session.restPeriods[1]!.startTime).toBeCloseTo(48.6, 8);
     expect(session.restPeriods[1]!.endTime).toBeCloseTo(68.6, 8);
     expect(session.repetitions[4]!.startTime).toBe(35.8);
-    expect(session.duration).toBeCloseTo(81.4, 8);
+    // The last outgoing ball now finishes before the session completion screen.
+    const last = session.repetitions.at(-1)!;
+    expect(session.duration).toBeCloseTo(Math.max(81.4, last.startTime + last.trajectory.samples.at(-1)!.time), 8);
   });
 
   it('applies seeded timing variation without changing the three-second countdown or rest duration', () => {

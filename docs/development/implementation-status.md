@@ -7,7 +7,13 @@
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The neutral humanoid carrier is integrated. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
-## Latest refinement — grass contrast and shared net density
+## Local opponent motion — 2026-09-05
+
+The sibling motion lab produces nine baked clips on the neutral carrier, an original racket, source/provenance metadata and an editable Blender master. Stable takes are UCLA 02:00–02:02.4 forehand, January 10:39.8–10:42 backhand and January 13:54.85–13:57.9 serve. Observations inform timing/torso sequencing; hidden limbs, grip, feet and transitions are explicitly authored corrections.
+
+Gameplay uses one absolute clock for pose, launch and audio, deterministic travel/foot IK, contact alignment, toss, mirrored hand and reachable cadence. The 1.16 MB library has zero glTF errors/warnings. **171 tests / 20 files**, production build, desktop sequence review and real practice pause/seek/slow-play checks pass. [Contract, commands and limits](local-motion-pipeline.md). Exact style, close-up grip, other techniques, device endurance and owner approval remain distinct gates. Historical motion-pending notes below describe their original stages.
+
+## Latest venue refinement — grass contrast and shared net density
 
 The grass palette changes from `#839d49` to `#64843d` without changing white lines, textures' registration, lighting or physics. All three Blender masters/exports now use nominal 42 mm weave spacing with 2.2 mm radius cords; all procedural venue nets have tighter spacing and calibrated screen-line coverage. Current hashes/sizes are recorded in [Blender venues](blender-venues.md#current-assets--shared-net-refinement-2026-09-05). Superseded GLBs are removed from shipped output and recoverable in Git history.
 

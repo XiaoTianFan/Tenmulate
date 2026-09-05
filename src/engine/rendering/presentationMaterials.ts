@@ -23,7 +23,7 @@ export const OPPONENT_PRESENTATION = Object.freeze({
 
 export const createOpponentOutlineMaterial = (
   sourceScale: number,
-  worldWidth = OPPONENT_PRESENTATION.outlineWidthMeters,
+  worldWidth: number = OPPONENT_PRESENTATION.outlineWidthMeters,
 ): THREE.MeshBasicMaterial => {
   const localWidth = worldWidth / Math.max(sourceScale, 1e-6);
   const material = new THREE.MeshBasicMaterial({

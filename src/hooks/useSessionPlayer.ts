@@ -6,6 +6,7 @@ export type PlayerStatus = 'countdown' | 'playing' | 'resting' | 'paused' | 'com
 export type SessionPlayer = Readonly<{
   status: PlayerStatus;
   elapsed: number;
+  clock: Readonly<{ current: number }>;
   currentIndex: number;
   countdown: number | null;
   restRemaining: number | null;
@@ -78,6 +79,7 @@ export const useSessionPlayer = (session: CompiledSession, playbackRate: number)
   return useMemo(() => ({
     status,
     elapsed,
+    clock: elapsedRef,
     currentIndex,
     countdown: status === 'countdown' ? Math.max(1, Math.ceil(3 - elapsed)) : null,
     restRemaining: activeRest ? Math.max(1, Math.ceil(activeRest.endTime - elapsed)) : null,

@@ -10,6 +10,7 @@ import {
   type SceneMetrics,
 } from '../engine/rendering/TennisScene';
 import { netHeightAt, type FlightSample, type ResolvedTrajectory } from '../engine/trajectory/physics';
+import type { CompiledSession } from '../engine/session/compileSession';
 
 type SceneViewportProps = Readonly<{
   camera: CameraConfiguration;
@@ -30,6 +31,8 @@ type SceneViewportProps = Readonly<{
   onCameraFovChange?: (fov: number) => void;
   onCameraLookChange?: (look: CameraLook) => void;
   onMetrics: (metrics: SceneMetrics) => void;
+  session?: CompiledSession;
+  sessionClock?: Readonly<{ current: number }>;
 }>;
 
 type CameraPointerDrag = {
@@ -67,6 +70,8 @@ export function SceneViewport({
   onCameraFovChange,
   onCameraLookChange,
   onMetrics,
+  session,
+  sessionClock,
 }: SceneViewportProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sceneRef = useRef<TennisScene | null>(null);
@@ -110,6 +115,7 @@ export function SceneViewport({
   }, [onMetrics]);
 
   useEffect(() => sceneRef.current?.setCamera(camera), [camera]);
+  useEffect(() => sceneRef.current?.setSession(session ?? null, sessionClock ?? null), [session, sessionClock]);
   useEffect(() => sceneRef.current?.setTrajectory(trajectory), [trajectory]);
   useEffect(() => sceneRef.current?.setSurface(surface), [surface]);
   useEffect(() => sceneRef.current?.setEnvironment(environment), [environment]);
