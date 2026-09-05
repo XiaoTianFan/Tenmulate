@@ -3,6 +3,7 @@ import { DRILLS, SHOTS } from '../src/content/bundled';
 import { COURT } from '../src/domain/court';
 import { RETURN_SERVE_PATTERN, returnServerPosition } from '../src/domain/returnPractice';
 import { compileSession } from '../src/engine/session/compileSession';
+import { minimumMotionGap, motionEvent } from '../src/engine/session/opponentTimeline';
 import { resolveTrajectory } from '../src/engine/trajectory/physics';
 
 describe('bundled V1 content floor', () => {
@@ -80,16 +81,19 @@ describe('session compiler', () => {
 
   it('inserts deterministic rest periods between configured work blocks', () => {
     const session = compileSession(drill, settings);
-    const withoutRest = compileSession(drill, { ...settings, restSeconds: 0 });
     expect(session.restPeriods.map((period) => period.afterIndex)).toEqual([3, 7]);
-    for (const [index, period] of session.restPeriods.entries()) {
-      expect(period.startTime).toBeCloseTo(withoutRest.repetitions[period.afterIndex + 1]!.startTime + index * settings.restSeconds, 8);
+    for (const period of session.restPeriods) {
+      // Rest provides travel time itself; removing it can require a longer
+      // motion gap, so a no-rest session is not a constant time translation.
+      expect(period.startTime).toBeCloseTo(session.repetitions[period.afterIndex]!.startTime + settings.interval, 8);
       expect(period.endTime - period.startTime).toBeCloseTo(settings.restSeconds, 8);
       expect(session.repetitions[period.afterIndex + 1]!.startTime).toBeCloseTo(period.endTime, 8);
     }
     // The last outgoing ball now finishes before the session completion screen.
     const last = session.repetitions.at(-1)!;
-    expect(session.duration).toBeCloseTo(Math.max(withoutRest.duration + 40, last.startTime + last.trajectory.samples.at(-1)!.time), 8);
+    expect(session.duration).toBeGreaterThanOrEqual(last.startTime + last.trajectory.samples.at(-1)!.time);
+    expect(session.duration).toBeGreaterThanOrEqual(motionEvent(last).end);
+    expect(session.duration).toBeLessThanOrEqual(last.startTime + Math.max(settings.interval,last.trajectory.samples.at(-1)!.time,motionEvent(last).end-last.startTime+.15)+1e-8);
   });
 
   it('applies seeded timing variation without changing the three-second countdown or rest duration', () => {
@@ -97,8 +101,9 @@ describe('session compiler', () => {
     const replay = compileSession(drill, { ...settings, timingVariationPercent: 20 });
     expect(varied.repetitions.map((entry) => entry.startTime)).toEqual(replay.repetitions.map((entry) => entry.startTime));
     expect(varied.repetitions[0]!.startTime).toBe(3);
-    expect(varied.repetitions[1]!.startTime).toBeGreaterThanOrEqual(3 + settings.interval * 0.8);
-    expect(varied.repetitions[1]!.startTime).toBeLessThanOrEqual(3 + settings.interval * 1.2);
+    const requiredGap=minimumMotionGap(varied.repetitions[0]!,varied.repetitions[1]!);
+    expect(varied.repetitions[1]!.startTime).toBeGreaterThanOrEqual(3 + Math.max(settings.interval * .8,requiredGap)-1e-8);
+    expect(varied.repetitions[1]!.startTime).toBeLessThanOrEqual(3 + Math.max(settings.interval * 1.2,requiredGap)+1e-8);
     expect(varied.restPeriods[0]!.endTime - varied.restPeriods[0]!.startTime).toBeCloseTo(20, 8);
   });
 

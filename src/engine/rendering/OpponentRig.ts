@@ -52,6 +52,7 @@ export class OpponentRig {
   private activeAction: THREE.AnimationAction | null = null;
   private readonly motionActions = new Map<string, THREE.AnimationAction>();
   private bakedCorrections: { bone: THREE.Object3D; position: THREE.Vector3; quaternion: THREE.Quaternion }[] = [];
+  private readonly bindRotations = new Map<string, THREE.Quaternion>();
   private disposed = false;
 
   constructor() {
@@ -119,6 +120,11 @@ export class OpponentRig {
     }
 
     const model = gltf.scene;
+    model.traverse(object => {
+      if (object instanceof THREE.SkinnedMesh) object.skeleton.bones.forEach((bone,index) => {
+        this.bindRotations.set(bone.name,new THREE.Quaternion().setFromRotationMatrix(object.skeleton.boneInverses[index]!.clone().invert()));
+      });
+    });
     model.name = 'neutral-opponent-model';
     model.traverse((object) => {
       if (object.name === 'Eyes' || object.name === 'Eyebrows') object.visible = false;
@@ -257,10 +263,23 @@ export class OpponentRig {
       action.enabled = true; action.paused = true; action.weight = layer.weight; action.time = layer.time;
     }
     this.mixer.update(0);
-    this.bakedCorrections = ['pelvis', 'thigh_l', 'calf_l', 'foot_l', 'thigh_r', 'calf_r', 'foot_r', 'neck_01', 'Head'].map(name => {
+    this.bakedCorrections = ['pelvis', 'thigh_l', 'calf_l', 'foot_l', 'thigh_r', 'calf_r', 'foot_r', 'lowerarm_l', 'lowerarm_r', 'neck_01', 'Head'].map(name => {
       const bone = this.model!.getObjectByName(name)!;
       return { bone, position: bone.position.clone(), quaternion: bone.quaternion.clone() };
     });
+    if (sample.layers.filter(layer => layer.weight > 0).length > 1) {
+      // Blending two valid hinge + forearm-roll quaternions can introduce elbow
+      // sideways bending. Reconstruct those two anatomical DOFs after blending.
+      // The racket is parented to the hand, so its grip remains rigid.
+      for (const side of ['l', 'r']) {
+        const elbow = this.model.getObjectByName(`lowerarm_${side}`)!;
+        const angles = new THREE.Euler().setFromQuaternion(elbow.quaternion, 'XYZ');
+        angles.x = THREE.MathUtils.clamp(angles.x, 0, THREE.MathUtils.degToRad(150));
+        angles.y = THREE.MathUtils.clamp(angles.y, -THREE.MathUtils.degToRad(88), THREE.MathUtils.degToRad(88));
+        angles.z = 0;
+        elbow.quaternion.setFromEuler(angles);
+      }
+    }
     this.group.updateMatrixWorld(true);
     if (sample.lookYaw) {
       // Split the counter-turn over the neck and head, respecting the mirrored rig.
@@ -318,21 +337,32 @@ export class OpponentRig {
       return q;
     };
     const setModelQuaternion = (object: THREE.Object3D, q: THREE.Quaternion) => { object.quaternion.copy(modelQuaternion(object.parent!).invert().multiply(q)); this.group.updateMatrixWorld(true); };
-    const aim = (object: THREE.Object3D, child: THREE.Object3D, direction: THREE.Vector3) => {
-      const from = point(child).sub(point(object)).normalize();
-      const delta = new THREE.Quaternion().setFromUnitVectors(from, direction.clone().normalize());
-      setModelQuaternion(object, delta.multiply(modelQuaternion(object)));
-    };
     const base = point(upper), knee = point(lower), ankle = point(foot), target = model.worldToLocal(worldTarget.clone());
     const footRotation = modelQuaternion(foot), l1 = base.distanceTo(knee), l2 = knee.distanceTo(ankle);
     const axis = target.clone().sub(base), length = THREE.MathUtils.clamp(axis.length(), Math.abs(l1 - l2) + .001, l1 + l2 - .001);
     axis.normalize();
-    const bend = new THREE.Vector3(0, 0, 1).addScaledVector(axis, -axis.z).normalize();
+    const pelvis = model.getObjectByName('pelvis')!;
+    const hipRotation = modelQuaternion(pelvis).multiply(this.bindRotations.get('pelvis')!.clone().invert());
+    const forward = new THREE.Vector3(0,0,1).applyQuaternion(hipRotation);
+    const bend = forward.clone().addScaledVector(axis, -forward.dot(axis)).normalize();
     const along = (l1 * l1 - l2 * l2 + length * length) / (2 * length);
     const joint = base.clone().addScaledVector(axis, along).addScaledVector(bend, Math.sqrt(Math.max(0, l1 * l1 - along * along)));
-    aim(upper, lower, joint.sub(base));
-    aim(lower, foot, base.addScaledVector(axis, length).sub(point(lower)));
-    setModelQuaternion(foot, footRotation);
+    const u=joint.clone().sub(base).normalize(),v=base.clone().addScaledVector(axis,length).sub(joint).normalize();
+    const hinge=new THREE.Vector3().crossVectors(u,v).normalize();
+    for(const [bone,direction] of [[upper,u],[lower,v]] as const){
+      const frame=new THREE.Matrix4().makeBasis(hinge,direction,new THREE.Vector3().crossVectors(hinge,direction));
+      setModelQuaternion(bone,new THREE.Quaternion().setFromRotationMatrix(frame));
+    }
+    const restLocal=this.bindRotations.get(lower.name)!.clone().invert().multiply(this.bindRotations.get(foot.name)!);
+    const change=restLocal.clone().invert().multiply(modelQuaternion(lower).invert()).multiply(footRotation);
+    if(change.w<0)change.set(-change.x,-change.y,-change.z,-change.w);
+    const twist=new THREE.Quaternion(0,change.y,0,change.w).normalize();
+    const swing=change.clone().multiply(twist.clone().invert());
+    const swingAngle=2*Math.acos(THREE.MathUtils.clamp(swing.w,-1,1));
+    if(swingAngle>Math.PI/3)swing.slerp(new THREE.Quaternion(),1-(Math.PI/3)/swingAngle);
+    const angle=THREE.MathUtils.clamp(2*Math.atan2(twist.y,twist.w),-25*Math.PI/180,25*Math.PI/180);
+    const corrected=modelQuaternion(lower).multiply(restLocal).multiply(swing).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),angle));
+    setModelQuaternion(foot,corrected);
   }
 
   getContactPosition(): THREE.Vector3 | null {
@@ -362,5 +392,6 @@ export class OpponentRig {
     this.clips.clear();
     this.motionActions.clear();
     this.bakedCorrections = [];
+    this.bindRotations.clear();
   }
 }

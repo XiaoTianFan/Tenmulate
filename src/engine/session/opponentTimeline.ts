@@ -44,7 +44,7 @@ export const minimumMotionGap = (previous: MotionRepetition, next: MotionRepetit
   const a = motionEvent(previous), b = motionEvent(next);
   const distance = Math.hypot(b.root.x - a.root.x, b.root.z - a.root.z);
   // Smoothstep's peak speed is 1.5 times its mean speed. Leave a boundary blend at zero travel.
-  const travel = Math.max(.4, 1.5 * distance / MAX_OPPONENT_SPEED + .35);
+  const travel = Math.max(.4, 1.5 * distance / (distance < 1.8 ? 1.7 : MAX_OPPONENT_SPEED) + .35);
   return a.end - a.contactTime + b.contactTime - b.start + travel;
 };
 
@@ -71,7 +71,8 @@ export const sampleOpponentTimeline = (events: readonly MotionEvent[], time: num
     let toss: Vec3 | null = null;
     if (event.clip === 'serve' && clip.tossRelease !== undefined && localTime >= clip.tossRelease && localTime < clip.contact!) {
       const release = rotateMotionPoint(clip.tossLocal!, event.yaw, event.hand);
-      const start = { x: event.root.x + release.x, y: release.y, z: event.root.z + release.z };
+      const releaseEnvelope = smoothStep(clip.tossRelease / clip.contact!) * smoothStep((clip.duration - clip.tossRelease) / (clip.duration - clip.contact!));
+      const start = { x: event.root.x + release.x, y: release.y + (event.source.y - contactHeight) * releaseEnvelope, z: event.root.z + release.z };
       const duration = (clip.contact! - clip.tossRelease) / event.rate, t = (localTime - clip.tossRelease) / event.rate;
       const alpha = t / duration;
       const initialY = (event.source.y - start.y + .5 * 9.81 * duration * duration) / duration;
@@ -89,17 +90,17 @@ export const sampleOpponentTimeline = (events: readonly MotionEvent[], time: num
       layers: [{ clip: next && time >= splitStart ? 'split-step' : 'ready', time: next && time >= splitStart ? time - splitStart : (previous ? Math.max(0, time - previous.end) % 1.2 : 0), weight: 1 }] };
   }
   const dx = next.root.x - previous.root.x, dz = next.root.z - previous.root.z, distance = Math.hypot(dx, dz);
-  const start = previous.end, end = Math.min(next.start, start + Math.max(.4, 1.5 * distance / 4.2 + .35)), duration = end - start;
+  const start = previous.end, end = Math.min(next.start, start + Math.max(.4, 1.5 * distance / (distance < 1.8 ? 1.45 : 4.2) + .35)), duration = end - start;
   if (time >= end) {
     const splitStart = next.start - .6, split = next.start - end >= .6 && time >= splitStart;
     return { root: next.root, yaw: next.yaw, hand: next.hand, event: null, verticalCorrection: 0, toss: null,
       layers: [{ clip: split ? 'split-step' : 'ready', time: split ? time - splitStart : Math.max(0, Math.min(time - end, Math.max(0, splitStart - time))) % 1.2, weight: 1 }] };
   }
   const rootAt = (t: number) => lerpPoint(previous.root, next.root, smoothStep((t - start) / duration));
-  const running = distance >= 1.8, heading = Math.atan2(dx, dz);
+  const running = distance >= 1.8, walking = distance >= .6 && !running, heading = Math.atan2(dx, dz);
   const turnDuration = Math.min(.65, duration * .38);
   const yawAt = (t: number) => {
-    if (!running) return yawLerp(previous.yaw, next.yaw, smoothStep((t - start) / duration));
+    if (!running && !walking) return yawLerp(previous.yaw, next.yaw, smoothStep((t - start) / duration));
     const depart = yawLerp(previous.yaw, heading, smoothStep((t - start) / turnDuration));
     return yawLerp(depart, next.yaw, smoothStep((t - (end - turnDuration)) / turnDuration));
   };
@@ -107,33 +108,34 @@ export const sampleOpponentTimeline = (events: readonly MotionEvent[], time: num
   if (distance < .04) return { root, yaw, hand: next.hand, event: null, verticalCorrection: 0, toss: null, layers: [{ clip: 'ready', time: Math.max(0, Math.min(time - start, end - time)) % 1.2, weight: 1 }] };
   // Resolve travel into the opponent's local right/forward axes.
   const localX = dx * Math.cos(yaw) - dz * Math.sin(yaw), localZ = dx * Math.sin(yaw) + dz * Math.cos(yaw);
-  const movement: MotionId = running ? 'run-forward' : Math.abs(localX) > Math.abs(localZ) ? localX < 0 ? 'move-right' : 'move-left' : localZ > 0 ? 'move-forward' : 'move-backward';
-  const period = running ? .58 : Math.min(.65, Math.max(.38, duration / Math.max(1, Math.ceil(distance / 1.1))));
+  const movement: MotionId = running ? 'run-forward' : walking ? 'walk-forward' : Math.abs(localX) > Math.abs(localZ) ? localX < 0 ? 'move-right' : 'move-left' : localZ > 0 ? 'move-forward' : 'move-backward';
+  const period = running ? .60 : walking ? .92 : .6;
   const phase = (time - start) / period, blend = smoothStep((time - start) / .28) * smoothStep((end - time) / .28);
   const foot = (side: 'left' | 'right'): Vec3 => {
-    const offset = side === 'right' ? 0 : .5;
+    const offset = side === 'right' ? .5 : 0;
     const cycle = Math.floor(phase - offset), u = phase - offset - cycle;
-    // A running foot spends 38% of its cycle planted. There are brief flight
-    // phases, and a same-foot stride can exceed two metres at peak travel speed.
-    const swingFraction = running ? .62 : .5;
-    const plantEnd = start + (cycle + offset + swingFraction + (1 - swingFraction) / 2) * period;
-    const plantStart = plantEnd - period;
-    const lane = running ? .13 : .26;
+    // Running has flight and early rear-heel recovery; walking has double support.
+    const stanceFraction = running ? .36 : walking ? .62 : .5;
+    const plantStart = start + (cycle + offset + stanceFraction / 2) * period;
+    const plantEnd = plantStart + period;
+    const lane = running || walking ? .13 : .26;
     const localFoot = [side === 'left' ? lane : -lane, .087, side === 'left' ? .05 : -.025];
     const anchored = (t: number): Vec3 => {
       const base = rootAt(t), plantYaw = yawAt(t);
       const local = rotateMotionPoint(localFoot, plantYaw, next.hand);
       return { x: base.x + local.x, y: local.y, z: base.z + local.z };
     };
-    const swing = u < swingFraction, a = anchored(plantStart), b = anchored(plantEnd);
-    const position = swing ? lerpPoint(a, b, smoothStep(u / swingFraction)) : b;
-    const moving = { ...position, y: position.y + (swing ? Math.sin(u / swingFraction * Math.PI) * (running ? .34 : .14) : 0) };
+    const swing = u > stanceFraction, a = anchored(plantStart), b = anchored(plantEnd);
+    const swingPhase = Math.max(0, (u - stanceFraction) / (1 - stanceFraction));
+    const position = swing ? lerpPoint(a, b, smoothStep(swingPhase)) : a;
+    const lift = Math.sin(Math.pow(swingPhase, running ? .65 : 1) * Math.PI) * (running ? .40 : walking ? .065 : .085);
+    const moving = { ...position, y: position.y + (swing ? lift : 0) };
     const local = rotateMotionPoint([side === 'left' ? .26 : -.26, .087, side === 'left' ? .05 : -.025], yaw, next.hand);
     // Match exact ready feet at both transition boundaries; no history-dependent foot anchors.
     return lerpPoint({ x: root.x + local.x, y: local.y, z: root.z + local.z }, moving, blend);
   };
   return { root, yaw, hand: next.hand, event: null, verticalCorrection: 0, toss: null,
-    lookYaw: running ? Math.max(-1.15, Math.min(1.15, Math.atan2(Math.sin(next.yaw-yaw),Math.cos(next.yaw-yaw)))) * blend : 0,
-    layers: [{ clip: 'ready', time: 0, weight: 1 - blend }, { clip: movement, time: (phase % 1) * .6, weight: blend }],
+    lookYaw: running || walking ? Math.max(-1.0, Math.min(1.0, Math.atan2(Math.sin(next.yaw-yaw),Math.cos(next.yaw-yaw)))) * blend : 0,
+    layers: [{ clip: 'ready', time: 0, weight: 1 - blend }, { clip: movement, time: (phase % 1) * motionClip(movement).duration, weight: blend }],
     footTargets: { left: foot('left'), right: foot('right') } };
 };

@@ -92,6 +92,38 @@ describe('local motion asset and shared contact clock', () => {
     expect(waiting.layers[0]!.clip).toBe('ready');
     expect(sampleOpponentTimeline([a, b], b.start - .3)!.layers[0]!.clip).toBe('split-step');
   });
+  it('starts the serve toss at the corrected tossing wrist for either hand', async () => {
+    const rig=await loadRig();
+    for(const hand of ['right','left'] as const){
+      const event=motionEvent(repetition('serve',0,2,12.8,hand));
+      const sample=sampleOpponentTimeline([event],event.start+OPPONENT_MOTION.clips.serve.tossRelease+1e-8)!;
+      rig.sampleMotion(sample);
+      const wrist=rig.group.getObjectByName('hand_l')!.getWorldPosition(new THREE.Vector3());
+      expect(wrist.distanceTo(new THREE.Vector3(sample.toss!.x,sample.toss!.y,sample.toss!.z))).toBeLessThan(.002);
+    }
+    rig.dispose();
+  });
+  it('walks a nearby route with low foot lift and preserves elbow hinges during blends', async () => {
+    const rig=await loadRig();
+    for(const hand of ['right','left'] as const){
+      const events=[motionEvent(repetition('forehand',0,2,12.5,hand)),motionEvent(repetition('forehand',1,2,11.6,hand))];
+      let walks=0,blends=0;
+      for(let t=events[0]!.end+.01;t<events[1]!.start;t+=1/60){
+        const pose=sampleOpponentTimeline(events,t)!;
+        if(!pose.layers.some(l=>l.clip==='walk-forward'&&l.weight>0))continue;
+        walks++;expect(pose.layers.some(l=>l.clip==='run-forward')).toBe(false);
+        expect(Math.max(pose.footTargets!.left.y,pose.footTargets!.right.y)).toBeLessThan(.17);
+        if(pose.layers.every(l=>l.weight>0)){
+          blends++;rig.sampleMotion(pose);
+          for(const side of ['l','r'])expect(Math.abs(new THREE.Euler().setFromQuaternion(rig.group.getObjectByName(`lowerarm_${side}`)!.quaternion,'XYZ').z)).toBeLessThan(1e-6);
+          const wrist=rig.getRacketSocket('right')!.getWorldPosition(new THREE.Vector3());rig.sampleMotion(pose);
+          expect(rig.getRacketSocket('right')!.getWorldPosition(new THREE.Vector3()).distanceTo(wrist)).toBeLessThan(1e-7);
+        }
+      }
+      expect(walks).toBeGreaterThan(25);expect(blends).toBeGreaterThan(10);
+    }
+    rig.dispose();
+  });
   it('keeps the baked racket orientation continuous through the drop, strike and recovery',async()=>{
     const gltf=await new GLTFLoader().parseAsync(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),'');
     const mixer=new THREE.AnimationMixer(gltf.scene),racket=gltf.scene.getObjectByName('TennisRacket')!;
@@ -144,7 +176,10 @@ describe('local motion asset and shared contact clock', () => {
       rig.sampleMotion(sampleOpponentTimeline([event],event.start+time)!);
       const racket=rig.group.getObjectByName('TennisRacket')!;
       const knuckle=racket.worldToLocal(rig.group.getObjectByName('index_01_l')!.getWorldPosition(new THREE.Vector3()));
-      expect(1+Math.atan2(-knuckle.z,knuckle.x)/(Math.PI/4)).toBeCloseTo(3,1);
+      // The supporting hand is left-handed: its eastern grip mirrors to bevel 7.
+      const bevel=1+(Math.atan2(-knuckle.z,knuckle.x)/(Math.PI/4)+8)%8;
+      // Allow 5.4 degrees of soft-tissue placement within the 45-degree bevel.
+      expect(Math.abs(bevel-7)).toBeLessThan(.12);
       expect(Math.hypot(knuckle.x,knuckle.z)).toBeGreaterThan(.018);
       expect(Math.hypot(knuckle.x,knuckle.z)).toBeLessThan(.031);
       expect(knuckle.y).toBeGreaterThan(.12);
