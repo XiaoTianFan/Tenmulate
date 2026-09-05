@@ -100,3 +100,67 @@ These are 2D crowd impostors, deliberately unsuitable for very close side-on
 inspection; no volumetric crowd or skeletal animation is claimed. Detailed
 outdoor venues remain GPU-heavy. Browser frame readings are not universal device
 performance guarantees or owner visual approval.
+
+## Local review recovery (2026-09-05)
+
+The reported blank indoor reviews were reproduced on the existing Codex in-app
+browser at port 4173. All three indoor `manifest.json` requests returned HTTP 200
+with `text/html` and the Vite app shell, although the corresponding files existed
+in `public/assets/venues`. The outdoor manifests were JSON. Production preview
+on 4174 served all six correctly. Restarting **only the Tenmulate Vite dev
+server** restored all indoor JSON responses without regenerating any model.
+This is consistent with a stale Vite public-file index after new asset folders
+were added; the precise missed filesystem-watcher event was not established.
+
+After adding/exporting venue folders, verify the actual review server, not only
+the filesystem or a separate production preview:
+
+```powershell
+$response = Invoke-WebRequest -UseBasicParsing http://127.0.0.1:4173/assets/venues/timber-hall/manifest.json
+$response.Headers['Content-Type'] # application/json, never text/html
+($response.Content | ConvertFrom-Json).id # timber-hall
+```
+
+If the dev server returns HTML for an existing manifest, restart that exact
+project's server (`npm run dev -- --strictPort`) and reload the review. For a
+deployed build, check that the complete public asset folders were shipped and
+that missing asset URLs are not rewritten to the app shell. Do not substitute
+procedural geometry or clear unrelated browser/site data. The loader now
+explains this condition, identifies the requested venue and retains Retry;
+regression tests exercise HTML rejection and successful retry for each indoor
+venue, including an HTML body without its content-type header.
+
+Review selectors now update `venue`, `audience`, `quality`, and `camera` query
+parameters. Refreshing or copying the URL preserves these selected presets
+instead of silently restoring the initial venue. Free-look offsets and time of
+day remain session-local; this change does not add persistence for them.
+
+Use the Venue dropdown, or open these direct local links:
+
+- [Timber hall](http://127.0.0.1:4173/venue-review.html?venue=timber-hall&audience=half&camera=player)
+- [Clay hall](http://127.0.0.1:4173/venue-review.html?venue=clay-stadium&audience=half&camera=player)
+- [Grass hall](http://127.0.0.1:4173/venue-review.html?venue=covered-grass-arena&audience=half&camera=player)
+
+All three outdoor arenas already implement the Audience selector in review and
+practice setup. The Codex in-app browser was used at 1280 x 720 to exercise each
+of the nine Quality-mode states below; visible screenshots show occupied seats
+and cleared crowds, not just successful asset requests:
+
+| Outdoor venue | Empty seats | Half seated | Fully seated |
+| --- | ---: | ---: | ---: |
+| Hard arena | 0 | 6,652 | 13,304 |
+| Clay arena | 0 | 6,832 | 13,664 |
+| Grass arena | 0 | 7,190 | 14,381 |
+
+All three indoor Quality scenes also rendered in that browser, with half crowds
+of 280 / 448 / 336 respectively. A grass-arena Performance/sideline/half-seated
+selection retained the venue, quality, camera and 7,190 spectators after reload.
+Page identities, meaningful rendered architecture, selectors and absence of a
+framework overlay were checked. No app errors appeared in the recovered tab;
+existing Three.js PMREM blur sample-clipping warnings remain, unrelated to the
+manifest failure. No mobile-size pass or device-performance claim is included.
+
+Verification: 33 focused venue/audience tests passed, then all 200 tests in 21
+files passed with the completed motion iteration present. Production build
+passed with the existing approximately 637 kB renderer chunk warning. No GLB,
+seat registrations, audience artwork or motion files changed in this fix.
