@@ -1,0 +1,13 @@
+{
+  "geometry": "Original parameterized Blender meshes; no extracted third-party mesh or embedded reference photograph.",
+  "referenceOnly": [
+    {"source": "Five owner-supplied references, 2026-09-05", "used": "Empty bowl from court/corner, baseline pavilion, green seat shells, dark canopy, white lattice roof, grass striping. Attachments e466354a, 91d88cbd, 8e8f73fe, 162df7f6 and 2b657ea8; not redistributed."},
+    {"url": "https://www.wimbledon.com/pdf/Centre_Court_Plan_2021.pdf", "publisher": "AELTC", "used": "Official seating diagram visually inspected: rounded rectangular outline, court-normal main blocks, corner fans, baseline box and different upper-gallery coverage. Schematic without engineering dimensions; section numbers are not copied."},
+    {"url": "https://www.wimbledon.com/en_GB/about/grass_courts", "publisher": "AELTC", "used": "Published 22 x 41 m grass area and regulation court dimensions. Not an architectural floor plan."},
+    {"url": "https://populous.com/showcases/wimbledon-aeltc", "publisher": "Populous", "used": "Project architect: approximately 15000 seats; six extra upper rows on three sides; folding fabric concertina roof. Published 65 x 75 m roof dimension is not equated to overall building footprint or 77 m support span."},
+    {"url": "https://www.fairfields.co.uk/projects/wimbledon-roof/", "publisher": "Fairfields", "used": "Roof control contractor: ten trusses in two operational banks of five with folding translucent fabric. Runtime animation/control system is out of scope."},
+    {"url": "https://www.barnshaws.com/news/steel-bending-techniques-that-made-the-famous-retractable-roof-on-centre-court-possible", "publisher": "Barnshaws", "used": "Steel fabricator search-indexed project description: approximately 77 m span, curved upper chords. Page retrieval timed out; numerical span corroborates project references, not construction authority."}
+  ],
+  "materials": [{"name": "Grass albedo/roughness/normal, molded green seat finish, canopy and timber", "license": "Original project material", "source": "scripts/blender/build_grass_open_arena.py"}],
+  "rightsNote": "Sources remain in development provenance only. Runtime model and visible UI use neutral identity. Branding removal and altered details do not constitute legal clearance. Photographic/plan references are neither redistributed nor used as textures."
+}
