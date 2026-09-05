@@ -1,6 +1,7 @@
 {
   "geometry": "Original parameterized Blender meshes authored for Tenmulate; no extracted third-party mesh or photographic texture.",
   "referenceOnly": [
+    {"source": "Owner-supplied Philippe-Chatrier roof underside photographs, 2026-09-05", "used": "Revision 3: translucent ivory wing membranes, visible girder chords, diagonal webs and fine secondary rafters. Model fixed 50 percent open rather than the closed state in the photographs. Local attachments 6fc7c570 and 6544fc49; no images redistributed."},
     {"source": "Owner-supplied three Philippe-Chatrier seating photographs, 2026-09-05", "used": "Revision 2: perpendicular main-stand aisles and fixed seat columns, aligned terrace entrances, rectangular lower box divisions, corner-only fanning. Local attachments 70dc6267, df512eac and a55a033b; images not redistributed."},
     {"url": "https://stade.rolandgarros.com/lieux/court-philippe-chatrier", "publisher": "FFT", "used": "Regulation court, 21.85 x 43.87 m published court-surround footprint, lower/upper seating split. Our apron is intentionally wider."},
     {"url": "https://www.dvvd.fr/le-court-philippe-chatrier-prime/", "publisher": "DVVD", "date": "2022-02-07", "used": "Laurent Kronental photograph: current timber bowl, hospitality, terrace access and closed-roof underside."},

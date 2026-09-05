@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { NodeIO, type Document, type Node } from '@gltf-transform/core';
-import { ALL_EXTENSIONS, EXTMeshGPUInstancing, type InstancedMesh } from '@gltf-transform/extensions';
+import { ALL_EXTENSIONS, EXTMeshGPUInstancing, type InstancedMesh, type Transmission } from '@gltf-transform/extensions';
 import { MeshoptDecoder } from 'meshoptimizer';
 import * as THREE from 'three';
 import { beforeAll, describe, expect, it } from 'vitest';
@@ -151,13 +151,23 @@ describe('shipped Blender clay arena', () => {
     }
   });
 
-  it('parks ten roof wings together north of the opening and keeps four fixed light anchors', () => {
-    const wings = nodes.filter(n => n.getExtras().role === 'parked-roof-wing');
+  it('holds ten overlapping roof wings halfway across the aperture with four independent light anchors', () => {
+    const wings = nodes.filter(n => n.getExtras().role === 'retractable-roof-wing')
+      .sort((a,b) => Number(a.getExtras().wingIndex)-Number(b.getExtras().wingIndex));
     expect(wings).toHaveLength(10);
+    const intervals = wings.map(bounds);
+    // Blender north +Y becomes glTF -Z. Aperture is [-28,31] in Z;
+    // the foremost membrane ends at +1.5, leaving exactly 29.5/59 m open.
+    expect(intervals[0]!.max.z).toBeCloseTo(1.5, 2);
+    expect((31-intervals[0]!.max.z)/59).toBeCloseTo(.5, 3);
+    expect(intervals.at(-1)!.min.z).toBeLessThan(-28);
+    for (let i=1;i<intervals.length;i++) {
+      expect(intervals[i]!.max.z).toBeLessThan(intervals[i-1]!.max.z);
+      expect(intervals[i]!.max.z).toBeGreaterThan(intervals[i-1]!.min.z);
+    }
     for (const wing of wings) {
       const box = bounds(wing);
-      // Blender north +Y becomes glTF -Z. The aperture ends at Z=-28.
-      expect(box.max.z).toBeLessThan(-29.5);
+      expect(wing.getExtras().roofOpenFraction).toBe(.5);
       expect(box.min.y).toBeGreaterThan(28.5);
       expect(box.max.x - box.min.x).toBeCloseTo(100, 1);
     }
@@ -169,6 +179,34 @@ describe('shipped Blender clay arena', () => {
       expect(y).toBe(24.5);
       expect(Math.abs(z)).toBe(20);
       expect(light.getExtras().arenaPart).not.toBe('roof');
+    }
+  });
+
+  it('exports thin double-sided translucent membranes and separate opaque truss geometry, without a solid soffit', () => {
+    const skins = nodes.filter(n => n.getExtras().roofMembrane === true);
+    expect(skins).toHaveLength(11);
+    for (const node of skins) {
+      expect(node.getExtras().arenaPart).toBe('roof');
+      for (const primitive of node.getMesh()!.listPrimitives()) {
+        const mat = primitive.getMaterial()!;
+        expect(mat.getAlphaMode()).toBe('OPAQUE'); // Transmission, not see-through alpha.
+        expect(mat.getBaseColorFactor()[3]).toBe(1);
+        expect(mat.getExtension<Transmission>('KHR_materials_transmission')?.getTransmissionFactor()).toBeCloseTo(.72, 3);
+        expect(mat.getRoughnessFactor()).toBeCloseTo(.45, 3);
+        expect(mat.getDoubleSided()).toBe(true);
+        expect(mat.getMetallicFactor()).toBe(0);
+      }
+    }
+    expect(nodes.some(n => /Fixed canopy underside/.test(n.getName()))).toBe(false);
+    const trusses = nodes.filter(n => /exposed.*trusses/.test(n.getName()));
+    expect(trusses).toHaveLength(2);
+    for (const node of trusses) {
+      expect(node.getExtras().roofMembrane).not.toBe(true);
+      expect(node.getExtras().arenaPart).toBe('roof');
+      expect(bounds(node).max.y-bounds(node).min.y).toBeGreaterThan(1.2);
+      const prims=node.getMesh()!.listPrimitives();
+      expect(prims.reduce((n,p) => n+p.getAttribute('POSITION')!.getCount(),0)).toBeGreaterThan(1000);
+      for (const primitive of prims) expect(primitive.getMaterial()!.getAlphaMode()).toBe('OPAQUE');
     }
   });
 });

@@ -186,6 +186,33 @@ describe('authored venue boundary', () => {
     expect(borrowedDispose).not.toHaveBeenCalled();
     for (const mat of Object.values(bundle.materials).flat()) mat.dispose();
   });
+  it('keeps authored fabric translucent while opaque roof trusses retain shadows and cutaway visibility', async () => {
+    serve(clayManifest);
+    const scene = registeredScene();
+    const skin = new THREE.Mesh(new THREE.PlaneGeometry(), new THREE.MeshPhysicalMaterial({
+      transmission:.72, roughness:.45, side:THREE.DoubleSide,
+    }));
+    skin.userData={arenaPart:'roof',roofMembrane:true};
+    const truss = new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshStandardMaterial());
+    truss.userData.arenaPart='roof';
+    scene.add(skin,truss);
+    parse.mockResolvedValue({scene});
+    const manager = new VenueAssetManager(vi.fn(),'clay-sunset-arena');
+    manager.setActive(true);
+    await vi.waitFor(() => expect(manager.state.status).toBe('ready'));
+    expect(skin.castShadow).toBe(false);
+    expect(skin.material.transparent).toBe(false);
+    expect(skin.material.transmission).toBe(.72);
+    expect(skin.material.roughness).toBe(.45);
+    expect(skin.material.forceSinglePass).toBe(true);
+    expect(truss.castShadow).toBe(true);
+    expect(truss.material.shadowSide).toBe(THREE.DoubleSide);
+    manager.setRoofVisible(false);
+    expect(skin.visible || truss.visible).toBe(false);
+    manager.setRoofVisible(true);
+    expect(skin.visible && truss.visible).toBe(true);
+    manager.dispose();
+  });
   it('rejects a hard manifest delivered to the clay manager before requesting its GLB', async () => {
     serve(manifest);
     vi.spyOn(console, 'warn').mockImplementation(() => {});

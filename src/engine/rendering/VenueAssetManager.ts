@@ -176,6 +176,13 @@ export class VenueAssetManager {
         if (object.userData.arenaPart === 'roof') {
           for (const mat of Array.isArray(object.material) ? object.material : [object.material]) mat.shadowSide = THREE.DoubleSide;
         }
+        // Thin translucent fabric must not become an opaque slab in the depth
+        // shadow pass. Its independent opaque trusses still cast real shadows.
+        // Rough transmission is supplied by glTF; only authored membranes opt in.
+        if (object.userData.roofMembrane === true) {
+          object.castShadow = false;
+          for (const mat of Array.isArray(object.material) ? object.material : [object.material]) mat.forceSinglePass = true;
+        }
         if (object.userData.surfaceRole) this.surfaces.set(object, object.material);
       });
       const fixtures: THREE.Object3D[] = [];

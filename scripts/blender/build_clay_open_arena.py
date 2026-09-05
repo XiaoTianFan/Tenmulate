@@ -43,7 +43,7 @@ def collection(name):
 
 architecture=collection('01 • Rectilinear limestone bowl and hospitality')
 seating=collection('02 • Linked pale timber seats')
-roof=collection('03 • Nested roof wings, rails and fixed canopies')
+roof=collection('03 • Half-open translucent wings, exposed trusses and canopies')
 court=collection('04 • Clay court, padded walls and equipment')
 anchors=collection('05 • Runtime registration and clearance anchors')
 presentation=collection('06 • Review cameras and lights — not exported')
@@ -55,7 +55,12 @@ dark=material('Structural charcoal','#303c38',.63,.45)
 green=material('Forest green court padding',D['palette']['wall'],.9)
 white=material('Off-white line tapes and wordmarks','#f3f0df',.83)
 netmat=material('Dark woven net','#262c27',.95)
-membrane=material('Ivory tensile roof membrane',D['palette']['roof'],.78)
+membrane=material('Translucent ivory tensile roof membrane',D['palette']['roof'],R['membraneRoughness'])
+# Rough thin-sheet transmission blurs light behind the fabric instead of exposing
+# crisp seat geometry through alpha blending. Exported as KHR_materials_transmission.
+# No second opaque underside: it would erase both translucency and the truss view.
+membrane.node_tree.nodes['Principled BSDF'].inputs['Transmission Weight'].default_value=R['membraneTransmission']
+membrane.use_backface_culling=False
 glass=material('Hospitality blue-grey glass','#49605d',.22,.3)
 # The opaque outer enclosure must also close the view from inside service recesses.
 glass.use_backface_culling=False
@@ -507,9 +512,9 @@ for side in (-1,1):
     for x in (-5.7,5.7): text(f'Green baseline wordmark {side} {x}','TENMULATE',(x,side*(B['innerHalfLength']-.135),.9),.46,(math.pi/2,0,math.pi if side<0 else 0))
     text(f'Clay baseline stencil {side}','T E N M U L A T E',(0,side*19.4,.004),.5,(0,0,math.pi if side<0 else 0))
 
-# Light horizontal canopies and the asymmetric stack of cambered roof wings.
-fixed=Batch('Fixed ivory canopy roof and inner fascia',membrane,roof,roof=True)
-soffit=Batch('Fixed canopy underside',cream,roof,roof=True)
+# Thin fabric canopy with a visible, load-connected frame instead of a solid soffit.
+fixed=Batch('Translucent fixed canopy membrane',membrane,roof,roof=True)
+fascia=Batch('Slim fixed canopy edge fascia',cream,roof,roof=True)
 def aperture(f):
     p=point(0,f)
     ylimit=R['openingNorth'] if p.y>0 else -R['openingSouth']
@@ -520,17 +525,29 @@ for i in range(280):
     u,v=aperture(a),aperture(b)
     p,q=point(outer+3,a),point(outer+3,b)
     fixed.face([(u.x,u.y,27.2),(p.x,p.y,26.5),(q.x,q.y,26.5),(v.x,v.y,27.2)])
-    soffit.face([(v.x,v.y,26.8),(q.x,q.y,26.1),(p.x,p.y,26.1),(u.x,u.y,26.8)])
-    soffit.face([(u.x,u.y,26.8),(v.x,v.y,26.8),(v.x,v.y,27.2),(u.x,u.y,27.2)])
-fixed.finish()
-soffit.finish()
-canopy_ribs=Batch('Fixed canopy radial ribs and perimeter edge',steel,roof,roof=True)
-for i in range(140):
-    u,p=aperture(i/140),point(outer+3,i/140)
-    canopy_ribs.beam((u.x,u.y,26.72),(p.x,p.y,26.02),.055)
-    v=aperture((i+1)/140)
-    canopy_ribs.beam((u.x,u.y,26.72),(v.x,v.y,26.72),.065)
-canopy_ribs.finish()
+    fascia.face([(u.x,u.y,26.95),(v.x,v.y,26.95),(v.x,v.y,27.2),(u.x,u.y,27.2)])
+fixed.finish()['roofMembrane']=True
+fascia.finish()
+canopy_truss=Batch('Fixed canopy exposed triangulated trusses',steel,roof,roof=True)
+canopy_purlins=Batch('Fixed canopy slender purlins and edge chords',steel,roof,roof=True)
+for i in range(70):
+    u,p=aperture(i/70),point(outer+3,i/70)
+    for j in range(6):
+        a,b=j/6,(j+1)/6
+        v,next_point=u.lerp(p,a),u.lerp(p,b)
+        za,zb=27.05-.7*a,27.05-.7*b
+        canopy_truss.beam((v.x,v.y,za),(next_point.x,next_point.y,zb),.075)
+        canopy_truss.beam((v.x,v.y,za-.72),(next_point.x,next_point.y,zb-.72),.055)
+        canopy_truss.beam((v.x,v.y,za),(v.x,v.y,za-.72),.034)
+        canopy_truss.beam((v.x,v.y,za if j%2 else za-.72),(next_point.x,next_point.y,zb-.72 if j%2 else zb),.034)
+for i in range(280):
+    u,v=aperture(i/280),aperture((i+1)/280)
+    p,q=point(outer+3,i/280),point(outer+3,(i+1)/280)
+    for t in (0,.25,.5,.75,1):
+        a,b=u.lerp(p,t),v.lerp(q,t)
+        canopy_purlins.beam((a.x,a.y,27.12-.7*t),(b.x,b.y,27.12-.7*t),.027 if t else .075)
+canopy_truss.finish()
+canopy_purlins.finish()
 tracks=Batch('Paired roof runways rails and support columns',steel,roof,roof=True)
 for side in (-1,1):
     x=side*R['halfSpan']
@@ -538,28 +555,54 @@ for side in (-1,1):
     tracks.box((x,0,28.23),(.18,112,.18))
     for y in range(-50,51,10): tracks.beam((x,y,19),(x,y,27.2),.14,6)
 tracks.finish()
-wingframes=Batch('Curved wing ribs chord members and purlins',steel,roof,roof=True)
+wingframes=Batch('Curved wing rafters and membrane seam battens',steel,roof,roof=True)
+wingtruss=Batch('Movable wing exposed twin Warren trusses',steel,roof,roof=True)
 bogies=Batch('Roof wheel bogies drive housings and service guards',dark,roof,roof=True)
-# Ten nested profiles are deliberately original, not the reference eleven.
+# Interpolate between a closed shingled pitch and the nested parking pitch.
+# At 0.5 the leading edge cuts the original 59 m opening exactly in half; every
+# subsequent wing remains overlapping instead of holding the rear leaf fixed.
+assert 0<=R['openFraction']<=1
+leading=R['openingSouth']+(R['openingNorth']-R['openingSouth'])*R['openFraction']
+closed_pitch=(R['openingNorth']-R['openingSouth'])/R['wingCount']
+pitch=closed_pitch*(1-R['openFraction'])+R['parkedPitch']*R['openFraction']
+assert 0<pitch<R['wingDepth']
+def span_camber(x): return .65*(1-(x/R['halfSpan'])**2)
 for index in range(R['wingCount']):
-    y0=29.6+index*R['parkedPitch']
+    y0=leading+index*pitch
     z0=28.55+index*.13
-    leaf=Batch(f'Parked cambered wing {index+1:02}',membrane,roof,roof=True)
+    leaf=Batch(f'Half-open translucent cambered wing {index+1:02}',membrane,roof,roof=True)
     def profile(t): return R['wingRise']*(1-math.exp(-4*t))+.18*t
     for j in range(16):
         ta,tb=j/16,(j+1)/16
         ya,yb=y0+ta*R['wingDepth'],y0+tb*R['wingDepth']
         za,zb=z0+profile(ta),z0+profile(tb)
-        leaf.face([(-R['halfSpan'],ya,za),(R['halfSpan'],ya,za),(R['halfSpan'],yb,zb),(-R['halfSpan'],yb,zb)])
+        for k in range(24):
+            xa,xb=-R['halfSpan']+k*2*R['halfSpan']/24,-R['halfSpan']+(k+1)*2*R['halfSpan']/24
+            leaf.face([(xa,ya,za+span_camber(xa)),(xb,ya,za+span_camber(xb)),
+                       (xb,yb,zb+span_camber(xb)),(xa,yb,zb+span_camber(xa))])
         for x in (-R['halfSpan'],R['halfSpan']): wingframes.beam((x,ya,za-.12),(x,yb,zb-.12),.07)
     obj=leaf.finish()
-    obj['role']='parked-roof-wing'
+    obj['role']='retractable-roof-wing'
     obj['wingIndex']=index
+    obj['roofMembrane']=True
+    obj['roofOpenFraction']=R['openFraction']
     for x in np.linspace(-R['halfSpan'],R['halfSpan'],23):
         for j in range(8):
             ta,tb=j/8,(j+1)/8
-            wingframes.beam((x,y0+ta*R['wingDepth'],z0+profile(ta)-.16),(x,y0+tb*R['wingDepth'],z0+profile(tb)-.16),.045)
-    wingframes.box((0,y0,z0-.15),(2*R['halfSpan'],.45,.3))
+            wingframes.beam((x,y0+ta*R['wingDepth'],z0+profile(ta)+span_camber(x)-.09),
+                            (x,y0+tb*R['wingDepth'],z0+profile(tb)+span_camber(x)-.09),.038)
+    # Space-frame girder across each wing: twin chords, verticals, diagonals and
+    # lateral bracing are real meshes visible below the translucent fabric.
+    for k in range(24):
+        xa,xb=-R['halfSpan']+k*2*R['halfSpan']/24,-R['halfSpan']+(k+1)*2*R['halfSpan']/24
+        za,zb=z0+span_camber(xa)-.18,z0+span_camber(xb)-.18
+        for dy in (0,.5):
+            wingtruss.beam((xa,y0+dy,za),(xb,y0+dy,zb),.095)
+            wingtruss.beam((xa,y0+dy,za-1.25),(xb,y0+dy,zb-1.25),.075)
+            wingtruss.beam((xa,y0+dy,za),(xa,y0+dy,za-1.25),.045)
+            wingtruss.beam((xa,y0+dy,za if k%2 else za-1.25),(xb,y0+dy,zb-1.25 if k%2 else zb),.045)
+        wingtruss.beam((xa,y0,za-1.25),(xb,y0+.5,zb-1.25),.035)
+        wingtruss.beam((xa,y0,za),(xa,y0+.5,za),.045)
     for side in (-1,1):
         x=side*R['halfSpan']
         bogies.box((x,y0,28.65),(.95,1.55,.22))
@@ -567,6 +610,7 @@ for index in range(R['wingCount']):
         for dy in (-.46,.46): bogies.beam((x-.15,y0+dy,28.47),(x+.15,y0+dy,28.47),.21,10)
         bogies.box((x+side*.48,y0,28.7),(.42,.55,.42))
 wingframes.finish()
+wingtruss.finish()
 bogies.finish()
 
 # Fixed light bridges remain independent of the nested mobile roof.
