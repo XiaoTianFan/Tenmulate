@@ -45,6 +45,19 @@ describe('local application data', () => {
     expect(loadAppData().preferences).toEqual(DEFAULT_PREFERENCES);
   });
 
+  it('persists venue occupancy and quality while migrating old environments to Empty', () => {
+    for (const audience of ['empty', 'half', 'full'] as const) {
+      const data = { ...DEFAULT_APP_DATA, preferences: { ...DEFAULT_PREFERENCES, quality: 'performance' as const,
+        environment: { ...DEFAULT_PREFERENCES.environment, venue: 'clay-stadium' as const, audience } } };
+      saveAppData(data);
+      expect(loadAppData().preferences).toMatchObject({ quality: 'performance', environment: { venue: 'clay-stadium', audience } });
+    }
+    const { audience: _oldAudience, ...oldEnvironment } = DEFAULT_PREFERENCES.environment;
+    localStorage.setItem('tenmulate.appData.v1', JSON.stringify({ ...DEFAULT_APP_DATA,
+      preferences: { ...DEFAULT_PREFERENCES, environment: oldEnvironment } }));
+    expect(loadAppData().preferences.environment.audience).toBe('empty');
+  });
+
   it('migrates the old on-court rally default behind the baseline', () => {
     localStorage.setItem('tenmulate.appData.v1', JSON.stringify({
       schemaVersion: 1,

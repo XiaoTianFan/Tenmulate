@@ -2,9 +2,9 @@
   "id": "timber-hall",
   "version": 1,
   "compatibility": "tenmulate-court-v1",
-  "url": "/assets/venues/timber-hall/timber-hall.65a3c3c366ca.glb",
-  "bytes": 1007600,
-  "sha256": "65a3c3c366ca18f064dcb92307264f280da9a54f5905d1206a0316f525f7b953",
+  "url": "/assets/venues/timber-hall/timber-hall.2d2ff0d11b5b.glb",
+  "bytes": 1017572,
+  "sha256": "2d2ff0d11b5b9b40f77edac6e54c46d57c7a366c15f62e246ec4546fb6c4ac07",
   "source": "assets/venues/timber-hall/timber-hall.blend",
   "anchors": {
     "court_origin": [
@@ -53,9 +53,9 @@
     "id": "timber-hall",
     "version": 1,
     "compatibility": "tenmulate-court-v1",
-    "url": "/assets/venues/timber-hall/timber-hall.performance.8e49183dc321.glb",
-    "bytes": 173436,
-    "sha256": "8e49183dc321fbf007817bce3748d3c360fff9a6508dd7f673667c857f5de697",
+    "url": "/assets/venues/timber-hall/timber-hall.performance.49094c7ba826.glb",
+    "bytes": 183116,
+    "sha256": "49094c7ba82653c1607f793d226c7abc2e40ae597514cb029618d0215aef75a2",
     "source": "assets/venues/timber-hall/timber-hall.blend",
     "anchors": {
       "court_origin": [

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { Sky } from 'three/addons/objects/Sky.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { isOutdoorVenue, type EnvironmentConfiguration, type SceneDefinition } from '../../domain/environment';
 import { resolveVenueLighting } from './venueLighting';
 
@@ -48,6 +49,7 @@ export class DynamicSkySystem {
   private readonly environmentSky = new Sky();
   private readonly pmrem: THREE.PMREMGenerator;
   private environmentTarget: THREE.WebGLRenderTarget | null = null;
+  private indoorEnvironment: THREE.WebGLRenderTarget | null = null;
   private dirty = false;
   private changedAt = 0;
 
@@ -76,8 +78,15 @@ export class DynamicSkySystem {
     this.sun.visible = outdoor;
     this.hemisphere.visible = true;
     if (!outdoor) {
-      this.scene.environment = null;
-      this.scene.environmentIntensity = 0.42;
+      // One shared prefiltered bounce-light environment, generated on first hall
+      // visit only. It lights the roof underside without extra per-frame lights.
+      if (!this.indoorEnvironment) {
+        const room = new RoomEnvironment();
+        this.indoorEnvironment = this.pmrem.fromScene(room, .08);
+        room.dispose();
+      }
+      this.scene.environment = this.indoorEnvironment.texture;
+      this.scene.environmentIntensity = .35 * configuration.lightIntensity;
       this.scene.background = new THREE.Color(definition.background);
       this.scene.fog = new THREE.Fog(definition.background, definition.fogNear, definition.fogFar);
       this.hemisphere.color.setHex(0xd9e1e4);
@@ -128,6 +137,7 @@ export class DynamicSkySystem {
     this.scene.environment = null;
     this.environmentTarget?.dispose();
     this.pmrem.dispose();
+    this.indoorEnvironment?.dispose();
     this.sky.geometry.dispose();
     this.sky.material.dispose();
     this.environmentSky.geometry.dispose();

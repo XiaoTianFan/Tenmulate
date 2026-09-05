@@ -1,21 +1,23 @@
 import { TennisScene, type CameraConfiguration, type QualityMode } from './engine/rendering/TennisScene';
-import { DEFAULT_ENVIRONMENT, SCENE_DEFINITIONS, normalizeVenueId, type EnvironmentConfiguration } from './domain/environment';
+import { DEFAULT_ENVIRONMENT, SCENE_DEFINITIONS, normalizeAudienceOccupancy, normalizeVenueId, type EnvironmentConfiguration } from './domain/environment';
 import { registerPwa } from './app/registerPwa';
-import { isAuthoredVenue } from './engine/rendering/VenueAssetManager';
 
 const canvas = document.querySelector('canvas')!;
 const status = document.querySelector('#status')!;
 const parameters = new URLSearchParams(location.search);
 registerPwa();
-const authored = parameters.get('version') !== 'procedural';
-let environment: EnvironmentConfiguration = { ...DEFAULT_ENVIRONMENT, venue: normalizeVenueId(parameters.get('venue')) };
+const initialQuality: QualityMode = parameters.get('quality') === 'performance' ? 'performance' : parameters.get('quality') === 'auto' ? 'auto' : 'quality';
+const initialVenue = normalizeVenueId(parameters.get('venue'));
+let environment: EnvironmentConfiguration = { ...DEFAULT_ENVIRONMENT, venue: initialVenue, lighting: SCENE_DEFINITIONS[initialVenue].defaultLighting, audience: normalizeAudienceOccupancy(parameters.get('audience')) };
 const scene = new TennisScene(canvas, metrics => {
-  status.textContent = `${canvas.dataset.venueSource === 'blender' ? 'Blender arena' : metrics.venueAsset.status === 'error' ? 'Fallback: ' + metrics.venueAsset.message : authored && isAuthoredVenue(environment.venue) ? 'Loading arena…' : 'Procedural fallback'} · ${metrics.drawCalls} draws · ${(metrics.triangles / 1000).toFixed(0)}k triangles · ${metrics.fps} fps`;
+  status.textContent = `${canvas.dataset.venueSource === 'blender' ? 'Blender · ' + canvas.dataset.venueVariant : metrics.venueAsset.status === 'error' ? 'Venue unavailable: ' + metrics.venueAsset.message : 'Loading venue…'} · ${metrics.drawCalls} draws · ${(metrics.triangles / 1000).toFixed(0)}k triangles · ${metrics.fps} fps · ${metrics.audience.count.toLocaleString()} spectators${metrics.audience.status === 'loading' ? ' (loading)' : metrics.audience.status === 'error' ? ' · ' + metrics.audience.message : ''}`;
+  canvas.dataset.audience = metrics.audience.status;
+  canvas.dataset.spectators = String(metrics.audience.count);
+  document.querySelector<HTMLButtonElement>('#retry')!.hidden = metrics.venueAsset.status !== 'error' && metrics.audience.status !== 'error';
   canvas.dataset.drawCalls = String(metrics.drawCalls);
   canvas.dataset.triangles = String(metrics.triangles);
   canvas.dataset.textures = String(metrics.textures);
-}, { authoredArena: authored });
-scene.setQualityMode('quality');
+}, { quality: initialQuality, environment });
 scene.setSurface(SCENE_DEFINITIONS[environment.venue].defaultSurface);
 scene.setEnvironment(environment);
 const views: Record<string, CameraConfiguration> = {
@@ -26,13 +28,21 @@ const views: Record<string, CameraConfiguration> = {
   roof: { eyeHeight: 72, behindBaseline: 63, lateral: 56, yaw: -37, pitch: -40, fov: 82 },
 };
 const initialCamera = parameters.get('camera') ?? 'player';
-let view: CameraConfiguration = { ...(views[initialCamera] ?? views.player!) };
+let cameraPreset = views[initialCamera] ? initialCamera : 'player';
+function cameraView(name: string): CameraConfiguration {
+  const indoor = SCENE_DEFINITIONS[environment.venue].setting === 'indoor';
+  if (indoor && name === 'sideline') return { ...views.sideline!, eyeHeight: 3.8, lateral: 11.5, pitch: 6, fov: 105 };
+  if (indoor && name === 'corner') return { ...views.corner!, eyeHeight: 4.2, lateral: 11.2, behindBaseline: 7, pitch: 1 };
+  return { ...(views[name] ?? views.player!) };
+}
+let view: CameraConfiguration = cameraView(cameraPreset);
 scene.setCamera(view);
 scene.setVenueReview(parameters.get('camera') !== 'overview');
 document.querySelectorAll<HTMLButtonElement>('[data-camera]').forEach(button => {
   button.setAttribute('aria-pressed', String(button.dataset.camera === (views[initialCamera] ? initialCamera : 'player')));
   button.addEventListener('click', () => {
-    view = { ...views[button.dataset.camera!]! };
+    cameraPreset = button.dataset.camera!;
+    view = cameraView(cameraPreset);
     scene.setCamera(view);
     scene.setVenueReview(button.dataset.camera !== 'overview');
     document.querySelectorAll('[data-camera]').forEach(b => b.setAttribute('aria-pressed', String(b === button)));
@@ -53,17 +63,21 @@ function updateReviewIdentity() {
 venue.value = environment.venue;
 updateReviewIdentity();
 venue.addEventListener('change', () => {
-  environment = { ...environment, venue: normalizeVenueId(venue.value) };
+  environment = { ...environment, venue: normalizeVenueId(venue.value), lighting: SCENE_DEFINITIONS[normalizeVenueId(venue.value)].defaultLighting };
   scene.setSurface(SCENE_DEFINITIONS[environment.venue].defaultSurface);
   scene.setEnvironment(environment);
   updateReviewIdentity();
+  view = cameraView(cameraPreset);
+  scene.setCamera(view);
 });
-const version = document.querySelector<HTMLSelectElement>('[aria-label="Venue version"]')!;
+document.querySelector<HTMLSelectElement>('[aria-label="Render quality"]')!.value = initialQuality;
 document.querySelector<HTMLSelectElement>('[aria-label="Render quality"]')!.addEventListener('change', event => {
   scene.setQualityMode((event.target as HTMLSelectElement).value as QualityMode);
 });
-version.value = authored ? 'blender' : 'procedural';
-version.addEventListener('change', () => { location.search = `?version=${version.value}&venue=${environment.venue}`; });
+const occupancy = document.querySelector<HTMLSelectElement>('[aria-label="Audience"]')!;
+occupancy.value = environment.audience;
+occupancy.addEventListener('change', () => { environment = { ...environment, audience: normalizeAudienceOccupancy(occupancy.value) }; scene.setEnvironment(environment); });
+document.querySelector('#retry')!.addEventListener('click', () => scene.retryVenue());
 let pointer: { x: number; y: number } | null = null;
 canvas.addEventListener('pointerdown', e => { pointer = { x: e.clientX, y: e.clientY }; canvas.setPointerCapture(e.pointerId); });
 canvas.addEventListener('pointerup', () => { pointer = null; });

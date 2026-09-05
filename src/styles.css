@@ -85,6 +85,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .renderer-error strong { font-size: 18px; }
 .renderer-error span { max-width: 540px; color: #ef9b95; font-size: 13px; }
 .renderer-error small { color: var(--muted); }
+.scene-audience-error { position: absolute; left: 14px; right: 14px; bottom: 54px; display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 10px; border: 1px solid #a26842; border-radius: 4px; background: #17232e; color: #fff1e4; font-size: 12px; }
 .preset-toolbar { position: relative; min-width: 0; display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) auto; align-items: stretch; gap: 8px; padding: 8px 12px; border-top: 1px solid var(--divider); border-bottom: 1px solid var(--divider); background: #090f13; }
 .preset-group { min-width: 0; display: grid; grid-template-rows: 21px 1fr; }
 .preset-group header { min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; color: #dbe3e6; font-size: 11px; }

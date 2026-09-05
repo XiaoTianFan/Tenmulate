@@ -6,6 +6,9 @@ export const AUTHORED_VENUES = {
   'hard-open-arena': { surface: 'hard' },
   'clay-sunset-arena': { surface: 'clay' },
   'grass-center-court': { surface: 'grass' },
+  'timber-hall': { surface: 'hard' },
+  'clay-stadium': { surface: 'clay' },
+  'covered-grass-arena': { surface: 'grass' },
 } as const;
 export type AuthoredVenueId = keyof typeof AUTHORED_VENUES;
 export const isAuthoredVenue = (id: string): id is AuthoredVenueId => Object.hasOwn(AUTHORED_VENUES, id);
@@ -19,7 +22,11 @@ export type VenueAssetState = Readonly<{
 export type VenueManifest = Readonly<{
   id: AuthoredVenueId; version: number; compatibility: 'tenmulate-court-v1';
   url: string; bytes: number; sha256: string;
+  performance?: VenueManifest;
+  audience?: AudienceManifest;
 }>;
+export type VenueVariant = 'quality' | 'performance';
+export type AudienceManifest = Readonly<{ url: string; bytes: number; sha256: string; count: number }>;
 
 export const COURT_ASSET_ANCHORS: Readonly<Record<string, readonly number[]>> = {
   court_origin: [0, 0, 0], baseline_near: [0, 0, -COURT.halfLength],
@@ -27,14 +34,22 @@ export const COURT_ASSET_ANCHORS: Readonly<Record<string, readonly number[]>> = 
   doubles_left: [-COURT.doublesWidth / 2, 0, 0], doubles_right: [COURT.doublesWidth / 2, 0, 0],
 };
 
-export function validateVenueManifest(value: unknown, expectedId?: AuthoredVenueId): asserts value is VenueManifest {
+export function validateVenueManifest(value: unknown, expectedId?: AuthoredVenueId, variant: VenueVariant = 'quality'): asserts value is VenueManifest {
   const m = value as Partial<VenueManifest> | null;
   if (!m || typeof m.id !== 'string' || !isAuthoredVenue(m.id) || (expectedId && m.id !== expectedId) || m.compatibility !== 'tenmulate-court-v1'
     || m.version !== 1 || !Number.isInteger(m.bytes) || m.bytes! <= 0 || m.bytes! > 15 * 1024 * 1024
     || typeof m.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(m.sha256)
-    || typeof m.url !== 'string' || !new RegExp(`^/assets/venues/${m.id}/${m.id}\\.[a-f0-9]{12}\\.glb$`).test(m.url)) {
+    || typeof m.url !== 'string' || !new RegExp(`^/assets/venues/${m.id}/${m.id}${variant === 'performance' ? '\\.performance' : ''}\\.[a-f0-9]{12}\\.glb$`).test(m.url)
+    || (variant === 'performance' && m.bytes! > 4 * 1024 * 1024)) {
     throw new Error('Unsupported arena asset manifest');
   }
+}
+
+export function selectVenueVariant(manifest: VenueManifest, variant: VenueVariant): VenueManifest {
+  validateVenueManifest(manifest);
+  if (variant === 'quality') return manifest;
+  validateVenueManifest(manifest.performance, manifest.id, 'performance');
+  return manifest.performance;
 }
 
 export function validateCourtRegistration(root: THREE.Object3D): void {
@@ -85,6 +100,8 @@ export class VenueAssetManager {
   private roofTransmission = 0;
   private generation = 0;
   private readonly surfaces = new Map<THREE.Mesh, THREE.Material | THREE.Material[]>();
+  variant: VenueVariant = 'quality';
+  audienceManifest: AudienceManifest | undefined;
 
   constructor(private readonly changed: () => void, readonly venueId: AuthoredVenueId = 'hard-open-arena') {
     this.group.name = `blender-${venueId}`;
@@ -102,13 +119,37 @@ export class VenueAssetManager {
     if (this.state.status === 'disposed') return;
     this.active = active;
     this.group.visible = active && this.asset !== null;
-    if (!active && this.controller) {
-      this.generation += 1;
-      this.controller.abort();
-      this.controller = null;
-      this.update({ status: 'idle', loadedBytes: 0, totalBytes: 0 });
-    }
+    if (!active && (this.controller || this.asset || this.state.status === 'error')) this.release();
     if (active && !this.asset && !this.controller && this.state.status !== 'error') void this.load();
+  }
+
+  setVariant(variant: VenueVariant): void {
+    if (variant === this.variant || this.state.status === 'disposed') return;
+    this.variant = variant;
+    this.release();
+    if (this.active) void this.load();
+  }
+
+  retry(): void {
+    if (!this.active || this.state.status !== 'error') return;
+    this.release();
+    void this.load();
+  }
+
+  /** Only the active model remains resident. HTTP cache handles reuse. */
+  private release(): void {
+    this.generation += 1;
+    this.controller?.abort();
+    this.controller = null;
+    for (const [mesh, original] of this.surfaces) mesh.material = original;
+    this.surfaces.clear();
+    if (this.asset) disposeVenue(this.asset);
+    this.group.clear();
+    this.group.visible = false;
+    this.asset = null;
+    this.audienceManifest = undefined;
+    this.roofTransmission = 0;
+    this.update({ status: 'idle', loadedBytes: 0, totalBytes: 0 });
   }
 
   applySurface(surface: SurfaceId, bundle: SceneMaterialBundle, wetness: number): void {
@@ -141,8 +182,9 @@ export class VenueAssetManager {
       const base = `/assets/venues/${this.venueId}/`;
       const response = await fetch(`${base}manifest.json`, { signal: controller.signal });
       if (!response.ok) throw new Error(`Arena manifest HTTP ${response.status}`);
-      const manifest: unknown = await response.json();
-      validateVenueManifest(manifest, this.venueId);
+      const catalog: unknown = await response.json();
+      validateVenueManifest(catalog, this.venueId);
+      const manifest = selectVenueVariant(catalog, this.variant);
       const model = await fetch(manifest.url, { signal: controller.signal });
       if (!model.ok) throw new Error(`Arena model HTTP ${model.status}`);
       const chunks: Uint8Array[] = [];
@@ -205,14 +247,15 @@ export class VenueAssetManager {
       // Legacy hard-arena anchors describe only two sides; preserve its four fixtures.
       const positions = fixtures.length === 4 ? fixtures.map(o => o.getWorldPosition(new THREE.Vector3()))
         : [-18, 18].flatMap(x => [-20, 20].map(z => new THREE.Vector3(x, 24, z)));
-      for (const position of positions) {
+      for (const [index, position] of positions.entries()) {
         const light = new THREE.SpotLight(0xe7f2ff, 0, 110, .95, .65, 2);
         light.position.copy(position);
-        light.userData.baseIntensity = 4500;
+        light.userData.baseIntensity = Number(fixtures[index]?.userData.intensity) || 4500;
         light.target.position.set(0, 0, position.z * .2);
         parsed.add(light, light.target);
       }
       this.asset = parsed;
+      this.audienceManifest = catalog.audience;
       this.setRoofVisible(this.roofVisible);
       this.group.add(parsed);
       this.group.visible = this.active;
@@ -222,7 +265,7 @@ export class VenueAssetManager {
       if (generation === this.generation) {
         this.update({ status: 'error', loadedBytes: 0, totalBytes: 0,
           message: error instanceof Error ? error.message : 'Arena unavailable' });
-        console.warn('Authored arena unavailable; using the procedural venue.', error);
+        console.warn('Venue could not load. Retry or choose another venue.', error);
       }
     } finally {
       if (generation === this.generation) this.controller = null;

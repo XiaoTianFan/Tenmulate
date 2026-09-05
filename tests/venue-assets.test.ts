@@ -46,6 +46,40 @@ function serve(m = manifest, data = bytes) {
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); parse.mockReset(); });
 
 describe('authored venue boundary', () => {
+  it('selects Performance before download and fails closed if the variant is missing', async () => {
+    const performance = { ...manifest, url: '/assets/venues/hard-open-arena/hard-open-arena.performance.abcdef123456.glb' };
+    serve({ ...manifest, performance } as typeof manifest);
+    parse.mockImplementation(async () => ({ scene: registeredScene() }));
+    const manager = new VenueAssetManager(vi.fn());
+    manager.setVariant('performance'); manager.setActive(true);
+    await vi.waitFor(() => expect(manager.state.status).toBe('ready'));
+    expect(vi.mocked(fetch).mock.calls.map(([url]) => url)).toEqual([
+      '/assets/venues/hard-open-arena/manifest.json', performance.url]);
+    manager.dispose();
+    serve(); vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const missing = new VenueAssetManager(vi.fn()); missing.setVariant('performance'); missing.setActive(true);
+    await vi.waitFor(() => expect(missing.state.status).toBe('error'));
+    expect(fetch).toHaveBeenCalledOnce(); expect(missing.group.children).toHaveLength(0); missing.dispose();
+  });
+  it('disposes a stale Quality parse after a variant switch and recovers from a failed transfer', async () => {
+    const performance = { ...manifest, url: '/assets/venues/hard-open-arena/hard-open-arena.performance.abcdef123456.glb' };
+    serve({ ...manifest, performance } as typeof manifest);
+    let finish: ((result: { scene: THREE.Group }) => void) | undefined;
+    parse.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }))
+      .mockImplementation(async () => ({ scene: registeredScene() }));
+    const manager = new VenueAssetManager(vi.fn()); manager.setActive(true);
+    await vi.waitFor(() => expect(finish).toBeDefined());
+    manager.setVariant('performance');
+    await vi.waitFor(() => expect(manager.state.status).toBe('ready'));
+    const stale = registeredScene(); const disposed = vi.spyOn((stale.children.find(o => o instanceof THREE.Mesh) as THREE.Mesh).geometry, 'dispose');
+    finish!({ scene: stale }); await vi.waitFor(() => expect(disposed).toHaveBeenCalledOnce());
+    expect(manager.group.children).not.toContain(stale); manager.dispose();
+    serve(); vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.mocked(fetch).mockResolvedValueOnce(new Response('unavailable', { status: 503 }));
+    const retry = new VenueAssetManager(vi.fn()); retry.setActive(true);
+    await vi.waitFor(() => expect(retry.state.status).toBe('error'));
+    retry.retry(); await vi.waitFor(() => expect(retry.state.status).toBe('ready')); retry.dispose();
+  });
   it('ships the declared bytes, seat instances and gameplay anchors in the actual decoded asset', async () => {
     const shipped = JSON.parse(await readFile('public/assets/venues/hard-open-arena/manifest.json', 'utf8'));
     const declaredSeats = shipped.seats;
@@ -137,7 +171,7 @@ describe('authored venue boundary', () => {
     expect(() => validateVenueManifest(grassManifest, 'clay-sunset-arena')).toThrow();
     expect(() => validateVenueManifest(clayManifest, 'grass-center-court')).toThrow();
   });
-  it('loads only the activated manager and keeps hard/clay state and cached scenes separate', async () => {
+  it('loads only the activated manager and releases deselected scenes', async () => {
     vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => Promise.resolve(
       url.endsWith('.json') ? Response.json(url.includes('clay-sunset-arena') ? clayManifest : manifest) : new Response(bytes),
     )));
@@ -156,7 +190,9 @@ describe('authored venue boundary', () => {
     expect(hard.group.children[0]).not.toBe(clay.group.children[0]);
     hard.setActive(false);
     clay.setActive(true);
-    expect(fetch).toHaveBeenCalledTimes(4);
+    await vi.waitFor(() => expect(clay.state.status).toBe('ready'));
+    expect(fetch).toHaveBeenCalledTimes(6);
+    expect(hard.group.children).toHaveLength(0);
     expect(clay.group.visible).toBe(true);
     hard.dispose();
     clay.dispose();
@@ -191,7 +227,7 @@ describe('authored venue boundary', () => {
     expect(borrowedDispose).not.toHaveBeenCalled();
     for (const mat of Object.values(bundle.materials).flat()) mat.dispose();
   });
-  it('loads grass independently, preserves native turf and reuses its completed scene', async () => {
+  it('loads grass independently, preserves native turf and releases its completed scene', async () => {
     serve(grassManifest);
     const scene = registeredScene();
     parse.mockResolvedValue({scene});
@@ -214,8 +250,10 @@ describe('authored venue boundary', () => {
     grass.applySurface('grass',bundle,0);
     expect(mesh.material).toBe(native);
     grass.setActive(false);
+    expect(grass.group.children).toHaveLength(0);
     grass.setActive(true);
-    expect(fetch).toHaveBeenCalledTimes(2);
+    await vi.waitFor(() => expect(grass.state.status).toBe('ready'));
+    expect(fetch).toHaveBeenCalledTimes(4);
     expect(grass.group.visible).toBe(true);
     grass.dispose(); hard.dispose(); clay.dispose();
     for (const mat of Object.values(bundle.materials).flat()) mat.dispose();
@@ -253,6 +291,7 @@ describe('authored venue boundary', () => {
     manager.setActive(false);
     expect(manager.sunShadowIntensity).toBe(1);
     manager.setActive(true);
+    await vi.waitFor(() => expect(manager.state.status).toBe('ready'));
     expect(manager.sunShadowIntensity).toBeCloseTo(.68);
     manager.dispose();
     expect(manager.sunShadowIntensity).toBe(1);
@@ -286,11 +325,12 @@ describe('authored venue boundary', () => {
     manager.setActive(false);
     expect(manager.group.visible).toBe(false);
     manager.setActive(true);
-    expect(fetch).toHaveBeenCalledTimes(2);
+    await vi.waitFor(() => expect(manager.state.status).toBe('ready'));
+    expect(fetch).toHaveBeenCalledTimes(4);
     manager.dispose();
     expect(manager.group.children).toHaveLength(0);
   });
-  it('keeps fallback on content corruption without attempting glTF parsing', async () => {
+  it('shows an error on content corruption without parsing or substituting another venue', async () => {
     serve({ ...manifest, sha256: '0'.repeat(64) });
     vi.spyOn(console, 'warn').mockImplementation(() => {});
     const manager = new VenueAssetManager(vi.fn());

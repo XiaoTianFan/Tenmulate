@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { cameraRotationRadians } from '../../domain/camera';
 import { COURT, type SurfaceId } from '../../domain/court';
-import { DEFAULT_ENVIRONMENT, SCENE_DEFINITIONS, isOutdoorVenue, windVelocityFromEnvironment, type EnvironmentConfiguration, type VenueId } from '../../domain/environment';
+import { DEFAULT_ENVIRONMENT, SCENE_DEFINITIONS, isOutdoorVenue, windVelocityFromEnvironment, type EnvironmentConfiguration } from '../../domain/environment';
 import type { FlightSample, ResolvedTrajectory } from '../trajectory/physics';
 import { aimDirectionToCourtPoint, sampleTrajectoryAt } from '../trajectory/physics';
 import { createCourt } from './buildCourt';
@@ -12,6 +12,7 @@ import { updateSceneMaterialEnvironment, type SceneMaterialBundle } from './scen
 import { BALL_PRESENTATION } from './presentationMaterials';
 import { AUTHORED_VENUES, isAuthoredVenue, VenueAssetManager, type AuthoredVenueId, type VenueAssetState } from './VenueAssetManager';
 import { resolveVenueLighting } from './venueLighting';
+import { AudienceSystem, type AudienceState } from './AudienceSystem';
 import type { CompiledSession } from '../session/compileSession';
 import { motionEvent, motionClip, sampleOpponentTimeline, type MotionEvent } from '../session/opponentTimeline';
 import { SHOTS } from '../../content/bundled';
@@ -35,6 +36,7 @@ export type SceneMetrics = Readonly<{
   triangles: number;
   textures: number;
   venueAsset: VenueAssetState;
+  audience: AudienceState;
 }>;
 
 export type QualityMode = 'auto' | 'performance' | 'quality';
@@ -111,10 +113,8 @@ export class TennisScene {
   private readonly sun: THREE.DirectionalLight;
   private readonly opponent = new OpponentRig();
   private readonly fallbackBallMachine: THREE.Object3D | undefined;
-  private readonly venueGroups: Readonly<Record<VenueId, THREE.Group>>;
   private readonly authoredArenas: Readonly<Record<AuthoredVenueId, VenueAssetManager>>;
-  private readonly authoredArenaEnabled: boolean;
-  private readonly courtPresentation: THREE.Group;
+  private readonly audience = new AudienceSystem();
   private surface: SurfaceId = 'hard';
   private venueReview = false;
   private readonly setCourtSurface: (surface: SurfaceId) => void;
@@ -142,6 +142,7 @@ export class TennisScene {
   private metricStartedAt = performance.now();
   private metricFrames = 0;
   private qualityMode: QualityMode = 'auto';
+  private autoPerformance = false;
   private adaptivePixelRatio = Math.min(window.devicePixelRatio, 1.75);
   private slowMetricWindows = 0;
   private environmentConfiguration = DEFAULT_ENVIRONMENT;
@@ -157,7 +158,7 @@ export class TennisScene {
   constructor(
     private readonly canvas: HTMLCanvasElement,
     private readonly onMetrics?: (metrics: SceneMetrics) => void,
-    options: Readonly<{ authoredArena?: boolean }> = {},
+    options: Readonly<{ quality?: QualityMode; environment?: EnvironmentConfiguration }> = {},
   ) {
     this.renderer = new THREE.WebGLRenderer({
       canvas,
@@ -199,16 +200,13 @@ export class TennisScene {
     const court = createCourt('hard');
     this.setCourtSurface = court.setSurface;
     this.materialBundle = court.materialBundle;
-    this.venueGroups = court.venueGroups;
-    this.courtPresentation = court.presentation;
-    this.authoredArenaEnabled = options.authoredArena ?? (import.meta.env.VITE_AUTHORED_ARENA === '1'
-      || new URLSearchParams(window.location.search).get('venueAsset') === 'blender');
     this.authoredArenas = Object.fromEntries(Object.keys(AUTHORED_VENUES).map(id => {
       const manager = new VenueAssetManager(() => this.syncArenaPresentation(), id as AuthoredVenueId);
       this.scene.add(manager.group);
       return [id, manager];
     })) as Record<AuthoredVenueId, VenueAssetManager>;
     this.scene.add(court.group);
+    this.scene.add(this.audience.group);
     this.scene.add(this.opponent.group);
     this.fallbackBallMachine = court.group.getObjectByName('temporary-ball-machine');
     void this.opponent.load().then(() => {
@@ -244,7 +242,8 @@ export class TennisScene {
     this.scene.add(this.ballTrail);
 
     this.setCamera(this.cameraConfiguration);
-    this.setEnvironment(DEFAULT_ENVIRONMENT);
+    this.setQualityMode(options.quality ?? 'auto');
+    this.setEnvironment(options.environment ?? DEFAULT_ENVIRONMENT);
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(canvas);
     this.resize();
@@ -315,14 +314,13 @@ export class TennisScene {
 
   private syncArenaPresentation(): void {
     const arena = this.activeAuthoredArena;
-    const ready = this.authoredArenaEnabled && arena?.state.status === 'ready';
-    this.courtPresentation.visible = !ready;
-    for (const id of Object.keys(AUTHORED_VENUES) as AuthoredVenueId[]) {
-      this.venueGroups[id].visible = this.environmentConfiguration.venue === id && !ready;
-    }
+    const ready = arena?.state.status === 'ready';
     this.canvas.dataset.venueAsset = arena?.state.status ?? 'idle';
     this.canvas.dataset.authoredVenue = ready ? this.environmentConfiguration.venue : '';
-    this.canvas.dataset.venueSource = ready ? 'blender' : 'procedural';
+    this.canvas.dataset.venueSource = ready ? 'blender' : arena?.state.status === 'error' ? 'error' : 'loading';
+    this.canvas.dataset.venueVariant = arena?.variant ?? 'quality';
+    this.audience.apply(this.environmentConfiguration.venue, ready ? arena.audienceManifest : undefined,
+      this.environmentConfiguration.audience, arena?.variant ?? 'quality');
     // Fabric casts one continuous shade, with a bounded diffuse-light allowance.
     // Reset on every asset/venue/cutaway transition; hard and fallback stay intact.
     this.sun.shadow.intensity = ready && arena ? arena.sunShadowIntensity : 1;
@@ -370,20 +368,21 @@ export class TennisScene {
     this.environmentConfiguration = configuration;
     this.canvas.dataset.venue = configuration.venue;
     this.canvas.dataset.timeOfDay = String(configuration.timeOfDay);
-    for (const [venue, group] of Object.entries(this.venueGroups)) group.visible = venue === configuration.venue;
     const definition = SCENE_DEFINITIONS[configuration.venue];
     this.renderer.toneMappingExposure = resolveVenueLighting(configuration).exposure;
     this.skySystem.apply(configuration, definition);
     this.weatherSystem.apply(configuration);
-    this.applyVenueFixtures(this.venueGroups[configuration.venue]);
     const wind = windVelocityFromEnvironment(configuration);
     updateSceneMaterialEnvironment(this.materialBundle, this.elapsed, configuration.weather === 'rain' ? configuration.weatherIntensity * 0.86 : 0, wind.x, wind.z);
-    for (const [id, arena] of Object.entries(this.authoredArenas)) arena.setActive(this.authoredArenaEnabled && configuration.venue === id);
+    // Release deselected resources before activating the next venue.
+    for (const [id, arena] of Object.entries(this.authoredArenas)) if (configuration.venue !== id) arena.setActive(false);
+    this.authoredArenas[configuration.venue].setActive(true);
     this.syncArenaPresentation();
   }
 
   setQualityMode(mode: QualityMode): void {
     this.qualityMode = mode;
+    this.autoPerformance = mode === 'auto' && window.innerWidth < 650;
     this.slowMetricWindows = 0;
     this.adaptivePixelRatio = mode === 'performance'
       ? Math.min(window.devicePixelRatio, 1)
@@ -399,7 +398,10 @@ export class TennisScene {
       this.sun.shadow.needsUpdate = true;
     }
     this.resize();
+    for (const arena of Object.values(this.authoredArenas)) arena.setVariant(mode === 'performance' || this.autoPerformance ? 'performance' : 'quality');
   }
+
+  retryVenue(): void { this.activeAuthoredArena?.retry(); this.audience.retry(); this.syncArenaPresentation(); }
 
   setCamera(configuration: CameraConfiguration): void {
     this.cameraConfiguration = configuration;
@@ -592,10 +594,13 @@ export class TennisScene {
       };
       this.applyCamera();
     }
+    this.audience.update(this.elapsed);
     this.renderer.render(this.scene, this.camera);
     this.metricFrames += 1;
     const metricElapsed = now - this.metricStartedAt;
     if (metricElapsed >= 1000) {
+      this.canvas.dataset.audience = this.audience.state.status;
+      this.canvas.dataset.spectators = String(this.audience.state.count);
       this.onMetrics?.({
         fps: Math.round((this.metricFrames * 1000) / metricElapsed),
         frameMs: metricElapsed / this.metricFrames,
@@ -606,10 +611,15 @@ export class TennisScene {
         triangles: this.renderer.info.render.triangles,
         textures: this.renderer.info.memory.textures,
         venueAsset: this.activeAuthoredArena?.state ?? { status: 'idle', loadedBytes: 0, totalBytes: 0 },
+        audience: this.audience.state,
       });
       const fps = (this.metricFrames * 1000) / metricElapsed;
       if (this.qualityMode === 'auto') {
         this.slowMetricWindows = fps < 52 ? this.slowMetricWindows + 1 : Math.max(0, this.slowMetricWindows - 1);
+        if (this.slowMetricWindows >= 3 && !this.autoPerformance && this.activeAuthoredArena?.state.status === 'ready') {
+          this.autoPerformance = true;
+          for (const arena of Object.values(this.authoredArenas)) arena.setVariant('performance');
+        }
         if (this.slowMetricWindows >= 3 && this.adaptivePixelRatio > 0.8) {
           this.adaptivePixelRatio = Math.max(0.8, this.adaptivePixelRatio - 0.2);
           this.renderer.setPixelRatio(this.adaptivePixelRatio);
@@ -634,9 +644,12 @@ export class TennisScene {
     this.resizeObserver.disconnect();
     this.renderer.setAnimationLoop(null);
     for (const arena of Object.values(this.authoredArenas)) arena.dispose();
+    this.audience.dispose();
     const geometries = new Set<THREE.BufferGeometry>();
     const materials = new Set<THREE.Material>();
     const textures = new Set<THREE.Texture>();
+    // Surface override materials may never have been attached to a mesh.
+    for (const material of Object.values(this.materialBundle.materials)) materials.add(material);
     this.scene.traverse((object) => {
       if (
         object.name === 'dynamic-physical-sky'

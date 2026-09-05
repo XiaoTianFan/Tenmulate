@@ -19,31 +19,8 @@ export type ProceduralMaterial = THREE.MeshPhysicalMaterial & {
 export type SceneMaterialLibrary = Readonly<{
   court: ProceduralMaterial;
   runoff: ProceduralMaterial;
-  line: ProceduralMaterial;
   darkMetal: ProceduralMaterial;
-  lightMetal: ProceduralMaterial;
-  blueSeat: ProceduralMaterial;
-  greenSeat: ProceduralMaterial;
-  warmSeat: ProceduralMaterial;
-  paleSeat: ProceduralMaterial;
-  concrete: ProceduralMaterial;
-  paleConcrete: ProceduralMaterial;
-  glass: ProceduralMaterial;
-  fence: THREE.ShaderMaterial;
-  fencePost: ProceduralMaterial;
-  timber: ProceduralMaterial;
-  warmWall: ProceduralMaterial;
-  roof: ProceduralMaterial;
-  clayStone: ProceduralMaterial;
-  terracotta: ProceduralMaterial;
-  grass: ProceduralMaterial;
-  hedge: ProceduralMaterial;
-  foliage: readonly ProceduralMaterial[];
-  trunk: ProceduralMaterial;
-  lamp: ProceduralMaterial;
   darkWall: ProceduralMaterial;
-  ceiling: ProceduralMaterial;
-  adBoard: ProceduralMaterial;
 }>;
 
 export type SceneMaterialBundle = Readonly<{
@@ -185,14 +162,6 @@ const createProceduralMaterial = (options: ProceduralOptions): ProceduralMateria
   return material;
 };
 
-const createFenceMaterial = (): THREE.ShaderMaterial => new THREE.ShaderMaterial({
-  transparent: true,
-  depthWrite: false,
-  uniforms: { color: { value: new THREE.Color(0x4f6b60) }, opacity: { value: 0.32 } },
-  vertexShader: `void main() { gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
-  fragmentShader: `uniform vec3 color; uniform float opacity; void main() { gl_FragColor = vec4(color, opacity); }`,
-});
-
 const surfaceStyle = (surface: SurfaceId) => {
   if (surface === 'clay') return { colorA: 0x9e492a, colorB: 0xcf7847, pattern: 1, scale: 9, roughness: 0.95 } as const;
   if (surface === 'grass') return { colorA: 0x285b31, colorB: 0x65914b, pattern: 2, scale: 8, roughness: 0.96 } as const;
@@ -204,35 +173,8 @@ export const createSceneMaterialBundle = (surface: SurfaceId): SceneMaterialBund
   const materials: SceneMaterialLibrary = {
     court,
     runoff: createProceduralMaterial({ colorA: 0x285943, colorB: 0x78a26b, pattern: 0, scale: 9, roughness: 0.92 }),
-    line: createProceduralMaterial({ colorA: 0xe9e7dc, colorB: 0xffffff, pattern: 0, scale: 14, roughness: 0.76 }),
     darkMetal: createProceduralMaterial({ colorA: 0x10171b, colorB: 0x35434a, pattern: 4, scale: 12, roughness: 0.38, metalness: 0.72 }),
-    lightMetal: createProceduralMaterial({ colorA: 0x65747b, colorB: 0xa7b5ba, pattern: 4, scale: 14, roughness: 0.34, metalness: 0.78 }),
-    blueSeat: createProceduralMaterial({ colorA: 0x075d9a, colorB: 0x2694ce, pattern: 5, scale: 9, roughness: 0.5, emissive: 0x062337, emissiveIntensity: 0.24 }),
-    greenSeat: createProceduralMaterial({ colorA: 0x0c4936, colorB: 0x268365, pattern: 5, scale: 9, roughness: 0.56, emissive: 0x041710, emissiveIntensity: 0.2 }),
-    warmSeat: createProceduralMaterial({ colorA: 0x76503c, colorB: 0xc4a477, pattern: 5, scale: 9, roughness: 0.68 }),
-    paleSeat: createProceduralMaterial({ colorA: 0xbfc8c5, colorB: 0xe6ebe8, pattern: 5, scale: 9, roughness: 0.68 }),
-    concrete: createProceduralMaterial({ colorA: 0x8c8f8d, colorB: 0xc7c9c4, pattern: 3, scale: 7, roughness: 0.9 }),
-    paleConcrete: createProceduralMaterial({ colorA: 0xc8c6ba, colorB: 0xe7e4d7, pattern: 3, scale: 7, roughness: 0.88 }),
-    glass: createProceduralMaterial({ colorA: 0x7297a7, colorB: 0xb9d4dd, pattern: 4, scale: 18, roughness: 0.1, metalness: 0.04, transmission: 0.1, transparent: true, opacity: 0.58, side: THREE.DoubleSide }),
-    fence: createFenceMaterial(),
-    fencePost: createProceduralMaterial({ colorA: 0x263c35, colorB: 0x587268, pattern: 4, scale: 12, roughness: 0.45, metalness: 0.64 }),
-    timber: createProceduralMaterial({ colorA: 0x5d351f, colorB: 0xb07a4d, pattern: 6, scale: 3, roughness: 0.72 }),
-    warmWall: createProceduralMaterial({ colorA: 0xc6c0ac, colorB: 0xf0ead8, pattern: 3, scale: 6, roughness: 0.86 }),
-    roof: createProceduralMaterial({ colorA: 0x59666c, colorB: 0x9ba8ad, pattern: 7, scale: 9, roughness: 0.55, metalness: 0.4 }),
-    clayStone: createProceduralMaterial({ colorA: 0x9d7955, colorB: 0xd6ba8a, pattern: 3, scale: 6, roughness: 0.94 }),
-    terracotta: createProceduralMaterial({ colorA: 0x86371f, colorB: 0xc66e3d, pattern: 7, scale: 8, roughness: 0.88 }),
-    grass: createProceduralMaterial({ colorA: 0x204d30, colorB: 0x568250, pattern: 2, scale: 7, roughness: 0.96, sway: 0.08 }),
-    hedge: createProceduralMaterial({ colorA: 0x183f29, colorB: 0x42724a, pattern: 8, scale: 6, roughness: 0.96, sway: 0.12 }),
-    foliage: [
-      createProceduralMaterial({ colorA: 0x164a2d, colorB: 0x4f8451, pattern: 8, scale: 5, roughness: 0.96, sway: 0.75 }),
-      createProceduralMaterial({ colorA: 0x245f36, colorB: 0x6a9955, pattern: 8, scale: 5, roughness: 0.94, sway: 0.7 }),
-      createProceduralMaterial({ colorA: 0x103a2a, colorB: 0x3d7048, pattern: 8, scale: 5, roughness: 0.98, sway: 0.8 }),
-    ],
-    trunk: createProceduralMaterial({ colorA: 0x3f2b1c, colorB: 0x755943, pattern: 6, scale: 4, roughness: 0.98 }),
-    lamp: createProceduralMaterial({ colorA: 0xdfe6e4, colorB: 0xffffff, pattern: 4, scale: 16, roughness: 0.22, emissive: 0xddeaff, emissiveIntensity: 3.2 }),
     darkWall: createProceduralMaterial({ colorA: 0x161d20, colorB: 0x384247, pattern: 3, scale: 6, roughness: 0.82 }),
-    ceiling: createProceduralMaterial({ colorA: 0xbec8c6, colorB: 0xe5ebe9, pattern: 7, scale: 8, roughness: 0.76 }),
-    adBoard: createProceduralMaterial({ colorA: 0x11171a, colorB: 0x2a3438, pattern: 9, scale: 8, roughness: 0.55, emissive: 0x071015, emissiveIntensity: 0.22 }),
   };
   return { textures: [], materials };
 };

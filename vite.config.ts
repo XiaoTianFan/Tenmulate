@@ -25,21 +25,26 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,glb,json,txt}'],
-        globIgnores: ['assets/venues/**'],
+        globIgnores: ['assets/venues/**', 'assets/audience/**'],
         runtimeCaching: [{
-          urlPattern: /\/assets\/venues\/(hard-open-arena|clay-sunset-arena|grass-center-court)\/\1\.[a-f0-9]{12}\.glb$/,
+          urlPattern: /\/assets\/venues\/(hard-open-arena|clay-sunset-arena|grass-center-court|timber-hall|clay-stadium|covered-grass-arena)\/\1(?:\.performance)?\.[a-f0-9]{12}\.glb$/,
           handler: 'CacheFirst',
           options: { cacheName: 'tenmulate-venues-v1', cacheableResponse: { statuses: [200] },
-            expiration: { maxEntries: 4, maxAgeSeconds: 30 * 24 * 60 * 60, purgeOnQuotaError: true } },
+            expiration: { maxEntries: 12, maxAgeSeconds: 30 * 24 * 60 * 60, purgeOnQuotaError: true } },
         }, {
-          urlPattern: /\/assets\/venues\/(hard-open-arena|clay-sunset-arena|grass-center-court)\/manifest\.json$/,
+          urlPattern: /\/assets\/venues\/(hard-open-arena|clay-sunset-arena|grass-center-court|timber-hall|clay-stadium|covered-grass-arena)\/manifest\.json$/,
           handler: 'NetworkFirst',
           options: { cacheName: 'tenmulate-venue-manifests-v1', networkTimeoutSeconds: 3,
             cacheableResponse: { statuses: [200] } },
+        }, {
+          urlPattern: /\/assets\/(?:audience\/spectators-(?:front|back)-(?:512|1024)\.webp|venues\/[a-z-]+\/audience-seats\.[a-f0-9]{12}\.json)$/,
+          handler: 'StaleWhileRevalidate',
+          options: { cacheName: 'tenmulate-audience-v1', cacheableResponse: { statuses: [200] },
+            expiration: { maxEntries: 10, maxAgeSeconds: 30 * 24 * 60 * 60, purgeOnQuotaError: true } },
         }],
         cleanupOutdatedCaches: true,
         // Review queries select client-side state, not a different HTML shell.
-        ignoreURLParametersMatching: [/^utm_/, /^fbclid$/, /^(camera|version|venue)$/],
+        ignoreURLParametersMatching: [/^utm_/, /^fbclid$/, /^(camera|version|venue|quality|audience)$/],
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/venue-review\.html/],
       },

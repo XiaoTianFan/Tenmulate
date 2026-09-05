@@ -9,6 +9,7 @@ import runpy
 import sys
 from pathlib import Path
 import bpy
+import bmesh
 import numpy as np
 from mathutils import Vector
 
@@ -268,6 +269,13 @@ for x in (-7,7):
 scene.render.engine='CYCLES'; scene.cycles.samples=32; scene.cycles.use_denoising=True
 scene.render.resolution_x,scene.render.resolution_y=1600,1000
 scene['seatCount']=count
+# Blender cannot export explicit tangents for an entire mesh when one beam cap
+# remains an n-gon. Triangulate only those caps, retaining side faces and UVs.
+for obj in scene.objects:
+    if obj.type=='MESH' and any(len(p.vertices)>4 for p in obj.data.polygons):
+        bm=bmesh.new(); bm.from_mesh(obj.data)
+        bmesh.ops.triangulate(bm,faces=[f for f in bm.faces if len(f.verts)>4])
+        bm.to_mesh(obj.data); bm.free(); obj.data.update()
 runpy.run_path(str(ROOT/'scripts/blender/bake_ambient.py'))
 bpy.ops.file.pack_all()
 bpy.ops.wm.save_as_mainfile(filepath=str(SOURCE/f'{VENUE}.blend'),compress=True)

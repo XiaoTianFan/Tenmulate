@@ -13,6 +13,8 @@ export type VenueId = (typeof VENUE_IDS)[number];
 export type VenueSetting = 'outdoor' | 'indoor';
 export type LightingPreset = 'day' | 'golden-hour' | 'night' | 'indoor-neutral' | 'indoor-warm' | 'indoor-bright';
 export type WeatherCondition = 'clear' | 'overcast' | 'rain';
+export type AudienceOccupancy = 'empty' | 'half' | 'full';
+export const normalizeAudienceOccupancy = (value: unknown): AudienceOccupancy => value === 'half' || value === 'full' ? value : 'empty';
 
 export type SceneDefinition = Readonly<{
   id: VenueId;
@@ -54,6 +56,7 @@ export const SCENE_DEFINITIONS: Readonly<Record<VenueId, SceneDefinition>> = Obj
 });
 
 export type EnvironmentConfiguration = Readonly<{
+  audience: AudienceOccupancy;
   venue: VenueId;
   lighting: LightingPreset;
   lightDirection: number;
@@ -66,6 +69,7 @@ export type EnvironmentConfiguration = Readonly<{
 }>;
 
 export const DEFAULT_ENVIRONMENT: EnvironmentConfiguration = Object.freeze({
+  audience: 'empty',
   venue: 'hard-open-arena',
   lighting: 'day',
   lightDirection: 145,
@@ -100,6 +104,7 @@ export const normalizeEnvironmentConfiguration = (value: unknown): EnvironmentCo
   const candidate = typeof value === 'object' && value !== null ? value as Record<string, unknown> : {};
   const weather = candidate.weather === 'overcast' || candidate.weather === 'rain' ? candidate.weather : 'clear';
   return {
+    audience: normalizeAudienceOccupancy(candidate.audience),
     venue: normalizeVenueId(candidate.venue),
     lighting: candidate.lighting === 'day' || candidate.lighting === 'golden-hour' || candidate.lighting === 'night'
       || candidate.lighting === 'indoor-neutral' || candidate.lighting === 'indoor-warm' || candidate.lighting === 'indoor-bright'

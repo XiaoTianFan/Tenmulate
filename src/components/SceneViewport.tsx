@@ -77,6 +77,9 @@ export function SceneViewport({
   const sceneRef = useRef<TennisScene | null>(null);
   const pointerDrag = useRef<CameraPointerDrag | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [venueStatus, setVenueStatus] = useState<SceneMetrics['venueAsset']>({ status: 'loading', loadedBytes: 0, totalBytes: 0 });
+  const [audienceError, setAudienceError] = useState<string | null>(null);
+  const initialSceneOptions = useRef({ quality, environment });
   const [trajectoryTooltip, setTrajectoryTooltip] = useState<TrajectoryTooltipState | null>(null);
 
   const zoomFromWheel = useEffectEvent((event: WheelEvent) => {
@@ -101,7 +104,11 @@ export function SceneViewport({
     if (!canvas) return;
     let scene: TennisScene;
     try {
-      scene = new TennisScene(canvas, onMetrics);
+      scene = new TennisScene(canvas, metrics => {
+        onMetrics(metrics);
+        setVenueStatus(previous => previous.status === metrics.venueAsset.status && previous.loadedBytes === metrics.venueAsset.loadedBytes ? previous : metrics.venueAsset);
+        setAudienceError(metrics.audience.status === 'error' ? metrics.audience.message ?? 'Audience unavailable' : null);
+      }, initialSceneOptions.current);
       sceneRef.current = scene;
       setError(null);
     } catch (cause) {
@@ -220,6 +227,8 @@ export function SceneViewport({
         onPointerLeave={() => { if (!pointerDrag.current) setTrajectoryTooltip(null); }}
       />
       {error ? <div className="renderer-error" role="alert"><strong>3D renderer unavailable</strong><span>{error}</span><small>WebGL 2 and hardware acceleration are required. Setup and local drills remain available.</small></div> : null}
+      {!error && venueStatus.status !== 'ready' ? <div className="renderer-error" role={venueStatus.status === 'error' ? 'alert' : 'status'}><strong>{venueStatus.status === 'error' ? 'Venue unavailable' : 'Loading Blender venue…'}</strong><span>{venueStatus.message ?? (venueStatus.totalBytes ? `${Math.round(venueStatus.loadedBytes / venueStatus.totalBytes * 100)}%` : 'Preparing the selected scene')}</span>{venueStatus.status === 'error' ? <button onClick={() => sceneRef.current?.retryVenue()}>Retry venue</button> : null}</div> : null}
+      {audienceError ? <div className="scene-audience-error" role="alert">{audienceError} <button onClick={() => sceneRef.current?.retryVenue()}>Retry audience</button></div> : null}
       {interactionHint ? <div className="scene-aim-hint">{interactionHint}</div> : null}
       {visibleTooltip ? (
         <aside
