@@ -66,3 +66,6 @@ Older volley, half-volley, lob, approach, overhead and one-handed-backhand label
 - [GVHMR repository](https://github.com/zju3dv/GVHMR), [license](https://raw.githubusercontent.com/zju3dv/GVHMR/main/LICENSE), [installation](https://raw.githubusercontent.com/zju3dv/GVHMR/main/docs/INSTALL.md).
 - [Quaternius animation library](https://quaternius.com/packs/universalanimationlibrary.html).
 - [Three.js AnimationMixer](https://threejs.org/docs/pages/AnimationMixer.html) and [AnimationAction](https://threejs.org/docs/pages/AnimationAction.html).
+# Reference-led correction pass (2026-09-05)
+
+The owner's frame-by-frame review rejected the revision-2 choreography despite its contact/grip checks passing. Revision 3 is being developed in `F:\Codes\Tenmulate_motion_analysis`: visual authoring from the original local takes, paired front/rear reference panels, calibrated joint-space arm chains, deterministic anatomical envelopes, correct support-hand grip conventions, and ordinary running/walking cycles. Extracted pose observations are no longer production inputs. See the lab's `docs/motion-revision-3.md` for the correction ledger and evidence. Export validation must include the actual skeleton's joint rotations and torso clearance before runtime publication; visual review remains necessary.
