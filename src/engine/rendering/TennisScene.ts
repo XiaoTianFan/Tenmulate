@@ -306,6 +306,11 @@ export class TennisScene {
     this.canvas.dataset.venueAsset = arena?.state.status ?? 'idle';
     this.canvas.dataset.authoredVenue = ready ? this.environmentConfiguration.venue : '';
     this.canvas.dataset.venueSource = ready ? 'blender' : 'procedural';
+    // Fabric casts one continuous shade, with a bounded diffuse-light allowance.
+    // Reset on every asset/venue/cutaway transition; hard and fallback stay intact.
+    this.sun.shadow.intensity = ready && arena ? arena.sunShadowIntensity : 1;
+    this.sun.shadow.radius = this.sun.shadow.intensity < 1 ? 4 : 2;
+    this.canvas.dataset.sunShadowIntensity = String(this.sun.shadow.intensity);
     arena?.applySurface(this.surface, this.materialBundle,
       this.environmentConfiguration.weather === 'rain' ? this.environmentConfiguration.weatherIntensity : 0);
     // All venue bowls/roofs must participate, not just the playing rectangle.

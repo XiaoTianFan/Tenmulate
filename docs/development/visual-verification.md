@@ -261,6 +261,26 @@ The owner's two supplied roof-underside photos (`6fc7c570` and `6544fc49`) show 
 
 Local-only evidence: `C:/Users/20378/.codex/visualizations/2026/09/05/clay-roof/`. Matched `before-sideline.png` / `final-sideline-day.png`, `before-roof.png` / `final-roof-day.png`, plus `final-corner-{day,dusk,night}.png`, `final-mobile-dusk.png` and `final-hard-unchanged.png` document the reference comparison. `production-qa.log` records identity/state/current asset/console/viewport results; `cached-offline-qa.log` records the completed offline proof; `switch-offline-qa.log` retains the earlier uncached-manifest diagnostic. The superseded tracked export is recoverable in Git; rejected trial files were moved out of the shipped tree into this evidence directory.
 
+## Stage 15: clay roof opacity and even court shade — 2026-09-05
+
+The owner reported excessive roof transparency and distracting truss-only shadows. Matched sideline browser captures confirm the cause: the previous membrane was explicitly excluded from the sun depth map. The frontend-testing skill required actual browser comparison; Playwright CLI was used because the Browser plugin/skill was unavailable, without adding a project dependency.
+
+| Mismatch / check | Final evidence | Boundary |
+| --- | --- | --- |
+| Ceiling too transparent | Blender transmission 0.72 → 0.32 and roughness 0.45 → 0.58; exported material retains alpha 1 and double-sidedness | Rough transmission remains an approximation of light-filtering fabric. |
+| Truss stripes obscure the court | All eleven skins cast continuous roof shade; matched before/after daylight shows readable lines without repeated dark steel stripes | An initial full-strength shadow trial was too dark and rejected. |
+| Covered court brightness | Authored membrane transmission yields sun-shadow strength 0.68 and PCF radius 4, preserving useful fill under the roof | Bounded allowance affects the active venue's sun map, not per-material optical transport; no new shadow map. |
+| Half-open roof and unrelated venues | Existing geometry tests pass; browser roof cutaway restores strength 1, sideline restores 0.68, hard and procedural grass both use 1 | No hard asset, seating, atmosphere schedule or exposure changes. |
+| Identity / nonblank / overlay | Production port 4174 loads clay `1b7581f25a2c`, reports authored clay `ready`, correct title and nonblank court, zero framework overlays | Local production preview, not deployed. |
+| Desktop / mobile / interactions | 1600 × 1000 and 390 × 844; mobile scroll width 390. Day → evening → night → roof cutaway → hard → grass → clay completes | Day, dusk, night and mobile screenshots inspected. |
+| Console | Final warm production loop has zero errors/warnings | Existing cold Intel ANGLE X4122 precision warning remains, separate from the warm loop. |
+
+**Verification:** `npm test` passes 146 tests in 15 files; `npm run build` passes with the existing renderer-chunk warning. The Blender build and decoded GLB geometry/material/hash checks pass. Raw glTF validation: zero errors/warnings, 138 informational notices. Current export is 7,338,204 bytes, 73 meshes and 17 materials; the old export is removed from public output and remains recoverable in Git.
+
+**Performance / remaining gates:** single-clay sideline reports 228 draws / 3,574,022 rendered triangles / 16 textures, versus revision 3's 217 / 3,565,782 / 16. The existing transmission pass remains; these counters are not a target-device frame-time benchmark. Device profiling and owner visual acceptance remain open. No fresh Cycles render or offline-cache matrix was required for unchanged geometry/transport; prior offline evidence must not be mistaken for a new-hash offline check.
+
+Local-only evidence: `C:/Users/20378/.codex/visualizations/2026/09/05/clay-roof-shade/`. `before-day.png` and `final-day.png` are matched daylight comparisons; `final-dusk.png`, `final-night.png` and `final-mobile.png` capture the other inspected states. `production-qa.log` records asset identity, viewport, cutaway/venue resets and empty issue list. `after-day-first.png` retains the rejected overly dark first trial; `build.log` records the Blender rebuild.
+
 ## Visibility calibration: optic ball and outlined opponent
 
 | Comparison point | Intended behavior | Browser evidence | Result / remaining refinement |

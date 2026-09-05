@@ -186,11 +186,11 @@ describe('authored venue boundary', () => {
     expect(borrowedDispose).not.toHaveBeenCalled();
     for (const mat of Object.values(bundle.materials).flat()) mat.dispose();
   });
-  it('keeps authored fabric translucent while opaque roof trusses retain shadows and cutaway visibility', async () => {
+  it('keeps dense fabric and roof trusses casting continuous shade with cutaway visibility', async () => {
     serve(clayManifest);
     const scene = registeredScene();
     const skin = new THREE.Mesh(new THREE.PlaneGeometry(), new THREE.MeshPhysicalMaterial({
-      transmission:.72, roughness:.45, side:THREE.DoubleSide,
+      transmission:.32, roughness:.58, side:THREE.DoubleSide,
     }));
     skin.userData={arenaPart:'roof',roofMembrane:true};
     const truss = new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshStandardMaterial());
@@ -198,20 +198,30 @@ describe('authored venue boundary', () => {
     scene.add(skin,truss);
     parse.mockResolvedValue({scene});
     const manager = new VenueAssetManager(vi.fn(),'clay-sunset-arena');
+    expect(manager.sunShadowIntensity).toBe(1);
     manager.setActive(true);
     await vi.waitFor(() => expect(manager.state.status).toBe('ready'));
-    expect(skin.castShadow).toBe(false);
+    expect(manager.sunShadowIntensity).toBeCloseTo(.68);
+    expect(skin.castShadow).toBe(true);
+    expect(skin.material.shadowSide).toBe(THREE.DoubleSide);
     expect(skin.material.transparent).toBe(false);
-    expect(skin.material.transmission).toBe(.72);
-    expect(skin.material.roughness).toBe(.45);
+    expect(skin.material.transmission).toBe(.32);
+    expect(skin.material.roughness).toBe(.58);
     expect(skin.material.forceSinglePass).toBe(true);
     expect(truss.castShadow).toBe(true);
     expect(truss.material.shadowSide).toBe(THREE.DoubleSide);
     manager.setRoofVisible(false);
+    expect(manager.sunShadowIntensity).toBe(1);
     expect(skin.visible || truss.visible).toBe(false);
     manager.setRoofVisible(true);
+    expect(manager.sunShadowIntensity).toBeCloseTo(.68);
     expect(skin.visible && truss.visible).toBe(true);
+    manager.setActive(false);
+    expect(manager.sunShadowIntensity).toBe(1);
+    manager.setActive(true);
+    expect(manager.sunShadowIntensity).toBeCloseTo(.68);
     manager.dispose();
+    expect(manager.sunShadowIntensity).toBe(1);
   });
   it('rejects a hard manifest delivered to the clay manager before requesting its GLB', async () => {
     serve(manifest);

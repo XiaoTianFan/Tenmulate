@@ -2,9 +2,9 @@
   "id": "clay-sunset-arena",
   "version": 1,
   "compatibility": "tenmulate-court-v1",
-  "url": "/assets/venues/clay-sunset-arena/clay-sunset-arena.e395c0728971.glb",
+  "url": "/assets/venues/clay-sunset-arena/clay-sunset-arena.1b7581f25a2c.glb",
   "bytes": 7338204,
-  "sha256": "e395c0728971a838727b915dec7628b9f14e9d7ce242b75ceb1a4d1c4bbffde3",
+  "sha256": "1b7581f25a2c6112d9b63c1ce9d3eaca768d2316e7467ef567d33a827efa9116",
   "source": "assets/venues/clay-sunset-arena/clay-sunset-arena.blend",
   "anchors": {
     "court_origin": [

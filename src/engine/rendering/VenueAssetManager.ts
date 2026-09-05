@@ -81,12 +81,20 @@ export class VenueAssetManager {
   private asset: THREE.Group | null = null;
   private active = false;
   private roofVisible = true;
+  private roofTransmission = 0;
   private generation = 0;
   private readonly surfaces = new Map<THREE.Mesh, THREE.Material | THREE.Material[]>();
 
   constructor(private readonly changed: () => void, readonly venueId: AuthoredVenueId = 'hard-open-arena') {
     this.group.name = `blender-${venueId}`;
     this.group.visible = false;
+  }
+
+  /** Approximate diffuse light through fabric without a second shadow map.
+   * Opaque venues, inactive assets and roof cutaways keep normal full shadows. */
+  get sunShadowIntensity(): number {
+    return this.active && this.state.status === 'ready' && this.roofVisible
+      ? 1 - this.roofTransmission : 1;
   }
 
   setActive(active: boolean): void {
@@ -176,12 +184,18 @@ export class VenueAssetManager {
         if (object.userData.arenaPart === 'roof') {
           for (const mat of Array.isArray(object.material) ? object.material : [object.material]) mat.shadowSide = THREE.DoubleSide;
         }
-        // Thin translucent fabric must not become an opaque slab in the depth
-        // shadow pass. Its independent opaque trusses still cast real shadows.
-        // Rough transmission is supplied by glTF; only authored membranes opt in.
+        // Dense roof fabric participates in the architectural shadow pass.
+        // Excluding it leaves high-contrast truss stripes across the playing area.
+        // Visible rough transmission remains glTF-owned; depth shadows approximate
+        // the fabric's continuous shade without changing other venues' lighting.
         if (object.userData.roofMembrane === true) {
-          object.castShadow = false;
-          for (const mat of Array.isArray(object.material) ? object.material : [object.material]) mat.forceSinglePass = true;
+          object.castShadow = true;
+          for (const mat of Array.isArray(object.material) ? object.material : [object.material]) {
+            mat.forceSinglePass = true;
+            if (mat instanceof THREE.MeshPhysicalMaterial && Number.isFinite(mat.transmission)) {
+              this.roofTransmission = Math.max(this.roofTransmission, THREE.MathUtils.clamp(mat.transmission, 0, .5));
+            }
+          }
         }
         if (object.userData.surfaceRole) this.surfaces.set(object, object.material);
       });

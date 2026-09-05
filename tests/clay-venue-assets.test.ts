@@ -191,8 +191,8 @@ describe('shipped Blender clay arena', () => {
         const mat = primitive.getMaterial()!;
         expect(mat.getAlphaMode()).toBe('OPAQUE'); // Transmission, not see-through alpha.
         expect(mat.getBaseColorFactor()[3]).toBe(1);
-        expect(mat.getExtension<Transmission>('KHR_materials_transmission')?.getTransmissionFactor()).toBeCloseTo(.72, 3);
-        expect(mat.getRoughnessFactor()).toBeCloseTo(.45, 3);
+        expect(mat.getExtension<Transmission>('KHR_materials_transmission')?.getTransmissionFactor()).toBeCloseTo(.32, 3);
+        expect(mat.getRoughnessFactor()).toBeCloseTo(.58, 3);
         expect(mat.getDoubleSided()).toBe(true);
         expect(mat.getMetallicFactor()).toBe(0);
       }
