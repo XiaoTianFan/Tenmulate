@@ -2,9 +2,9 @@
   "id": "hard-open-arena",
   "version": 1,
   "compatibility": "tenmulate-court-v1",
-  "url": "/assets/venues/hard-open-arena/hard-open-arena.8a6bb53797c2.glb",
-  "bytes": 5750320,
-  "sha256": "8a6bb53797c27715b1c7b6c4e24ba2509751a612a14bcd5fc7df34b0499f957d",
+  "url": "/assets/venues/hard-open-arena/hard-open-arena.740783a4d427.glb",
+  "bytes": 5835492,
+  "sha256": "740783a4d4277919d3e38c71359ec6e97b93b0ce5d0d8f0aaf8f3185ae82f100",
   "source": "assets/venues/hard-open-arena/hard-open-arena.blend",
   "anchors": {
     "court_origin": [

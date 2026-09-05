@@ -7,6 +7,7 @@ import bisect
 import json
 import math
 import runpy
+import sys
 from pathlib import Path
 
 import bpy
@@ -14,6 +15,8 @@ import numpy as np
 from mathutils import Vector
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / 'scripts/blender'))
+from venue_net import build_net_cords
 SOURCE = ROOT / 'assets/venues/hard-open-arena'
 BUILD = ROOT / 'artifacts/venue-build'
 BUILD.mkdir(parents=True, exist_ok=True)
@@ -545,14 +548,7 @@ def net_height(x):
     return .914+(.156)*(abs(x)/net_half)**2
 
 
-for i in range(193):
-    x = -net_half+i*2*net_half/192
-    net.beam((x,0,.07),(x,0,net_height(x)-.036),.0017,4)
-for row in range(15):
-    for i in range(48):
-        x,q = -net_half+i*2*net_half/48,-net_half+(i+1)*2*net_half/48
-        z1,z2 = .07+(net_height(x)-.11)*row/14,.07+(net_height(q)-.11)*row/14
-        net.beam((x,0,z1),(q,0,z2),.0017,4)
+build_net_cords(net, net_half, bottom=.07)
 for i in range(96):
     x,q = -net_half+i*2*net_half/96,-net_half+(i+1)*2*net_half/96
     z1,z2=net_height(x),net_height(q)
@@ -562,7 +558,6 @@ tape.box((0,0,.457),(.05,.05,.914))
 for x in (-net_half,net_half):
     posts.beam((x,0,0),(x,0,1.10),.045,12)
     posts.box((x,0,.075),(.21,.21,.15))
-net.finish()
 tape.finish()
 posts.finish()
 

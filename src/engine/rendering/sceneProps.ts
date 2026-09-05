@@ -20,7 +20,8 @@ export const createNet = (materials: SceneMaterialLibrary): THREE.Group => {
   group.add(box(0.075, COURT.netPostHeight, 0.075, materials.darkMetal, halfWidth, COURT.netPostHeight / 2, 0));
 
   const points: THREE.Vector3[] = [];
-  const divisions = 64;
+  // Court-independent density: narrow square-ish weave in every fallback venue.
+  const divisions = Math.ceil(halfWidth * 2 / 0.042);
   for (let index = 0; index <= divisions; index += 1) {
     const x = -halfWidth + (index / divisions) * halfWidth * 2;
     const normalized = Math.abs(x / halfWidth);
@@ -36,10 +37,14 @@ export const createNet = (materials: SceneMaterialLibrary): THREE.Group => {
       points.push(new THREE.Vector3(x1, ratio * topAt(x1), 0), new THREE.Vector3(x2, ratio * topAt(x2), 0));
     }
   }
-  group.add(new THREE.LineSegments(
+  const cords = new THREE.LineSegments(
     new THREE.BufferGeometry().setFromPoints(points),
-    new THREE.LineBasicMaterial({ color: 0x26363b, transparent: true, opacity: 0.82 }),
-  ));
+    // One-pixel WebGL lines cover more than the physical Blender cords at range;
+    // soften their coverage so the tighter weave does not become a solid screen.
+    new THREE.LineBasicMaterial({ color: 0x18231e, transparent: true, opacity: 0.68 }),
+  );
+  cords.name = 'dense-woven-net-cords';
+  group.add(cords);
   const tapeVertices: number[] = [];
   const tapeIndices: number[] = [];
   const tapeSegments = 72;

@@ -16,6 +16,7 @@ from mathutils import Vector
 ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'scripts/blender'))
 from venue_mesh import Batch, material, linear
+from venue_net import build_net_cords
 
 SOURCE=ROOT/'assets/venues/clay-sunset-arena'
 BUILD=ROOT/'artifacts/venue-build/clay-sunset-arena'
@@ -469,13 +470,7 @@ tape=Batch('White net headband and central strap',white,court)
 posts=Batch('Dark green net posts and tension gear',green,court)
 nh=w+.914
 def netheight(x): return .914+.156*(abs(x)/nh)**2
-for i in range(193):
-    x=-nh+i*2*nh/192
-    net.beam((x,0,.06),(x,0,netheight(x)-.036),.0017,4)
-for row in range(16):
-    for i in range(48):
-        x,q=-nh+i*2*nh/48,-nh+(i+1)*2*nh/48
-        net.beam((x,0,.06+(netheight(x)-.1)*row/15),(q,0,.06+(netheight(q)-.1)*row/15),.0017,4)
+build_net_cords(net, nh)
 for i in range(96):
     x,q=-nh+i*2*nh/96,-nh+(i+1)*2*nh/96
     za,zb=netheight(x),netheight(q)
@@ -485,7 +480,7 @@ tape.box((0,0,.457),(.05,.05,.914))
 for x in (-nh,nh):
     posts.beam((x,0,0),(x,0,1.10),.043,12)
     posts.box((x,0,.06),(.16,.16,.12))
-for batch in (net,tape,posts): batch.finish()
+for batch in (tape,posts): batch.finish()
 
 # Original player zone: two separate lounge chairs per side of the umpire.
 furniture=Batch('Player chair frames and umpire ladder',steel,court)

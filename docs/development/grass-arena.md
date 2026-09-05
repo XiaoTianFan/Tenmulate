@@ -33,7 +33,13 @@ The original lawn albedo uses longitudinal 0.92 m mowing stripes and restrained 
 
 Build with `npm run asset:venue:build -- -Venue grass-center-court`. The existing portable Blender and Meshopt/WebP optimization pipeline produces the packed `.blend`, validated hashed GLB and manifest. [ADR-0011](../decisions/0011-blender-grass-arena.md) preserves the opt-in runtime boundary and procedural default/fallback.
 
-## Delivery status
+## Current delivery — revision 2 grass/net contrast
+
+The owner's subsequent court-level photo requested darker grass and more prominent nets. Grass base colour is now `#64843d` rather than `#839d49`; the mowing pattern, registered UVs, wear, normal/roughness maps, white paint and shared lighting remain unchanged. The shared Blender net helper uses nominal 42 mm spacing and 2.2 mm cord radius, with 306 vertical cords and 25 horizontal courses on grass. Sag, headband, posts and gameplay anchors are unchanged. All three `.blend` masters and GLBs were rebuilt for this shared net revision; procedural nets also use the tighter spacing with calibrated screen-line opacity.
+
+Current master: **18,889,540 bytes**. Current export: `grass-center-court.445e52687ec8.glb`, **6,393,484 bytes / 6.10 MiB**, with unchanged 14,381 seats, 74 meshes and 19 materials. `158 tests / 17 files`, production build and all three raw GLB validations pass. Same-camera daylight sampling shows the selected grass patch about 33% lower in linear luminance, and sampled white-line/grass contrast approximately 1.82 → 2.69; these are image measurements, not a text-accessibility or physical reflectance certification. Production day/dusk/night, three authored venues, all six fallbacks and mobile views are checked in [Stage 17](visual-verification.md#stage-17-grass-contrast-and-all-venue-net-density--2026-09-05). Performance and owner visual acceptance remain open.
+
+## Initial delivery status — revision 1 (historical)
 
 Built and integrated for local opt-in review. Packed master: **18,764,966 bytes**. Export: `grass-center-court.7d25bddb4c7e.glb`, **6,353,976 bytes / 6.06 MiB**, 74 meshes, 19 materials, 556,164 compressed texture bytes. Actual seat count is **14,381**: 2,153 lower, 10,086 main, 2,072 gallery and 70 pavilion seats. Only the final hash is shipped; the two rejected trial exports are retained outside the repository with local review evidence.
 

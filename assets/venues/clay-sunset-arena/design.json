@@ -1,6 +1,6 @@
 {
   "id": "clay-sunset-arena",
-  "version": 4,
+  "version": 5,
   "description": "Original Tenmulate clay arena informed by the rebuilt Philippe-Chatrier: rectilinear bowl, pale timber seating, green court walls, glazed hospitality and half-open translucent telescopic roof wings with exposed trusses. Not a surveyed reconstruction.",
   "court": {"width": 10.97, "length": 23.77, "singlesWidth": 8.23, "serviceLine": 6.4, "clay": "#b9653e", "runoff": "#b9653e"},
   "bowl": {"innerHalfWidth": 12.2, "innerHalfLength": 23.2, "cornerCut": 3.2, "seatingLayout": "orthogonal-four-stands", "sidelineAisleSpacing": 8.0, "baselineAisleSpacing": 6.0, "aisleWidth": 1.12, "lowerRows": 24, "upperRows": 16, "rowDepth": 0.78, "lowerRise": 0.39, "upperRise": 0.55, "concourseWidth": 3.6, "seatSpacing": 0.56},

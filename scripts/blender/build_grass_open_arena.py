@@ -16,6 +16,7 @@ from mathutils import Vector
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'scripts/blender'))
 from venue_mesh import Batch, material, linear
+from venue_net import build_net_cords
 
 SOURCE = ROOT / 'assets/venues/grass-center-court'
 BUILD = ROOT / 'artifacts/venue-build/grass-center-court'
@@ -406,20 +407,14 @@ tape = Batch('Ivory net headband and center strap', white, court)
 posts = Batch('Honey timber net posts', timber, court)
 nh = w+.914
 def netheight(x0): return .914+.156*(abs(x0)/nh)**2
-for i in range(193):
-    x0 = -nh+i*2*nh/192
-    net.beam((x0,0,.055), (x0,0,netheight(x0)-.036), .0017, 4)
-for row in range(16):
-    for i in range(48):
-        a,b = -nh+i*2*nh/48, -nh+(i+1)*2*nh/48
-        net.beam((a,0,.055+(netheight(a)-.1)*row/15), (b,0,.055+(netheight(b)-.1)*row/15), .0017, 4)
+build_net_cords(net, nh, bottom=.055)
 for i in range(96):
     a,b = -nh+i*2*nh/96, -nh+(i+1)*2*nh/96
     for sign in (-1,1): tape.face([(a,sign*.02,netheight(a)-.035),(b,sign*.02,netheight(b)-.035),(b,sign*.02,netheight(b)+.035),(a,sign*.02,netheight(a)+.035)])
 tape.mat.use_backface_culling = False
 tape.box((0,0,.457),(.05,.05,.914))
 for x0 in (-nh,nh): posts.beam((x0,0,0),(x0,0,1.1),.052,12)
-for batch in (net,tape,posts): batch.finish()
+for batch in (tape,posts): batch.finish()
 
 # Distinct baseline pavilions replace rather than overlap the reserved seating.
 pavilion = Batch('Baseline garden pavilion and media wall', green, architecture)

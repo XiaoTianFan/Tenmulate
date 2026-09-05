@@ -2,9 +2,9 @@
   "id": "grass-center-court",
   "version": 1,
   "compatibility": "tenmulate-court-v1",
-  "url": "/assets/venues/grass-center-court/grass-center-court.7d25bddb4c7e.glb",
-  "bytes": 6353976,
-  "sha256": "7d25bddb4c7e69db7a7789bd6c80b6829641ec1988befd8c1fe13592ec4fe4ec",
+  "url": "/assets/venues/grass-center-court/grass-center-court.445e52687ec8.glb",
+  "bytes": 6393484,
+  "sha256": "445e52687ec87c8c6029fa96431ff25f1c45463cb266c03778a69efb30918218",
   "source": "assets/venues/grass-center-court/grass-center-court.blend",
   "anchors": {
     "court_origin": [
@@ -49,5 +49,5 @@
   ],
   "materials": 19,
   "meshes": 74,
-  "textureBytes": 556164
+  "textureBytes": 510392
 }

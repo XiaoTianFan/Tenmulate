@@ -83,7 +83,10 @@ describe('regulation court constants', () => {
     const court = createCourt('hard');
     const net = court.group.getObjectByName('regulation-net') as THREE.Group;
     const mesh = net.children.find((child) => child instanceof THREE.LineSegments) as THREE.LineSegments;
-    expect((mesh.geometry.getAttribute('position') as THREE.BufferAttribute).count).toBeGreaterThan(3_000);
+    const positions = mesh.geometry.getAttribute('position') as THREE.BufferAttribute;
+    expect(positions.count).toBeGreaterThan(13_000);
+    expect(positions.getX(2) - positions.getX(0)).toBeLessThanOrEqual(0.0421);
+    expect((mesh.material as THREE.LineBasicMaterial).opacity).toBe(0.68);
     const tape = net.getObjectByName('wide-regulation-net-tape') as THREE.Mesh;
     tape.geometry.computeBoundingBox();
     expect(tape.geometry.boundingBox!.max.y - tape.geometry.boundingBox!.min.y).toBeGreaterThanOrEqual(0.075);
