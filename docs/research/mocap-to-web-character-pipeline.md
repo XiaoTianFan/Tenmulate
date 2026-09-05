@@ -1,4 +1,6 @@
-# Cloud mocap to web opponent: production contract
+# Motion to web opponent: production contract
+
+> **2026-09-05: Cloud workflow superseded.** [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) adopts an entirely local analysis/authoring pipeline in `F:/Codes/Tenmulate_motion_analysis`, using the supplied practice videos and the existing CC0 rig. The provider comparisons below are historical research, not the active implementation plan. Local extraction plus authored correction and connectors replaces purchasing/uploading to online mocap services. See the [local motion pipeline](../development/local-motion-pipeline.md) for current research, clips, commands, and verification.
 
 - **Status:** Proposed pipeline; hands-on tennis bake-off pending
 - **Research date:** 2026-08-29

@@ -7,6 +7,8 @@
 
 ## 1. Product summary
 
+**Opponent production decision (2026-09-05):** Build the forehand, two-handed backhand, serve, and continuous movement sequence locally from the supplied Djokovic practice references plus authored corrections/connectors, using the existing neutral CC0 carrier. Online mocap services are removed from the plan. [ADR-0012](decisions/0012-local-opponent-motion-pipeline.md) governs the separate motion laboratory and ball-contact synchronization; broader V1 motion/handedness requirements remain tracked separately.
+
 Tenmulate is a browser-based tennis rehearsal tool for a TV, monitor, or projector. It presents a game-realistic, first-person on-court view of an animated opponent and physically credible incoming balls so a player can shadow-swing, rehearse recognition, and mentally model timing and tactics without a foreground avatar or racket.
 
 V1 is a complete configurable visualization product. It includes baseline rallies, return practice, net play, tactical sequences, camera movement, local drill authoring, and offline reuse. It does not observe the user. V2 is defined by an explicitly started camera and machine-learning pipeline that detects player movement and can synchronize the virtual camera or training response to it.

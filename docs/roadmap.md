@@ -11,6 +11,8 @@ This roadmap is ordered by uncertainty and integration risk. V1 is one complete 
 
 ## Phase 0: Product, visual, and asset alignment
 
+**2026-09-05 motion update:** Finished mocap is no longer an owner-supplied dependency. The [local motion pipeline](development/local-motion-pipeline.md) owns source selection, local extraction/authoring, racket, connectors, retargeting, and gameplay integration in the sibling analysis lab. No online mocap service is required. This supersedes the waiting-on-mocap checkpoint above.
+
 ### Deliverables
 
 - Record the accepted V1/V2 boundary and public-free release model.

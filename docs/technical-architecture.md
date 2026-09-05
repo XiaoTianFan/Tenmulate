@@ -11,6 +11,8 @@ The system should optimize for perceptual credibility and testability, not for g
 
 ## 2. Proposed stack
 
+**Motion production update (2026-09-05):** [ADR-0012](decisions/0012-local-opponent-motion-pipeline.md) replaces cloud mocap with local video analysis, constraint correction, and Blender baking in `F:/Codes/Tenmulate_motion_analysis`. Only versioned runtime assets/metadata and the session-time animation controller enter this frontend. Inference is never a browser runtime dependency. The older cloud-production descriptions below are superseded in this scope.
+
 | Layer | Proposed choice | Rationale |
 | --- | --- | --- |
 | App shell | React + TypeScript + Vite | Suitable for setup, drill selection, controls, local editor states, and a static deployment. |

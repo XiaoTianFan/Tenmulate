@@ -5,6 +5,8 @@
 
 ## Resolved by the owner on 2026-08-29
 
+**Superseding owner direction, 2026-09-05:** [ADR-0012](decisions/0012-local-opponent-motion-pipeline.md) authorizes local inference/authoring using two supplied practice videos in the sibling motion-analysis lab. The historical Cloud generation/Reference upload rows below no longer govern motion implementation. No cloud mocap uploads or purchases are planned. Public asset provenance remains a release review item, not a prerequisite for this authorized local laboratory work.
+
 | Topic | Decision |
 | --- | --- |
 | Displays and rooms | Support varied monitors, TVs, projectors, resolutions, computers, viewing distances, and spaces. Provide a realistic default plus adjustable camera position, angle, look target, and FOV/zoom. |

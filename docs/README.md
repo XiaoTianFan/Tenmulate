@@ -36,7 +36,8 @@ This folder is the project record for product discovery, design, architecture, a
 - [Scene-generation prompt kit](concepts/scene-generation-prompt-kit.md): three reusable camera prefixes and six independent environment prompts.
 - [Opponent character 01](concepts/opponent-character-01.md): first fictional right-handed male design sheet and detachable-racket guidance.
 - [Application UI concepts](concepts/application-ui-concepts-2026-08.md): implementation references for setup, rehearsal, and timeline editing.
-- [Mocap-to-web pipeline](research/mocap-to-web-character-pipeline.md): custom tennis clips, open/general motion integration, licensing, retargeting, and runtime blending.
+- [Local motion pipeline](development/local-motion-pipeline.md): local video analysis, corrected tennis clips, connectors, and runtime integration under ADR-0012.
+- [Mocap-to-web research](research/mocap-to-web-character-pipeline.md): historical cloud comparisons and reusable retargeting principles; cloud processing is superseded.
 - [Neutral opponent asset record](assets/quaternius-neutral-opponent.md): selected CC0 mesh, normalization recipe, hashes, rig/socket map, and animation acceptance gates.
 - [Ball and opponent visibility calibration](research/ball-and-opponent-visibility.md): official color boundary, optic renderer values, outlined-opponent contract, and remaining display gates.
 - [Implementation status](development/implementation-status.md): staged code coverage, verification, and remaining gaps.
@@ -60,6 +61,8 @@ This folder is the project record for product discovery, design, architecture, a
 | [0010](decisions/0010-blender-clay-arena-and-multi-venue-boundary.md) | Accepted for opt-in review | Reference-led clay arena and independent two-venue asset boundary |
 
 ## Change discipline
+
+[ADR-0012](decisions/0012-local-opponent-motion-pipeline.md) accepts local opponent motion production in the sibling motion-analysis laboratory, replacing online mocap services.
 
 - Product changes update the PRD and, when architectural, add or supersede an ADR.
 - Every shot preset must be data-defined, deterministic, and covered by trajectory acceptance tests.
