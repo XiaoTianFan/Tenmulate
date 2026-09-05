@@ -1,0 +1,17 @@
+{
+  "geometry": "Original parameterized Blender meshes authored for Tenmulate; no extracted third-party mesh or photographic texture.",
+  "referenceOnly": [
+    {"url": "https://stade.rolandgarros.com/lieux/court-philippe-chatrier", "publisher": "FFT", "used": "Regulation court, 21.85 x 43.87 m published court-surround footprint, lower/upper seating split. Our apron is intentionally wider."},
+    {"url": "https://www.dvvd.fr/le-court-philippe-chatrier-prime/", "publisher": "DVVD", "date": "2022-02-07", "used": "Laurent Kronental photograph: current timber bowl, hospitality, terrace access and closed-roof underside."},
+    {"url": "https://faraone-s3.s3.amazonaws.com/uploads/2019/06/Storyteller-05-Roland-Garros-e-Impianti-Sportivi.pdf", "publisher": "Faraone", "date": "2019-06", "used": "PDF pages 5-10 and 13: multiple real court/seating photographs, glass parapets, portal details and external stair section. This is the rebuilt bowl before roof installation."},
+    {"url": "https://www.rolandgarros.com/fr-fr/article/toit-court-philippe-chatrier-mode-d-emploi", "publisher": "FFT", "date": "2020-02-05", "used": "Built roof wings, span and rack-and-pinion bogie description."},
+    {"url": "https://www.devenirenseignant.gouv.fr/media/12096/download", "publisher": "French Ministry of Education", "date": "2024", "used": "Public engineering teaching dossier, PDF pages 6 and 28: wing shape, nesting/parking at one end, rails and section. Reference diagrams, not construction authority."},
+    {"url": "https://www.rolandgarros.com/en-us/article/everything-you-need-to-know-about-the-roland-garros-roof-2020/", "publisher": "FFT", "date": "2020-09-26", "used": "Roof and court-lighting systems are independent."},
+    {"url": "https://www.sl-rasch.com/en/projects/roland-garros-center-court/", "publisher": "SL Rasch", "date": "2016", "used": "Excluded after verification: unbuilt stadium concept, not the actual 2020 roof."}
+  ],
+  "materials": [
+    {"name": "Clay albedo/roughness/normal and timber grain", "license": "Original project material", "source": "scripts/blender/build_clay_open_arena.py"},
+    {"name": "Brushed concrete", "license": "CC0", "url": "https://polyhaven.com/a/brushed_concrete", "source": "../hard-open-arena/textures", "note": "Reuse verified local maps from the first venue; hashes and license in its sources.json."}
+  ],
+  "rightsNote": "Reference photos and diagrams are not redistributed or embedded in the runtime asset. Altering details and replacing branding is not a legal clearance opinion."
+}

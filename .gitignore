@@ -28,6 +28,7 @@ Thumbs.db
 artifacts/
 renders/
 *.blend1
+__pycache__/
 
 # Browser verification artifacts
 output/playwright/

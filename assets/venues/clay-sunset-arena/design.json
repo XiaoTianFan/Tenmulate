@@ -1,0 +1,12 @@
+{
+  "id": "clay-sunset-arena",
+  "version": 1,
+  "description": "Original Tenmulate clay arena informed by the rebuilt Philippe-Chatrier: rectilinear bowl, pale timber seating, green court walls, glazed hospitality and parked telescopic roof wings. Not a surveyed reconstruction.",
+  "court": {"width": 10.97, "length": 23.77, "singlesWidth": 8.23, "serviceLine": 6.4, "clay": "#b9653e", "runoff": "#b9653e"},
+  "bowl": {"innerHalfWidth": 12.2, "innerHalfLength": 23.2, "cornerCut": 3.2, "sections": 28, "lowerRows": 24, "upperRows": 16, "rowDepth": 0.78, "lowerRise": 0.39, "upperRise": 0.55, "concourseWidth": 3.6, "seatSpacing": 0.56},
+  "perimeter": {"wallHeight": 2.10, "portalHeight": 2.04, "portalWidth": 2.5, "portalCenters": [-16.0, 16.0]},
+  "roof": {"height": 27.2, "halfSpan": 50.0, "openingHalfWidth": 31.0, "openingSouth": -31.0, "openingNorth": 28.0, "wingCount": 10, "parkedPitch": 2.55, "wingDepth": 7.3, "wingRise": 2.8},
+  "palette": {"wall": "#174e3d", "limestone": "#c7c5b8", "fascia": "#dfded2", "roof": "#e2e0d2", "timberSeats": ["#bba487", "#c7b092", "#b19d83", "#cbb89c"]},
+  "intentionalDifferences": ["Tenmulate-only identity and original sign layout", "Ten roof wings instead of the reference eleven", "Adjusted section zoning, corner chamfers, hospitality composition and facade rhythm", "Slightly wider apron for unobstructed practice furniture and entry approaches"],
+  "referenceScope": "Post-2019 rebuilt Chatrier with the 2020 roof open. Excludes pre-rebuild green seats, temporary Olympics dressing, other Roland-Garros courts and the unbuilt SL Rasch concept."
+}
