@@ -68,7 +68,7 @@ export type EnvironmentConfiguration = Readonly<{
 export const DEFAULT_ENVIRONMENT: EnvironmentConfiguration = Object.freeze({
   venue: 'hard-open-arena',
   lighting: 'day',
-  lightDirection: -35,
+  lightDirection: 145,
   lightIntensity: 1,
   timeOfDay: 14,
   weather: 'clear',

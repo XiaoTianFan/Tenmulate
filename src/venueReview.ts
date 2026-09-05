@@ -1,5 +1,5 @@
 import { TennisScene, type CameraConfiguration, type QualityMode } from './engine/rendering/TennisScene';
-import { DEFAULT_ENVIRONMENT } from './domain/environment';
+import { DEFAULT_ENVIRONMENT, SCENE_DEFINITIONS, normalizeVenueId, type EnvironmentConfiguration } from './domain/environment';
 import { registerPwa } from './app/registerPwa';
 
 const canvas = document.querySelector('canvas')!;
@@ -7,16 +7,20 @@ const status = document.querySelector('#status')!;
 const parameters = new URLSearchParams(location.search);
 registerPwa();
 const authored = parameters.get('version') !== 'procedural';
+let environment: EnvironmentConfiguration = { ...DEFAULT_ENVIRONMENT, venue: normalizeVenueId(parameters.get('venue')) };
 const scene = new TennisScene(canvas, metrics => {
-  status.textContent = `${metrics.venueAsset.status === 'ready' ? 'Blender arena' : metrics.venueAsset.status === 'error' ? 'Fallback: ' + metrics.venueAsset.message : authored ? 'Loading arena…' : 'Procedural fallback'} · ${metrics.drawCalls} draws · ${(metrics.triangles / 1000).toFixed(0)}k triangles · ${metrics.fps} fps`;
+  status.textContent = `${canvas.dataset.venueSource === 'blender' ? 'Blender arena' : metrics.venueAsset.status === 'error' ? 'Fallback: ' + metrics.venueAsset.message : authored && environment.venue === 'hard-open-arena' ? 'Loading arena…' : 'Procedural fallback'} · ${metrics.drawCalls} draws · ${(metrics.triangles / 1000).toFixed(0)}k triangles · ${metrics.fps} fps`;
   canvas.dataset.drawCalls = String(metrics.drawCalls);
   canvas.dataset.triangles = String(metrics.triangles);
   canvas.dataset.textures = String(metrics.textures);
 }, { authoredArena: authored });
 scene.setQualityMode('quality');
+scene.setSurface(SCENE_DEFINITIONS[environment.venue].defaultSurface);
+scene.setEnvironment(environment);
 const views: Record<string, CameraConfiguration> = {
   player: { eyeHeight: 1.7, behindBaseline: 2.1, lateral: 0, yaw: 0, pitch: 4, fov: 85 },
   corner: { eyeHeight: 7, behindBaseline: 10, lateral: 16, yaw: -35, pitch: -5, fov: 87 },
+  sideline: { eyeHeight: 8.2, behindBaseline: -11.885, lateral: 19, yaw: -90, pitch: 5, fov: 103 },
   overview: { eyeHeight: 62, behindBaseline: 55, lateral: 56, yaw: -40, pitch: -37, fov: 82 },
   roof: { eyeHeight: 72, behindBaseline: 63, lateral: 56, yaw: -37, pitch: -40, fov: 82 },
 };
@@ -35,14 +39,22 @@ document.querySelectorAll<HTMLButtonElement>('[data-camera]').forEach(button => 
 });
 document.querySelector<HTMLSelectElement>('[aria-label="Time of day"]')!.addEventListener('change', event => {
   const timeOfDay = Number((event.target as HTMLSelectElement).value);
-  scene.setEnvironment({ ...DEFAULT_ENVIRONMENT, timeOfDay, lighting: timeOfDay > 20 ? 'night' : 'day' });
+  environment = { ...environment, timeOfDay, lighting: timeOfDay > 20 ? 'night' : timeOfDay > 17 ? 'golden-hour' : 'day' };
+  scene.setEnvironment(environment);
+});
+const venue = document.querySelector<HTMLSelectElement>('[aria-label="Venue"]')!;
+venue.value = environment.venue;
+venue.addEventListener('change', () => {
+  environment = { ...environment, venue: normalizeVenueId(venue.value) };
+  scene.setSurface(SCENE_DEFINITIONS[environment.venue].defaultSurface);
+  scene.setEnvironment(environment);
 });
 const version = document.querySelector<HTMLSelectElement>('[aria-label="Venue version"]')!;
 document.querySelector<HTMLSelectElement>('[aria-label="Render quality"]')!.addEventListener('change', event => {
   scene.setQualityMode((event.target as HTMLSelectElement).value as QualityMode);
 });
 version.value = authored ? 'blender' : 'procedural';
-version.addEventListener('change', () => { location.search = `?version=${version.value}`; });
+version.addEventListener('change', () => { location.search = `?version=${version.value}&venue=${environment.venue}`; });
 let pointer: { x: number; y: number } | null = null;
 canvas.addEventListener('pointerdown', e => { pointer = { x: e.clientX, y: e.clientY }; canvas.setPointerCapture(e.pointerId); });
 canvas.addEventListener('pointerup', () => { pointer = null; });

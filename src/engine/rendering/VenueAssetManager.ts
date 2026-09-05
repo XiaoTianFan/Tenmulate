@@ -161,6 +161,12 @@ export class VenueAssetManager {
         object.receiveShadow = true;
         // A million seat triangles need not be redrawn into every shadow pass.
         object.castShadow = !(object instanceof THREE.InstancedMesh) && !/seat pedestals|net cords/i.test(object.name);
+        if (object.userData.surfaceRole) object.castShadow = false;
+        // Single-sided architectural sheets must still block sunlight from
+        // either side. Visible material culling is unchanged.
+        if (object.userData.arenaPart === 'roof') {
+          for (const mat of Array.isArray(object.material) ? object.material : [object.material]) mat.shadowSide = THREE.DoubleSide;
+        }
         if (object.userData.surfaceRole) this.surfaces.set(object, object.material);
       });
       for (const x of [-18, 18]) for (const z of [-20, 20]) {

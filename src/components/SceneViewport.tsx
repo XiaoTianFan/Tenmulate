@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { useEffect, useEffectEvent, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { cameraFovAfterWheel, cameraLookAfterDrag, type CameraLook } from '../domain/camera';
 import type { SurfaceId } from '../domain/court';
 import { DEFAULT_ENVIRONMENT, type EnvironmentConfiguration } from '../domain/environment';
@@ -73,6 +73,23 @@ export function SceneViewport({
   const pointerDrag = useRef<CameraPointerDrag | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [trajectoryTooltip, setTrajectoryTooltip] = useState<TrajectoryTooltipState | null>(null);
+
+  const zoomFromWheel = useEffectEvent((event: WheelEvent) => {
+    if (!onCameraFovChange) return;
+    event.preventDefault();
+    const deltaPixels = event.deltaY * (event.deltaMode === 1
+      ? 16
+      : event.deltaMode === 2 ? (event.currentTarget as HTMLCanvasElement).clientHeight : 1);
+    onCameraFovChange(cameraFovAfterWheel(camera.fov, deltaPixels));
+  });
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    // React delegates wheel events passively. Custom zoom must cancel scrolling.
+    const listener = (event: WheelEvent) => zoomFromWheel(event);
+    canvas.addEventListener('wheel', listener, { passive: false });
+    return () => canvas.removeEventListener('wheel', listener);
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -172,15 +189,6 @@ export function SceneViewport({
         tabIndex={0}
         aria-label="Live first-person tennis court preview"
         onContextMenu={onAimChange ? (event) => event.preventDefault() : undefined}
-        onWheel={onCameraFovChange ? (event) => {
-          event.preventDefault();
-          const deltaPixels = event.deltaY * (event.deltaMode === 1
-            ? 16
-            : event.deltaMode === 2
-              ? event.currentTarget.clientHeight
-              : 1);
-          onCameraFovChange(cameraFovAfterWheel(camera.fov, deltaPixels));
-        } : undefined}
         onPointerDown={onAimChange || onCameraLookChange ? (event) => {
           const mode = event.button === 0 && onCameraLookChange
             ? 'look'

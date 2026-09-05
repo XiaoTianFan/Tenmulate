@@ -38,7 +38,10 @@ export default defineConfig({
             cacheableResponse: { statuses: [200] } },
         }],
         cleanupOutdatedCaches: true,
+        // Review queries select client-side state, not a different HTML shell.
+        ignoreURLParametersMatching: [/^utm_/, /^fbclid$/, /^(camera|version|venue)$/],
         navigateFallback: '/index.html',
+        navigateFallbackDenylist: [/^\/venue-review\.html/],
       },
     }),
   ],

@@ -1,7 +1,7 @@
 # Technical architecture
 
 - **Status:** Proposed
-- **Last updated:** 2026-08-30
+- **Last updated:** 2026-09-05
 
 ## 1. Architectural objective
 
@@ -20,7 +20,7 @@ The system should optimize for perceptual credibility and testability, not for g
 | Ball dynamics | Custom fixed-step 3D numerical solver | Tennis needs drag, spin-dependent lift, precise bounce targets, inverse authoring, and deterministic outputs more than general rigid-body contacts. |
 | General collision option | Rapier, only if later features need it | Provides WASM, CCD, SI-unit guidance, and cross-platform determinism for collision-heavy extensions. |
 | Runtime asset format | glTF/GLB | Designed for runtime delivery and carries meshes, PBR materials, skins, morphs, and animation clips. |
-| Environment format | Typed Three.js composition modules plus shader-generated material detail | ADR-0005/0006 remove generated worlds and splats; exact geometry, materials, props, atmosphere, and lighting stay code-owned. |
+| Environment format | Typed Three.js fallback compositions plus opt-in Blender-authored GLB | ADR-0005/0006 remove generated worlds and splats; ADR-0009 permits an original authored arena while gameplay coordinates, atmosphere and lighting stay TypeScript-owned. |
 | Asset DCC | Blender | Canonical cleanup, scale/orientation, retargeting, animation markers, optimization, and export, regardless of whether the source was modeled, licensed, scanned, or AI-generated. |
 | Asset delivery | Hashed static manifests + object/CDN origin candidate | Keeps large optional GLB/animation/venue payloads independently cacheable and lazy-loaded; provider selection follows measured egress/caching tests. |
 | Test layers | Vitest-style unit/property tests, browser E2E, frame-time harness, visual snapshots | Separates numerical truth, sequence behavior, runtime behavior, and visual fidelity. Exact test framework is selected during scaffold. |
@@ -254,6 +254,7 @@ The full contract and provider comparison are in [Mocap to web opponent](researc
 - The critical route loads UI, the selected typed Three.js venue composition, court, ball, and drill first. The neutral opponent/animation bundles and the opt-in hard-open arena are external lazy GLB assets. The arena's presentation replaces the procedural court/venue only after its hash and gameplay anchors pass; the default path does not fetch it.
 - Build six scene identities from shared composition modules: hard, clay, and grass variants of Outdoor Arena and Indoor Court. Each scene owns context, access, architecture, and aligned lighting fixtures; outdoor arenas additionally own seating bowls, ad boards, aisles, and roof/canopy massing. Exact court/net and near-court props remain separately testable groups.
 - One renderer-owned atmosphere uses Three.js `Sky`, directional sun, hemispheric fill, fog, and a PMREM environment map. Time of day and light direction drive the solar state; clear/overcast/rain weather drives scattering, diffusion, fog, precipitation, and procedural wetness. Indoor halls hide that atmosphere and use only venue-local lights positioned at their visible lenses.
+- `venueLighting.ts` resolves one art-directed schedule for the sky, direct key, fill, environment, exposure and court fixtures across every venue. Day emphasizes directional roof/bowl shadows; dusk overlaps warm raking sunlight and floodlights without an unlit interval. Quality uses a 4096-pixel venue-wide directional shadow map; Auto/Performance use 2048, within device limits. The authored roof uses double-sided shadow casting without changing visible culling. Baked neutral AO supplies local contact depth, not directional light or full dynamic global illumination.
 - Court, runoff, ground, seating, wall, roof, timber, concrete, planting, and ad-board appearance comes from deterministic procedural GLSL attached to physically based materials. Runtime time/wind/wetness values update uniforms rather than recreating geometry.
 - The authored arena uses exported PBR, CC0 concrete maps, original acrylic albedo and baked vertex occlusion. Its hard-court wetness updates PBR roughness, while alternate surfaces use the shared procedural court materials. Meshopt decoding and WebP textures are lazy runtime dependencies; large GLBs use a dedicated hash-keyed runtime cache rather than precaching.
 - Weather does not change bounce physics in V1. Wind changes air-relative drag and Magnus force; lighting and wetness remain presentation-only. Any future wet-court physics must be an explicit, calibrated surface profile.
