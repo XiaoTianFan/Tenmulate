@@ -57,6 +57,8 @@ white=material('Off-white line tapes and wordmarks','#f3f0df',.83)
 netmat=material('Dark woven net','#262c27',.95)
 membrane=material('Ivory tensile roof membrane',D['palette']['roof'],.78)
 glass=material('Hospitality blue-grey glass','#49605d',.22,.3)
+# The opaque outer enclosure must also close the view from inside service recesses.
+glass.use_backface_culling=False
 balustrade=material('Clear green-edge balustrade glass','#b9d1c7',.14)
 balustrade.node_tree.nodes['Principled BSDF'].inputs['Alpha'].default_value=.15
 balustrade.surface_render_method='DITHERED'
@@ -266,7 +268,7 @@ for ti,(offset,rows,base,rise) in enumerate(tiers):
                 t=(point(d+1.8,f+.00001)-p).normalized()
                 a=math.atan2(t.y,t.x)
                 # Recess sits only inside the seat/terrace hole, never across an aisle.
-                portals.box((p.x,p.y,h-1.05),(2.55,3.7,.12),a)
+                portals.box((p.x,p.y,h-1.05),(3.1,4.5,.12),a)
                 for sign in (-1,1):
                     portals.box((p.x+sign*t.x*1.34,p.y+sign*t.y*1.34,h+.1),(.13,3.7,2.3),a)
                 back=point(d+3.6,f)
