@@ -3,7 +3,7 @@
 - **Status:** Active
 - **Last updated:** 2026-09-05
 - **Current implementation:** Six Blender-authored venues by default, twelve Quality/Performance GLBs, and optional Empty/Half/Full instanced 2D audiences. Procedural venue presentation and the opt-in gate are removed. Existing outdoor Quality geometry, darker grass and denser nets are preserved.
-- **Local integration:** Six-venue source/assets commit `25e363b` is on `codex/six-blender-venues-audience`, alongside separately committed local-motion work. Final integration is recorded in the [branch audit](feature-branch-integration-2026-09-05.md). No remote push or deployment.
+- **Local integration:** Source/assets `25e363b`, runtime `18141c5` and verification `d1a916a` were fast-forwarded into `main`, preserving separately committed local-motion work `b2a082e`. All twelve local feature tips were included at this integration checkpoint; see the [branch audit](feature-branch-integration-2026-09-05.md). No remote push or deployment.
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The neutral humanoid carrier is integrated. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
