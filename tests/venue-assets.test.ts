@@ -46,6 +46,41 @@ function serve(m = manifest, data = bytes) {
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); parse.mockReset(); });
 
 describe('authored venue boundary', () => {
+  it.each(['timber-hall', 'clay-stadium', 'covered-grass-arena'] as const)(
+    'explains an HTML manifest response for %s and recovers on retry', async venueId => {
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('<!doctype html><html>App shell</html>',
+        { headers: { 'content-type': 'text/html' } })));
+      const manager = new VenueAssetManager(vi.fn(), venueId);
+      manager.setActive(true);
+      await vi.waitFor(() => expect(manager.state.status).toBe('error'));
+      expect(manager.state.message).toContain(venueId);
+      expect(manager.state.message).toContain('Restart the local dev server');
+      expect(fetch).toHaveBeenCalledOnce();
+      expect(parse).not.toHaveBeenCalled();
+      expect(manager.group.visible).toBe(false);
+      serve({ ...manifest, id: venueId, url: `/assets/venues/${venueId}/${venueId}.abcdef123456.glb` });
+      parse.mockResolvedValue({ scene: registeredScene() });
+      manager.retry();
+      await vi.waitFor(() => expect(manager.state.status).toBe('ready'));
+      expect(manager.group.visible).toBe(true);
+      manager.dispose();
+    },
+  );
+  it('detects an HTML body even without its content type and identifies malformed JSON', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('  <!doctype html><html>App shell</html>')));
+    const manager = new VenueAssetManager(vi.fn());
+    manager.setActive(true);
+    await vi.waitFor(() => expect(manager.state.status).toBe('error'));
+    expect(manager.state.message).toContain('server returned a web page');
+    vi.mocked(fetch).mockResolvedValue(new Response('{broken JSON'));
+    manager.retry();
+    await vi.waitFor(() => expect(manager.state.status).toBe('error'));
+    expect(manager.state.message).toBe('Invalid venue manifest JSON for hard-open-arena');
+    expect(parse).not.toHaveBeenCalled();
+    manager.dispose();
+  });
   it('selects Performance before download and fails closed if the variant is missing', async () => {
     const performance = { ...manifest, url: '/assets/venues/hard-open-arena/hard-open-arena.performance.abcdef123456.glb' };
     serve({ ...manifest, performance } as typeof manifest);

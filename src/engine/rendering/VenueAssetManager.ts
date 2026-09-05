@@ -182,7 +182,15 @@ export class VenueAssetManager {
       const base = `/assets/venues/${this.venueId}/`;
       const response = await fetch(`${base}manifest.json`, { signal: controller.signal });
       if (!response.ok) throw new Error(`Arena manifest HTTP ${response.status}`);
-      const catalog: unknown = await response.json();
+      const manifestText = await response.text();
+      // A stale dev-server public index or a missing deployed file can return
+      // the SPA shell with HTTP 200. Keep this distinct from corrupt model data.
+      if (response.headers.get('content-type')?.includes('text/html') || manifestText.trimStart().startsWith('<')) {
+        throw new Error(`Missing venue data for ${this.venueId}: the server returned a web page. Restart the local dev server or check the deployed venue assets, then retry.`);
+      }
+      let catalog: unknown;
+      try { catalog = JSON.parse(manifestText); }
+      catch { throw new Error(`Invalid venue manifest JSON for ${this.venueId}`); }
       validateVenueManifest(catalog, this.venueId);
       const manifest = selectVenueVariant(catalog, this.variant);
       const model = await fetch(manifest.url, { signal: controller.signal });

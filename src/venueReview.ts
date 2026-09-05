@@ -5,6 +5,11 @@ import { registerPwa } from './app/registerPwa';
 const canvas = document.querySelector('canvas')!;
 const status = document.querySelector('#status')!;
 const parameters = new URLSearchParams(location.search);
+function rememberReviewChoice(key: string, value: string): void {
+  const url = new URL(location.href);
+  url.searchParams.set(key, value);
+  history.replaceState(null, '', url);
+}
 registerPwa();
 const initialQuality: QualityMode = parameters.get('quality') === 'performance' ? 'performance' : parameters.get('quality') === 'auto' ? 'auto' : 'quality';
 const initialVenue = normalizeVenueId(parameters.get('venue'));
@@ -42,6 +47,7 @@ document.querySelectorAll<HTMLButtonElement>('[data-camera]').forEach(button => 
   button.setAttribute('aria-pressed', String(button.dataset.camera === (views[initialCamera] ? initialCamera : 'player')));
   button.addEventListener('click', () => {
     cameraPreset = button.dataset.camera!;
+    rememberReviewChoice('camera', cameraPreset);
     view = cameraView(cameraPreset);
     scene.setCamera(view);
     scene.setVenueReview(button.dataset.camera !== 'overview');
@@ -64,6 +70,7 @@ venue.value = environment.venue;
 updateReviewIdentity();
 venue.addEventListener('change', () => {
   environment = { ...environment, venue: normalizeVenueId(venue.value), lighting: SCENE_DEFINITIONS[normalizeVenueId(venue.value)].defaultLighting };
+  rememberReviewChoice('venue', environment.venue);
   scene.setSurface(SCENE_DEFINITIONS[environment.venue].defaultSurface);
   scene.setEnvironment(environment);
   updateReviewIdentity();
@@ -72,11 +79,17 @@ venue.addEventListener('change', () => {
 });
 document.querySelector<HTMLSelectElement>('[aria-label="Render quality"]')!.value = initialQuality;
 document.querySelector<HTMLSelectElement>('[aria-label="Render quality"]')!.addEventListener('change', event => {
-  scene.setQualityMode((event.target as HTMLSelectElement).value as QualityMode);
+  const quality = (event.target as HTMLSelectElement).value as QualityMode;
+  rememberReviewChoice('quality', quality);
+  scene.setQualityMode(quality);
 });
 const occupancy = document.querySelector<HTMLSelectElement>('[aria-label="Audience"]')!;
 occupancy.value = environment.audience;
-occupancy.addEventListener('change', () => { environment = { ...environment, audience: normalizeAudienceOccupancy(occupancy.value) }; scene.setEnvironment(environment); });
+occupancy.addEventListener('change', () => {
+  environment = { ...environment, audience: normalizeAudienceOccupancy(occupancy.value) };
+  rememberReviewChoice('audience', environment.audience);
+  scene.setEnvironment(environment);
+});
 document.querySelector('#retry')!.addEventListener('click', () => scene.retryVenue());
 let pointer: { x: number; y: number } | null = null;
 canvas.addEventListener('pointerdown', e => { pointer = { x: e.clientX, y: e.clientY }; canvas.setPointerCapture(e.pointerId); });
