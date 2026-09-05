@@ -21,6 +21,8 @@ const manifest = {
 };
 const clayManifest = { ...manifest, id: 'clay-sunset-arena',
   url: '/assets/venues/clay-sunset-arena/clay-sunset-arena.abcdef123456.glb' };
+const grassManifest = { ...manifest, id: 'grass-center-court',
+  url: '/assets/venues/grass-center-court/grass-center-court.abcdef123456.glb' };
 function registeredScene(): THREE.Group {
   const group = new THREE.Group();
   for (const [name, position] of Object.entries(COURT_ASSET_ANCHORS)) {
@@ -131,6 +133,9 @@ describe('authored venue boundary', () => {
     expect(() => validateVenueManifest(manifest, 'clay-sunset-arena')).toThrow();
     expect(() => validateVenueManifest({ ...clayManifest, url: manifest.url })).toThrow();
     expect(() => validateVenueManifest({ ...manifest, id: 'foreign-arena' })).toThrow();
+    expect(() => validateVenueManifest(grassManifest, 'grass-center-court')).not.toThrow();
+    expect(() => validateVenueManifest(grassManifest, 'clay-sunset-arena')).toThrow();
+    expect(() => validateVenueManifest(clayManifest, 'grass-center-court')).toThrow();
   });
   it('loads only the activated manager and keeps hard/clay state and cached scenes separate', async () => {
     vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => Promise.resolve(
@@ -184,6 +189,35 @@ describe('authored venue boundary', () => {
     manager.dispose();
     expect(originalDispose).toHaveBeenCalledOnce();
     expect(borrowedDispose).not.toHaveBeenCalled();
+    for (const mat of Object.values(bundle.materials).flat()) mat.dispose();
+  });
+  it('loads grass independently, preserves native turf and reuses its completed scene', async () => {
+    serve(grassManifest);
+    const scene = registeredScene();
+    parse.mockResolvedValue({scene});
+    const grass = new VenueAssetManager(vi.fn(),'grass-center-court');
+    const hard = new VenueAssetManager(vi.fn(),'hard-open-arena');
+    const clay = new VenueAssetManager(vi.fn(),'clay-sunset-arena');
+    expect(fetch).not.toHaveBeenCalled();
+    grass.setActive(true);
+    await vi.waitFor(()=>expect(grass.state.status).toBe('ready'));
+    expect(hard.state.status).toBe('idle');
+    expect(clay.state.status).toBe('idle');
+    expect(vi.mocked(fetch).mock.calls.every(([url])=>String(url).includes('grass-center-court'))).toBe(true);
+    const mesh=scene.children.find(o=>o.userData.surfaceRole==='court') as THREE.Mesh;
+    const native=mesh.material;
+    const bundle=createSceneMaterialBundle('clay');
+    grass.applySurface('grass',bundle,0);
+    expect(mesh.material).toBe(native);
+    grass.applySurface('clay',bundle,0);
+    expect(mesh.material).toBe(bundle.materials.court);
+    grass.applySurface('grass',bundle,0);
+    expect(mesh.material).toBe(native);
+    grass.setActive(false);
+    grass.setActive(true);
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(grass.group.visible).toBe(true);
+    grass.dispose(); hard.dispose(); clay.dispose();
     for (const mat of Object.values(bundle.materials).flat()) mat.dispose();
   });
   it('keeps dense fabric and roof trusses casting continuous shade with cutaway visibility', async () => {

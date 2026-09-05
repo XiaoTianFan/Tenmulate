@@ -1,0 +1,53 @@
+{
+  "id": "grass-center-court",
+  "version": 1,
+  "compatibility": "tenmulate-court-v1",
+  "url": "/assets/venues/grass-center-court/grass-center-court.7d25bddb4c7e.glb",
+  "bytes": 6353976,
+  "sha256": "7d25bddb4c7e69db7a7789bd6c80b6829641ec1988befd8c1fe13592ec4fe4ec",
+  "source": "assets/venues/grass-center-court/grass-center-court.blend",
+  "anchors": {
+    "court_origin": [
+      0,
+      0,
+      0
+    ],
+    "baseline_near": [
+      0,
+      0,
+      -11.885
+    ],
+    "baseline_far": [
+      0,
+      0,
+      11.885
+    ],
+    "net_center": [
+      0,
+      0.914,
+      0
+    ],
+    "doubles_left": [
+      -5.485,
+      0,
+      0
+    ],
+    "doubles_right": [
+      5.485,
+      0,
+      0
+    ]
+  },
+  "seats": 14381,
+  "extensions": [
+    "KHR_materials_transmission",
+    "KHR_texture_transform",
+    "EXT_mesh_gpu_instancing",
+    "EXT_texture_webp",
+    "KHR_mesh_quantization",
+    "EXT_meshopt_compression"
+  ],
+  "materials": 19,
+  "meshes": 74,
+  "textureBytes": 556164
+}

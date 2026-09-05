@@ -5,6 +5,7 @@ import type { SceneMaterialBundle } from './sceneMaterials';
 export const AUTHORED_VENUES = {
   'hard-open-arena': { surface: 'hard' },
   'clay-sunset-arena': { surface: 'clay' },
+  'grass-center-court': { surface: 'grass' },
 } as const;
 export type AuthoredVenueId = keyof typeof AUTHORED_VENUES;
 export const isAuthoredVenue = (id: string): id is AuthoredVenueId => Object.hasOwn(AUTHORED_VENUES, id);

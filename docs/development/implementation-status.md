@@ -2,11 +2,19 @@
 
 - **Status:** Active
 - **Last updated:** 2026-09-05
-- **Current implementation:** Blender hard/clay opt-in delivery with clay roof revision 4, preserving the court-aligned seating revision. Initial source commits `f06675a` and `76ebd88` and older stage commits below remain historical.
+- **Current implementation:** Three Blender-authored outdoor arenas under the opt-in gate: hard, clay revision 4 and the new neutral grass arena. Initial source commits `f06675a` and `76ebd88` and older stage commits below remain historical.
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The neutral humanoid carrier is now integrated; its tennis mocap and racket remain owner-supplied production inputs. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
-## Latest delivery — second Blender-authored outdoor arena
+## Latest delivery — third Blender-authored outdoor arena
+
+The neutral Grass Open Arena is built in Blender and integrated under the existing `grass-center-court` ID: 14,381 linked green seats, three rake profiles, court-aligned straight stands and rounded corner fans, exact 22 × 41 m striped lawn, original baseline pavilion, clear recessed player entrances, a dark canopy and two parked white concertina banks. The 18.76 MB packed master exports to a 6.06 MiB GLB. Reference names/logos are excluded from runtime identity. Published versus estimated dimensions and the owner-recommended ArtStation study are documented in [Grass arena](grass-arena.md); [ADR-0011](../decisions/0011-blender-grass-arena.md) preserves the runtime/fallback boundary.
+
+Verification: **154 tests / 16 files**, production build and Cycles source render pass. Actual exported geometry/hash/material/UV/seat/roof/access tests and native-grass manager checks pass; glTF validation reports zero errors/warnings. Production desktop/mobile day/dusk/night and camera/venue switches pass with no warm-loop console errors/warnings. Final-hash offline reload, forced grass-load failure and zero-download default main path are verified. Hard/clay masters and exports are unchanged. See [Stage 16](visual-verification.md#stage-16-third-blender-arena--garden-grass--2026-09-05).
+
+Target-device frame-time/memory/cold-load profiling, owner visual approval and deployment remain open. The transmission pass and concurrent residency of three loaded venues need profiling; the default remains procedural. Roof banks are statically open, not animated. No crowd, surrounding real precinct or structural certification is included.
+
+## Previous delivery — second Blender-authored outdoor arena
 
 The Philippe-Chatrier-informed clay venue is built in Blender and integrated under the existing optional authored-venue switch, alongside hard. It retains 13,664 ash seats in four court-aligned stands: fixed seat columns, perpendicular section aisles, aligned terrace entrances and rectangular front boxes, with symmetric fans confined to chamfered corners. Roof revision 4 uses denser rough-transmission ivory membranes and continuous readable court shade instead of distracting truss-only stripes; exposed framing and ten overlapping wings remain fixed halfway open. Green perimeter entrances, original clay textures and the glazed concourse remain. Both variants retain regulation gameplay registration, shared runtime lighting and procedural loading/failure/offline fallback. The default remains procedural; the hard asset is unchanged. [ADR-0010](../decisions/0010-blender-clay-arena-and-multi-venue-boundary.md), [build/source details](clay-arena.md) and [Stage 15 visual evidence](visual-verification.md#stage-15-clay-roof-opacity-and-even-court-shade--2026-09-05) define the current boundary.
 

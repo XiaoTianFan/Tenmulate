@@ -1,6 +1,7 @@
 {
   "geometry": "Original parameterized Blender meshes; no extracted third-party mesh or embedded reference photograph.",
   "referenceOnly": [
+    {"url": "https://www.artstation.com/artwork/BmyyYk", "publisher": "Leon Labyk", "used": "Owner-recommended artist model viewed in-browser: deeper white lattice trusses, dark canopy reveal, recessed baseline boxes and grass contrast. Secondary artistic interpretation, not dimensional authority; model not downloaded or reused."},
     {"source": "Five owner-supplied references, 2026-09-05", "used": "Empty bowl from court/corner, baseline pavilion, green seat shells, dark canopy, white lattice roof, grass striping. Attachments e466354a, 91d88cbd, 8e8f73fe, 162df7f6 and 2b657ea8; not redistributed."},
     {"url": "https://www.wimbledon.com/pdf/Centre_Court_Plan_2021.pdf", "publisher": "AELTC", "used": "Official seating diagram visually inspected: rounded rectangular outline, court-normal main blocks, corner fans, baseline box and different upper-gallery coverage. Schematic without engineering dimensions; section numbers are not copied."},
     {"url": "https://www.wimbledon.com/en_GB/about/grass_courts", "publisher": "AELTC", "used": "Published 22 x 41 m grass area and regulation court dimensions. Not an architectural floor plan."},

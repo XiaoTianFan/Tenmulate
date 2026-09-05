@@ -10,7 +10,7 @@ import validator from 'gltf-validator';
 
 const root = new URL('../../', import.meta.url);
 const venue = process.argv[2] ?? 'hard-open-arena';
-if (!['hard-open-arena', 'clay-sunset-arena'].includes(venue)) throw new Error('Unsupported venue build target');
+if (!['hard-open-arena', 'clay-sunset-arena', 'grass-center-court'].includes(venue)) throw new Error('Unsupported venue build target');
 const build = new URL(venue === 'hard-open-arena' ? 'artifacts/venue-build/' : `artifacts/venue-build/${venue}/`, root);
 const output = new URL(`public/assets/venues/${venue}/`, root);
 await mkdir(output, { recursive: true });

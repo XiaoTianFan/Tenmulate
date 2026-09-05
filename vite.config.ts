@@ -27,12 +27,12 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,glb,json,txt}'],
         globIgnores: ['assets/venues/**'],
         runtimeCaching: [{
-          urlPattern: /\/assets\/venues\/(hard-open-arena|clay-sunset-arena)\/\1\.[a-f0-9]{12}\.glb$/,
+          urlPattern: /\/assets\/venues\/(hard-open-arena|clay-sunset-arena|grass-center-court)\/\1\.[a-f0-9]{12}\.glb$/,
           handler: 'CacheFirst',
           options: { cacheName: 'tenmulate-venues-v1', cacheableResponse: { statuses: [200] },
             expiration: { maxEntries: 4, maxAgeSeconds: 30 * 24 * 60 * 60, purgeOnQuotaError: true } },
         }, {
-          urlPattern: /\/assets\/venues\/(hard-open-arena|clay-sunset-arena)\/manifest\.json$/,
+          urlPattern: /\/assets\/venues\/(hard-open-arena|clay-sunset-arena|grass-center-court)\/manifest\.json$/,
           handler: 'NetworkFirst',
           options: { cacheName: 'tenmulate-venue-manifests-v1', networkTimeoutSeconds: 3,
             cacheableResponse: { statuses: [200] } },

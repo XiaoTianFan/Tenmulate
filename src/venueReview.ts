@@ -45,7 +45,7 @@ document.querySelector<HTMLSelectElement>('[aria-label="Time of day"]')!.addEven
 });
 const venue = document.querySelector<HTMLSelectElement>('[aria-label="Venue"]')!;
 function updateReviewIdentity() {
-  const name = environment.venue === 'clay-sunset-arena' ? 'Clay Open Arena' : environment.venue === 'hard-open-arena' ? 'Hard Open Arena' : SCENE_DEFINITIONS[environment.venue].label;
+  const name = environment.venue === 'grass-center-court' ? 'Grass Open Arena' : environment.venue === 'clay-sunset-arena' ? 'Clay Open Arena' : environment.venue === 'hard-open-arena' ? 'Hard Open Arena' : SCENE_DEFINITIONS[environment.venue].label;
   document.title = `${name} — Tenmulate review`;
   document.querySelector('h1')!.textContent = `${name} / venue study`;
   canvas.setAttribute('aria-label', `${name} scene review`);
