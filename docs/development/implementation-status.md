@@ -2,8 +2,8 @@
 
 - **Status:** Active
 - **Last updated:** 2026-09-05
-- **Current implementation:** Three Blender-authored outdoor arenas under the opt-in gate: hard revision 3, clay revision 5 and grass revision 2, with darker grass and denser nets across authored/procedural venues. Initial source commits `f06675a` and `76ebd88` and older stage commits below remain historical.
-- **Local integration:** Owner-authorized fast-forward of the arena branch completed; all eleven local feature branches are included in `main`. Refinement commit `fdd28f5`; [branch audit](feature-branch-integration-2026-09-05.md). No remote push or deployment.
+- **Current implementation:** Six Blender-authored venues by default, twelve Quality/Performance GLBs, and optional Empty/Half/Full instanced 2D audiences. Procedural venue presentation and the opt-in gate are removed. Existing outdoor Quality geometry, darker grass and denser nets are preserved.
+- **Local integration:** Six-venue source/assets commit `25e363b` is on `codex/six-blender-venues-audience`, alongside separately committed local-motion work. Final integration is recorded in the [branch audit](feature-branch-integration-2026-09-05.md). No remote push or deployment.
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The neutral humanoid carrier is integrated. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
@@ -13,7 +13,15 @@ The sibling motion lab produces nine baked clips on the neutral carrier, an orig
 
 Gameplay uses one absolute clock for pose, launch and audio, deterministic travel/foot IK, contact alignment, toss, mirrored hand and reachable cadence. The 1.16 MB library has zero glTF errors/warnings. **171 tests / 20 files**, production build, desktop sequence review and real practice pause/seek/slow-play checks pass. [Contract, commands and limits](local-motion-pipeline.md). Exact style, close-up grip, other techniques, device endurance and owner approval remain distinct gates. Historical motion-pending notes below describe their original stages.
 
-## Latest venue refinement — grass contrast and shared net density
+## Latest venue delivery — six Blender scenes, performance and audience
+
+Three original indoor halls now include complete structure, trusses/clerestories, seating banks and circulation, original baked PBR textures, court equipment and fixture-aligned lighting with cached indoor bounce fill. All six low-detail assets reduce model triangles by 81–89% and payloads by 54–84%. Performance is selected before GLB download; Auto can step down on small screens or sustained slow rendering. Only the active venue remains resident.
+
+Audience cards use generated front/back atlases, two triangles per seat, deterministic exact Half occupancy and spatial instancing. Empty requests no audience resources. Preferences persist and flow into practice. Hash/registration checks, cancellation and retry protect the authored-only boundary. [Build, measured budgets and limitations](indoor-venues-and-performance.md), [Stage 18 browser evidence](visual-verification.md#stage-18-six-blender-venues-performance-and-seated-audiences--2026-09-05).
+
+Verification: **179 tests / 21 files**, production build, all twelve decoded GLBs, asset-budget checks and production browser verification pass. Detailed outdoor rendering remains GPU-heavy; Performance/Auto is the lower-cost option, not a universal frame-rate guarantee. 2D spectators are not suitable for very close edge-on inspection. Owner art approval and deployment remain open.
+
+## Previous venue refinement — grass contrast and shared net density
 
 The grass palette changes from `#839d49` to `#64843d` without changing white lines, textures' registration, lighting or physics. All three Blender masters/exports now use nominal 42 mm weave spacing with 2.2 mm radius cords; all procedural venue nets have tighter spacing and calibrated screen-line coverage. Current hashes/sizes are recorded in [Blender venues](blender-venues.md#current-assets--shared-net-refinement-2026-09-05). Superseded GLBs are removed from shipped output and recoverable in Git history.
 

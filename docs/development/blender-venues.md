@@ -1,8 +1,10 @@
 # Blender-authored venues
 
-The hard-open arena is an original Rod Laver-inspired architectural study with a blue playing area and green surrounds. It is available for review before replacing the default procedural venue. Exact gameplay court dimensions remain in `src/domain/court.ts`; Blender owns the visible court, net, furniture, bowl and roof. Runtime lighting, atmosphere, opponent and trajectories remain in Three.js.
+All six built-in venues now use Blender-authored scenes by default, including three original indoor halls. Each has separate Quality and Performance GLBs, with optional Empty/Half/Full 2D seated audiences. Procedural venue/court/net presentation and the opt-in gate have been removed; failures show a retryable error. Exact gameplay coordinates remain in `src/domain/court.ts`; lighting, atmosphere, opponent and trajectories remain in Three.js. [Current build, budgets and runtime contract](indoor-venues-and-performance.md), [ADR-0013](../decisions/0013-six-authored-venues-and-audience.md).
 
-## Current assets — shared net refinement, 2026-09-05
+The outdoor asset table below remains current for Quality; its procedural/default/loading statements describe earlier stages and are superseded by the six-venue contract above.
+
+## Outdoor Quality assets — shared net refinement, 2026-09-05
 
 `scripts/blender/venue_net.py` supplies all three builders with nominal 42 mm weave spacing and 2.2 mm cord radius. Each authored net has 306 vertical strands and 24–25 horizontal courses. Sag, width, bottom clearance, headbands, posts and gameplay anchors remain unchanged. The procedural `createNet` uses the same pitch and a darker colour, with opacity 0.68 to avoid an opaque screen at the fixed one-pixel WebGL line width. Grass is darker and greener (`#64843d`), without changing lighting or white paint.
 

@@ -3,6 +3,75 @@
 - **Purpose:** Record concept-to-browser inspection after every implementation stage
 - **Reference viewport:** 1920 × 1080 unless stated otherwise
 
+## Stage 18: six Blender venues, Performance and seated audiences — 2026-09-05
+
+The owner requested three fully authored indoor halls, retirement of procedural
+venue sketches, real lower-detail assets for all six venues, and efficient
+Empty/Half/Full spectators. The frontend-testing skill drove the venue → quality
+→ occupancy flow and negative-path checks; React guidance kept startup selection
+ahead of asset loading and animation work outside React. Browser plugin/skill was
+unavailable, so Playwright CLI provided actual Chromium inspection. Built-in
+image generation produced the front/back audience atlases; prompts, rejected
+transparency trials and accepted chroma-key source are in `assets/audience`.
+
+Environment: production preview `127.0.0.1:4174`, Three.js r185 / WebGL 2,
+1440 × 900 desktop and 390 × 844 mobile. Evidence is local-only under
+`C:/Users/20378/.codex/visualizations/2026/09/05/six-blender-venues/`.
+
+| Check | Evidence / result | Boundary |
+| --- | --- | --- |
+| App/venue identity | All six production titles, IDs, `ready`, Blender source and chosen variants match; main setup defaults to authored content | No opt-in or procedural substitute remains |
+| Meaningful content | Inspected timber pitched hall, clay trusses, grass barrel vault, textured courts, equipment, seating and audience; outdoor Quality geometry preserved | Original indoor architecture, not surveyed buildings; 2D crowd is thin edge-on |
+| Overlays | Zero framework overlays in the six-venue production matrix; temporary loading overlay clears | Forced failures intentionally show an error |
+| Console/runtime | Zero page/console errors in healthy six-venue runs; 503 tests produce expected failed requests | Cold Intel ANGLE precision notices and build-time Blender device probes are not new application failures |
+| Screenshots | Final indoor player/sideline, outdoor full crowds, mobile Half and main preference UI captured and visually inspected | Owner visual approval remains open; no claim of photorealism or target-device certification |
+| Interaction | All six Performance → Full → Half → Empty flows; final exact counts 560/896/672/13,304/13,664/14,381; Half is floor(count/2) | Artwork has resting/raised-arm poses and subtle shader sway, not skeletal waving |
+
+Additional boundary checks:
+
+- Performance startup requested only its selected GLB; Empty fetched no seat JSON
+  or artwork. Full and Half reuse the same active atlas. Mobile Auto fetched only
+  the grass Performance GLB plus 512 px atlases, rendered 7,190 spectators, and
+  had `scrollWidth = innerWidth = 390`. Desktop Auto stepped down to the clay
+  Performance asset after sustained slow windows.
+- Rapid venue/quality switching never reattached stale models. Three complete
+  timber → clay → grass hall cycles returned to the same 16-texture count and
+  560 spectators; Empty removed the two atlas textures. Unit tests additionally
+  assert bitmap, geometry, material and late-decode disposal.
+- Forced GLB 503 showed the correct unavailable message and visible Retry,
+  then restored the same selected Performance venue. Forced audience 503 kept
+  the correct clay hall, exposed an operable Retry audience button, then restored
+  all 896 people. The first error-banner trial inherited `pointer-events:none`;
+  it was corrected and rechecked, not counted as acceptance.
+- Main setup persisted `clay-stadium` / Half / Performance, reloaded with 448
+  spectators, and showed the unchanged room-safety gate on Start practice.
+  Continue remained disabled; Cancel returned to setup. This task did not attest
+  to physical room clearance or bypass the gate. Code passes the same environment
+  and quality into rehearsal; the separate motion task owns its practice checks.
+- A controlled service-worker warm load followed by offline reload restored the
+  final timber Quality hash and 280 spectators. This is one representative cached
+  venue/audience proof, not a promise that unvisited venues work offline.
+
+Verification: **179 tests / 21 files**, production build, twelve decoded GLB
+hash/registration/triangle/seat-budget checks pass. All twelve raw Khronos glTF
+validations report zero errors/warnings. Timber n-gon caps were triangulated to
+remove the initial explicit-tangent portability warning. The existing minified
+renderer chunk warning remains (~637 kB). No remote deployment was performed.
+
+Measured model reduction is 81–89% of triangles and 54–84% of bytes; exact budgets
+are in [the build/runtime record](indoor-venues-and-performance.md). Performance
+full crowds add four visible indoor batches and roughly twenty in large arenas.
+One warm development pass sampled 116–120 fps indoors and 44–50 fps outdoors in
+Performance. Production captures during loading/multiple browser contexts were
+much lower (10–40 fps); these are deliberately not comparable benchmarks.
+Detailed outdoor Quality remains expensive. Controlled GPU/device profiling,
+extended endurance and owner art approval remain separate gates.
+
+Final gallery: `final-timber-hall-half.png`, `final-covered-grass-arena-quality.png`,
+`final-clay-hall-sideline.png`, `final-{grass-center-court,clay-sunset-arena,hard-open-arena}-quality.png`,
+`final-mobile-half.png`, `final-practice-controls.png`, `final-load-error.png`,
+`final-audience-error.png`. Reproducible QA scripts are kept beside the captures.
+
 ## Stage 1: setup plus first Three.js court
 
 | Comparison point | Concept evidence | Browser evidence | Result / action |

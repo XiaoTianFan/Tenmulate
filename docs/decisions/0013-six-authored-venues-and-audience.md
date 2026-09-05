@@ -1,6 +1,6 @@
 # Six authored venues, quality variants and seated spectators
 
-Status: implementation in progress, 2026-09-05.
+Status: implemented and locally verified, 2026-09-05. Owner visual acceptance and public deployment remain separate gates.
 
 The owner has authorized replacing the three indoor procedural halls and retiring the six procedural venue presentations. Three.js remains the renderer, sky/weather/light controller and gameplay integration layer; Blender owns the visible court, architecture, seating and equipment. This extends the earlier three-venue opt-in pilot.
 

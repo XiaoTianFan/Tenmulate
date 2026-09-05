@@ -71,6 +71,25 @@ details were checked against the installed r185 source, not a different renderer
 
 ## Verification boundary
 
+Final model budgets (decimal MB; model triangles include all GPU seat instances,
+not renderer shadow/transmission passes or the runtime opponent/audience):
+
+| Venue | Quality → Performance MB | Quality → Performance triangles | Seats |
+| --- | --- | --- | --- |
+| Timber hall | 1.018 → 0.183 | 80,606 → 10,114 | 560 |
+| Clay hall | 1.116 → 0.174 | 113,894 → 14,698 | 896 |
+| Grass hall | 1.096 → 0.236 | 96,726 → 17,058 | 672 |
+| Hard arena | 5.835 → 2.698 | 1,453,296 → 227,160 | 13,304 |
+| Clay arena | 7.423 → 2.649 | 1,474,248 → 275,504 | 13,664 |
+| Grass arena | 6.393 → 1.138 | 1,430,222 → 159,650 | 14,381 |
+
+All twelve raw exports validate with zero glTF errors and warnings. A timber
+beam-cap tangent warning was corrected by triangulating only n-gon caps before
+export; UVs and geometric triangle counts are unchanged. Build-time Blender HIP
+probe/deprecation notices are distinct from asset validation; CPU AO completes.
+The final suite passes 179 tests in 21 files; the production build passes with
+the existing renderer chunk-size warning (about 637 kB minified).
+
 `tests/six-venue-variants.test.ts` decodes both shipped GLBs for every venue and
 checks hashes, dimensions, actual instanced triangle reductions, low-detail net
 cutout, seat counts, and stable occupancy. Existing outdoor architecture and net
