@@ -1,0 +1,16 @@
+{
+  "id": "timber-hall",
+  "version": 1,
+  "surface": "hard",
+  "width": 36,
+  "length": 52,
+  "eave": 8.8,
+  "crown": 12.4,
+  "rows": 5,
+  "structure": "#ac8055",
+  "wall": "#b9ae96",
+  "padding": "#263c44",
+  "seats": "#566b69",
+  "court": "#28637c",
+  "runoff": "#537268"
+}

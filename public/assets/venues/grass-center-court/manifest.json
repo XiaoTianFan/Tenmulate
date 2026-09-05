@@ -49,5 +49,69 @@
   ],
   "materials": 19,
   "meshes": 74,
-  "textureBytes": 510392
+  "textureBytes": 510392,
+  "performance": {
+    "id": "grass-center-court",
+    "version": 1,
+    "compatibility": "tenmulate-court-v1",
+    "url": "/assets/venues/grass-center-court/grass-center-court.performance.45f5537e2a0b.glb",
+    "bytes": 1138296,
+    "sha256": "45f5537e2a0b3f3430958bb15c6ae95c412f7b029bada9d3a0d6ea279a5bb2f7",
+    "source": "assets/venues/grass-center-court/grass-center-court.blend",
+    "anchors": {
+      "court_origin": [
+        0,
+        0,
+        0
+      ],
+      "baseline_near": [
+        0,
+        0,
+        -11.885
+      ],
+      "baseline_far": [
+        0,
+        0,
+        11.885
+      ],
+      "net_center": [
+        0,
+        0.914,
+        0
+      ],
+      "doubles_left": [
+        -5.485,
+        0,
+        0
+      ],
+      "doubles_right": [
+        5.485,
+        0,
+        0
+      ]
+    },
+    "seats": 14381,
+    "extensions": [
+      "KHR_texture_transform",
+      "EXT_mesh_gpu_instancing",
+      "EXT_texture_webp",
+      "KHR_mesh_quantization",
+      "EXT_meshopt_compression"
+    ],
+    "materials": 19,
+    "meshes": 65,
+    "textureBytes": 1730
+  },
+  "geometry": {
+    "qualityTriangles": 1430222,
+    "performanceTriangles": 159650,
+    "reduction": 0.8884,
+    "seats": 14381
+  },
+  "audience": {
+    "url": "/assets/venues/grass-center-court/audience-seats.c8c22de72960.json",
+    "bytes": 422446,
+    "sha256": "c8c22de72960021a67ca628af1608844be5b8307f8bb0f1790f294a91fbad2b6",
+    "count": 14381
+  }
 }

@@ -1,11 +1,11 @@
 {
-  "id": "hard-open-arena",
+  "id": "clay-stadium",
   "version": 1,
   "compatibility": "tenmulate-court-v1",
-  "url": "/assets/venues/hard-open-arena/hard-open-arena.740783a4d427.glb",
-  "bytes": 5835492,
-  "sha256": "740783a4d4277919d3e38c71359ec6e97b93b0ce5d0d8f0aaf8f3185ae82f100",
-  "source": "assets/venues/hard-open-arena/hard-open-arena.blend",
+  "url": "/assets/venues/clay-stadium/clay-stadium.e753373f652a.glb",
+  "bytes": 1116316,
+  "sha256": "e753373f652a818c934d2d584963a33f8f1e7aa970eb730dadb300262aa09081",
+  "source": "assets/venues/clay-stadium/clay-stadium.blend",
   "anchors": {
     "court_origin": [
       0,
@@ -38,24 +38,25 @@
       0
     ]
   },
-  "seats": 13304,
+  "seats": 896,
   "extensions": [
+    "KHR_materials_emissive_strength",
     "EXT_mesh_gpu_instancing",
     "EXT_texture_webp",
     "KHR_mesh_quantization",
     "EXT_meshopt_compression"
   ],
-  "materials": 19,
-  "meshes": 89,
-  "textureBytes": 545614,
+  "materials": 13,
+  "meshes": 23,
+  "textureBytes": 286412,
   "performance": {
-    "id": "hard-open-arena",
+    "id": "clay-stadium",
     "version": 1,
     "compatibility": "tenmulate-court-v1",
-    "url": "/assets/venues/hard-open-arena/hard-open-arena.performance.91e7e8b24a42.glb",
-    "bytes": 2698100,
-    "sha256": "91e7e8b24a42c9e19a49251d6ef126ca5d8bec153e3641d3e90d62a99d25c66f",
-    "source": "assets/venues/hard-open-arena/hard-open-arena.blend",
+    "url": "/assets/venues/clay-stadium/clay-stadium.performance.52e0ca530791.glb",
+    "bytes": 173540,
+    "sha256": "52e0ca53079120fe54d0fc04fd892d92f3520db5c2e70503a323f94a4cb63527",
+    "source": "assets/venues/clay-stadium/clay-stadium.blend",
     "anchors": {
       "court_origin": [
         0,
@@ -88,27 +89,28 @@
         0
       ]
     },
-    "seats": 13304,
+    "seats": 896,
     "extensions": [
+      "KHR_materials_emissive_strength",
       "EXT_mesh_gpu_instancing",
       "EXT_texture_webp",
       "KHR_mesh_quantization",
       "EXT_meshopt_compression"
     ],
-    "materials": 18,
-    "meshes": 83,
-    "textureBytes": 6328
+    "materials": 12,
+    "meshes": 19,
+    "textureBytes": 4544
   },
   "geometry": {
-    "qualityTriangles": 1453296,
-    "performanceTriangles": 227160,
-    "reduction": 0.8437,
-    "seats": 13304
+    "qualityTriangles": 113894,
+    "performanceTriangles": 14698,
+    "reduction": 0.871,
+    "seats": 896
   },
   "audience": {
-    "url": "/assets/venues/hard-open-arena/audience-seats.0ae6102f4f4b.json",
-    "bytes": 418849,
-    "sha256": "0ae6102f4f4b523d8a0e153923cd12a85724ca8ed583fe3a6e2917b2abc49743",
-    "count": 13304
+    "url": "/assets/venues/clay-stadium/audience-seats.8b3c2436ab98.json",
+    "bytes": 23870,
+    "sha256": "8b3c2436ab98d1700fc74366f11303499bf86fccd0e9d9c28802cad7547e00de",
+    "count": 896
   }
 }

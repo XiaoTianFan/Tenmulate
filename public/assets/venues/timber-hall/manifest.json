@@ -1,11 +1,11 @@
 {
-  "id": "hard-open-arena",
+  "id": "timber-hall",
   "version": 1,
   "compatibility": "tenmulate-court-v1",
-  "url": "/assets/venues/hard-open-arena/hard-open-arena.740783a4d427.glb",
-  "bytes": 5835492,
-  "sha256": "740783a4d4277919d3e38c71359ec6e97b93b0ce5d0d8f0aaf8f3185ae82f100",
-  "source": "assets/venues/hard-open-arena/hard-open-arena.blend",
+  "url": "/assets/venues/timber-hall/timber-hall.65a3c3c366ca.glb",
+  "bytes": 1007600,
+  "sha256": "65a3c3c366ca18f064dcb92307264f280da9a54f5905d1206a0316f525f7b953",
+  "source": "assets/venues/timber-hall/timber-hall.blend",
   "anchors": {
     "court_origin": [
       0,
@@ -38,24 +38,25 @@
       0
     ]
   },
-  "seats": 13304,
+  "seats": 560,
   "extensions": [
+    "KHR_materials_emissive_strength",
     "EXT_mesh_gpu_instancing",
     "EXT_texture_webp",
     "KHR_mesh_quantization",
     "EXT_meshopt_compression"
   ],
-  "materials": 19,
-  "meshes": 89,
-  "textureBytes": 545614,
+  "materials": 13,
+  "meshes": 23,
+  "textureBytes": 277652,
   "performance": {
-    "id": "hard-open-arena",
+    "id": "timber-hall",
     "version": 1,
     "compatibility": "tenmulate-court-v1",
-    "url": "/assets/venues/hard-open-arena/hard-open-arena.performance.91e7e8b24a42.glb",
-    "bytes": 2698100,
-    "sha256": "91e7e8b24a42c9e19a49251d6ef126ca5d8bec153e3641d3e90d62a99d25c66f",
-    "source": "assets/venues/hard-open-arena/hard-open-arena.blend",
+    "url": "/assets/venues/timber-hall/timber-hall.performance.8e49183dc321.glb",
+    "bytes": 173436,
+    "sha256": "8e49183dc321fbf007817bce3748d3c360fff9a6508dd7f673667c857f5de697",
+    "source": "assets/venues/timber-hall/timber-hall.blend",
     "anchors": {
       "court_origin": [
         0,
@@ -88,27 +89,28 @@
         0
       ]
     },
-    "seats": 13304,
+    "seats": 560,
     "extensions": [
+      "KHR_materials_emissive_strength",
       "EXT_mesh_gpu_instancing",
       "EXT_texture_webp",
       "KHR_mesh_quantization",
       "EXT_meshopt_compression"
     ],
-    "materials": 18,
-    "meshes": 83,
-    "textureBytes": 6328
+    "materials": 12,
+    "meshes": 19,
+    "textureBytes": 6374
   },
   "geometry": {
-    "qualityTriangles": 1453296,
-    "performanceTriangles": 227160,
-    "reduction": 0.8437,
-    "seats": 13304
+    "qualityTriangles": 80606,
+    "performanceTriangles": 10114,
+    "reduction": 0.8745,
+    "seats": 560
   },
   "audience": {
-    "url": "/assets/venues/hard-open-arena/audience-seats.0ae6102f4f4b.json",
-    "bytes": 418849,
-    "sha256": "0ae6102f4f4b523d8a0e153923cd12a85724ca8ed583fe3a6e2917b2abc49743",
-    "count": 13304
+    "url": "/assets/venues/timber-hall/audience-seats.b57c31af86fb.json",
+    "bytes": 14922,
+    "sha256": "b57c31af86fbf8eb68d68064713f574c5cf5864718a03242f2332954fc309252",
+    "count": 560
   }
 }

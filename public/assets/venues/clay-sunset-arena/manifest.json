@@ -48,5 +48,68 @@
   ],
   "materials": 17,
   "meshes": 73,
-  "textureBytes": 590590
+  "textureBytes": 590590,
+  "performance": {
+    "id": "clay-sunset-arena",
+    "version": 1,
+    "compatibility": "tenmulate-court-v1",
+    "url": "/assets/venues/clay-sunset-arena/clay-sunset-arena.performance.5c7aa40b68da.glb",
+    "bytes": 2649204,
+    "sha256": "5c7aa40b68dae758fd6e6795aaf96d096b44e5bd8503cae7acd8c67aab788be6",
+    "source": "assets/venues/clay-sunset-arena/clay-sunset-arena.blend",
+    "anchors": {
+      "court_origin": [
+        0,
+        0,
+        0
+      ],
+      "baseline_near": [
+        0,
+        0,
+        -11.885
+      ],
+      "baseline_far": [
+        0,
+        0,
+        11.885
+      ],
+      "net_center": [
+        0,
+        0.914,
+        0
+      ],
+      "doubles_left": [
+        -5.485,
+        0,
+        0
+      ],
+      "doubles_right": [
+        5.485,
+        0,
+        0
+      ]
+    },
+    "seats": 13664,
+    "extensions": [
+      "EXT_mesh_gpu_instancing",
+      "EXT_texture_webp",
+      "KHR_mesh_quantization",
+      "EXT_meshopt_compression"
+    ],
+    "materials": 17,
+    "meshes": 68,
+    "textureBytes": 2886
+  },
+  "geometry": {
+    "qualityTriangles": 1474248,
+    "performanceTriangles": 275504,
+    "reduction": 0.8131,
+    "seats": 13664
+  },
+  "audience": {
+    "url": "/assets/venues/clay-sunset-arena/audience-seats.d88995623b8c.json",
+    "bytes": 384628,
+    "sha256": "d88995623b8cd60053df0a3570fed017fa93f04ad2557b8b5e79622f8250a7c1",
+    "count": 13664
+  }
 }

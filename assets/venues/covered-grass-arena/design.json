@@ -1,0 +1,16 @@
+{
+  "id": "covered-grass-arena",
+  "version": 1,
+  "surface": "grass",
+  "width": 38,
+  "length": 54,
+  "eave": 7.5,
+  "crown": 15.5,
+  "rows": 6,
+  "structure": "#dddcc9",
+  "wall": "#b5bcad",
+  "padding": "#24463c",
+  "seats": "#356759",
+  "court": "#587938",
+  "runoff": "#526d37"
+}
