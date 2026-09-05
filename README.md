@@ -2,14 +2,14 @@
 
 Tenmulate is a browser-based, first-person tennis visualization tool. It places a player at a calibrated on-court point of view and plays configurable incoming ball trajectories for shadow swinging, return preparation, and tactical mental rehearsal.
 
-The repository contains the active V1 implementation: a deterministic Three.js court/ball simulation, complete starter shot library, rehearsal player, local drill editor, independently customizable camera-position and perspective presets, validated JSON exchange, and offline-capable app shell. Court environments now follow a canonical code-owned Three.js modeling pipeline. A compact CC0 neutral humanoid is integrated as the mocap carrier, with the ball machine retained only as its load-failure fallback.
+The repository contains the active V1 implementation: a deterministic Three.js court/ball simulation, complete starter shot library, rehearsal player, local drill editor, independently customizable camera-position and perspective presets, validated JSON exchange, and offline-capable app shell. Court environments have six procedural fallbacks plus two opt-in Blender-authored arenas. A compact CC0 neutral humanoid is integrated as the mocap carrier, with the ball machine retained only as its load-failure fallback.
 
 ## Implemented direction
 
 - React, TypeScript, and Vite for the application shell.
 - Three.js `WebGLRenderer` with WebGL 2 for the V1 runtime, isolated behind a typed scene adapter; WebGPU remains a later production-asset benchmark.
 - A tennis-specific, fixed-step ball-flight solver using gravity, aerodynamic drag, Magnus lift, and calibrated bounce response.
-- A code-owned visual pipeline: six reusable Three.js venue compositions with PBR/procedural materials and live lighting, plus one neutral faceless humanoid delivered as an optimized GLB mocap carrier. Blender is limited to rig/animation validation, retargeting, and export where needed.
+- A reproducible visual pipeline: Blender source/scripts and optimized GLBs for the hard and clay outdoor arenas, six reusable Three.js fallback compositions, shared dynamic PBR lighting, and one neutral faceless GLB mocap carrier. Gameplay coordinates and simulation remain TypeScript-owned.
 - A complete public-free V1 with local-first settings, full drill authoring, all requested shot families, and no runtime camera capture or body tracking.
 
 The renderer and simulation decision is accepted for V1. Production 3D assets, device/browser validation, and public hosting still have explicit release gates.
@@ -32,6 +32,8 @@ The renderer and simulation decision is accepted for V1. Production 3D assets, d
 | [Application UI concepts](docs/concepts/application-ui-concepts-2026-08.md) | Complete setup, rehearsal, and timeline-editor implementation references |
 | [Implementation status](docs/development/implementation-status.md) | Staged V1 code coverage, verification evidence, and remaining gaps |
 | [Visual verification](docs/development/visual-verification.md) | Concept-to-browser fidelity ledger for each implementation stage |
+| [Blender venue pipeline](docs/development/blender-venues.md) | Local DCC/MCP setup, authored hard arena and shared runtime boundary |
+| [Clay arena research and build](docs/development/clay-arena.md) | Philippe-Chatrier reference decisions, editable source, export and verification |
 | [V1 release matrix](docs/development/v1-release-matrix.md) | Requirement-by-requirement implementation evidence and external release gates |
 | [Roadmap](docs/roadmap.md) | Milestones, gates, deliverables, and validation order |
 | [Open questions](docs/open-questions.md) | Decisions that need owner input or prototype evidence |
@@ -50,5 +52,7 @@ The renderer and simulation decision is accepted for V1. Production 3D assets, d
 - Court environment directions: six accepted on 2026-08-29; outdoor Panel 1 selected as the product and vertical-slice baseline.
 - First opponent concept sheet: generated on 2026-08-29; owner/rigging review pending.
 - Setup, rehearsal, and timeline-editor visual concepts: generated on 2026-08-29 and adopted as the implementation reference.
-- Technical implementation: the complete local V1 is runnable, automated-tested, browser-verified, offline-capable, responsive, and performance-adaptive. Six authored venues and the neutral opponent carrier now run in-browser; tennis mocap, racket/contact review, device validation, and public-release operations remain open.
+- Technical implementation: the complete local V1 is runnable, automated-tested, browser-verified, offline-capable, responsive, and performance-adaptive. Six procedural venues, two optional Blender arena replacements and the neutral opponent carrier run in-browser; tennis mocap, racket/contact review, target-device/owner visual acceptance, and public-release operations remain open.
 - Production deployment: not started.
+
+Review the new clay model at `/venue-review.html?venue=clay-sunset-arena&camera=corner` on the local server. Normal practice remains procedural by default; `?venueAsset=blender` or `VITE_AUTHORED_ARENA=1` enables both authored replacements. See [ADR-0010](docs/decisions/0010-blender-clay-arena-and-multi-venue-boundary.md).

@@ -41,6 +41,7 @@ This folder is the project record for product discovery, design, architecture, a
 - [Ball and opponent visibility calibration](research/ball-and-opponent-visibility.md): official color boundary, optic renderer values, outlined-opponent contract, and remaining display gates.
 - [Implementation status](development/implementation-status.md): staged code coverage, verification, and remaining gaps.
 - [Visual verification ledger](development/visual-verification.md): concept-to-browser comparison after each implementation stage.
+- [Blender venue pipeline](development/blender-venues.md) and [clay arena](development/clay-arena.md): DCC setup, primary references, source/asset provenance and local review.
 - [V1 release matrix](development/v1-release-matrix.md): requirement-by-requirement code evidence and the remaining asset, device, human, and deployment gates.
 
 ## Decision index
@@ -55,6 +56,8 @@ This folder is the project record for product discovery, design, architecture, a
 | [0006](decisions/0006-nine-venue-atmosphere-weather-and-wind.md) | Superseded in venue catalogue scope | Nine-venue catalogue; atmosphere/weather, procedural materials, aligned fixtures, and physical wind remain accepted |
 | [0007](decisions/0007-six-venue-catalogue-and-camera-relative-navigation.md) | Accepted | Six uniformly named venues and yaw-relative camera navigation with explicit height controls |
 | [0008](decisions/0008-itf-runoff-opponent-positioning.md) | Accepted | ITF competition-runoff opponent placement and a behind-baseline Rally default |
+| [0009](decisions/0009-blender-hard-open-arena-pilot.md) | Accepted for opt-in review | Blender-authored hard arena with validated loading and procedural fallback |
+| [0010](decisions/0010-blender-clay-arena-and-multi-venue-boundary.md) | Accepted for opt-in review | Reference-led clay arena and independent two-venue asset boundary |
 
 ## Change discipline
 

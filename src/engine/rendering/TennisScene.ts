@@ -10,7 +10,7 @@ import { DynamicSkySystem } from './DynamicSkySystem';
 import { WeatherSystem } from './WeatherSystem';
 import { updateSceneMaterialEnvironment, type SceneMaterialBundle } from './sceneMaterials';
 import { BALL_PRESENTATION } from './presentationMaterials';
-import { VenueAssetManager, type VenueAssetState } from './VenueAssetManager';
+import { AUTHORED_VENUES, isAuthoredVenue, VenueAssetManager, type AuthoredVenueId, type VenueAssetState } from './VenueAssetManager';
 import { resolveVenueLighting } from './venueLighting';
 
 export type CameraConfiguration = Readonly<{
@@ -109,7 +109,7 @@ export class TennisScene {
   private readonly opponent = new OpponentRig();
   private readonly fallbackBallMachine: THREE.Object3D | undefined;
   private readonly venueGroups: Readonly<Record<VenueId, THREE.Group>>;
-  private readonly authoredArena: VenueAssetManager;
+  private readonly authoredArenas: Readonly<Record<AuthoredVenueId, VenueAssetManager>>;
   private readonly authoredArenaEnabled: boolean;
   private readonly courtPresentation: THREE.Group;
   private surface: SurfaceId = 'hard';
@@ -196,8 +196,11 @@ export class TennisScene {
     this.courtPresentation = court.presentation;
     this.authoredArenaEnabled = options.authoredArena ?? (import.meta.env.VITE_AUTHORED_ARENA === '1'
       || new URLSearchParams(window.location.search).get('venueAsset') === 'blender');
-    this.authoredArena = new VenueAssetManager(() => this.syncArenaPresentation());
-    this.scene.add(this.authoredArena.group);
+    this.authoredArenas = Object.fromEntries(Object.keys(AUTHORED_VENUES).map(id => {
+      const manager = new VenueAssetManager(() => this.syncArenaPresentation(), id as AuthoredVenueId);
+      this.scene.add(manager.group);
+      return [id, manager];
+    })) as Record<AuthoredVenueId, VenueAssetManager>;
     this.scene.add(court.group);
     this.scene.add(this.opponent.group);
     this.fallbackBallMachine = court.group.getObjectByName('temporary-ball-machine');
@@ -294,13 +297,16 @@ export class TennisScene {
   }
 
   private syncArenaPresentation(): void {
-    const ready = this.authoredArenaEnabled && this.environmentConfiguration.venue === 'hard-open-arena'
-      && this.authoredArena.state.status === 'ready';
+    const arena = this.activeAuthoredArena;
+    const ready = this.authoredArenaEnabled && arena?.state.status === 'ready';
     this.courtPresentation.visible = !ready;
-    this.venueGroups['hard-open-arena'].visible = this.environmentConfiguration.venue === 'hard-open-arena' && !ready;
-    this.canvas.dataset.venueAsset = this.authoredArena.state.status;
+    for (const id of Object.keys(AUTHORED_VENUES) as AuthoredVenueId[]) {
+      this.venueGroups[id].visible = this.environmentConfiguration.venue === id && !ready;
+    }
+    this.canvas.dataset.venueAsset = arena?.state.status ?? 'idle';
+    this.canvas.dataset.authoredVenue = ready ? this.environmentConfiguration.venue : '';
     this.canvas.dataset.venueSource = ready ? 'blender' : 'procedural';
-    this.authoredArena.applySurface(this.surface, this.materialBundle,
+    arena?.applySurface(this.surface, this.materialBundle,
       this.environmentConfiguration.weather === 'rain' ? this.environmentConfiguration.weatherIntensity : 0);
     // All venue bowls/roofs must participate, not just the playing rectangle.
     this.sun.shadow.camera.left = -60;
@@ -312,13 +318,18 @@ export class TennisScene {
       this.scene.fog.near = 200;
       this.scene.fog.far = 500;
     }
-    if (ready) this.applyVenueFixtures(this.authoredArena.group);
+    if (ready && arena) this.applyVenueFixtures(arena.group);
+  }
+
+  private get activeAuthoredArena(): VenueAssetManager | undefined {
+    const id = this.environmentConfiguration.venue;
+    return isAuthoredVenue(id) ? this.authoredArenas[id] : undefined;
   }
 
   /** Inspection-only cutaway; never changes gameplay or the exported master. */
   setVenueReview(roofVisible: boolean): void {
     this.venueReview = true;
-    this.authoredArena.setRoofVisible(roofVisible);
+    for (const arena of Object.values(this.authoredArenas)) arena.setRoofVisible(roofVisible);
     this.syncArenaPresentation();
   }
 
@@ -345,7 +356,7 @@ export class TennisScene {
     this.applyVenueFixtures(this.venueGroups[configuration.venue]);
     const wind = windVelocityFromEnvironment(configuration);
     updateSceneMaterialEnvironment(this.materialBundle, this.elapsed, configuration.weather === 'rain' ? configuration.weatherIntensity * 0.86 : 0, wind.x, wind.z);
-    this.authoredArena.setActive(this.authoredArenaEnabled && configuration.venue === 'hard-open-arena');
+    for (const [id, arena] of Object.entries(this.authoredArenas)) arena.setActive(this.authoredArenaEnabled && configuration.venue === id);
     this.syncArenaPresentation();
   }
 
@@ -541,7 +552,7 @@ export class TennisScene {
         drawCalls: this.renderer.info.render.calls,
         triangles: this.renderer.info.render.triangles,
         textures: this.renderer.info.memory.textures,
-        venueAsset: this.authoredArena.state,
+        venueAsset: this.activeAuthoredArena?.state ?? { status: 'idle', loadedBytes: 0, totalBytes: 0 },
       });
       const fps = (this.metricFrames * 1000) / metricElapsed;
       if (this.qualityMode === 'auto') {
@@ -569,7 +580,7 @@ export class TennisScene {
   dispose(): void {
     this.resizeObserver.disconnect();
     this.renderer.setAnimationLoop(null);
-    this.authoredArena.dispose();
+    for (const arena of Object.values(this.authoredArenas)) arena.dispose();
     const geometries = new Set<THREE.BufferGeometry>();
     const materials = new Set<THREE.Material>();
     const textures = new Set<THREE.Texture>();

@@ -11,6 +11,7 @@ vi.mock('three/addons/loaders/GLTFLoader.js', () => ({
   GLTFLoader: class { setMeshoptDecoder() { return this; } parseAsync = parse; },
 }));
 import { COURT_ASSET_ANCHORS, VenueAssetManager, validateCourtRegistration, validateVenueManifest } from '../src/engine/rendering/VenueAssetManager';
+import { createSceneMaterialBundle } from '../src/engine/rendering/sceneMaterials';
 
 const bytes = new Uint8Array([1, 2, 3]);
 const manifest = {
@@ -18,6 +19,8 @@ const manifest = {
   url: '/assets/venues/hard-open-arena/hard-open-arena.abcdef123456.glb',
   bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex'),
 };
+const clayManifest = { ...manifest, id: 'clay-sunset-arena',
+  url: '/assets/venues/clay-sunset-arena/clay-sunset-arena.abcdef123456.glb' };
 function registeredScene(): THREE.Group {
   const group = new THREE.Group();
   for (const [name, position] of Object.entries(COURT_ASSET_ANCHORS)) {
@@ -123,6 +126,76 @@ describe('authored venue boundary', () => {
       { ...manifest, url: 'https://example.com/arena.glb' }, { ...manifest, compatibility: 'v2' }]) {
       expect(() => validateVenueManifest(invalid)).toThrow();
     }
+    expect(() => validateVenueManifest(clayManifest, 'clay-sunset-arena')).not.toThrow();
+    expect(() => validateVenueManifest(clayManifest, 'hard-open-arena')).toThrow();
+    expect(() => validateVenueManifest(manifest, 'clay-sunset-arena')).toThrow();
+    expect(() => validateVenueManifest({ ...clayManifest, url: manifest.url })).toThrow();
+    expect(() => validateVenueManifest({ ...manifest, id: 'foreign-arena' })).toThrow();
+  });
+  it('loads only the activated manager and keeps hard/clay state and cached scenes separate', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => Promise.resolve(
+      url.endsWith('.json') ? Response.json(url.includes('clay-sunset-arena') ? clayManifest : manifest) : new Response(bytes),
+    )));
+    parse.mockImplementation(async () => ({ scene: registeredScene() }));
+    const hard = new VenueAssetManager(vi.fn());
+    const clay = new VenueAssetManager(vi.fn(), 'clay-sunset-arena');
+    clay.setActive(true);
+    await vi.waitFor(() => expect(clay.state.status).toBe('ready'));
+    expect(hard.state.status).toBe('idle');
+    expect(vi.mocked(fetch).mock.calls.every(([url]) => String(url).includes('clay-sunset-arena'))).toBe(true);
+    clay.setActive(false);
+    hard.setActive(true);
+    await vi.waitFor(() => expect(hard.state.status).toBe('ready'));
+    expect(clay.group.visible).toBe(false);
+    expect(hard.group.visible).toBe(true);
+    expect(hard.group.children[0]).not.toBe(clay.group.children[0]);
+    hard.setActive(false);
+    clay.setActive(true);
+    expect(fetch).toHaveBeenCalledTimes(4);
+    expect(clay.group.visible).toBe(true);
+    hard.dispose();
+    clay.dispose();
+  });
+  it('preserves native clay materials, uses fixed light anchors and never disposes borrowed surfaces', async () => {
+    serve(clayManifest);
+    const scene = registeredScene();
+    for (const x of [-20, 20]) for (const z of [-20, 20]) {
+      const fixture = new THREE.Object3D();
+      fixture.userData.role = 'venue-light';
+      fixture.position.set(x, 24.5, z);
+      scene.add(fixture);
+    }
+    parse.mockResolvedValue({ scene });
+    const manager = new VenueAssetManager(vi.fn(), 'clay-sunset-arena');
+    manager.setActive(true);
+    await vi.waitFor(() => expect(manager.state.status).toBe('ready'));
+    const lights = scene.children.filter(o => o instanceof THREE.SpotLight);
+    expect(lights.map(l => l.position.toArray())).toEqual([[-20,24.5,-20],[-20,24.5,20],[20,24.5,-20],[20,24.5,20]]);
+    const court = scene.children.find(o => o.userData.surfaceRole === 'court') as THREE.Mesh;
+    const original = court.material;
+    const bundle = createSceneMaterialBundle('hard');
+    const borrowedDispose = vi.spyOn(bundle.materials.court, 'dispose');
+    const originalDispose = vi.spyOn(original as THREE.Material, 'dispose');
+    manager.applySurface('clay', bundle, .5);
+    expect(court.material).toBe(original);
+    expect((court.material as THREE.MeshStandardMaterial).roughness).toBeCloseTo(.85);
+    manager.applySurface('hard', bundle, 0);
+    expect(court.material).toBe(bundle.materials.court);
+    manager.dispose();
+    expect(originalDispose).toHaveBeenCalledOnce();
+    expect(borrowedDispose).not.toHaveBeenCalled();
+    for (const mat of Object.values(bundle.materials).flat()) mat.dispose();
+  });
+  it('rejects a hard manifest delivered to the clay manager before requesting its GLB', async () => {
+    serve(manifest);
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const manager = new VenueAssetManager(vi.fn(), 'clay-sunset-arena');
+    manager.setActive(true);
+    await vi.waitFor(() => expect(manager.state.status).toBe('error'));
+    expect(fetch).toHaveBeenCalledOnce();
+    expect(parse).not.toHaveBeenCalled();
+    expect(manager.group.visible).toBe(false);
+    manager.dispose();
   });
   it('uses gameplay coordinates, including export-axis conversion, as registration authority', () => {
     const scene = registeredScene();

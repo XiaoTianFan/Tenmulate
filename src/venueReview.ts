@@ -1,6 +1,7 @@
 import { TennisScene, type CameraConfiguration, type QualityMode } from './engine/rendering/TennisScene';
 import { DEFAULT_ENVIRONMENT, SCENE_DEFINITIONS, normalizeVenueId, type EnvironmentConfiguration } from './domain/environment';
 import { registerPwa } from './app/registerPwa';
+import { isAuthoredVenue } from './engine/rendering/VenueAssetManager';
 
 const canvas = document.querySelector('canvas')!;
 const status = document.querySelector('#status')!;
@@ -9,7 +10,7 @@ registerPwa();
 const authored = parameters.get('version') !== 'procedural';
 let environment: EnvironmentConfiguration = { ...DEFAULT_ENVIRONMENT, venue: normalizeVenueId(parameters.get('venue')) };
 const scene = new TennisScene(canvas, metrics => {
-  status.textContent = `${canvas.dataset.venueSource === 'blender' ? 'Blender arena' : metrics.venueAsset.status === 'error' ? 'Fallback: ' + metrics.venueAsset.message : authored && environment.venue === 'hard-open-arena' ? 'Loading arena…' : 'Procedural fallback'} · ${metrics.drawCalls} draws · ${(metrics.triangles / 1000).toFixed(0)}k triangles · ${metrics.fps} fps`;
+  status.textContent = `${canvas.dataset.venueSource === 'blender' ? 'Blender arena' : metrics.venueAsset.status === 'error' ? 'Fallback: ' + metrics.venueAsset.message : authored && isAuthoredVenue(environment.venue) ? 'Loading arena…' : 'Procedural fallback'} · ${metrics.drawCalls} draws · ${(metrics.triangles / 1000).toFixed(0)}k triangles · ${metrics.fps} fps`;
   canvas.dataset.drawCalls = String(metrics.drawCalls);
   canvas.dataset.triangles = String(metrics.triangles);
   canvas.dataset.textures = String(metrics.textures);
@@ -43,11 +44,19 @@ document.querySelector<HTMLSelectElement>('[aria-label="Time of day"]')!.addEven
   scene.setEnvironment(environment);
 });
 const venue = document.querySelector<HTMLSelectElement>('[aria-label="Venue"]')!;
+function updateReviewIdentity() {
+  const name = environment.venue === 'clay-sunset-arena' ? 'Clay Open Arena' : environment.venue === 'hard-open-arena' ? 'Hard Open Arena' : SCENE_DEFINITIONS[environment.venue].label;
+  document.title = `${name} — Tenmulate review`;
+  document.querySelector('h1')!.textContent = `${name} / venue study`;
+  canvas.setAttribute('aria-label', `${name} scene review`);
+}
 venue.value = environment.venue;
+updateReviewIdentity();
 venue.addEventListener('change', () => {
   environment = { ...environment, venue: normalizeVenueId(venue.value) };
   scene.setSurface(SCENE_DEFINITIONS[environment.venue].defaultSurface);
   scene.setEnvironment(environment);
+  updateReviewIdentity();
 });
 const version = document.querySelector<HTMLSelectElement>('[aria-label="Venue version"]')!;
 document.querySelector<HTMLSelectElement>('[aria-label="Render quality"]')!.addEventListener('change', event => {

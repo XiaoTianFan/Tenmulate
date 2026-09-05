@@ -2,6 +2,13 @@ import * as THREE from 'three';
 import { COURT, type SurfaceId } from '../../domain/court';
 import type { SceneMaterialBundle } from './sceneMaterials';
 
+export const AUTHORED_VENUES = {
+  'hard-open-arena': { surface: 'hard' },
+  'clay-sunset-arena': { surface: 'clay' },
+} as const;
+export type AuthoredVenueId = keyof typeof AUTHORED_VENUES;
+export const isAuthoredVenue = (id: string): id is AuthoredVenueId => Object.hasOwn(AUTHORED_VENUES, id);
+
 export type VenueAssetState = Readonly<{
   status: 'idle' | 'loading' | 'ready' | 'error' | 'disposed';
   loadedBytes: number;
@@ -9,7 +16,7 @@ export type VenueAssetState = Readonly<{
   message?: string;
 }>;
 export type VenueManifest = Readonly<{
-  id: 'hard-open-arena'; version: number; compatibility: 'tenmulate-court-v1';
+  id: AuthoredVenueId; version: number; compatibility: 'tenmulate-court-v1';
   url: string; bytes: number; sha256: string;
 }>;
 
@@ -19,12 +26,12 @@ export const COURT_ASSET_ANCHORS: Readonly<Record<string, readonly number[]>> = 
   doubles_left: [-COURT.doublesWidth / 2, 0, 0], doubles_right: [COURT.doublesWidth / 2, 0, 0],
 };
 
-export function validateVenueManifest(value: unknown): asserts value is VenueManifest {
+export function validateVenueManifest(value: unknown, expectedId?: AuthoredVenueId): asserts value is VenueManifest {
   const m = value as Partial<VenueManifest> | null;
-  if (!m || m.id !== 'hard-open-arena' || m.compatibility !== 'tenmulate-court-v1'
+  if (!m || typeof m.id !== 'string' || !isAuthoredVenue(m.id) || (expectedId && m.id !== expectedId) || m.compatibility !== 'tenmulate-court-v1'
     || m.version !== 1 || !Number.isInteger(m.bytes) || m.bytes! <= 0 || m.bytes! > 15 * 1024 * 1024
     || typeof m.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(m.sha256)
-    || typeof m.url !== 'string' || !/^\/assets\/venues\/hard-open-arena\/hard-open-arena\.[a-f0-9]{12}\.glb$/.test(m.url)) {
+    || typeof m.url !== 'string' || !new RegExp(`^/assets/venues/${m.id}/${m.id}\\.[a-f0-9]{12}\\.glb$`).test(m.url)) {
     throw new Error('Unsupported arena asset manifest');
   }
 }
@@ -77,8 +84,8 @@ export class VenueAssetManager {
   private generation = 0;
   private readonly surfaces = new Map<THREE.Mesh, THREE.Material | THREE.Material[]>();
 
-  constructor(private readonly changed: () => void) {
-    this.group.name = 'blender-hard-open-arena';
+  constructor(private readonly changed: () => void, readonly venueId: AuthoredVenueId = 'hard-open-arena') {
+    this.group.name = `blender-${venueId}`;
     this.group.visible = false;
   }
 
@@ -97,11 +104,12 @@ export class VenueAssetManager {
 
   applySurface(surface: SurfaceId, bundle: SceneMaterialBundle, wetness: number): void {
     for (const [mesh, original] of this.surfaces) {
-      mesh.material = surface === 'hard' ? original
+      const nativeSurface = surface === AUTHORED_VENUES[this.venueId].surface;
+      mesh.material = nativeSurface ? original
         : mesh.userData.surfaceRole === 'court' ? bundle.materials.court : bundle.materials.runoff;
-      if (surface === 'hard') {
+      if (nativeSurface) {
         for (const material of Array.isArray(original) ? original : [original]) {
-          if (material instanceof THREE.MeshStandardMaterial) material.roughness = THREE.MathUtils.lerp(.9, .4, wetness);
+          if (material instanceof THREE.MeshStandardMaterial) material.roughness = THREE.MathUtils.lerp(surface === 'clay' ? .98 : .9, surface === 'clay' ? .72 : .4, wetness);
         }
       }
     }
@@ -121,10 +129,11 @@ export class VenueAssetManager {
     this.update({ status: 'loading', loadedBytes: 0, totalBytes: 0 });
     let parsed: THREE.Group | null = null;
     try {
-      const response = await fetch('/assets/venues/hard-open-arena/manifest.json', { signal: controller.signal });
+      const base = `/assets/venues/${this.venueId}/`;
+      const response = await fetch(`${base}manifest.json`, { signal: controller.signal });
       if (!response.ok) throw new Error(`Arena manifest HTTP ${response.status}`);
       const manifest: unknown = await response.json();
-      validateVenueManifest(manifest);
+      validateVenueManifest(manifest, this.venueId);
       const model = await fetch(manifest.url, { signal: controller.signal });
       if (!model.ok) throw new Error(`Arena model HTTP ${model.status}`);
       const chunks: Uint8Array[] = [];
@@ -153,7 +162,7 @@ export class VenueAssetManager {
       ]);
       if (generation !== this.generation) return;
       parsed = (await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder)
-        .parseAsync(bytes.buffer, '/assets/venues/hard-open-arena/')).scene;
+        .parseAsync(bytes.buffer, base)).scene;
       if (generation !== this.generation) { disposeVenue(parsed); return; }
       validateCourtRegistration(parsed);
       parsed.traverse(object => {
@@ -169,11 +178,16 @@ export class VenueAssetManager {
         }
         if (object.userData.surfaceRole) this.surfaces.set(object, object.material);
       });
-      for (const x of [-18, 18]) for (const z of [-20, 20]) {
+      const fixtures: THREE.Object3D[] = [];
+      parsed.traverse(object => { if (object.userData.role === 'venue-light') fixtures.push(object); });
+      // Legacy hard-arena anchors describe only two sides; preserve its four fixtures.
+      const positions = fixtures.length === 4 ? fixtures.map(o => o.getWorldPosition(new THREE.Vector3()))
+        : [-18, 18].flatMap(x => [-20, 20].map(z => new THREE.Vector3(x, 24, z)));
+      for (const position of positions) {
         const light = new THREE.SpotLight(0xe7f2ff, 0, 110, .95, .65, 2);
-        light.position.set(x, 24, z);
+        light.position.copy(position);
         light.userData.baseIntensity = 4500;
-        light.target.position.set(0, 0, z * .2);
+        light.target.position.set(0, 0, position.z * .2);
         parsed.add(light, light.target);
       }
       this.asset = parsed;

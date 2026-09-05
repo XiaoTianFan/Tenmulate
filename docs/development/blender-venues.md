@@ -2,6 +2,10 @@
 
 The hard-open arena is an original Rod Laver-inspired architectural study with a blue playing area and green surrounds. It is available for review before replacing the default procedural venue. Exact gameplay court dimensions remain in `src/domain/court.ts`; Blender owns the visible court, net, furniture, bowl and roof. Runtime lighting, atmosphere, opponent and trajectories remain in Three.js.
 
+## Second authored venue: clay arena
+
+The reference-led clay arena is now also built and integrated. Its Philippe-Chatrier research, source decisions, 14,686-seat master, 6.96 MiB optimized GLB and verification are in [Clay arena](clay-arena.md). Run `npm run asset:venue:build -- -Venue clay-sunset-arena`; the omitted argument still rebuilds hard. Review `/venue-review.html?venue=clay-sunset-arena&camera=corner`. The existing opt-in flag enables either selected arena, with per-venue loading/native materials and the same shared atmosphere. The hard source and hashed asset are unchanged. [ADR-0010](../decisions/0010-blender-clay-arena-and-multi-venue-boundary.md) extends the pilot boundary without making either asset the default.
+
 ## Revision 2: perimeter and roof detail
 
 The owner's annotated reference supersedes the pilot's freestanding tunnel frames. A 2.35 m padded retaining wall now follows the raised front tier; four 2.8 m wide / 2.18 m high entrances break that wall and recess underneath the seats. Separate 0.42 m courtside boards sit inward of the wall with aligned access breaks. Benches, coolers and umpire seating share the central player-service side, away from the door approaches. All wall/board branding is Tenmulate. The apron extends beneath the perimeter instead of leaving a bright unfilled strip.
@@ -62,7 +66,7 @@ The build fetches and verifies the CC0 Poly Haven concrete maps listed in `sourc
 
 Cycles bakes neutral ambient occlusion into the terraces and the four shared seat meshes. The exported vertex colors add local depth while keeping time-of-day lighting dynamic. The representative seat bake is shared across each color variant; it is not a unique lightmap for every seat. The roof is modelled in a fixed open state; its assemblies are independently editable, but retraction animation is not implemented.
 
-Large venue assets are excluded from service-worker precaching. A successfully visited hashed GLB is runtime-cached, with at most two versions and quota-error eviction. The manifest is network-first with an offline cached fallback. A first visit while offline uses the existing procedural venue. No download happens in the ordinary procedural path.
+Large venue assets are excluded from service-worker precaching. Successfully visited hashed GLBs are runtime-cached, with at most four URLs across both venues and quota-error eviction. Manifests are network-first with offline cached fallback. A first visit while offline uses the existing procedural venue. No arena download happens in the ordinary procedural path. Older single-venue verification records below retain their historical two-entry limit.
 
 ## Reference and asset provenance
 

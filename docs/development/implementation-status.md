@@ -1,10 +1,16 @@
 # V1 implementation status
 
 - **Status:** Active
-- **Last updated:** 2026-08-31
-- **Current implementation commit:** `2991612`
+- **Last updated:** 2026-09-05
+- **Current implementation:** Blender hard/clay opt-in delivery, with source commits `f06675a` and `76ebd88`; older stage commits below remain historical.
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The neutral humanoid carrier is now integrated; its tennis mocap and racket remain owner-supplied production inputs. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
+
+## Latest delivery — second Blender-authored outdoor arena
+
+The Philippe-Chatrier-informed clay venue is built in Blender and integrated under the existing optional authored-venue switch, alongside hard. It has 14,686 ash seats, green recessed perimeter entrances, original clay PBR textures, a glazed concourse and ten nested fixed-open roof wings. Both variants retain regulation gameplay registration, shared runtime lighting and procedural loading/failure/offline fallback. The default remains procedural. [ADR-0010](../decisions/0010-blender-clay-arena-and-multi-venue-boundary.md), [build/source details](clay-arena.md) and [Stage 12 visual evidence](visual-verification.md#stage-12-blender-clay-open-arena--2026-09-05) define the boundary.
+
+Verification: 142 tests / 15 files and production build pass; actual GLB hash/decode/anchors/seats/clearance/roof checks pass. Desktop/mobile production review, both cached assets offline, forced clay-load failure and zero-download default path were exercised. Target-device frame-time/memory/cold-load profiling, owner visual sign-off, tennis mocap and public deployment remain open; this is local implementation, not release approval.
 
 ## Stage 0 — application visual system
 

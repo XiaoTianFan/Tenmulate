@@ -1,0 +1,112 @@
+import { createHash } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
+import { NodeIO, type Document, type Node } from '@gltf-transform/core';
+import { ALL_EXTENSIONS, EXTMeshGPUInstancing, type InstancedMesh } from '@gltf-transform/extensions';
+import { MeshoptDecoder } from 'meshoptimizer';
+import * as THREE from 'three';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { COURT_ASSET_ANCHORS, validateVenueManifest } from '../src/engine/rendering/VenueAssetManager';
+
+let document: Document;
+let nodes: Node[];
+let manifest: { bytes: number; sha256: string; seats: number; url: string };
+let bytes: Uint8Array;
+beforeAll(async () => {
+  manifest = JSON.parse(await readFile('public/assets/venues/clay-sunset-arena/manifest.json', 'utf8'));
+  bytes = await readFile(`public${manifest.url}`);
+  await MeshoptDecoder.ready;
+  document = await new NodeIO().registerExtensions(ALL_EXTENSIONS)
+    .registerDependencies({ 'meshopt.decoder': MeshoptDecoder }).readBinary(bytes);
+  nodes = document.getRoot().listNodes();
+});
+
+function bounds(node: Node): THREE.Box3 {
+  const box = new THREE.Box3();
+  const matrix = new THREE.Matrix4().fromArray(node.getWorldMatrix());
+  for (const primitive of node.getMesh()!.listPrimitives()) {
+    const positions = primitive.getAttribute('POSITION')!;
+    for (let i = 0; i < positions.getCount(); i++) {
+      box.expandByPoint(new THREE.Vector3().fromArray(positions.getElement(i, [])).applyMatrix4(matrix));
+    }
+  }
+  return box;
+}
+
+describe('shipped Blender clay arena', () => {
+  it('has the declared hash, budget, regulation registration and 14,686 actual ash seats', () => {
+    validateVenueManifest(manifest, 'clay-sunset-arena');
+    expect(bytes.length).toBe(manifest.bytes);
+    expect(bytes.length).toBeLessThan(15 * 1024 * 1024);
+    expect(createHash('sha256').update(bytes).digest('hex')).toBe(manifest.sha256);
+    for (const [name, expected] of Object.entries(COURT_ASSET_ANCHORS)) {
+      const actual = nodes.find(n => n.getName() === name)?.getWorldTranslation();
+      expect(actual, name).toBeDefined();
+      expected.forEach((v, i) => expect(actual![i], name).toBeCloseTo(v, 3));
+    }
+    const seats = nodes.filter(n => n.getMesh()?.listPrimitives().some(p => p.getMaterial()?.getName().startsWith('Laminated ash')));
+    const count = seats.reduce((sum, n) => sum + (n.getExtension<InstancedMesh>(EXTMeshGPUInstancing.EXTENSION_NAME)?.getAttribute('TRANSLATION')?.getCount() ?? 0), 0);
+    expect(count).toBe(14686);
+    expect(count).toBe(manifest.seats);
+  });
+
+  it('retains original relightable clay PBR maps on both adjoining surfaces', () => {
+    const surfaces = nodes.filter(n => ['court', 'runoff'].includes(String(n.getExtras().surfaceRole)));
+    expect(surfaces).toHaveLength(2);
+    for (const node of surfaces) {
+      const mat = node.getMesh()!.listPrimitives()[0]!.getMaterial()!;
+      expect(mat.getName()).toBe('Original rolled terracotta clay');
+      expect(mat.getBaseColorTexture()).toBeTruthy();
+      expect(mat.getNormalTexture()).toBeTruthy();
+      expect(mat.getMetallicRoughnessTexture()).toBeTruthy();
+      expect(bounds(node).max.y).toBeCloseTo(0, 3);
+    }
+    expect(document.getRoot().listMaterials().some(m => m.getName() === 'Forest green court padding')).toBe(true);
+  });
+
+  it('keeps doorway body volumes clear of walls, first-row terraces, stairs and furniture', () => {
+    const lanes = nodes.filter(n => n.getExtras().role === 'clear-access-lane').map(node => {
+      const center = new THREE.Vector3().fromArray(node.getWorldTranslation());
+      const half = new THREE.Vector3().fromArray(node.getExtras().halfExtents as number[]).multiplyScalar(.98);
+      return new THREE.Box3(center.clone().sub(half), center.clone().add(half));
+    });
+    expect(lanes).toHaveLength(4);
+    const checked = nodes.filter(n => /Green perimeter|Recessed ground|Tier 1 (precast|riser|aisle|seat pedestals)|Player chair|player chair/.test(n.getName()));
+    expect(checked.length).toBeGreaterThanOrEqual(7);
+    for (const node of checked) {
+      const matrix = new THREE.Matrix4().fromArray(node.getWorldMatrix());
+      for (const primitive of node.getMesh()!.listPrimitives()) {
+        const positions = primitive.getAttribute('POSITION')!;
+        const indices = primitive.getIndices();
+        const count = indices?.getCount() ?? positions.getCount();
+        for (let i = 0; i < count; i += 3) {
+          const box = new THREE.Box3();
+          for (let j = 0; j < 3; j++) box.expandByPoint(new THREE.Vector3()
+            .fromArray(positions.getElement(indices ? indices.getScalar(i+j) : i+j, [])).applyMatrix4(matrix));
+          expect(lanes.some(lane => lane.intersectsBox(box)), `${node.getName()} obstructs a player entrance`).toBe(false);
+        }
+      }
+    }
+    expect(bounds(nodes.find(n => n.getExtras().arenaPart === 'perimeterWall')!).max.y).toBeCloseTo(2.1, 2);
+  });
+
+  it('parks ten roof wings together north of the opening and keeps four fixed light anchors', () => {
+    const wings = nodes.filter(n => n.getExtras().role === 'parked-roof-wing');
+    expect(wings).toHaveLength(10);
+    for (const wing of wings) {
+      const box = bounds(wing);
+      // Blender north +Y becomes glTF -Z. The aperture ends at Z=-28.
+      expect(box.max.z).toBeLessThan(-29.5);
+      expect(box.min.y).toBeGreaterThan(28.5);
+      expect(box.max.x - box.min.x).toBeCloseTo(100, 1);
+    }
+    const lights = nodes.filter(n => n.getExtras().role === 'venue-light');
+    expect(lights).toHaveLength(4);
+    for (const light of lights) {
+      const [x, y, z] = light.getWorldTranslation();
+      expect(Math.abs(x)).toBe(20);
+      expect(y).toBe(24.5);
+      expect(Math.abs(z)).toBe(20);
+      expect(light.getExtras().arenaPart).not.toBe('roof');
+    }
+  });
+});
