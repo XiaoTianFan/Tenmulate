@@ -9,9 +9,9 @@ import { compileSession } from '../src/engine/session/compileSession';
 import { motionEvent, minimumMotionGap, sampleOpponentTimeline, strokeForShot, OPPONENT_MOTION, MAX_OPPONENT_SPEED, type MotionRepetition, type StrokeId } from '../src/engine/session/opponentTimeline';
 
 const repetition = (clip: StrokeId, index = 0, x = 0, z = 12.5, hand: 'left' | 'right' = 'right'): MotionRepetition => ({
-  index, startTime: 3 + index * 8, shot: { ...SHOTS[0]!, family: clip === 'serve' ? 'serve' : 'groundstroke',
+  index, startTime: 3 + index * 8, shot: { ...SHOTS[0]!, family: clip === 'serve' ? 'serve' : clip.endsWith('-volley') ? 'volley' : 'groundstroke',
     stroke: clip === 'serve' ? undefined : clip.startsWith('backhand') ? 'backhand' : 'forehand', spin: clip.endsWith('slice') ? 'slice' : 'topspin', opponentHand: hand, serveRhythm: 'normal',
-    source: { x, y: clip === 'serve' ? 2.75 : 1.1, z }, target: { x: 1.7, z: -9 } },
+    source: { x, y: clip === 'serve' ? 2.75 : clip.endsWith('-volley') ? 1.32 : 1.1, z }, target: { x: 1.7, z: -9 } },
 });
 const bytes = await readFile(new URL(`../public${OPPONENT_MOTION.url}`, import.meta.url));
 const loadRig = async () => {
@@ -26,7 +26,7 @@ describe('local motion asset and shared contact clock', () => {
     expect(createHash('sha256').update(bytes).digest('hex')).toBe(OPPONENT_MOTION.sha256);
     expect(bytes.length).toBe(OPPONENT_MOTION.bytes);
   });
-  it.each(['forehand', 'backhand', 'forehand-slice', 'backhand-slice', 'serve'] as const)('%s hits the exact launch point for either hand and reproduces arbitrary seeks', async clip => {
+  it.each(['forehand', 'backhand', 'forehand-slice', 'backhand-slice', 'forehand-volley', 'backhand-volley', 'serve'] as const)('%s hits the exact launch point for either hand and reproduces arbitrary seeks', async clip => {
     const rig = await loadRig();
     for (const hand of ['right', 'left'] as const) {
       const event = motionEvent(repetition(clip, 0, 2, 12.8, hand));
@@ -169,6 +169,41 @@ describe('local motion asset and shared contact clock', () => {
     expect(strokeForShot({...base,spin:'slice',family:'serve'},0)).toBe('serve');
     const session=compileSession(DRILLS[0]!,{repetitions:4,interval:4,variationPercent:0,timingVariationPercent:0,launchSpeedKmh:78,surface:'hard',seed:'slices',spin:'slice',opponentHand:'right',workBlockSize:4,restSeconds:0,serveRhythm:'preset'});
     expect(session.repetitions.every(rep=>motionEvent(rep).clip.endsWith('-slice'))).toBe(true);
+  });
+  it('routes volley family before legacy spin labels and mirrors inferred sides',()=>{
+    const base={...repetition('forehand-volley').shot,stroke:undefined,backhandStyle:undefined};
+    for(const spin of ['flat','slice','topspin'] as const){
+      expect(strokeForShot({...base,spin,stroke:'forehand'},0)).toBe('forehand-volley');
+      expect(strokeForShot({...base,spin,stroke:'backhand'},0)).toBe('backhand-volley');
+    }
+    expect(strokeForShot({...base,source:{x:1.2,y:1.32,z:3.7},opponentHand:'right'},0)).toBe('forehand-volley');
+    expect(strokeForShot({...base,source:{x:1.2,y:1.32,z:3.7},opponentHand:'left'},0)).toBe('backhand-volley');
+    expect(strokeForShot(base,0)).toBe('forehand-volley');
+    expect(strokeForShot(base,1)).toBe('backhand-volley');
+    expect(strokeForShot({...base,family:'half-volley',stroke:'forehand',spin:'slice'},0)).toBe('forehand-slice');
+  });
+  it('compiles real volley presets and practice controls into complete reachable volley events',()=>{
+    const settings={repetitions:6,interval:.5,variationPercent:0,timingVariationPercent:0,launchSpeedKmh:62,surface:'hard',seed:'volleys',spin:'preset',opponentHand:'right',workBlockSize:6,restSeconds:0,serveRhythm:'preset'} as const;
+    for(const hand of ['right','left'] as const){
+      const mixed=compileSession(DRILLS.find(d=>d.id==='serve-volley')!,{...settings,opponentHand:hand});
+      const volleys=mixed.repetitions.filter(r=>r.shot.family==='volley');
+      expect(new Set(volleys.map(r=>motionEvent(r).clip))).toEqual(new Set(['forehand-volley','backhand-volley']));
+      for(let i=1;i<mixed.repetitions.length;i++)expect(mixed.repetitions[i]!.startTime-mixed.repetitions[i-1]!.startTime).toBeGreaterThanOrEqual(minimumMotionGap(mixed.repetitions[i-1]!,mixed.repetitions[i]!)-1e-8);
+      const practice=compileSession(DRILLS[0]!,{...settings,opponentHand:hand,practiceShotType:'volley',opponentPosition:{x:0,z:3.7}});
+      expect(practice.repetitions.every(r=>motionEvent(r).clip.endsWith('-volley'))).toBe(true);
+    }
+  });
+  it.each(['forehand-volley','backhand-volley'] as const)('%s keeps contact and ready boundaries under a uniform playback rate',async clip=>{
+    const rig=await loadRig(),rep=repetition(clip,0,1.2,3.7),base=motionEvent(rep),metadata=OPPONENT_MOTION.clips[clip];
+    for(const rate of [.75,1,1.25]){
+      const event={...base,rate,start:base.contactTime-metadata.contact/rate,end:base.contactTime+(metadata.duration-metadata.contact)/rate};
+      rig.sampleMotion(sampleOpponentTimeline([event],event.contactTime)!);
+      expect(rig.getContactPosition()!.distanceTo(new THREE.Vector3(event.source.x,event.source.y,event.source.z))).toBeLessThan(.002);
+      rig.sampleMotion(sampleOpponentTimeline([event],event.start)!);const start=rig.getContactPosition()!.clone();
+      rig.sampleMotion(sampleOpponentTimeline([event],event.end)!);expect(rig.getContactPosition()!.distanceTo(start)).toBeLessThan(.003);
+      expect(metadata.duration).toBeLessThan(OPPONENT_MOTION.clips.forehand.duration);
+    }
+    rig.dispose();
   });
   it('keeps the supporting backhand hand above the dominant hand on the handle',async()=>{
     const rig=await loadRig(),event=motionEvent(repetition('backhand'));

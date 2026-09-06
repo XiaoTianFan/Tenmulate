@@ -3,7 +3,7 @@ import type { ShotDefinitionV1 } from '../../content/types';
 import type { Vec3 } from '../../domain/vector';
 
 export const OPPONENT_MOTION = library;
-export type StrokeId = 'forehand' | 'backhand' | 'forehand-slice' | 'backhand-slice' | 'serve';
+export type StrokeId = 'forehand' | 'backhand' | 'forehand-slice' | 'backhand-slice' | 'forehand-volley' | 'backhand-volley' | 'serve';
 export type MotionId = keyof typeof library.clips;
 export type ClipMetadata = Readonly<{ duration: number; contact?: number; contactLocal?: readonly number[]; tossRelease?: number; tossLocal?: readonly number[]; recovery: number; loop: boolean }>;
 export const motionClip = (id: MotionId): ClipMetadata => library.clips[id];
@@ -22,6 +22,7 @@ export const strokeForShot = (shot: ShotDefinitionV1, index: number): StrokeId =
   if (shot.family === 'serve' || shot.family === 'overhead') return 'serve';
   const relativeSide = shot.source.x * (shot.opponentHand === 'left' ? -1 : 1);
   const side = shot.stroke ?? (shot.backhandStyle ? 'backhand' : Math.abs(relativeSide) > 0.4 ? relativeSide < 0 ? 'backhand' : 'forehand' : index % 2 ? 'backhand' : 'forehand');
+  if (shot.family === 'volley') return `${side}-volley`;
   return shot.spin === 'slice' ? `${side}-slice` : side;
 };
 

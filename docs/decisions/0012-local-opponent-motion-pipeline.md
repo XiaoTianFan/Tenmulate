@@ -24,6 +24,8 @@ The sixth iteration follows six further annotated images and the owner's carry/r
 
 ## Runtime contract
 
+The subsequent volley addition uses the owner's UCLA frontal regions near 22:48 and 22:39. Author separate continental forehand and backhand volleys with a compact high preparation, forward step, short punch and shared ready recovery. Backhand preparation is supported at the throat, with one-handed impact. Select volley family before legacy spin labels, retaining explicit/inferred side, handedness, complete strokes and reachable travel. Preserve the prior corrected library and uniform runtime rate. Independently check volley geometry and reject the old slice proxies; validate both sides after actual gameplay blending/IK. Missing rear views remain labeled rather than replaced with unrelated shots.
+
 Export baked motions for the exact existing skeleton, a separate racket, and versioned metadata. Metadata records source ranges, processing provenance, units, root policy, duration, contact/toss/recovery markers, and playback bounds. The frontend owns court placement, deterministic session time, trajectories, camera, and ball flight. Production tools and inference are build-time only.
 
 Evaluate motion at absolute session time so pause, scrubbing, slow motion, replay, and dropped frames keep the same pose/contact. Move the body root smoothly between authored contact locations and align planted feet during stance. Connect preparation, strike, and recovery with pose-compatible boundaries; blending alone does not repair foot sliding or hand grip. Place the racket string bed at the solver's launch point at contact. Show a serve toss before that handoff and preserve ball pace independently of animation rhythm.
