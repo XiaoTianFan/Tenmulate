@@ -1,0 +1,11 @@
+{
+  "name": "Quaternius Universal Animation Library Standard mannequin",
+  "sourceUrl": "https://quaternius.itch.io/universal-animation-library",
+  "license": "CC0-1.0",
+  "heightMeters": 1.88,
+  "release": "3.0 (2026-06-16)",
+  "downloadEndpoint": "https://quaternius.itch.io/universal-animation-library/file/17958403?source=game_download&after_download_lightbox=1&as_props=1",
+  "archiveSha256": "cc73fc4e495b82958207316596317a3f40b9fa38065bde1027937452da537724",
+  "modelPath": "Universal Animation Library[Standard]/Unreal-Godot/UAL1_Standard.glb",
+  "modelSha256": "69591853d817488edaa8fd9bf8fc1d821eaeaf789f8627b3cd23b41c4ed67997"
+}

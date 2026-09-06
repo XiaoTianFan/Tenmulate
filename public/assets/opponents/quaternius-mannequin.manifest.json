@@ -1,0 +1,17 @@
+{
+  "id": "quaternius-articulated-mannequin-v1",
+  "url": "/assets/opponents/quaternius-mannequin.glb",
+  "nominalHeightMeters": 1.88,
+  "license": "CC0-1.0",
+  "sourceUrl": "https://quaternius.itch.io/universal-animation-library",
+  "sourceRelease": "3.0 (2026-06-16)",
+  "sourceModelSha256": "69591853d817488edaa8fd9bf8fc1d821eaeaf789f8627b3cd23b41c4ed67997",
+  "sha256": "2bb334ab39970c8b1eae2a3cfb793513c3cf07b7b61bc0c88fff1b736cd0d850",
+  "bytes": 582864,
+  "vertices": 8546,
+  "triangles": 13743,
+  "bones": 65,
+  "maximumSkinInfluences": 4,
+  "skeletonSourceSha256": "7cea6c92d2f78b07096948f0270bb4db7340505d27da6ffa52e292da858b33c4",
+  "builderSha256": "dc59d86a8ce262469dff41f14f47b4ebef6e15ada5b276c456aa2bb537a05995"
+}
