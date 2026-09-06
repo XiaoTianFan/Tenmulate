@@ -4,7 +4,7 @@
   "fps": 120,
   "blenderVersion": "5.2.1 LTS",
   "carrierSha256": "7cea6c92d2f78b07096948f0270bb4db7340505d27da6ffa52e292da858b33c4",
-  "recipeSha256": "25ab60d06d1d48abac0402134844037aaa4eb201cc12407a363667b32a6e270a",
+  "recipeSha256": "01e920c21f09508655b9e3c2f406916e17ad4f224dc1d2ad1a5f27646d88b83d",
   "visualReferenceConfigSha256": "be27930790216343223193b76677a2a68d5a3f1f2e5bea1705582da0f2f48b35",
   "authoringMode": "visual-reference-led bounded joint-space authoring; extracted poses are not production inputs",
   "carrierLicense": "Quaternius Universal Base Characters, CC0; see the frontend carrier license notice.",
@@ -33,7 +33,11 @@
       "playbackRate": [
         0.75,
         1.25
-      ]
+      ],
+      "locomotion": {
+        "kind": "split"
+      },
+      "provenance": "Authored athletic footwork; no capture attribution."
     },
     "forehand": {
       "duration": 2.4,
@@ -8980,15 +8984,22 @@
       "strikingFaceSign": 1
     },
     "run-forward": {
-      "duration": 0.6666666666666666,
+      "duration": 0.6,
       "loop": true,
       "hand": "right",
       "grip": "continental",
-      "recovery": 0.6666666666666666,
+      "recovery": 0.6,
       "playbackRate": [
         0.75,
         1.25
-      ]
+      ],
+      "locomotion": {
+        "kind": "run",
+        "cycleDistance": 2.15,
+        "stanceFraction": 0.36,
+        "footLift": 0.19
+      },
+      "provenance": "Authored athletic footwork; no capture attribution."
     },
     "move-left": {
       "duration": 0.6,
@@ -8999,7 +9010,14 @@
       "playbackRate": [
         0.75,
         1.25
-      ]
+      ],
+      "locomotion": {
+        "kind": "shuffle",
+        "cycleDistance": 0.72,
+        "stanceFraction": 0.5,
+        "footLift": 0.06
+      },
+      "provenance": "Authored athletic footwork; no capture attribution."
     },
     "move-right": {
       "duration": 0.6,
@@ -9010,7 +9028,14 @@
       "playbackRate": [
         0.75,
         1.25
-      ]
+      ],
+      "locomotion": {
+        "kind": "shuffle",
+        "cycleDistance": 0.72,
+        "stanceFraction": 0.5,
+        "footLift": 0.06
+      },
+      "provenance": "Authored athletic footwork; no capture attribution."
     },
     "move-forward": {
       "duration": 0.6,
@@ -9021,7 +9046,14 @@
       "playbackRate": [
         0.75,
         1.25
-      ]
+      ],
+      "locomotion": {
+        "kind": "shuffle",
+        "cycleDistance": 0.72,
+        "stanceFraction": 0.5,
+        "footLift": 0.06
+      },
+      "provenance": "Authored athletic footwork; no capture attribution."
     },
     "move-backward": {
       "duration": 0.6,
@@ -9032,7 +9064,14 @@
       "playbackRate": [
         0.75,
         1.25
-      ]
+      ],
+      "locomotion": {
+        "kind": "shuffle",
+        "cycleDistance": 0.72,
+        "stanceFraction": 0.5,
+        "footLift": 0.06
+      },
+      "provenance": "Authored athletic footwork; no capture attribution."
     },
     "walk-forward": {
       "duration": 1,
@@ -9043,7 +9082,14 @@
       "playbackRate": [
         0.75,
         1.25
-      ]
+      ],
+      "locomotion": {
+        "kind": "walk",
+        "cycleDistance": 0.95,
+        "stanceFraction": 0.62,
+        "footLift": 0.065
+      },
+      "provenance": "Authored athletic footwork; no capture attribution."
     },
     "forehand-volley": {
       "duration": 1.8,
@@ -10978,10 +11024,137 @@
         }
       },
       "strikingFaceSign": 1
+    },
+    "cross-front-left": {
+      "duration": 0.8,
+      "loop": false,
+      "hand": "right",
+      "grip": "continental",
+      "recovery": 0.75,
+      "playbackRate": [
+        0.75,
+        1.25
+      ],
+      "locomotion": {
+        "kind": "crossover",
+        "distance": 0.85
+      },
+      "provenance": "Authored athletic footwork; no capture attribution."
+    },
+    "cross-back-left": {
+      "duration": 0.8,
+      "loop": false,
+      "hand": "right",
+      "grip": "continental",
+      "recovery": 0.75,
+      "playbackRate": [
+        0.75,
+        1.25
+      ],
+      "locomotion": {
+        "kind": "crossover",
+        "distance": 0.85
+      },
+      "provenance": "Authored athletic footwork; no capture attribution."
+    },
+    "cross-front-right": {
+      "duration": 0.8,
+      "loop": false,
+      "hand": "right",
+      "grip": "continental",
+      "recovery": 0.75,
+      "playbackRate": [
+        0.75,
+        1.25
+      ],
+      "locomotion": {
+        "kind": "crossover",
+        "distance": 0.85
+      },
+      "provenance": "Authored athletic footwork; no capture attribution."
+    },
+    "cross-back-right": {
+      "duration": 0.8,
+      "loop": false,
+      "hand": "right",
+      "grip": "continental",
+      "recovery": 0.75,
+      "playbackRate": [
+        0.75,
+        1.25
+      ],
+      "locomotion": {
+        "kind": "crossover",
+        "distance": 0.85
+      },
+      "provenance": "Authored athletic footwork; no capture attribution."
+    },
+    "jump": {
+      "duration": 1,
+      "loop": false,
+      "hand": "right",
+      "grip": "continental",
+      "recovery": 0.75,
+      "playbackRate": [
+        0.75,
+        1.25
+      ],
+      "locomotion": {
+        "kind": "jump"
+      },
+      "provenance": "Authored athletic footwork; no capture attribution."
+    },
+    "slide-left": {
+      "duration": 1.2,
+      "loop": false,
+      "hand": "right",
+      "grip": "continental",
+      "recovery": 0.75,
+      "playbackRate": [
+        0.75,
+        1.25
+      ],
+      "locomotion": {
+        "kind": "slide",
+        "distance": 1.6
+      },
+      "provenance": "Authored athletic footwork; no capture attribution."
+    },
+    "slide-right": {
+      "duration": 1.2,
+      "loop": false,
+      "hand": "right",
+      "grip": "continental",
+      "recovery": 0.75,
+      "playbackRate": [
+        0.75,
+        1.25
+      ],
+      "locomotion": {
+        "kind": "slide",
+        "distance": 1.6
+      },
+      "provenance": "Authored athletic footwork; no capture attribution."
+    },
+    "slide-forward": {
+      "duration": 1.2,
+      "loop": false,
+      "hand": "right",
+      "grip": "continental",
+      "recovery": 0.75,
+      "playbackRate": [
+        0.75,
+        1.25
+      ],
+      "locomotion": {
+        "kind": "slide",
+        "distance": 1.6
+      },
+      "provenance": "Authored athletic footwork; no capture attribution."
     }
   },
-  "assetSha256": "ec377a9fb3e30534380681b8772c37d716cae7ce1ae51baeef2a2299835a8d4a",
-  "bytes": 2431164,
+  "assetSha256": "5bfa9600b992d9adbcdf0da94106c6eda0bd1ca4d2071642e5a15a86b01ac061",
+  "bytes": 2844856,
   "bindHeightMeters": 1.8195869406124976,
   "displayScale": 1.011218512801939,
   "bindMinY": -0.009510145233400723

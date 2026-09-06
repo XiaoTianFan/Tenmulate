@@ -24,7 +24,7 @@ export default defineConfig({
         ],
       },
       workbox: {
-        // Keep the 120 Hz opponent library available offline (about 2.01 MiB).
+        // Keep the 120 Hz opponent library available offline (about 2.72 MiB).
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
         globPatterns: ['**/*.{js,css,html,svg,png,glb,json,txt}'],
         globIgnores: ['assets/venues/**', 'assets/audience/**'],

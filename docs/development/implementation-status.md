@@ -524,3 +524,10 @@ The detailed status of every requirement is recorded in the [V1 release matrix](
 - Focused storage, practice-preset, and trajectory run: 3 files, 44 tests passed. Full `npm test -- --run`: 12 files, 122 tests passed.
 - `npm run build`: production TypeScript/Vite/PWA build passed; the existing large-scene-chunk warning remains.
 - In-app Browser at 1280 × 720 selected Rally and rendered the six requested values exactly. The live court reported WebGL 2 at 238 fps, used the 3.5-second setup cadence, and produced no browser warnings or errors.
+
+
+## Opponent movement revision 9 — 2026-09-06
+
+Implemented locally: 23-clip athletic motion library, lower running recovery, distance-driven stepping, front/back crossovers, jumping and slide variants. A shared planner now reserves recovery toward a handed baseline-center bias, a split-step and a separate next-shot approach. Final-shot and net-position recovery are included. Existing stroke poses/contact anchors are preserved.
+
+Validation: 218 frontend tests (22 files), production/PWA build, 23-clip anatomical/choreography/export gates, 11 mixed gameplay events per hand and 19 movement variants per hand at 240 Hz. Browser review covers all variants and the 13-shot recovery demo. Owner visual acceptance remains open. See [local motion pipeline](local-motion-pipeline.md) for the active asset and review controls.

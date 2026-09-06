@@ -1,8 +1,8 @@
 {
   "id": "tennis-local-v1",
-  "url": "/assets/opponents/tennis-local-v1.ec377a9fb3e3.glb",
-  "sha256": "ec377a9fb3e30534380681b8772c37d716cae7ce1ae51baeef2a2299835a8d4a",
-  "bytes": 2431164,
+  "url": "/assets/opponents/tennis-local-v1.5bfa9600b992.glb",
+  "sha256": "5bfa9600b992d9adbcdf0da94106c6eda0bd1ca4d2071642e5a15a86b01ac061",
+  "bytes": 2844856,
   "skeleton": "quaternius-neutral-male-v1",
   "scale": 1.011218512801939,
   "floorOffset": 0.009616834919449929,
@@ -15,7 +15,10 @@
     "split-step": {
       "duration": 0.6,
       "recovery": 0.6,
-      "loop": false
+      "loop": false,
+      "locomotion": {
+        "kind": "split"
+      }
     },
     "forehand": {
       "duration": 2.4,
@@ -79,34 +82,70 @@
       "loop": false
     },
     "run-forward": {
-      "duration": 0.6666666666666666,
-      "recovery": 0.6666666666666666,
-      "loop": true
+      "duration": 0.6,
+      "recovery": 0.6,
+      "loop": true,
+      "locomotion": {
+        "kind": "run",
+        "cycleDistance": 2.15,
+        "stanceFraction": 0.36,
+        "footLift": 0.19
+      }
     },
     "move-left": {
       "duration": 0.6,
       "recovery": 0.6,
-      "loop": true
+      "loop": true,
+      "locomotion": {
+        "kind": "shuffle",
+        "cycleDistance": 0.72,
+        "stanceFraction": 0.5,
+        "footLift": 0.06
+      }
     },
     "move-right": {
       "duration": 0.6,
       "recovery": 0.6,
-      "loop": true
+      "loop": true,
+      "locomotion": {
+        "kind": "shuffle",
+        "cycleDistance": 0.72,
+        "stanceFraction": 0.5,
+        "footLift": 0.06
+      }
     },
     "move-forward": {
       "duration": 0.6,
       "recovery": 0.6,
-      "loop": true
+      "loop": true,
+      "locomotion": {
+        "kind": "shuffle",
+        "cycleDistance": 0.72,
+        "stanceFraction": 0.5,
+        "footLift": 0.06
+      }
     },
     "move-backward": {
       "duration": 0.6,
       "recovery": 0.6,
-      "loop": true
+      "loop": true,
+      "locomotion": {
+        "kind": "shuffle",
+        "cycleDistance": 0.72,
+        "stanceFraction": 0.5,
+        "footLift": 0.06
+      }
     },
     "walk-forward": {
       "duration": 1,
       "recovery": 0.75,
-      "loop": true
+      "loop": true,
+      "locomotion": {
+        "kind": "walk",
+        "cycleDistance": 0.95,
+        "stanceFraction": 0.62,
+        "footLift": 0.065
+      }
     },
     "forehand-volley": {
       "duration": 1.8,
@@ -129,6 +168,77 @@
       ],
       "recovery": 1.333333,
       "loop": false
+    },
+    "cross-front-left": {
+      "duration": 0.8,
+      "recovery": 0.75,
+      "loop": false,
+      "locomotion": {
+        "kind": "crossover",
+        "distance": 0.85
+      }
+    },
+    "cross-back-left": {
+      "duration": 0.8,
+      "recovery": 0.75,
+      "loop": false,
+      "locomotion": {
+        "kind": "crossover",
+        "distance": 0.85
+      }
+    },
+    "cross-front-right": {
+      "duration": 0.8,
+      "recovery": 0.75,
+      "loop": false,
+      "locomotion": {
+        "kind": "crossover",
+        "distance": 0.85
+      }
+    },
+    "cross-back-right": {
+      "duration": 0.8,
+      "recovery": 0.75,
+      "loop": false,
+      "locomotion": {
+        "kind": "crossover",
+        "distance": 0.85
+      }
+    },
+    "jump": {
+      "duration": 1,
+      "recovery": 0.75,
+      "loop": false,
+      "locomotion": {
+        "kind": "jump"
+      }
+    },
+    "slide-left": {
+      "duration": 1.2,
+      "recovery": 0.75,
+      "loop": false,
+      "locomotion": {
+        "kind": "slide",
+        "distance": 1.6
+      }
+    },
+    "slide-right": {
+      "duration": 1.2,
+      "recovery": 0.75,
+      "loop": false,
+      "locomotion": {
+        "kind": "slide",
+        "distance": 1.6
+      }
+    },
+    "slide-forward": {
+      "duration": 1.2,
+      "recovery": 0.75,
+      "loop": false,
+      "locomotion": {
+        "kind": "slide",
+        "distance": 1.6
+      }
     }
   }
 }

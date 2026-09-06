@@ -14,7 +14,7 @@ import { AUTHORED_VENUES, isAuthoredVenue, VenueAssetManager, type AuthoredVenue
 import { resolveVenueLighting } from './venueLighting';
 import { AudienceSystem, type AudienceState } from './AudienceSystem';
 import type { CompiledSession } from '../session/compileSession';
-import { motionEvent, motionClip, sampleOpponentTimeline, type MotionEvent } from '../session/opponentTimeline';
+import { motionEvent, motionClip, sampleOpponentTimeline, type MotionEvent, type MotionSample } from '../session/opponentTimeline';
 import { SHOTS } from '../../content/bundled';
 
 export type CameraConfiguration = Readonly<{
@@ -112,6 +112,9 @@ export class TennisScene {
   private readonly hemisphere: THREE.HemisphereLight;
   private readonly sun: THREE.DirectionalLight;
   private readonly opponent = new OpponentRig();
+  private motionPreview: ((time: number) => MotionSample | null) | null = null;
+  /** Local motion review uses the production rig and renderer, at the same clock. */
+  setOpponentMotionPreview(preview: ((time: number) => MotionSample | null) | null): void { this.motionPreview = preview; }
   private readonly fallbackBallMachine: THREE.Object3D | undefined;
   private readonly authoredArenas: Readonly<Record<AuthoredVenueId, VenueAssetManager>>;
   private readonly audience = new AudienceSystem();
@@ -541,7 +544,7 @@ export class TennisScene {
           if (age >= 0 && age <= duration) visibleFlights.push({ trajectory: this.trajectory, time: age });
         }
       }
-      const motion = sampleOpponentTimeline(events, motionTime);
+      const motion = this.motionPreview ? this.motionPreview(motionTime) : sampleOpponentTimeline(events, motionTime);
       if (motion) {
         this.opponent.sampleMotion(motion);
         this.canvas.dataset.motionClip = motion.layers.find(layer => layer.weight > .5)?.clip ?? 'ready';

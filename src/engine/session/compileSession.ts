@@ -1,3 +1,4 @@
+import { planRecovery } from './opponentMovement';
 import type { DrillDefinitionV1, ShotDefinitionV1 } from '../../content/types';
 import { SHOT_BY_ID } from '../../content/bundled';
 import type { SurfaceId } from '../../domain/court';
@@ -194,7 +195,7 @@ export const compileSession = (
     rest.startTime += shift; rest.endTime += shift;
   }
   const last = repetitions.at(-1);
-  const duration = last ? Math.max(startTime + shiftAt(last.index), motionEvent(last).end + .15,
+  const duration = last ? Math.max(startTime + shiftAt(last.index), planRecovery(motionEvent(last)).end + .15,
     last.startTime + (last.trajectory.samples.at(-1)?.time ?? 0)) : startTime;
 
   return {

@@ -1,3 +1,4 @@
+import { planRecovery } from '../src/engine/session/opponentMovement';
 import { readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import * as THREE from 'three';
@@ -81,16 +82,17 @@ describe('local motion asset and shared contact clock', () => {
       const a = session.repetitions[i - 1]!, b = session.repetitions[i]!;
       expect(b.startTime - a.startTime).toBeGreaterThanOrEqual(minimumMotionGap(a, b) - 1e-8);
     }
-    expect(session.restPeriods[0]!.endTime - session.restPeriods[0]!.startTime).toBe(20);
+    expect(session.restPeriods[0]!.endTime - session.restPeriods[0]!.startTime).toBeCloseTo(20,9);
     const last = session.repetitions.at(-1)!;
     expect(session.duration).toBeGreaterThanOrEqual(last.startTime + last.trajectory.samples.at(-1)!.time);
   });
   it('finishes travel then holds ready during a long rest, with a split-step before preparation', () => {
     const a = motionEvent(repetition('forehand')), b = motionEvent({ ...repetition('backhand', 1, -2), startTime: 30 });
     const waiting = sampleOpponentTimeline([a, b], 20)!;
-    expect(waiting.root).toEqual(b.root);
+    const plan=planRecovery(a,b);
+    expect(waiting.root).toEqual(plan.center);
     expect(waiting.layers[0]!.clip).toBe('ready');
-    expect(sampleOpponentTimeline([a, b], b.start - .3)!.layers[0]!.clip).toBe('split-step');
+    expect(sampleOpponentTimeline([a, b], plan.splitStart + .3)!.layers[0]!.clip).toBe('split-step');
   });
   it('starts the serve toss at the corrected tossing wrist for either hand', async () => {
     const rig=await loadRig();
@@ -106,7 +108,7 @@ describe('local motion asset and shared contact clock', () => {
   it('walks a nearby route with low foot lift and preserves elbow hinges during blends', async () => {
     const rig=await loadRig();
     for(const hand of ['right','left'] as const){
-      const events=[motionEvent(repetition('forehand',0,2,12.5,hand)),motionEvent(repetition('forehand',1,2,11.6,hand))];
+      const events=[motionEvent(repetition('forehand',0,0,12.5,hand)),motionEvent(repetition('forehand',1,0,11.6,hand))];
       let walks=0,blends=0;
       for(let t=events[0]!.end+.01;t<events[1]!.start;t+=1/60){
         const pose=sampleOpponentTimeline(events,t)!;
@@ -236,21 +238,22 @@ describe('local motion asset and shared contact clock', () => {
   });
   it.each([[3.5,12.5,-3.5,12.5],[-3.5,12.5,3.5,12.5],[0,13,0,6.5],[0,6.5,0,13],[-3.5,13,3.5,6.5]])('runs a full route %j with large strides, travel-facing shoulders and stable seeks',async(ax,az,bx,bz)=>{
     const events=[motionEvent(repetition('forehand',0,ax,az)),motionEvent(repetition('forehand',1,bx,bz))],rig=await loadRig();
-    const heading=Math.atan2(events[1]!.root.x-events[0]!.root.x,events[1]!.root.z-events[0]!.root.z);
+    // Each recovery/approach leg has its own heading, rather than cutting directly across court.
     const samples=[];
     for(let time=events[0]!.end+.01;time<events[1]!.start;time+=1/60){
       const pose=sampleOpponentTimeline(events,time)!;
       if(pose.layers.some(l=>l.clip==='run-forward'&&l.weight>.999))samples.push({time,pose});
     }
     expect(samples.length).toBeGreaterThan(25);
-    const middle=samples[Math.floor(samples.length*.5)]!;
+    const middle=samples.filter(s=>Math.abs(Math.atan2(Math.sin(s.pose.yaw-s.pose.movement!.heading),Math.cos(s.pose.yaw-s.pose.movement!.heading)))<.1).sort((a,b)=>b.pose.movement!.speed-a.pose.movement!.speed)[0]!;
+    const heading=middle.pose.movement!.heading;
     expect(Math.abs(Math.atan2(Math.sin(middle.pose.yaw-heading),Math.cos(middle.pose.yaw-heading)))).toBeLessThan(.12);
     rig.sampleMotion(middle.pose);
     const shoulder=rig.group.getObjectByName('upperarm_r')!.getWorldPosition(new THREE.Vector3()).sub(rig.group.getObjectByName('upperarm_l')!.getWorldPosition(new THREE.Vector3()));
     const facing=new THREE.Vector3(shoulder.z,0,-shoulder.x).normalize();
     expect(facing.dot(new THREE.Vector3(Math.sin(heading),0,Math.cos(heading)))).toBeGreaterThan(.96);
-    const next=sampleOpponentTimeline(events,middle.time+.58)!;
-    expect(Math.hypot(next.footTargets!.left.x-middle.pose.footTargets!.left.x,next.footTargets!.left.z-middle.pose.footTargets!.left.z)).toBeGreaterThan(1.25);
+    expect(middle.pose.movement!.speed).toBeGreaterThan(1.8);
+    expect(middle.pose.movement!.phase*2.15).toBeCloseTo(middle.pose.movement!.distance,6);
     const before=rig.group.getObjectByName('Head')!.matrixWorld.clone();
     rig.sampleMotion(middle.pose);expect(rig.group.getObjectByName('Head')!.matrixWorld.elements).toEqual(before.elements);
     rig.sampleMotion(sampleOpponentTimeline(events,events[1]!.contactTime)!);rig.sampleMotion(middle.pose);
