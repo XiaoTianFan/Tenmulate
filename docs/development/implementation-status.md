@@ -1,7 +1,7 @@
 # V1 implementation status
 
 - **Status:** Active
-- **Last updated:** 2026-09-05
+- **Last updated:** 2026-09-06
 - **Current implementation:** Six Blender-authored venues by default, twelve Quality/Performance GLBs, and optional Empty/Half/Full instanced 2D audiences. Procedural venue presentation and the opt-in gate are removed. Existing outdoor Quality geometry, darker grass and denser nets are preserved.
 - **Local integration:** Source/assets `25e363b`, runtime `18141c5` and verification `d1a916a` were fast-forwarded into `main`, preserving separately committed local-motion work `b2a082e`. All twelve local feature tips were included at this integration checkpoint; see the [branch audit](feature-branch-integration-2026-09-05.md). No remote push or deployment.
 
@@ -9,9 +9,9 @@ This is the evidence ledger for the code-backed V1. “Implemented” means runn
 
 ## Local opponent motion — 2026-09-06
 
-Revision 4 follows the owner's 14 annotated motion images. The sibling lab produces 13 clips with explicit forehand/serve arm curves, pelvis/chest pitch and side bend, head gaze, corrected backhand stance/finishes, slice clearance and forward running inclination. Source-aligned rhythm maps separate the serve's toss, trophy, drop, contact and recovery. Default frontal references now use the supplied UCLA regions. MotionLab adds named phase selection and a rhythm plot; both tools retain paired references below 3D. Extracted poses are not production inputs.
+Revision 5 follows the owner's next 11 annotated images. Forehand holds its side-facing preparation longer before low rearward lag. Backhand gains a delayed low drop and a finish across the body beside the opposite shoulder. Serve keeps the early racket forward, holds a sideways chest during the baseline-facing drop, extends the legs and continues pronation before recovery unwind. Existing UCLA references, source-paced rhythm maps, trunk/head controls and paired review panels remain. Extracted poses are not production inputs.
 
-The 1.65 MB revision-4 library has zero glTF errors/warnings. All 13 clips pass 120 Hz anatomical/choreography gates; the added upper-arm clearance gate rejects all five revision-3 strokes. The real controller passes both hands after blending and foot IK with zero joint violations and approximately 0.00128 mm maximum contact error. **202 tests / 21 files**, 16 JavaScript lab tests, three Python rhythm tests and the production build pass. Publication now rejects missing/stale carrier calibration and partial builds. [Current contract, source limits and evidence](local-motion-pipeline.md). Exact style, missing clean slice/primary rear-serve references and owner visual approval remain separate. Historical notes below describe their original stages.
+The 2.10 MB library bakes at 120 Hz to preserve the two-hand grip through fast motion. All 13 clips pass 240 Hz anatomical/choreography gates with zero glTF errors/warnings; new annotation gates reject all three targeted revision-4 strokes. The real controller passes both hands after blending and foot IK with zero joint violations, .121 m minimum backhand finish clearance and .00146 mm maximum contact error. **202 tests / 21 files**, 20 JavaScript lab tests, three Python rhythm tests and production build pass. The new asset remains precached offline. [Current contract, source limits and evidence](local-motion-pipeline.md). Exact style, missing clean slice/primary rear-serve references and owner visual approval remain separate. Historical notes below describe their original stages.
 
 ## Latest venue delivery — six Blender scenes, performance and audience
 

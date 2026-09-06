@@ -1,14 +1,14 @@
 # Local opponent motion pipeline
 
-- **Updated:** 2026-09-06, revision 4
+- **Updated:** 2026-09-06, revision 5
 - **State:** Reference-led correction library integrated and mechanically verified; visual style remains owner-reviewable
 - **Authority:** [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md)
 - **Laboratory:** `F:/Codes/Tenmulate_motion_analysis`, independent Git repository
-- **Revision-4 lab commits:** `a73cbe4` correction contract; `488219e` authored paths, rhythm, gates and verification. Evidence is recorded in the lab's `docs/motion-revision-4.md`.
+- **Revision-5 lab commit:** `5a9138b`. Evidence and the 11-image ledger are recorded in the lab's `docs/motion-revision-5.md` and `docs/evidence/revision-5.json`.
 
 ## Production method
 
-The owner's annotated MotionLab review rejected revision 3's choreography despite its joint-envelope passes. Production uses **visual reference-led authoring**, explicit joint curves, calibrated anatomical fitting and Blender 5.2.1 baking. Forehand and serve arm paths now have direct editable controls so fitting cannot trade away the intended preparation, drop or finish. Pelvis/chest pitch, side bend and head gaze are independent of yaw. Extracted monocular poses and MediaPipe weights are not production inputs. All footage and intermediate work stay outside the frontend.
+The owner's latest annotated MotionLab review corrects revision 4's preparation, loading and recovery paths. Production uses **visual reference-led authoring**, explicit joint curves, calibrated anatomical fitting and Blender 5.2.1 baking. Forehand now preserves the side-facing preparation into takeback before low rearward lag. Backhand holds takeback, drops with a sideways face, and carries both hands across to a finish beside the head. Serve keeps the early racket forward, stays sideways through the baseline-facing drop with straighter legs, continues pronation through extension, then unwinds. Pelvis/chest pitch, side bend and head gaze remain independent of yaw. Extracted poses are not production inputs. All footage and intermediate work stay outside the frontend.
 
 The existing CC0 Quaternius carrier has 65 bones. Seven DOFs per arm separate shoulder swing/twist, elbow hinge, forearm rotation, wrist flexion and deviation. Fixed segment lengths prevent stretch; anatomical elbow/knee frames replace direction-only aiming. The racket stays rigid in the dominant hand. The left eastern backhand support grip uses bevel **7**, correcting the prior right-handed bevel-3 convention. Forehand preparation couples the support hand to the racket throat before release. Contact-anchored fitting and joint-space recovery avoid wrong forearm branches and reset discontinuities.
 
@@ -28,9 +28,9 @@ The owner supplied approximate UCLA starting regions; bounded frame inspection s
 
 ## Library and gameplay
 
-The 60 Hz library contains **13 clips**: ready, split-step, four `move-*` adjustments, run-forward, walk-forward, forehand, backhand, forehand-slice, backhand-slice and serve. All strokes return to shared ready. Forehand/backhand/serve durations are **2.4 / 2.2 / 3.25 s**, with impact at **1.35 / 1.166667 / 1.783333 s**. Slices contact at 1.05/1.15 s. Serve toss release is at **.883333 s**.
+The 120 Hz library contains **13 clips**: ready, split-step, four `move-*` adjustments, run-forward, walk-forward, forehand, backhand, forehand-slice, backhand-slice and serve. The denser solve/bake preserves the supporting grip between frames during the fast backhand drop; temporal fitting bounds scale with elapsed time. All strokes return to shared ready. Forehand/backhand/serve durations remain **2.4 / 2.2 / 3.25 s**, with impact at **1.35 / 1.166667 / 1.783333 s**. Slices contact at 1.05/1.15 s. Serve toss release is at **.883333 s**.
 
-`src/content/opponent-motion.json` identifies the content-hashed active GLB, size, digest and runtime timing contract. `public/assets/opponents/tennis-local-v1.manifest.json` binds visual references, carrier, authoring code, Blender version and rhythm curves. The lab's revision-4 evidence record identifies the exact validated asset. Superseded active assets remain in Git history.
+`src/content/opponent-motion.json` identifies the content-hashed active GLB, size, digest and runtime timing contract. `public/assets/opponents/tennis-local-v1.manifest.json` binds visual references, carrier, authoring code, Blender version and rhythm curves. Revision 5 uses `tennis-local-v1.e5e5561ece9c.glb`, **2,102,144 bytes**, SHA-256 `e5e5561ece9c89b8d30e3515f22b92c84ebdcb6207241440bc93418c88a934aa`. The 3 MiB precache ceiling keeps this 2.01 MiB library available offline; the built worker includes its hash and excludes the superseded revision-4 asset, which remains in Git history.
 
 `config/motion-rhythm.json` in the lab maps source seconds to authored pose coordinates through strictly monotone PCHIP curves. Every reviewed phase lands on its primary reference timestamp. The slow setup/toss, trophy hold, rapid serve acceleration and lower finish are separate anchors. Runtime uses the existing event `rate` to scale the whole baked curve, preserving contact/toss synchronization; it does not independently stretch selected phases.
 
@@ -42,9 +42,9 @@ Ball launches meet the actual string-bed anchor for all five strokes and either 
 
 `config/anatomy-limits.json` in the lab defines explicit animation plausibility envelopes. The shared inspector measures **63 articulated joints**, bone-length preservation and **upper-arm plus forearm** torso clearance from actual exported transforms, independent of root yaw, scale or handedness. It reports joint, angle, limit and frame in place. Shoulder posterior excursion uses the frontal plane to avoid a false singularity at horizontal abduction. These are conservative animation checks, not clinical certification.
 
-All clips are sampled at **120 Hz**, including between baked frames. Choreography gates check signed striking face, real grip placement, stable forehand wrist, straight toss elbow, extended serve contact, path continuity and clip closure. Revision 4 also checks rearward takeback, backhand foot stagger, folded finishes, delayed toss/lift, upward gaze, racket drop and running inclination. Path checks distinguish the fast source-paced service strike from abrupt velocity changes. Anatomical angle limits are unchanged. Reports bind asset, limits and checker hashes; publication rejects missing, stale, failed or partial-library reports.
+All clips are sampled at **240 Hz**, including between baked frames. Choreography gates retain signed striking face, grip placement, stable forehand wrist, straight toss elbow, contact, path continuity and clip closure checks. Revision 5 adds side-facing preparation, delayed loading, backhand racket/head clearance across the finish interval, extended serve legs and continued pronation followed by unwind. Clearance uses a conservative string-bed/shaft and head-sphere proxy, not a full skinned-mesh collision test. Continuity budgets retain their earlier equivalent time intervals. Anatomical angle limits are unchanged. Reports bind asset, limits and checker hashes; publication rejects missing, stale, failed or partial-library reports.
 
-Current validation results and measured errors are recorded in the lab's `docs/motion-revision-4.md` and `docs/evidence/revision-4.json`. The stronger upper-arm check rejects all five revision-3 strokes, which is retained as negative evidence. Desktop visual review remains separate from owner technique approval.
+Current results are recorded in the lab's revision-5 ledger and evidence JSON. All 13 clips pass with zero glTF errors/warnings and zero joint violations. The new gates reject all three targeted revision-4 strokes. The actual controller passes nine events for both hands at 240 Hz after blending/IK, with .121 m minimum finish clearance and .00146 mm maximum contact error. **20 lab JavaScript tests, 3 Python rhythm tests, 202 frontend tests / 21 files and production build** pass. Annotated-frame and integrated mirrored/normal-playback browser review found no console errors/warnings. Desktop visual review remains separate from owner technique approval.
 
 ## Reproduce and collaborate
 
