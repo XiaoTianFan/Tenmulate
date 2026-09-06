@@ -3,14 +3,14 @@
   "skeleton": "quaternius-neutral-male-v1",
   "fps": 120,
   "blenderVersion": "5.2.1 LTS",
-  "carrierSha256": "7cea6c92d2f78b07096948f0270bb4db7340505d27da6ffa52e292da858b33c4",
-  "recipeSha256": "a14ac2f12715a1a3f9d249cb7734a99a1ba58e68e9dfcdecbfa7d2f0c4d49564",
+  "carrierSha256": "2bb334ab39970c8b1eae2a3cfb793513c3cf07b7b61bc0c88fff1b736cd0d850",
+  "recipeSha256": "3fc59e9e60892ef6d8d050eeeec3018e48e455d5413cb4abbb959ef228818c3a",
   "visualReferenceConfigSha256": "be27930790216343223193b76677a2a68d5a3f1f2e5bea1705582da0f2f48b35",
   "authoringMode": "visual-reference-led bounded joint-space authoring; extracted poses are not production inputs",
-  "carrierLicense": "Quaternius Universal Base Characters, CC0; see the frontend carrier license notice.",
+  "carrierLicense": "Quaternius Universal Animation Library segmented mannequin and Universal Base Characters tennis skeleton; CC0. See frontend LICENSE.quaternius-mannequin.txt.",
   "rootPolicy": "in-place carrier; pelvis stroke displacement baked; world root travel owned by session timeline",
   "provenance": "Visual reference-led authoring with bounded anatomical joint-space fitting. No extracted pose data drives animation. Independent source takes are phase aligned. Generic gait and slices are authored.",
-  "nominalHeightMeters": 1.84,
+  "nominalHeightMeters": 1.88,
   "partialReviewOnly": false,
   "clips": {
     "ready": {
@@ -11153,9 +11153,9 @@
       "provenance": "Authored athletic footwork; no capture attribution."
     }
   },
-  "assetSha256": "e21e894bfe917f1444237c7ff7676f3c2b1a91e201e388036ed83fd993282192",
-  "bytes": 2844856,
-  "bindHeightMeters": 1.8195869406124976,
-  "displayScale": 1.011218512801939,
-  "bindMinY": -0.009510145233400723
+  "assetSha256": "d5471cee080a3f4990e6f6ff4b0af6a76564f5113efdd17fd65e3e9c9488021f",
+  "bytes": 2746628,
+  "bindHeightMeters": 1.876899687432556,
+  "displayScale": 1.0016518264605205,
+  "bindMinY": -0.016621360618849113
 }

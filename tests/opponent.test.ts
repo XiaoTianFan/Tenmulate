@@ -22,7 +22,7 @@ describe('opponent skeleton adapter', () => {
   });
 
   it('ships the recorded texture-free GLB with the neutral scene graph', async () => {
-    const glb = await readFile(new URL('../public/assets/opponents/quaternius-neutral-male.glb', import.meta.url));
+    const glb = await readFile(new URL('../public'+OPPONENT_ASSET.url, import.meta.url));
     const digest = createHash('sha256').update(glb).digest('hex');
 
     expect(digest).toBe(OPPONENT_ASSET.sha256);

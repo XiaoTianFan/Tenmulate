@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { SHOTS } from '../src/content/bundled';
-import { motionEvent, minimumMotionGap, sampleOpponentTimeline } from '../src/engine/session/opponentTimeline';
+import { motionEvent, minimumMotionGap, sampleOpponentTimeline, OPPONENT_MOTION } from '../src/engine/session/opponentTimeline';
 import { planRecovery, recoveryCenter, sampleTravel, sampleMovementDrill, MOVEMENT_DRILLS, MAX_OPPONENT_SPEED, MAX_TRAVEL_ACCELERATION, travelDuration } from '../src/engine/session/opponentMovement';
 
 const rep=(x:number,index=0,hand:'left'|'right'='right',z=12.8)=>({index,startTime:3+index*10,shot:{...SHOTS[0]!,family:'groundstroke' as const,stroke:(x>0?'forehand':'backhand') as 'forehand'|'backhand',opponentHand:hand,source:{x,y:1.1,z},target:{x:0,z:-9}}});
@@ -45,8 +45,9 @@ describe('court recovery and distance-driven footwork',()=>{
       expect(a.movement!.phase*2.15).toBeCloseTo(a.movement!.distance,8);
       for(const side of ['left','right'] as const){
         const x=a.footTargets![side],y=b.footTargets![side];
-        expect(x.y).toBeLessThan(.30);
-        if(Math.abs(x.y-y.y)<1e-8&&x.y<.11){expect(Math.hypot(x.x-y.x,x.z-y.z)).toBeLessThan(.00001);plantedPairs++;}
+        const plantedHeight=.087*OPPONENT_MOTION.scale+OPPONENT_MOTION.floorOffset;
+        expect(x.y-plantedHeight).toBeLessThan(.205);
+        if(Math.abs(x.y-y.y)<1e-8&&x.y<plantedHeight+.02){expect(Math.hypot(x.x-y.x,x.z-y.z)).toBeLessThan(.00001);plantedPairs++;}
       }
     }
     expect(plantedPairs).toBeGreaterThan(100);

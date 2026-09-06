@@ -130,11 +130,13 @@ export class OpponentRig {
       if (object.name === 'Eyes' || object.name === 'Eyebrows') object.visible = false;
       if (object instanceof THREE.Mesh || object instanceof THREE.SkinnedMesh) {
         const sourceMaterials = Array.isArray(object.material) ? object.material : [object.material];
-        if (object instanceof THREE.SkinnedMesh) for (const material of sourceMaterials) {
+        const articulatedColors = !!object.geometry.getAttribute('color');
+        if (object instanceof THREE.SkinnedMesh && !articulatedColors) for (const material of sourceMaterials) {
           if (material !== this.neutralMaterial) material.dispose();
         }
-        // The skinned carrier stays neutral; the separate racket retains graphite/string materials.
-        if (object instanceof THREE.SkinnedMesh) object.material = this.neutralMaterial;
+        // The mannequin carries neutral panels and dark joints in vertex colors.
+        // Keep that contrast; legacy uncolored carriers use the uniform fill.
+        if (object instanceof THREE.SkinnedMesh && !articulatedColors) object.material = this.neutralMaterial;
         object.castShadow = true;
         object.receiveShadow = true;
         object.frustumCulled = false;
@@ -299,12 +301,19 @@ export class OpponentRig {
       world.y += sample.verticalCorrection;
       pelvis.position.copy(pelvis.parent!.worldToLocal(world));
       this.group.updateMatrixWorld(true);
-      // Keep grounded strokes planted; serve jump correction also lifts the airborne feet.
-      const airborne = sample.event?.clip === 'serve' && Math.min(left.y, right.y) > .15;
-      if (!airborne) {
+      // Blend ground support using lift above this character's planted ankle.
+      // A binary world-height threshold caused a visible landing pop when a
+      // taller player's contact correction crossed it on consecutive frames.
+      const plantedAnkleHeight = .087 * OPPONENT_MOTION.scale + OPPONENT_MOTION.floorOffset;
+      const lift = Math.min(left.y, right.y) - plantedAnkleHeight;
+      const airborneWeight = sample.event?.clip === 'serve'
+        ? THREE.MathUtils.smoothstep(lift, .01, .08) : 0;
+      if (airborneWeight < 1) {
         // Preserve the service stance and airborne recovery knee's authored
         // bend plane when correcting contact height over the planted foot.
         const preserveBend = sample.event?.clip === 'serve';
+        left.y += sample.verticalCorrection * airborneWeight;
+        right.y += sample.verticalCorrection * airborneWeight;
         this.solveFoot('l', left, preserveBend);
         this.solveFoot('r', right, preserveBend);
       }

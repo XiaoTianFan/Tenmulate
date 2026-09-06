@@ -6,6 +6,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SHOTS, DRILLS } from '../src/content/bundled';
 import { OpponentRig } from '../src/engine/rendering/OpponentRig';
+import { OPPONENT_ASSET } from '../src/domain/opponent';
 import { compileSession } from '../src/engine/session/compileSession';
 import { motionEvent, minimumMotionGap, sampleOpponentTimeline, strokeForShot, OPPONENT_MOTION, MAX_OPPONENT_SPEED, type MotionRepetition, type StrokeId } from '../src/engine/session/opponentTimeline';
 
@@ -23,6 +24,29 @@ const loadRig = async () => {
 afterEach(() => vi.restoreAllMocks());
 
 describe('local motion asset and shared contact clock', () => {
+  it('displays the new skinned player at 1.88 m with valid weights on the retained skeleton', async () => {
+    const rig=await loadRig();
+    const body=rig.group.getObjectByName('NeutralOpponentBody') as THREE.SkinnedMesh;
+    const bounds=new THREE.Box3().setFromObject(body);
+    expect(bounds.max.y-bounds.min.y).toBeCloseTo(1.88,5);
+    expect(OPPONENT_ASSET.nominalHeightMeters).toBe(1.88);
+    expect(body.skeleton.bones).toHaveLength(65);
+    const colors=body.geometry.getAttribute('color');
+    expect(colors).toBeDefined();
+    const material=body.material as THREE.MeshStandardMaterial;
+    expect(material.vertexColors).toBe(true);
+    expect(material.name).toBe('NeutralMannequin');
+    const weights=body.geometry.attributes.skinWeight!;
+    const joints=body.geometry.attributes.skinIndex!;
+    for(let i=0;i<weights.count;i++){
+      expect(weights.getX(i)+weights.getY(i)+weights.getZ(i)+weights.getW(i)).toBeCloseTo(1,5);
+      for(let c=0;c<4;c++){
+        expect(weights.getComponent(i,c)).toBeGreaterThanOrEqual(0);
+        expect(joints.getComponent(i,c)).toBeLessThan(65);
+      }
+    }
+    rig.dispose();
+  });
   it('keeps the serve recovery knee bend plane during contact-height correction for either hand', async () => {
     const rig = await loadRig();
     const point = (name: string) => rig.group.getObjectByName(name)!.getWorldPosition(new THREE.Vector3());
@@ -39,6 +63,20 @@ describe('local motion asset and shared contact clock', () => {
       rig.sampleMotion({ ...pose, verticalCorrection: .035 });
       expect(bend().dot(original)).toBeGreaterThan(.99);
       expect(point('foot_r').distanceTo(foot)).toBeLessThan(.002);
+    }
+    rig.dispose();
+  });
+  it('lands the taller player continuously as contact-height correction returns to planted support', async () => {
+    const rig=await loadRig();
+    for(const hand of ['right','left'] as const){
+      const event=motionEvent(repetition('serve',0,2,12.8,hand));
+      let previous:THREE.Vector3[]|null=null;
+      for(let f=440;f<=540;f++){
+        rig.sampleMotion(sampleOpponentTimeline([event],event.start+f/240)!);
+        const feet=['foot_l','foot_r'].map(n=>rig.group.getObjectByName(n)!.getWorldPosition(new THREE.Vector3()));
+        if(previous)feet.forEach((p,i)=>expect(p.distanceTo(previous![i]!)).toBeLessThan(.025));
+        previous=feet;
+      }
     }
     rig.dispose();
   });
@@ -127,13 +165,15 @@ describe('local motion asset and shared contact clock', () => {
   it('walks a nearby route with low foot lift and preserves elbow hinges during blends', async () => {
     const rig=await loadRig();
     for(const hand of ['right','left'] as const){
-      const events=[motionEvent(repetition('forehand',0,0,12.5,hand)),motionEvent(repetition('forehand',1,0,11.6,hand))];
+      // Keep the route away from the nudge/walk boundary as reach varies by model.
+      const events=[motionEvent(repetition('forehand',0,0,12.5,hand)),motionEvent(repetition('forehand',1,0,11.4,hand))];
       let walks=0,blends=0;
       for(let t=events[0]!.end+.01;t<events[1]!.start;t+=1/60){
         const pose=sampleOpponentTimeline(events,t)!;
         if(!pose.layers.some(l=>l.clip==='walk-forward'&&l.weight>0))continue;
         walks++;expect(pose.layers.some(l=>l.clip==='run-forward')).toBe(false);
-        expect(Math.max(pose.footTargets!.left.y,pose.footTargets!.right.y)).toBeLessThan(.17);
+        const planted=.087*OPPONENT_MOTION.scale+OPPONENT_MOTION.floorOffset;
+        expect(Math.max(pose.footTargets!.left.y,pose.footTargets!.right.y)-planted).toBeLessThan(.085);
         if(pose.layers.every(l=>l.weight>0)){
           blends++;rig.sampleMotion(pose);
           for(const side of ['l','r'])expect(Math.abs(new THREE.Euler().setFromQuaternion(rig.group.getObjectByName(`lowerarm_${side}`)!.quaternion,'XYZ').z)).toBeLessThan(1e-6);

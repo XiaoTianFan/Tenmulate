@@ -82,3 +82,9 @@ Browser review rendered all 19 variants and 834 samples spanning the complete 13
 ## Revision 10 service verification
 
 All 23 clips pass 240 Hz anatomy/choreography and glTF validation with zero errors/warnings. All 22 other decoded clips and their metadata are exactly unchanged. Both-hand gameplay passes 11 mixed events plus 19 movement variants per hand with zero joint violations and contact error below .001 mm. Tests: 219 frontend / 22 files, 20 lab JavaScript, four Python rhythm; production build passes with the existing bundle-size advisory. Browser review includes overhead/three-quarter/front poses and complete service playback in both hands with no joint warnings. See the lab’s `docs/motion-revision-10.md` and `docs/evidence/revision-10.json`. Owner visual acceptance remains open.
+
+## Articulated player replacement
+
+The active character is now a 1.88 m CC0 Quaternius mannequin with smooth limb shells, visible dark joints and a faceless head. See `docs/assets/quaternius-articulated-mannequin.md` for the source and reproducible binder. It replaces the rejected semi-realistic candidate in the static carrier, Motion Lab and gameplay. All 23 revision-10 clips, decoded track values, timestamps and clip metadata are exactly preserved.
+
+Gameplay keeps the mannequin's vertex colors and blends serve ground support continuously through landing. Motion Lab uses the same measured scale/floor calibration. Verification: 221 frontend tests, 20 lab JavaScript tests, four Python rhythm tests, full anatomy/choreography/gameplay gates and production build pass. Browser review includes both 13-shot sequences and all 19 movement variants. The lab's `docs/evidence/character-replacement.json` records hashes and measurements; owner visual acceptance is pending.

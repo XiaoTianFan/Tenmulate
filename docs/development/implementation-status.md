@@ -535,3 +535,9 @@ The detailed status of every requirement is recorded in the [V1 release matrix](
 Implemented locally: 23-clip athletic motion library, lower running recovery, distance-driven stepping, front/back crossovers, jumping and slide variants. A shared planner now reserves recovery toward a handed baseline-center bias, a split-step and a separate next-shot approach. Final-shot and net-position recovery are included. Existing stroke poses/contact anchors are preserved.
 
 Validation: 218 frontend tests (22 files), production/PWA build, 23-clip anatomical/choreography/export gates, 11 mixed gameplay events per hand and 19 movement variants per hand at 240 Hz. Browser review covers all variants and the 13-shot recovery demo. Owner visual acceptance remains open. See [local motion pipeline](local-motion-pipeline.md) for the active asset and review controls.
+
+## Articulated opponent mannequin — 2026-09-06
+
+Replaced the rejected semi-realistic candidate with the CC0 Quaternius articulated mannequin, displayed at 1.88 m. The source binder, hashes and license are recorded in `docs/assets/quaternius-articulated-mannequin.md`. All 23 reviewed clips and their timing/metadata remain exactly unchanged. Gameplay preserves the visible joint colors and now blends serve ground support continuously through landing.
+
+Verified locally: 221 frontend tests / 22 files, 20 lab JavaScript tests, four Python rhythm tests, anatomy/choreography/export/gameplay gates and production build pass. Browser review covers both full 13-shot sequences and the 19 movement variants with no joint warnings. See the lab's `docs/evidence/character-replacement.json`. Owner visual acceptance remains pending.

@@ -1,13 +1,7 @@
+import neutralPlayer from '../content/opponent-asset.json';
 export type OpponentHand = 'left' | 'right';
 
-export const OPPONENT_ASSET = Object.freeze({
-  id: 'quaternius-neutral-male-v1',
-  url: '/assets/opponents/quaternius-neutral-male.glb',
-  nominalHeightMeters: 1.84,
-  license: 'CC0-1.0',
-  sourceUrl: 'https://quaternius.com/packs/universalbasecharacters.html',
-  sha256: '7cea6c92d2f78b07096948f0270bb4db7340505d27da6ffa52e292da858b33c4',
-});
+export const OPPONENT_ASSET = Object.freeze(neutralPlayer);
 
 export const OPPONENT_SKELETON_ADAPTER = Object.freeze({
   root: 'root',
