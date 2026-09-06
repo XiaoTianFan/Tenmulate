@@ -16,6 +16,8 @@ The owner's second iteration adds sustained unit turns, multi-metre direction-fa
 
 The third iteration requires paired, phase-aligned local source panels below the 3D view in both review tools; visible missing/secondary-view labels; anatomical diagnostics for all articulated joints; and correction of every stroke and movement clip before acceptance. Mechanical gates precede visual review and do not replace it. The supporting left eastern backhand grip uses mirrored bevel 7.
 
+The fourth iteration follows the owner's 14 annotated phase images and UCLA frontal regions near 13:40, 13:42 and 28:02. Author pelvis/chest pitch, side bend and head gaze as well as yaw. Use explicit joint curves where fitting trades away the visible elbow or racket path. Store a monotone per-stroke rhythm curve against reviewed source phases, bake it into the clip, and retain one uniform gameplay playback rate. Add upper-arm torso clearance and exported-pose checks for takeback, staggered backhand contact, folded finishes and the serve drop. Independent joint envelopes alone do not establish correct technique.
+
 ## Runtime contract
 
 Export baked motions for the exact existing skeleton, a separate racket, and versioned metadata. Metadata records source ranges, processing provenance, units, root policy, duration, contact/toss/recovery markers, and playback bounds. The frontend owns court placement, deterministic session time, trajectories, camera, and ball flight. Production tools and inference are build-time only.
