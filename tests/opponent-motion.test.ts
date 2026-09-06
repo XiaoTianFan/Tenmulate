@@ -23,6 +23,25 @@ const loadRig = async () => {
 afterEach(() => vi.restoreAllMocks());
 
 describe('local motion asset and shared contact clock', () => {
+  it('keeps the serve recovery knee bend plane during contact-height correction for either hand', async () => {
+    const rig = await loadRig();
+    const point = (name: string) => rig.group.getObjectByName(name)!.getWorldPosition(new THREE.Vector3());
+    const bend = () => {
+      const hip = point('thigh_r'), axis = point('foot_r').sub(hip).normalize();
+      const knee = point('calf_r').sub(hip);
+      return knee.addScaledVector(axis, -knee.dot(axis)).normalize();
+    };
+    for (const hand of ['right', 'left'] as const) for (const time of [2.05, 2.17]) {
+      const event = motionEvent(repetition('serve', 0, 2, 12.8, hand));
+      const pose = sampleOpponentTimeline([event], event.start + time)!;
+      rig.sampleMotion({ ...pose, verticalCorrection: 0 });
+      const original = bend(), foot = point('foot_r');
+      rig.sampleMotion({ ...pose, verticalCorrection: .035 });
+      expect(bend().dot(original)).toBeGreaterThan(.99);
+      expect(point('foot_r').distanceTo(foot)).toBeLessThan(.002);
+    }
+    rig.dispose();
+  });
   it('ships the validated content-addressed animation bundle', () => {
     expect(createHash('sha256').update(bytes).digest('hex')).toBe(OPPONENT_MOTION.sha256);
     expect(bytes.length).toBe(OPPONENT_MOTION.bytes);

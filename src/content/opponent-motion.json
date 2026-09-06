@@ -1,7 +1,7 @@
 {
   "id": "tennis-local-v1",
-  "url": "/assets/opponents/tennis-local-v1.5bfa9600b992.glb",
-  "sha256": "5bfa9600b992d9adbcdf0da94106c6eda0bd1ca4d2071642e5a15a86b01ac061",
+  "url": "/assets/opponents/tennis-local-v1.e21e894bfe91.glb",
+  "sha256": "e21e894bfe917f1444237c7ff7676f3c2b1a91e201e388036ed83fd993282192",
   "bytes": 2844856,
   "skeleton": "quaternius-neutral-male-v1",
   "scale": 1.011218512801939,
@@ -47,9 +47,9 @@
       "contact": 1.7833333333333334,
       "tossRelease": 0.8833333333333333,
       "contactLocal": [
-        -0.2308872640132904,
-        2.6996912956237793,
-        0.3693492114543915
+        -0.2308865487575531,
+        2.6996910572052,
+        0.3693487048149109
       ],
       "tossLocal": [
         -0.015209137462079525,

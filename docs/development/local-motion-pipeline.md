@@ -1,6 +1,6 @@
 # Local opponent motion pipeline
 
-- **Updated:** 2026-09-06, revision 9 locomotion and recovery
+- **Updated:** 2026-09-06, revision 10 service stance and clearance
 - **State:** Twenty-three-clip reference-led library integrated and mechanically verified; visual style remains owner-reviewable
 - **Authority:** [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md)
 - **Laboratory:** `F:/Codes/Tenmulate_motion_analysis`, independent Git repository
@@ -9,8 +9,11 @@
 - **Revision-7 lab commits:** annotation contract `bac6d64`, implementation/evidence `e5a855c`. See `docs/motion-revision-7.md` and `docs/evidence/revision-7.json` in the lab.
 
 - **Revision-8 lab commits:** contract `6c89efa`, implementation/evidence `711f983`. See `docs/motion-revision-8.md` and `docs/evidence/revision-8.json` in the lab.
+- **Revision-10 lab commits:** contract `7ae4bb2`, implementation/evidence `7065a3a`. See `docs/motion-revision-10.md` and `docs/evidence/revision-10.json` in the lab.
 
 ## Production method
+
+Revision 10 corrects the service stance in the player's facing frame: left foot ahead, both toes parallel toward the sideline. The cocking forearm moves outward while retaining the elbow and racket normal. The airborne recovery thigh rotates slightly inward, and gameplay height correction preserves its knee plane. Trophy/drive/drop move 50 ms earlier and acceleration 25 ms earlier, allowing a smooth release into the unchanged contact instant. Toss, finish and total duration remain unchanged. All 22 other clips are exactly preserved after decoding.
 
 The owner's revision-8 review uses the rear UCLA forehand take for rhythm and height, deepens the turn, and carries the arm and shaft toward the back fence. Follow-up review fixes the hitting zone: the racket drops below impact and rises into contact while the elbow remains bent about 48 degrees. Backhand hips stay sideways longer than the shoulders. Serve gains a clear forward carry, a left lead-foot stance, stronger tossing-shoulder elevation and rear-foot gathering during drive/drop. Forehand volley holds a sideways chest through its punch and extension. Production remains visual reference-led authoring, calibrated anatomical fitting and Blender 5.2.1 baking. The other eleven clips retain identical decoded tracks to revision 7.
 
@@ -36,7 +39,7 @@ The owner supplied approximate UCLA starting regions; bounded frame inspection s
 
 The 120 Hz library contains **23 clips**: front/back crossovers in both directions, jump, left/right/forward slides, plus ready, split-step, four `move-*` adjustments, run-forward, walk-forward, forehand, backhand, forehand-slice, backhand-slice, serve, **forehand-volley and backhand-volley**. The denser solve/bake preserves the supporting grip between frames during the fast backhand drop; temporal fitting bounds scale with elapsed time. All strokes return to shared ready. Forehand/backhand/serve durations remain **2.4 / 2.2 / 3.25 s**, with impact at **0.983333 / 1.166667 / 1.783333 s**. Slices contact at 1.05/1.15 s. Serve toss release is at **.883333 s**. Both volleys last **1.8 s**, with contact at **.700 / .583333 s**.
 
-`src/content/opponent-motion.json` identifies the content-hashed active GLB, size, digest and runtime timing contract. `public/assets/opponents/tennis-local-v1.manifest.json` binds visual references, carrier, authoring code, Blender version and rhythm curves. Revision 9 uses `tennis-local-v1.5bfa9600b992.glb`, **2,844,856 bytes**, SHA-256 `5bfa9600b992d9adbcdf0da94106c6eda0bd1ca4d2071642e5a15a86b01ac061`. The existing 3 MiB precache ceiling supports this 2.72 MiB library; the built worker includes only the active tennis library. Revision 8 remains in Git history.
+`src/content/opponent-motion.json` identifies the content-hashed active GLB, size, digest and runtime timing contract. `public/assets/opponents/tennis-local-v1.manifest.json` binds visual references, carrier, authoring code, Blender version and rhythm curves. Revision 10 uses `tennis-local-v1.e21e894bfe91.glb`, **2,844,856 bytes**, SHA-256 `e21e894bfe917f1444237c7ff7676f3c2b1a91e201e388036ed83fd993282192`. The existing 3 MiB precache ceiling supports this 2.72 MiB library; the built worker includes only the active tennis library. Earlier libraries remain in Git history.
 
 Volleys use a compact continental preparation, an opposite-foot forward step and a short descending punch. Backhand preparation is guided at the throat, then releases into one-handed contact; both sides recover to the shared two-hand ready carry. Source-phase curves retain the inspected volley cadence. `strokeForShot` selects volley family before spin, so existing slice-labeled volley presets now use the new technique. Explicit side, inferred court position, practice volley selection and handedness work through the existing compiler. Half-volley remains its prior proxy. The revision 8 stroke poses and timing are preserved in revision 9. The backhand volley releases support before its punch so the departing hand cannot drag the racket off the compact path.
 
@@ -75,3 +78,7 @@ Half-volley, lob, approach, overhead and one-handed-backhand labels still use co
 See the lab's `docs/motion-revision-9.md` and `docs/evidence/revision-9.json`. All 23 clips pass export, anatomy and choreography gates. At 240 Hz, 11 mixed shots per hand plus all 19 movement variants per hand have zero joint-envelope violations and retain sub-0.002 m contact error. The run's ankle peak is 0.288 m, versus the previous runtime's approximately 0.498 m; minimum knee-to-hip vertical separation is 0.206 m. Stance anchors, bounded root speed/acceleration, recovery position, same/opposite-side launches, deterministic seeking and three walking paces are covered by 218 passing frontend tests (22 files). The 20 lab JavaScript tests, four Python rhythm tests and production build pass; the existing large-chunk warning remains.
 
 Browser review rendered all 19 variants and 834 samples spanning the complete 13-shot sequence. Seven preserved clips are byte-identical; the forehand differs only by at most 1.5e-7 in the exported racket quaternion (all skeletal tracks and timestamps are identical). Numerical and visual evidence supports owner review, not a claim of owner approval. Slides are explicit review primitives; normal hard-court recovery uses footsteps.
+
+## Revision 10 service verification
+
+All 23 clips pass 240 Hz anatomy/choreography and glTF validation with zero errors/warnings. All 22 other decoded clips and their metadata are exactly unchanged. Both-hand gameplay passes 11 mixed events plus 19 movement variants per hand with zero joint violations and contact error below .001 mm. Tests: 219 frontend / 22 files, 20 lab JavaScript, four Python rhythm; production build passes with the existing bundle-size advisory. Browser review includes overhead/three-quarter/front poses and complete service playback in both hands with no joint warnings. See the lab’s `docs/motion-revision-10.md` and `docs/evidence/revision-10.json`. Owner visual acceptance remains open.

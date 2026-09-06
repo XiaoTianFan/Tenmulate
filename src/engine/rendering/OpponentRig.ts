@@ -301,7 +301,13 @@ export class OpponentRig {
       this.group.updateMatrixWorld(true);
       // Keep grounded strokes planted; serve jump correction also lifts the airborne feet.
       const airborne = sample.event?.clip === 'serve' && Math.min(left.y, right.y) > .15;
-      if (!airborne) { this.solveFoot('l', left); this.solveFoot('r', right); }
+      if (!airborne) {
+        // Preserve the service stance and airborne recovery knee's authored
+        // bend plane when correcting contact height over the planted foot.
+        const preserveBend = sample.event?.clip === 'serve';
+        this.solveFoot('l', left, preserveBend);
+        this.solveFoot('r', right, preserveBend);
+      }
     }
     if (sample.footTargets) {
       // Lower the hips just enough that both authored stride anchors are reachable.
@@ -327,7 +333,7 @@ export class OpponentRig {
     this.group.updateMatrixWorld(true);
   }
 
-  private solveFoot(side: 'l' | 'r', worldTarget: THREE.Vector3): void {
+  private solveFoot(side: 'l' | 'r', worldTarget: THREE.Vector3, preserveBend = false): void {
     if (!this.model) return;
     const model = this.model, upper = model.getObjectByName(`thigh_${side}`)!, lower = model.getObjectByName(`calf_${side}`)!, foot = model.getObjectByName(`foot_${side}`)!;
     const point = (object: THREE.Object3D) => model.worldToLocal(object.getWorldPosition(new THREE.Vector3()));
@@ -343,7 +349,7 @@ export class OpponentRig {
     axis.normalize();
     const pelvis = model.getObjectByName('pelvis')!;
     const hipRotation = modelQuaternion(pelvis).multiply(this.bindRotations.get('pelvis')!.clone().invert());
-    const forward = new THREE.Vector3(0,0,1).applyQuaternion(hipRotation);
+    const forward = preserveBend ? knee.clone().sub(base) : new THREE.Vector3(0,0,1).applyQuaternion(hipRotation);
     const bend = forward.clone().addScaledVector(axis, -forward.dot(axis)).normalize();
     const along = (l1 * l1 - l2 * l2 + length * length) / (2 * length);
     const joint = base.clone().addScaledVector(axis, along).addScaledVector(bend, Math.sqrt(Math.max(0, l1 * l1 - along * along)));

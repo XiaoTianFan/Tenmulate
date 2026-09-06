@@ -9,6 +9,10 @@ This is the evidence ledger for the code-backed V1. “Implemented” means runn
 
 ## Local opponent motion — 2026-09-06
 
+Revision 10 corrects the service setup in the player's facing frame (left foot ahead, parallel toes), moves the cocking forearm away from the head, and internally rotates the airborne recovery thigh. The release receives 50 ms more time before the unchanged contact. Gameplay foot correction preserves the service knee plane. Active asset: `tennis-local-v1.e21e894bfe91.glb`; all 22 other clips are exactly preserved. All 240 Hz export/anatomy/choreography and both-hand gameplay checks pass. **219 frontend tests / 22 files, 20 lab JavaScript tests, four Python rhythm tests and production build** pass. Live service playback passes for both hands. [Current motion contract and evidence](local-motion-pipeline.md). Ready for owner review.
+
+### Preserved stroke foundation
+
 Revision 8 applies rear-reference forehand rhythm and a deeper rear-fence takeback. Follow-up review makes the hitting zone steady: a nearly fixed 48-degree elbow and a racket head that drops below impact, then rises through contact and extension. It also delays backhand pelvis opening, corrects serve stance/carry/toss tilt and holds the forehand volley sideways through the punch. The complete asset is `tennis-local-v1.ec377a9fb3e3.glb`; eleven unaffected clips have identical decoded tracks. All 240 Hz export/anatomy/choreography and both-hand gameplay checks pass, with maximum contact error 0.0012 mm. **208 frontend tests / 21 files, 20 lab JavaScript tests, four Python rhythm tests and production build** pass. Browser playback and post-IK frame checks pass. Lab implementation/evidence: `711f983`. [Current motion contract and evidence](local-motion-pipeline.md). Ready for owner technique review.
 
 ### Volley addition before revision 7
