@@ -1,7 +1,7 @@
 {
   "id": "tennis-local-v1",
-  "url": "/assets/opponents/tennis-local-v1.d5471cee080a.glb",
-  "sha256": "d5471cee080a3f4990e6f6ff4b0af6a76564f5113efdd17fd65e3e9c9488021f",
+  "url": "/assets/opponents/tennis-local-v1.ae42964156f7.glb",
+  "sha256": "ae42964156f79cc1e034570bff8c7a58b5a402731806f84e5cc0f96d30073372",
   "bytes": 2746628,
   "skeleton": "quaternius-neutral-male-v1",
   "scale": 1.0016518264605205,
@@ -24,9 +24,9 @@
       "duration": 2.4,
       "contact": 0.9833333333333333,
       "contactLocal": [
-        -1.0043939352035522,
-        1.0898138284683228,
-        0.4312613606452942
+        -1.0509724617004395,
+        1.0898137092590332,
+        0.3863968849182129
       ],
       "recovery": 1.733333,
       "loop": false
@@ -151,9 +151,9 @@
       "duration": 1.8,
       "contact": 0.7,
       "contactLocal": [
-        -0.8421851396560669,
-        1.4870960712432861,
-        0.4712497591972351
+        -0.8422182202339172,
+        1.487138271331787,
+        0.4711840748786926
       ],
       "recovery": 1.45,
       "loop": false

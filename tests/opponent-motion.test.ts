@@ -84,6 +84,50 @@ describe('local motion asset and shared contact clock', () => {
     expect(createHash('sha256').update(bytes).digest('hex')).toBe(OPPONENT_MOTION.sha256);
     expect(bytes.length).toBe(OPPONENT_MOTION.bytes);
   });
+  it('holds the forehand hip line while the shoulders reach contact for either hand', async () => {
+    const rig=await loadRig();
+    const line=(left:string,right:string)=>{
+      const a=rig.group.getObjectByName(left)!.getWorldPosition(new THREE.Vector3());
+      const b=rig.group.getObjectByName(right)!.getWorldPosition(new THREE.Vector3());
+      return b.sub(a).setY(0).normalize();
+    };
+    for(const hand of ['right','left'] as const){
+      const event=motionEvent(repetition('forehand',0,2,12.8,hand));
+      rig.sampleMotion(sampleOpponentTimeline([event],event.start+.83)!);
+      const hip=line('thigh_l','thigh_r'),shoulders=line('upperarm_l','upperarm_r');
+      rig.sampleMotion(sampleOpponentTimeline([event],event.contactTime)!);
+      const contactHip=line('thigh_l','thigh_r'),contactShoulders=line('upperarm_l','upperarm_r');
+      expect(hip.angleTo(contactHip)).toBeLessThan(.10);
+      expect(shoulders.angleTo(contactShoulders)).toBeGreaterThan(.70);
+      expect(contactHip.angleTo(contactShoulders)).toBeGreaterThan(.50);
+    }
+    rig.dispose();
+  });
+  it('keeps the volley elbow and hand continuous through preparation and impact for either hand', async () => {
+    const rig=await loadRig();
+    const point=(name:string)=>rig.group.getObjectByName(name)!.getWorldPosition(new THREE.Vector3());
+    for(const hand of ['right','left'] as const){
+      const event=motionEvent(repetition('forehand-volley',0,2,7,hand));
+      const frames:{elbow:THREE.Vector3;hand:THREE.Vector3;flex:number}[]=[];
+      for(let f=48;f<=168;f++){
+        rig.sampleMotion(sampleOpponentTimeline([event],event.start+f/240)!);
+        const elbow=point('lowerarm_r'),wrist=point('hand_r');
+        const flex=point('upperarm_r').sub(elbow).angleTo(wrist.clone().sub(elbow));
+        frames.push({elbow,hand:wrist,flex});
+      }
+      let travel=0;
+      for(let i=1;i<frames.length;i++){
+        travel+=Math.abs(frames[i]!.flex-frames[i-1]!.flex);
+        if(i<8)continue;
+        for(const [joint,limit] of [['elbow',.010],['hand',.012]] as const){
+          const acceleration=frames[i]![joint].clone().add(frames[i-8]![joint]).addScaledVector(frames[i-4]![joint],-2).length();
+          expect(acceleration).toBeLessThan(limit);
+        }
+      }
+      expect(travel-Math.abs(frames.at(-1)!.flex-frames[0]!.flex)).toBeLessThan(THREE.MathUtils.degToRad(3));
+    }
+    rig.dispose();
+  });
   it.each(['forehand', 'backhand', 'forehand-slice', 'backhand-slice', 'forehand-volley', 'backhand-volley', 'serve'] as const)('%s hits the exact launch point for either hand and reproduces arbitrary seeks', async clip => {
     const rig = await loadRig();
     for (const hand of ['right', 'left'] as const) {

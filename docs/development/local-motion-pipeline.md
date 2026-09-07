@@ -1,6 +1,6 @@
 # Local opponent motion pipeline
 
-- **Updated:** 2026-09-06, revision 10 service stance and clearance
+- **Updated:** 2026-09-07, revision 11 forehand hip separation and volley continuity
 - **State:** Twenty-three-clip reference-led library integrated and mechanically verified; visual style remains owner-reviewable
 - **Authority:** [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md)
 - **Laboratory:** `F:/Codes/Tenmulate_motion_analysis`, independent Git repository
@@ -88,3 +88,23 @@ All 23 clips pass 240 Hz anatomy/choreography and glTF validation with zero erro
 The active character is now a 1.88 m CC0 Quaternius mannequin with smooth limb shells, visible dark joints and a faceless head. See `docs/assets/quaternius-articulated-mannequin.md` for the source and reproducible binder. It replaces the rejected semi-realistic candidate in the static carrier, Motion Lab and gameplay. All 23 revision-10 clips, decoded track values, timestamps and clip metadata are exactly preserved.
 
 Gameplay keeps the mannequin's vertex colors and blends serve ground support continuously through landing. Motion Lab uses the same measured scale/floor calibration. Verification: 221 frontend tests, 20 lab JavaScript tests, four Python rhythm tests, full anatomy/choreography/gameplay gates and production build pass. Browser review includes both 13-shot sequences and all 19 movement variants. The lab's `docs/evidence/character-replacement.json` records hashes and measurements; owner visual acceptance is pending.
+
+## Revision 11 forehand verification
+
+The forehand pelvis remains sideways through contact as the shoulders advance,
+giving 35.52 degrees of hip/shoulder separation at impact. The reviewed rising
+arm sweep remains intact. The forehand volley now uses sparse authored arm
+landmarks instead of fitting the arm separately at every frame; repeated elbow
+extension/flexion is removed while the compact punch, grip, balance arm and
+chest turn are retained. Both behaviors are tested after gameplay blending/IK
+for right- and left-handed play.
+
+Active bundle: `tennis-local-v1.ae42964156f7.glb` (2,746,628 bytes). The mannequin,
+other 21 decoded clips and their metadata are exactly unchanged. All individual
+shot contact, duration and recovery clocks are preserved. All 23 clips pass
+240 Hz anatomy/choreography and zero-error/warning glTF validation. Gameplay
+passes 11 mixed events plus 19 movement variants per hand. 223 frontend tests,
+20 lab JavaScript tests, four Python rhythm tests and production build pass.
+Browser review covers 506 lab frames and 556 gameplay frames with no joint
+warnings. See the lab's `docs/motion-revision-11.md` and
+`docs/evidence/revision-11.json`; owner visual acceptance remains pending.
