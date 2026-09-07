@@ -9,7 +9,8 @@
     "asset:venue:build": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/blender/build.ps1",
     "asset:venue:optimize": "node scripts/blender/optimize_venue.mjs",
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && node scripts/check-motion-integration.mjs --dist",
+    "check:motion": "node scripts/check-motion-integration.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "preview": "vite preview"

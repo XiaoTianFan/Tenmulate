@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
+import opponentMotion from './src/content/opponent-motion.json' with { type: 'json' };
 
 export default defineConfig({
   plugins: [
@@ -24,10 +25,16 @@ export default defineConfig({
         ],
       },
       workbox: {
-        // Keep the 120 Hz opponent library available offline (about 2.72 MiB).
+        // Keep the active 120 Hz library offline; retained review bundles are
+        // evidence, not additional downloads required to start practice.
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
         globPatterns: ['**/*.{js,css,html,svg,png,glb,json,txt}'],
         globIgnores: ['assets/venues/**', 'assets/audience/**'],
+        manifestTransforms: [async (entries) => ({
+          manifest: entries.filter(({ url }) => !url.startsWith('assets/opponents/')
+            || !url.endsWith('.glb') || url === opponentMotion.url.slice(1)),
+          warnings: [],
+        })],
         runtimeCaching: [{
           urlPattern: /\/assets\/venues\/(hard-open-arena|clay-sunset-arena|grass-center-court|timber-hall|clay-stadium|covered-grass-arena)\/\1(?:\.performance)?\.[a-f0-9]{12}\.glb$/,
           handler: 'CacheFirst',
