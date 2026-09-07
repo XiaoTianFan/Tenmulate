@@ -1,4 +1,4 @@
-import { planRecovery } from '../src/engine/session/opponentMovement';
+import { planRecovery, sampleMovementDrill } from '../src/engine/session/opponentMovement';
 import { readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import * as THREE from 'three';
@@ -24,6 +24,34 @@ const loadRig = async () => {
 afterEach(() => vi.restoreAllMocks());
 
 describe('local motion asset and shared contact clock', () => {
+  it.each([4,5,6,7])('crossover drill %i turns the hips without squatting in either hand', async index => {
+    const rig=await loadRig();
+    const point=(name:string)=>rig.group.getObjectByName(name)!.getWorldPosition(new THREE.Vector3());
+    for(const hand of ['right','left'] as const){
+      let runMinimum=Infinity,crossMinimum=Infinity,minTurn=Infinity,maxTurn=-Infinity,maxDrop=0;
+      const direction=new THREE.Vector3();
+      for(let frame=0;frame<=240;frame++){
+        const time=frame/120;
+        rig.sampleMotion(sampleMovementDrill(3,time,hand));runMinimum=Math.min(runMinimum,point('pelvis').y);
+        const pose=sampleMovementDrill(index,time,hand);
+        rig.sampleMotion({...pose,footTargets:undefined});const authoredHeight=point('pelvis').y;
+        rig.sampleMotion(pose);crossMinimum=Math.min(crossMinimum,point('pelvis').y);
+        maxDrop=Math.max(maxDrop,authoredHeight-point('pelvis').y);
+        direction.copy(point('thigh_l')).sub(point('thigh_r'));
+        // Hip-line turn relative to its start, independent of mesh/bind axes.
+        const turn=Math.atan2(direction.z,Math.abs(direction.x));
+        minTurn=Math.min(minTurn,turn);maxTurn=Math.max(maxTurn,turn);
+        if(pose.footTargets)for(const side of ['left','right'] as const){
+          const target=pose.footTargets[side];
+          expect(point(side==='left'?'foot_l':'foot_r').distanceTo(new THREE.Vector3(target.x,target.y,target.z))).toBeLessThan(.002);
+        }
+      }
+      expect(crossMinimum).toBeGreaterThan(runMinimum-.035);
+      expect(maxDrop).toBeLessThan(.05);
+      expect(THREE.MathUtils.radToDeg(maxTurn-minTurn)).toBeGreaterThan(25);
+    }
+    rig.dispose();
+  });
   it('displays the new skinned player at 1.88 m with valid weights on the retained skeleton', async () => {
     const rig=await loadRig();
     const body=rig.group.getObjectByName('NeutralOpponentBody') as THREE.SkinnedMesh;

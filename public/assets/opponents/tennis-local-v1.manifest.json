@@ -4,7 +4,7 @@
   "fps": 120,
   "blenderVersion": "5.2.1 LTS",
   "carrierSha256": "2bb334ab39970c8b1eae2a3cfb793513c3cf07b7b61bc0c88fff1b736cd0d850",
-  "recipeSha256": "11d44e93ecd44648d419dd0d8c40c532dd9e72b1ec8e47b3e3520dee6619da0d",
+  "recipeSha256": "f9f5231a312b811dcd52c4b2c828eaafea59c061623f8c03650f3cdd13e8f77c",
   "visualReferenceConfigSha256": "be27930790216343223193b76677a2a68d5a3f1f2e5bea1705582da0f2f48b35",
   "authoringMode": "visual-reference-led bounded joint-space authoring; extracted poses are not production inputs",
   "carrierLicense": "Quaternius Universal Animation Library segmented mannequin and Universal Base Characters tennis skeleton; CC0. See frontend LICENSE.quaternius-mannequin.txt.",
@@ -11153,8 +11153,8 @@
       "provenance": "Authored athletic footwork; no capture attribution."
     }
   },
-  "assetSha256": "92d49b17d0d5c8b1da6dcf6b0da0cf4da46af6bfdf4f85136955e5d51b939b98",
-  "bytes": 2746628,
+  "assetSha256": "bd5a22aed5cf364f831e998a45c9e0e983dbd56d343e0db03f546571aeaeb6b6",
+  "bytes": 2813080,
   "bindHeightMeters": 1.876899687432556,
   "displayScale": 1.0016518264605205,
   "bindMinY": -0.016621360618849113

@@ -62,14 +62,19 @@ export function sampleTravel(leg:TravelLeg,time:number,hand:'left'|'right'):Moti
   const yaw=travelTurn?yawMix(yawMix(leg.fromYaw,heading,ease((elapsed-turnIn)/turnDuration)),leg.toYaw,ease((turnDuration-remaining)/turnDuration)):yawMix(leg.fromYaw,leg.toYaw,progress);
   const lx=(leg.to.x-leg.from.x)*Math.cos(yaw)-(leg.to.z-leg.from.z)*Math.sin(yaw);
   const lz=(leg.to.x-leg.from.x)*Math.sin(yaw)+(leg.to.z-leg.from.z)*Math.cos(yaw);
-  const clip:MotionId=leg.clip??(running?'run-forward':walking?'walk-forward':Math.abs(lx)>Math.abs(lz)?lx<0?'move-right':'move-left':lz>0?'move-forward':'move-backward');
+  const mirror=hand==='left'?-1:1;
+  const localRight=(leg.to.x-leg.from.x)*Math.cos(leg.fromYaw)-(leg.to.z-leg.from.z)*Math.sin(leg.fromYaw);
+  const crossDirection=localRight*mirror<0?'right':'left';
+  // Crossover names identify anatomical feet. Select the leading foot in the
+  // mirrored player's frame, while the drill's travel direction stays fixed.
+  const requestedClip=leg.clip?.startsWith('cross-')
+    ? `cross-${leg.clip.includes('-back-')?'back':'front'}-${crossDirection}` as MotionId : leg.clip;
+  const clip:MotionId=requestedClip??(running?'run-forward':walking?'walk-forward':Math.abs(lx)>Math.abs(lz)?lx<0?'move-right':'move-left':lz>0?'move-forward':'move-backward');
   const spec=library.clips[clip] as {duration:number;locomotion?:{cycleDistance?:number;stanceFraction?:number;footLift?:number}};
   const stride=spec.locomotion?.cycleDistance??(running?2.15:walking?.95:.72);
   const phase=covered/stride,blend=ease(elapsed/.22)*ease(remaining/.22);
   const crossWeight=cross?1-ease((elapsed-.55)/.35):0;
-  const mirror=hand==='left'?-1:1;
-  const localRight=(leg.to.x-leg.from.x)*Math.cos(leg.fromYaw)-(leg.to.z-leg.from.z)*Math.sin(leg.fromYaw);
-  const crossClip=('cross-front-'+(localRight*mirror<0?'right':'left')) as MotionId;
+  const crossClip=('cross-front-'+crossDirection) as MotionId;
   const crossSpec=library.clips[crossClip] as {duration:number}|undefined;
   const isSpecial=clip.startsWith('slide-')||clip.startsWith('cross-');
   const layers:MotionSample['layers']=[

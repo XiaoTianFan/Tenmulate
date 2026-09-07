@@ -1,6 +1,6 @@
 # Local opponent motion pipeline
 
-- **Updated:** 2026-09-07, revision 12 wider athletic rally stances
+- **Updated:** 2026-09-07, revision 13 crossover hip transfer and support height
 - **State:** Twenty-three-clip reference-led library integrated and mechanically verified; visual style remains owner-reviewable
 - **Authority:** [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md)
 - **Laboratory:** `F:/Codes/Tenmulate_motion_analysis`, independent Git repository
@@ -118,7 +118,7 @@ holds through the shot and eases back into recovery. Dominant elbow bend and
 contact height are preserved, so gameplay height alignment retains the crouch.
 The backhand support-arm fit maintains a continuous elbow plane and grip.
 
-Active bundle: `tennis-local-v1.92d49b17d0d5.glb` (2,746,628 bytes). All shot
+Revision-12 bundle: `tennis-local-v1.92d49b17d0d5.glb` (2,746,628 bytes). All shot
 clocks, the mannequin and the other 17 decoded clips are unchanged. The library
 passes glTF, 240 Hz anatomy/choreography and both-hand gameplay checks,
 including 11 mixed events and 19 movement variants per hand. Maximum contact
@@ -131,3 +131,28 @@ Browser review covers all six contact/preparation poses, 798 lab frames and
 warnings. Lab commits: `c3edff8` (authoring), `60c2a0d` (grip continuity and
 verification). See the lab's `docs/motion-revision-12.md` and
 `docs/evidence/revision-12.json`. Owner visual acceptance remains pending.
+
+## Revision 13 crossover verification
+
+Front/back crossovers now pivot the pelvis about 35.5 degrees, with a smaller
+chest turn, lateral weight transfer and a slight rise as weight changes legs.
+The runtime chooses the anatomical leading foot in the mirrored player's
+starting frame. This fixes misplaced left-handed drill anchors that previously
+forced the reach solver to lower the hips by as much as 21.4 cm. The leg solver
+and fixed bone lengths remain active.
+
+All four crossover drills in both hands now keep world pelvis height within
+0.888-0.908 m, comparable to walking (0.888 m minimum) and running (0.848 m).
+Additional reach correction stays below 1.45 cm. Regression checks inspect the
+actual blended rig, hip excursion, foot targets and continuity. The lab's
+`scripts/check_crossovers.mjs` runs after gameplay validation on published builds.
+
+Active bundle: `tennis-local-v1.bd5a22aed5cf.glb` (2,813,080 bytes). The mannequin,
+all 19 other decoded clips, stroke clocks and crossover travel metadata are
+unchanged. All 23 clips pass export/anatomy/choreography gates; both-hand gameplay
+and all eight crossover cases pass. 233 frontend tests, 20 lab JavaScript tests,
+four Python rhythm tests and the production build pass. Browser review covers
+1,994 frames of crossovers, walk/run and recovery into split-steps and strokes
+without joint warnings. See the lab's `docs/motion-revision-13.md` and
+`docs/evidence/revision-13.json`. Owner visual acceptance remains pending.
+Lab commits: `203b830` (diagnosis/contract), `d50115c` (authoring and verification).
