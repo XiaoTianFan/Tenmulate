@@ -1,7 +1,7 @@
 # Resolved decisions and open questions
 
 - **Status:** Active decision queue
-- **Last updated:** 2026-08-29
+- **Motion decisions reconciled:** 2026-09-07; unrelated questions retain their original scope
 
 ## Resolved by the owner on 2026-08-29
 
@@ -20,7 +20,7 @@
 | Release model | V1 is a public free app. Long-term direction is freemium under the same branding and rendering pipeline. |
 | Blender MCP | A local asset-production aid only, never part of the shipped browser runtime. |
 | Bake-off budget | Hard cap below US$100; current envelope is US$99 with no automatic renewals. |
-| Cloud generation | Use cloud generation/mocap and project-hosted cloud delivery; do not run local inference models. Local Blender cleanup/export is still allowed. |
+| Motion production | Local visual-reference authoring, anatomical fitting and Blender baking under ADR-0012. Optional pose diagnostics do not drive production. No cloud mocap upload/purchase is required. |
 | Reference upload | Cloud mocap upload is allowed only for footage with explicit upload, derivative-use, likeness, and commercial rights. Public professional footage is not assumed to be cleared. |
 | Court scenes | V1 includes outdoor, indoor club-hall, and indoor-stadium shells combined with hard, clay, and grass, plus umpire/rest seating and spectator stands without crowd models. |
 | Lighting | Outdoor supports sun direction and day/night/floodlights. Indoor supports fixture controls and applicable daylight/roof influence. |
@@ -36,21 +36,21 @@ The release/scope decisions are normative in [ADR-0002](decisions/0002-v1-scope-
 | 2 | Which indoor language leads: intimate timber/steel club hall or empty tournament stadium? | Selects architecture, seating density, acoustics, and the second venue-shell experiment. | Club hall first for training clarity; stadium remains a required V1 shell. |
 | 3 | Which real devices are available for the first performance matrix? | The product supports varied hardware, but the spike still needs reproducible low/mid/high reference tiers. | One mid-tier Windows laptop, one stronger discrete-GPU PC if available, and one lower-power integrated-GPU device connected to at least one 4K display. |
 | 4 | Who can provide the first biomechanics/contact review? | An asset can look polished while serving or striking incorrectly. | Owner review plus one coach or advanced player before a motion family is marked accepted. |
-| 5 | What exact source can legally supply the three mocap bake-off clips? | Professional match footage may not be downloaded/uploaded/derived merely because it is publicly viewable. | Record a rights-cleared skilled player reproducing motions while using professional footage only as view-only reference, unless a specific clip license is obtained. |
+| 5 | Closed for local implementation; public provenance review remains. | Owner-supplied local Djokovic/Kyrgios references and the CC0 mannequin support the authorized lab. | Preserve source receipts; assess public distribution separately from local authoring. |
 
 ## P1: decide during research and the vertical slice
 
 | # | Question | Proposed default |
 | --- | --- | --- |
 | 6 | Direct Three.js geometry, Blender/GLB, or both? | Hybrid: code-own exact court/net/ball/training markers; GLB for skinned opponents and complex authored props; validate in ADR-0003. |
-| 7 | Which generator/mocap chain wins the asset bake-off? | Compare at least one Chinese end-to-end route, one Chinese modular route, one international end-to-end route, and a licensed/commissioned baseline. |
+| 7 | Closed: local reference-led motion and articulated CC0 model. | ADR-0012/0014 and the current motion runbook supersede the provider bake-off. |
 | 7a | **Closed:** canonical typed Three.js composition wins. | ADR-0005 records the decision; generated outputs remain visual references only. |
 | 8 | What should the default FOV be when no physical display measurements are entered? | Choose from real-screen perception tests; keep the value visible and provide one-action reset. |
 | 9 | Which performance tiers and quality presets are promised publicly? | Publish measured tiers after the vertical slice; do not promise universal 4K/120 fps. |
 | 10 | Is the first public host a static site plus separate object/CDN assets, or one platform for both? | Affects cache headers, egress, deploy/rollback, and asset URL versioning. | Static app plus immutable versioned object/CDN asset origin. |
 | 11 | How many opponent appearances must V1 include? | “Multiple” needs a testable count and asset budget. | Two appearances sharing compatible skeleton/animation data where licensing permits. |
 | 12 | Which languages ship in V1? | Public reach and UI/voice-cue scope. | English first, architecture localization-ready; add Chinese if owner wants a bilingual launch. |
-| 13 | Is the first right-handed opponent's backhand one-handed or two-handed? | It changes the custom reference clip, retarget review, off-hand fidelity, and silhouette. | Two-handed for the first pipeline test; add one-handed as a later distinct V1 clip. |
+| 13 | Resolved: two-handed groundstroke; a dedicated one-handed groundstroke remains future work. | Current backhand volley and slice contacts are one-handed. | Keep the groundstroke proxy explicit until separately authored and verified. |
 
 ## P2: decide before public release
 

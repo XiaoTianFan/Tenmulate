@@ -38,7 +38,7 @@ This folder is the project record for product discovery, design, architecture, a
 - [Application UI concepts](concepts/application-ui-concepts-2026-08.md): implementation references for setup, rehearsal, and timeline editing.
 - [Local motion pipeline](development/local-motion-pipeline.md): local video analysis, corrected tennis clips, connectors, and runtime integration under ADR-0012.
 - [Mocap-to-web research](research/mocap-to-web-character-pipeline.md): historical cloud comparisons and reusable retargeting principles; cloud processing is superseded.
-- [Neutral opponent asset record](assets/quaternius-neutral-opponent.md): selected CC0 mesh, normalization recipe, hashes, rig/socket map, and animation acceptance gates.
+- [Articulated player record](assets/quaternius-articulated-mannequin.md): active CC0 model, binder and rig contract. The [original carrier](assets/quaternius-neutral-opponent.md) is retained skeleton/provenance history.
 - [Ball and opponent visibility calibration](research/ball-and-opponent-visibility.md): official color boundary, optic renderer values, outlined-opponent contract, and remaining display gates.
 - [Implementation status](development/implementation-status.md): staged code coverage, verification, and remaining gaps.
 - [Visual verification ledger](development/visual-verification.md): concept-to-browser comparison after each implementation stage.
@@ -59,6 +59,12 @@ This folder is the project record for product discovery, design, architecture, a
 | [0008](decisions/0008-itf-runoff-opponent-positioning.md) | Accepted | ITF competition-runoff opponent placement and a behind-baseline Rally default |
 | [0009](decisions/0009-blender-hard-open-arena-pilot.md) | Accepted for opt-in review | Blender-authored hard arena with validated loading and procedural fallback |
 | [0010](decisions/0010-blender-clay-arena-and-multi-venue-boundary.md) | Accepted for opt-in review | Reference-led clay arena and independent two-venue asset boundary |
+| [0011](decisions/0011-blender-grass-arena.md) | Accepted | Authored grass arena pilot |
+| [0012](decisions/0012-local-opponent-motion-pipeline.md) | Accepted; carrier selection updated by 0014 | Local reference-led motion production in the independent lab |
+| [0013](decisions/0013-six-authored-venues-and-audience.md) | Accepted | Six authored venues, performance variants and audiences |
+| [0014](decisions/0014-articulated-player-and-complete-motion-library.md) | Accepted | Articulated player, complete motion bundle and two distinct service rhythms |
+
+The [motion integration receipt](development/motion-main-integration-2026-09-07.md) records the current branch/main and live-gameplay verification. Revision counts in historical ledgers are scoped to their original commits.
 
 ## Change discipline
 

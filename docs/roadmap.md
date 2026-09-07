@@ -11,7 +11,7 @@ This roadmap is ordered by uncertainty and integration risk. V1 is one complete 
 
 ## Phase 0: Product, visual, and asset alignment
 
-**2026-09-05 motion update:** Finished mocap is no longer an owner-supplied dependency. The [local motion pipeline](development/local-motion-pipeline.md) owns source selection, local extraction/authoring, racket, connectors, retargeting, and gameplay integration in the sibling analysis lab. No online mocap service is required. This supersedes the waiting-on-mocap checkpoint above.
+**2026-09-07 motion state:** The [local motion pipeline](development/local-motion-pipeline.md) has delivered the 1.88 m articulated player and 24 reference-authored clips, including two distinct serves, stance/arm refinements and recovery footwork. Main integration and live verification are tracked in its receipt. This supersedes the waiting-on-mocap checkpoint above. Remaining dedicated techniques, owner/device acceptance and public delivery are separate gates.
 
 ### Deliverables
 
@@ -20,7 +20,7 @@ This roadmap is ordered by uncertainty and integration risk. V1 is one complete 
 - Use accepted outdoor Panel 1 as the first visual/technical north star; select the second indoor north star before composing that venue.
 - Keep the matched high-oblique, player-level, and true top-down Panel 1 images as composition references only.
 - Preserve the first fictional right-handed male opponent sheet as historical concept work; do not convert it into the runtime character.
-- Run a neutral-humanoid rig, animation-retargeting, and web-optimization bake-off.
+- Current model/rig selection is the articulated mannequin under ADR-0014; retain the original model/rig bake-off as history.
 - Preserve the completed world/character research as history; do not spend further budget on generated meshes or world shells.
 - Select a neutral rights-cleared humanoid source, motion source, Blender retarget/cleanup workflow, commercial provenance record, and general-motion source for ready/footwork/recovery connectors.
 - Build and visually calibrate all six venues through the canonical shared Three.js atmosphere, shader-material, and composition system.

@@ -1,13 +1,15 @@
 # V1 implementation status
 
 - **Status:** Active
-- **Last updated:** 2026-09-06
+- **Last updated:** 2026-09-07
 - **Current implementation:** Six Blender-authored venues by default, twelve Quality/Performance GLBs, and optional Empty/Half/Full instanced 2D audiences. Procedural venue presentation and the opt-in gate are removed. Existing outdoor Quality geometry, darker grass and denser nets are preserved.
 - **Local integration:** Source/assets `25e363b`, runtime `18141c5` and verification `d1a916a` were fast-forwarded into `main`, preserving separately committed local-motion work `b2a082e`. All twelve local feature tips were included at this integration checkpoint; see the [branch audit](feature-branch-integration-2026-09-05.md). No remote push or deployment.
 
-This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The neutral humanoid carrier is integrated. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
+**Current motion state:** The reference-led feature branch contains 17 motion/model commits beyond the previous main, including all 24 clips, the articulated model, recovery planning, crossovers and both serve rhythms. The [current motion contract](local-motion-pipeline.md) replaces competing “latest” descriptions below; the [integration receipt](motion-main-integration-2026-09-07.md) records main inclusion and verification. Older stage counts and asset hashes below are historical evidence, not active selectors.
 
-## Local opponent motion — 2026-09-06
+This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 24-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
+
+## Historical motion checkpoint — revision 10, 2026-09-06
 
 Revision 10 corrects the service setup in the player's facing frame (left foot ahead, parallel toes), moves the cocking forearm away from the head, and internally rotates the airborne recovery thigh. The release receives 50 ms more time before the unchanged contact. Gameplay foot correction preserves the service knee plane. Active asset: `tennis-local-v1.e21e894bfe91.glb`; all 22 other clips are exactly preserved. All 240 Hz export/anatomy/choreography and both-hand gameplay checks pass. **219 frontend tests / 22 files, 20 lab JavaScript tests, four Python rhythm tests and production build** pass. Live service playback passes for both hands. [Current motion contract and evidence](local-motion-pipeline.md). Ready for owner review.
 
@@ -25,7 +27,7 @@ Revision 6 follows the owner's six annotated images and accompanying review. For
 
 The 2.15 MB library bakes at 120 Hz. All 13 clips pass 240 Hz anatomical/choreography gates with zero glTF errors/warnings; the new gates reject 11 revision-5 clips. The real controller passes both hands after blending and foot IK with zero joint violations, .079 m minimum backhand finish head-proxy clearance and less than .001 mm maximum contact error. **202 tests / 21 files**, 20 JavaScript lab tests, four Python rhythm tests and production build pass. The asset remains precached offline. Browser review includes marked poses, ordinary playback and the complete ten-event demo; no browser errors occurred, with one GPU shader precision warning. [Current contract, source limits and evidence](local-motion-pipeline.md). Owner technique approval remains open. Historical notes below describe their original stages.
 
-## Latest venue delivery — six Blender scenes, performance and audience
+## Venue delivery — six Blender scenes, performance and audience
 
 Three original indoor halls now include complete structure, trusses/clerestories, seating banks and circulation, original baked PBR textures, court equipment and fixture-aligned lighting with cached indoor bounce fill. All six low-detail assets reduce model triangles by 81–89% and payloads by 54–84%. Performance is selected before GLB download; Auto can step down on small screens or sustained slow rendering. Only the active venue remains resident.
 

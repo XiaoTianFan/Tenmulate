@@ -1,192 +1,90 @@
 # Local opponent motion pipeline
 
-- **Updated:** 2026-09-07, compact pinpoint service addition
-- **State:** Twenty-four-clip reference-led library integrated and mechanically verified; visual style remains owner-reviewable
-- **Authority:** [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md)
-- **Laboratory:** `F:/Codes/Tenmulate_motion_analysis`, independent Git repository
-- **Revision-6 lab commit:** `0399730`. Evidence and the six-image ledger are recorded in the lab's `docs/motion-revision-6.md` and `docs/evidence/revision-6.json`.
-- **Volley lab commits:** source/contract `12c8863`, implementation and verification `c0eda97`. See the lab's `docs/volley-motion.md` and `docs/evidence/volleys.json`.
-- **Revision-7 lab commits:** annotation contract `bac6d64`, implementation/evidence `e5a855c`. See `docs/motion-revision-7.md` and `docs/evidence/revision-7.json` in the lab.
+Current runtime contract, reconciled 2026-09-07. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) establishes the local production boundary; [ADR-0014](../decisions/0014-articulated-player-and-complete-motion-library.md) records the current model and library. The [integration receipt](motion-main-integration-2026-09-07.md) separates merge, automated checks, live review and remaining release gates.
 
-- **Revision-8 lab commits:** contract `6c89efa`, implementation/evidence `711f983`. See `docs/motion-revision-8.md` and `docs/evidence/revision-8.json` in the lab.
-- **Revision-10 lab commits:** contract `7ae4bb2`, implementation/evidence `7065a3a`. See `docs/motion-revision-10.md` and `docs/evidence/revision-10.json` in the lab.
+## Authority and ownership
 
-## Compact service addition
+| Surface | Authority |
+| --- | --- |
+| Gameplay, ball flight, session clock, world travel and foot correction | This repository: `compileSession.ts`, `opponentTimeline.ts`, `opponentMovement.ts`, `OpponentRig.ts`, `TennisScene.ts` |
+| Active animation URL, hash, clip clocks, contact anchors, scale and floor offset | `src/content/opponent-motion.json` |
+| Model identity and nominal height | `src/content/opponent-asset.json`; [asset record](../assets/quaternius-articulated-mannequin.md) |
+| Published provenance and detailed phase metadata | `public/assets/opponents/tennis-local-v1.manifest.json` |
+| Sources, recipes, anatomical fitting, Blender bake and motion evidence | Independent sibling repository `F:/Codes/Tenmulate_motion_analysis`; its README and `docs/README.md` |
+| Historical corrections | Lab `docs/motion-revision-2.md` through `motion-revision-13.md`, volley/model/compact records and `docs/evidence/` |
 
-`serveRhythm: compact` now selects the separate `serve-compact` animation instead
-of playing the normal serve at 1.25×. Normal remains `serve`; overhead retains its
-existing normal-serve proxy. Contact time, toss release, mirrored contact-height
-correction and airborne knee-plane preservation cover both service clips.
-Ball trajectories and pace are unchanged when only the serve rhythm changes.
+Production is **visual reference-led authoring**, constrained joint fitting and Blender baking. Extracted monocular poses are optional diagnostic experiments, not production inputs. Source videos, models, Python environments, filmstrips and editable Blender masters stay in the lab. No runtime inference or cloud mocap service is required.
 
-The compact clip has a pinpoint gather, earlier racket pickup, brief trophy,
-quicker launch and continuous deceleration. Release/contact are **0.633 / 1.300 s**,
-with a **2.400 s** complete cycle; normal remains **0.883 / 1.783 / 3.250 s**.
-The source is the owner's `Nick Kyrgios Serve.mp4`; its first pass supplies rhythm,
-and its same-camera slow replay supplies limb-order evidence. It is reference-led
-authoring, not an extracted motion-capture result.
+## Active model and library
 
-Active asset: `tennis-local-v1.f313ece32de3.glb`, **2,993,676 bytes**, SHA-256
-`f313ece32de3db2f70f3e45ec07a947774c7552a3533fb85bf5c39d74c356e45`.
-All 23 previous clips retain identical decoded tracks and metadata. All 24 clips
-pass the lab gates, both hands pass gameplay checks at 240 Hz, 237 frontend tests
-pass, and the production build passes. At an equal 2.75 m contact height, the new
-toss apex is 2.874 m versus 3.256 m for normal. The prior published GLB is retained.
+The 1.88 m CC0 Quaternius articulated mannequin has a faceless head, smooth limb panels and dark joints on the established 65-bone tennis armature. The old semi-realistic body is a retained skeleton/provenance source, not the displayed player. The runtime loads a single GLB containing the bound model, rigid racket and all animations.
 
-The lab source/authoring commit is `f3cee2f`; see the sibling lab's
-`docs/compact-serve.md` and `docs/evidence/compact-serve.json` for source uncertainty,
-geometry decisions and validation evidence. Review URLs:
+Active bundle: `tennis-local-v1.f313ece32de3.glb`, **2,993,676 bytes**.
+SHA-256: `f313ece32de3db2f70f3e45ec07a947774c7552a3533fb85bf5c39d74c356e45`.
 
-- `http://127.0.0.1:4184/?clip=serve-compact`
-- `http://127.0.0.1:4185/review/gameplay.html?sequence=serves`
+| Group | Clips |
+| --- | --- |
+| Shared stance | `ready`, `split-step` |
+| Groundstrokes | `forehand`, `backhand`, `forehand-slice`, `backhand-slice` |
+| Volleys | `forehand-volley`, `backhand-volley` |
+| Serves | `serve`, `serve-compact` |
+| Gait and adjustment | `run-forward`, `walk-forward`, `move-left`, `move-right`, `move-forward`, `move-backward` |
+| Crossover | `cross-front-left`, `cross-front-right`, `cross-back-left`, `cross-back-right` |
+| Other movement | `jump`, `slide-left`, `slide-right`, `slide-forward` |
 
-Both review panels explicitly label the new same-camera replay, and MotionLab
-shows the ballistic toss. The normal/compact comparison uses the real game scene
-at the same ball pace. The lab canvas now keeps the full body within its grid row.
-Visual technique acceptance remains owner-reviewable.
+All **24 clips** share calibrated boundaries and the same rig. The compact addition preserves the prior 23 clip layouts, timestamps and metadata; 22 have identical decoded values, while the forehand has a maximum float difference of **1.7881393e-7** within the existing 2e-7 preservation tolerance. It is inaccurate to call every track bit-identical.
 
-## Production method
+## Stroke and movement behavior
 
-Revision 10 corrects the service stance in the player's facing frame: left foot ahead, both toes parallel toward the sideline. The cocking forearm moves outward while retaining the elbow and racket normal. The airborne recovery thigh rotates slightly inward, and gameplay height correction preserves its knee plane. Trophy/drive/drop move 50 ms earlier and acceleration 25 ms earlier, allowing a smooth release into the unchanged contact instant. Toss, finish and total duration remain unchanged. All 22 other clips are exactly preserved after decoding.
+Forehand preparation and lag follow the rear UCLA take's rhythm/height rather than the low-ball frontal take. A stable roughly 48-degree elbow follows a low-to-high hitting arc; the pelvis stays sideways longer as the shoulders rotate to contact. Backhand retains its deeper coil, two-hand grip, smooth drop and delayed pelvis release. Both volleys have distinct compact punches, controlled balancing arms and held chest turns. The six groundstroke/slice/volley clips widen the stance and lower the pelvis through the shot.
 
-The owner's revision-8 review uses the rear UCLA forehand take for rhythm and height, deepens the turn, and carries the arm and shaft toward the back fence. Follow-up review fixes the hitting zone: the racket drops below impact and rises into contact while the elbow remains bent about 48 degrees. Backhand hips stay sideways longer than the shoulders. Serve gains a clear forward carry, a left lead-foot stance, stronger tossing-shoulder elevation and rear-foot gathering during drive/drop. Forehand volley holds a sideways chest through its punch and extension. Production remains visual reference-led authoring, calibrated anatomical fitting and Blender 5.2.1 baking. The other eleven clips retain identical decoded tracks to revision 7.
+Ready, split and movement share a two-hand belly/chest carry and forward athletic lean. Running uses rear heel recovery with distance-driven cadence. Crossovers rotate and translate the pelvis and use mirrored anatomical leading-foot selection, avoiding the former deep squat from unreachable foot targets.
 
-The existing CC0 Quaternius carrier has 65 bones. Seven DOFs per arm separate shoulder swing/twist, elbow hinge, forearm rotation, wrist flexion and deviation. Fixed segment lengths prevent stretch; anatomical elbow/knee frames replace direction-only aiming. The racket stays rigid in the dominant hand. The left eastern backhand support grip uses bevel **7**, correcting the prior right-handed bevel-3 convention. Forehand preparation couples the support hand to the racket throat before release. Contact-anchored fitting and joint-space recovery avoid wrong forearm branches and reset discontinuities.
+`strokeForShot` resolves serve rhythm, then overhead's normal-serve proxy, stroke side and volley family before spin. Slices select their own clips. **Half-volley, overhead and one-handed-backhand labels still use core-motion proxies**; they are not newly captured dedicated techniques.
 
-## Local evidence and review
+Automatic session recovery goes toward a handed baseline-center bias, turns toward the net, split-steps for 0.6 s, then approaches the next shot. Wide lateral recovery starts with a front crossover. Routes of at least 1.65 m run; 0.65–1.65 m walk; shorter routes adjust. The planner reserves complete strokes, travel and rest rather than teleporting or compressing a stroke. Final shots also recover. Speed and travel-acceleration bounds are 4.8 m/s and 6.5 m/s², authored limits rather than athlete measurements.
 
-The original January and UCLA recordings remain under `C:/Users/20378/Downloads/Video`. They are independent takes, not simultaneous multiview capture. Both MotionLab and MotionSequence always display front/rear reference panels below the 3D scene, aligned by named phases from one motion clock.
+The same runtime supports 19 explicit movement review drills, including back crossovers, jump and sideways/forward/diagonal slides. Automatic hard-court recovery uses footsteps; merely bundling a slide does not make every recovery a slide. `sampleMovementDrill` provides explicit variants for future gameplay selection without a second animator.
 
-| Motion | Default frontal take | Rear |
+## Two serve rhythms in actual practice
+
+Select **Return**, then **Opponent → Serve rhythm**. Choose Normal or Compact. The drill editor also supports a per-event override. Resolution is explicit event override → practice setting → shot preset; undefined defaults to normal.
+
+| Clip | Toss release | Contact | Full cycle |
+| --- | ---: | ---: | ---: |
+| Normal `serve` | 0.883 s | 1.783 s | 3.250 s |
+| Compact `serve-compact` | 0.633 s | 1.300 s | 2.400 s |
+
+Both run at their authored rate of 1. Compact is a distinct pinpoint gather, low toss, early pickup and quick launch, not normal sped up by 1.25×. The source is the owner's Kyrgios clip: first-pass cadence plus same-camera slow replay for geometry. At equal 2.75 m contact height, measured toss apices are 3.256 m normal and 2.874 m compact.
+
+The toss starts at the corrected release hand, follows a ballistic path and hands over to the outgoing ball at contact. Rhythm does not change outgoing ball physics. Both handedness settings use the same validated mirroring, contact alignment and airborne knee-plane preservation.
+
+## Build, publish and review
+
+From the lab:
+
+1. `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/setup.ps1`; install frontend dependencies with `npm ci`.
+2. Verify local sources in `config/sources.json` and phase/view authority in `config/references.json`.
+3. `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build.ps1 -Publish` builds previews, solves, bakes, checks export/choreography/anatomy, publishes and validates the actual consumer.
+4. Run the relevant preservation check when refining an existing library. Compact preservation uses `node scripts/check_compact_preservation.mjs` and its retained baseline.
+5. In this frontend run `npm run check:motion`, `npm test`, `npm run build`.
+
+Publication rejects failed/stale/partial reports. The consumer check independently verifies model/library hashes, metadata, clips and calibration. The production build also checks that its service worker precaches **only the selected opponent GLB**. Older bundles remain on disk for evidence and rollback; changing an asset pointer alone is not a safe rollback because metadata/calibration must agree.
+
+Review services run in separate terminals:
+
+| Working directory | Command | URL |
 | --- | --- | --- |
-| Forehand | UCLA 13:43.2–13:45.6, impact 13:44.550 | UCLA 02:00–02:02.4, impact 02:00.983 |
-| Two-handed backhand | UCLA 13:40.6–13:42.8, impact 13:41.767 | UCLA 09:44.8–09:47.2, impact 09:45.917 |
-| Serve | UCLA 28:03.35–28:06.6, impact 28:05.133 | UCLA 33:48.85–33:51.55, **secondary grey-shorts performer**, comparison only |
-| Forehand volley | UCLA 22:49.1–22:50.9, impact about 22:49.800 | No verified rear take |
-| Backhand volley | UCLA 22:39.5–22:41.3, impact about 22:40.083 | No verified rear take |
-| Walking / travel | January relaxed-walk context where assigned | UCLA lateral-recovery context where assigned |
-| Slices | No verified complete clean take | No verified complete clean take |
+| Frontend | `npm run dev -- --host 127.0.0.1 --port 5173 --strictPort` | `http://127.0.0.1:5173/` — actual practice |
+| Lab | `node scripts/review_server.mjs` | `http://127.0.0.1:4184/` — phase/source comparison |
+| Lab | `node scripts/gameplay_server.mjs` | `http://127.0.0.1:4185/review/gameplay.html` — actual renderer with review controls |
 
-The owner supplied approximate UCLA starting regions; bounded frame inspection selected these complete repetitions nearby. Previous January three-quarter takes remain in the reference registry. Missing views and contextual/secondary footage are explicitly labeled. Slices and generic gait are authored technique, not claimed Djokovic capture. The carrier's proportions and exact personal style still require visual judgment.
+The normal/compact comparison is `?sequence=serves` on the gameplay review URL. The frontend's unoverridden Vite default is port 4173; 5173 is the explicit review command above. These local services are not a public deployment.
 
-## Library and gameplay
+## Evidence and limits
 
-The 120 Hz library contains **24 clips**: front/back crossovers in both directions, jump, left/right/forward slides, plus ready, split-step, four `move-*` adjustments, run-forward, walk-forward, forehand, backhand, forehand-slice, backhand-slice, serve, serve-compact, **forehand-volley and backhand-volley**. The denser solve/bake preserves the supporting grip between frames during the fast backhand drop; temporal fitting bounds scale with elapsed time. All strokes return to shared ready. Forehand/backhand/serve durations remain **2.4 / 2.2 / 3.25 s**, with impact at **0.983333 / 1.166667 / 1.783333 s**. Slices contact at 1.05/1.15 s. Serve toss release is at **.883333 s**. Both volleys last **1.8 s**, with contact at **.700 / .583333 s**.
+Blender bakes at 120 Hz. The lab checks exported and interpolated poses at 240 Hz: 63 articulated joints, fixed lengths, grips, signed racket face, clearance proxies, contact, stance, continuity and clip closure. Both-hand gameplay repeats checks after real blending/IK, including 38 movement sweeps and crossover support checks. These are animation plausibility gates, not clinical certification or complete mesh-collision testing.
 
-`src/content/opponent-motion.json` identifies the content-hashed active GLB, size, digest and runtime timing contract. `public/assets/opponents/tennis-local-v1.manifest.json` binds visual references, carrier, authoring code, Blender version and rhythm curves. Revision 10 uses `tennis-local-v1.e21e894bfe91.glb`, **2,844,856 bytes**, SHA-256 `e21e894bfe917f1444237c7ff7676f3c2b1a91e201e388036ed83fd993282192`. The existing 3 MiB precache ceiling supports this 2.72 MiB library; the built worker includes only the active tennis library. Earlier libraries remain in Git history.
+Visual review must include normal-speed playback, frame stepping and representative front/rear/side/gameplay views. Independent reference takes align by named phase; missing views and secondary performers stay labeled. The compact replay is explicitly the same camera. Tests do not replace the owner's technique review.
 
-Volleys use a compact continental preparation, an opposite-foot forward step and a short descending punch. Backhand preparation is guided at the throat, then releases into one-handed contact; both sides recover to the shared two-hand ready carry. Source-phase curves retain the inspected volley cadence. `strokeForShot` selects volley family before spin, so existing slice-labeled volley presets now use the new technique. Explicit side, inferred court position, practice volley selection and handedness work through the existing compiler. Half-volley remains its prior proxy. The revision 8 stroke poses and timing are preserved in revision 9. The backhand volley releases support before its punch so the departing hand cannot drag the racket off the compact path.
-
-`config/motion-rhythm.json` maps source seconds to authored pose coordinates through monotone PCHIP curves. Forehand now uses the rear take, removing the front low-ball repetition's extra waiting beat. Groundstrokes pace measured racket/hand travel from preparation into contact and decelerate toward the finish. One inverse arc map drives the whole body and both arms; supporting backhand grip fitting follows that map. Forehand contact is now **0.983333 s**, and its retimed takeback/lag/extension phases are **0.728 / 0.818 / 1.141 s**. Both reference videos stay aligned by semantic phase; the front is labeled comparison-only. Runtime scales the entire baked curve with event rate and uses the newly published contact metadata. Other source contact times remain unchanged.
-
-The optional forehand `rightArmSweep` transports a fixed elbow triangle along a forward reach arc and solves one shoulder elevation against actual string-bed height. It retains a rigid grip and unchanged wrist posture in the hitting zone. Measured head heights are **1.258 m at takeback, 0.958 m at lag, 1.090 m at contact and 1.631 m in extension**. Exported elbow flexion remains **47.873–48.000 degrees** from lag to contact, with no sampled downward head steps or backward hand reversals. Speed peaks just before impact and decreases across follow-through.
-
-The frontend owns absolute time, court placement, ball physics, camera and audio. Root travel eases to zero at boundaries. Routes of at least 1.65 m run; 0.65–1.65 m routes walk; smaller routes use adjustment steps. Gait phase follows distance covered, with world-space stance anchors and lower foot recovery. The same `opponentMovement.ts` route planner budgets time in compilation and samples it during playback: recover inward (crossover on wide lateral recovery), face the net, split for 0.6 s, then approach the next shot. Behind-baseline recovery uses a 0.55 m forehand-side bias mirrored for handedness; net recovery keeps its depth. Maximum speed is 4.8 m/s and travel acceleration is bounded at 6.5 m/s². Final shots also recover. These are authored timing parameters, not measured athlete limits. Runtime leg IK preserves knee hinge planes and limits ankle rotation. Arm blends reconstruct the elbow hinge because ordinary quaternion blending can introduce sideways bending even between valid source poses. Corrections are restored before repeated or backward seeks.
-
-Ball launches meet the actual string-bed anchor for all seven stroke clips and either hand. Toss release includes the same vertical alignment correction as the animated wrist, then joins exactly one outgoing ball at contact. The compiler preserves complete strokes, reachable travel and configured rest duration, extending an interval when necessary. Rest itself supplies travel time, so adding rest is not always a constant translation of the no-rest schedule. Ball pace remains independent of stroke playback rate.
-
-## Gates and verification
-
-`config/anatomy-limits.json` in the lab defines explicit animation plausibility envelopes. The shared inspector measures **63 articulated joints**, bone-length preservation and **upper-arm plus forearm** torso clearance from actual exported transforms, independent of root yaw, scale or handedness. It reports joint, angle, limit and frame in place. Shoulder posterior excursion uses the frontal plane to avoid a false singularity at horizontal abduction. These are conservative animation checks, not clinical certification.
-
-All clips are sampled at **240 Hz**, including between baked frames. Choreography gates retain signed striking face, grip placement, stable forehand wrist, straight toss elbow, contact, path continuity and clip closure checks. Revision 6 adds lifted preparation elbows, the extended baseline-facing forehand takeback and horizontal closed load, correct toss shoulder tilt/downward racket, physical speed peaks near contact and decreasing follow-through speed, plus the full two-hand carry/sight-clearance interval and gait sway. Revision-5 head clearance, serve leg extension and pronation/unwind gates remain. Revision 7 adds baseline-directed support, backward shaft lag with an advancing hand, deeper backhand coil/front-shoulder tilt, serve cocking elbow-line and overhead contact/tuck checks, sustained backhand-volley turn and bent balance arms. Chest turn is checked separately from the unchanged compact volley arc limit. Clearance uses string-bed/shaft and head-sphere proxies, not a full skinned-mesh collision test. Continuity budgets and anatomical angle limits are unchanged. Reports bind asset, limits and checker hashes; publication rejects missing, stale, failed or partial-library reports.
-
-Historical revision 8 results are recorded in the lab's `docs/motion-revision-8.md` and `docs/evidence/revision-8.json` (commit `711f983`). All 15 clips pass at 240 Hz with zero glTF errors/warnings and zero joint violations. New checks reject revision 7 for the unstable/downward forehand hitting path and the four motions' annotated defects. The actual controller passes 11 mixed events per hand after blending/IK, with maximum contact error **0.0012 mm**. **20 lab JavaScript tests, four Python rhythm tests, 208 frontend tests / 21 files and the production build** pass. Browser review covers the marked poses, both hand settings, 527 half-speed forehand frames and 1,194 continuous gameplay frames through split/forehand/recovery/run/backhand; all captured frame diagnostics pass. The active asset is precached. The existing large-chunk build warning remains. These checks support owner technique review; they do not record owner approval.
-
-Revision 8 adds interval checks for fixed forehand elbow bend, forward hand travel and a string bed below impact which rises through contact and extension. It also checks rear-facing takeback/load, backhand pelvis/chest separation, signed service foot stagger and racket/leg proxy clearance, and the sustained forehand-volley turn. The forehand hand-height floor is 1.06 m to allow the owner-requested dip; the anatomy, rigid-grip, compact-arc and physical continuity budgets remain unchanged.
-
-## Reproduce and collaborate
-
-In the lab, run `scripts/setup.ps1`, then `scripts/build.ps1` through PowerShell. Add `-Publish` to copy a mechanically validated candidate to the frontend and run the gameplay gate. The old `-Extract` option is removed; optional pose diagnostics use `setup.ps1 -PoseDiagnostics` and `extract_pose.py` separately. `-Blender <path>` overrides the portable executable.
-
-Edit `scripts/motion_locomotion.py` for movement poses/stride metadata and the frontend `opponentMovement.ts` for travel and recovery; `scripts/motion_revision8.py` holds the preserved stroke corrections, `scripts/motion_refinements.py` for the prior pose/joint corrections, `scripts/motion_recipes.py` for base poses, `scripts/motion_volleys.py` for the two volleys and `config/motion-rhythm.json` for timing. Inspect the rebuilt GLB before accepting choreography. The editable master is `output/tennis-motion-master.blend`; manual Blender edits must be carried back to reproducible controls.
-
-- `node scripts/review_server.mjs`: [MotionLab](http://127.0.0.1:4184/), paired local views, reviewed-phase selection, rhythm plot, frame stepping, joint diagnostics and grip close-up.
-- `node scripts/gameplay_server.mjs`: [MotionSequence](http://127.0.0.1:4185/review/gameplay.html), thirteen events beginning with wide FH → FH → BH, including recovery/split/approach and net play. The Sequence selector also exposes 19 individual movement variants: three walking paces, run, four crossovers, four nudges, jump, split and five slide directions. Contacts 12 and 13 review volleys.
-- `node scripts/check_gameplay.mjs`: repeat the actual controller/IK sweep against the published candidate.
-
-Half-volley, lob, approach, overhead and one-handed-backhand labels still use core-motion proxies. No new technique clips for those labels, exact Djokovic reconstruction, owner visual approval, remote push or deployment is implied.
-
-## Revision 9 verification
-
-See the lab's `docs/motion-revision-9.md` and `docs/evidence/revision-9.json`. All 23 clips pass export, anatomy and choreography gates. At 240 Hz, 11 mixed shots per hand plus all 19 movement variants per hand have zero joint-envelope violations and retain sub-0.002 m contact error. The run's ankle peak is 0.288 m, versus the previous runtime's approximately 0.498 m; minimum knee-to-hip vertical separation is 0.206 m. Stance anchors, bounded root speed/acceleration, recovery position, same/opposite-side launches, deterministic seeking and three walking paces are covered by 218 passing frontend tests (22 files). The 20 lab JavaScript tests, four Python rhythm tests and production build pass; the existing large-chunk warning remains.
-
-Browser review rendered all 19 variants and 834 samples spanning the complete 13-shot sequence. Seven preserved clips are byte-identical; the forehand differs only by at most 1.5e-7 in the exported racket quaternion (all skeletal tracks and timestamps are identical). Numerical and visual evidence supports owner review, not a claim of owner approval. Slides are explicit review primitives; normal hard-court recovery uses footsteps.
-
-## Revision 10 service verification
-
-All 23 clips pass 240 Hz anatomy/choreography and glTF validation with zero errors/warnings. All 22 other decoded clips and their metadata are exactly unchanged. Both-hand gameplay passes 11 mixed events plus 19 movement variants per hand with zero joint violations and contact error below .001 mm. Tests: 219 frontend / 22 files, 20 lab JavaScript, four Python rhythm; production build passes with the existing bundle-size advisory. Browser review includes overhead/three-quarter/front poses and complete service playback in both hands with no joint warnings. See the lab’s `docs/motion-revision-10.md` and `docs/evidence/revision-10.json`. Owner visual acceptance remains open.
-
-## Articulated player replacement
-
-The active character is now a 1.88 m CC0 Quaternius mannequin with smooth limb shells, visible dark joints and a faceless head. See `docs/assets/quaternius-articulated-mannequin.md` for the source and reproducible binder. It replaces the rejected semi-realistic candidate in the static carrier, Motion Lab and gameplay. All 23 revision-10 clips, decoded track values, timestamps and clip metadata are exactly preserved.
-
-Gameplay keeps the mannequin's vertex colors and blends serve ground support continuously through landing. Motion Lab uses the same measured scale/floor calibration. Verification: 221 frontend tests, 20 lab JavaScript tests, four Python rhythm tests, full anatomy/choreography/gameplay gates and production build pass. Browser review includes both 13-shot sequences and all 19 movement variants. The lab's `docs/evidence/character-replacement.json` records hashes and measurements; owner visual acceptance is pending.
-
-## Revision 11 forehand verification
-
-The forehand pelvis remains sideways through contact as the shoulders advance,
-giving 35.52 degrees of hip/shoulder separation at impact. The reviewed rising
-arm sweep remains intact. The forehand volley now uses sparse authored arm
-landmarks instead of fitting the arm separately at every frame; repeated elbow
-extension/flexion is removed while the compact punch, grip, balance arm and
-chest turn are retained. Both behaviors are tested after gameplay blending/IK
-for right- and left-handed play.
-
-Revision-11 bundle: `tennis-local-v1.ae42964156f7.glb` (2,746,628 bytes). The mannequin,
-other 21 decoded clips and their metadata are exactly unchanged. All individual
-shot contact, duration and recovery clocks are preserved. All 23 clips pass
-240 Hz anatomy/choreography and zero-error/warning glTF validation. Gameplay
-passes 11 mixed events plus 19 movement variants per hand. 223 frontend tests,
-20 lab JavaScript tests, four Python rhythm tests and production build pass.
-Browser review covers 506 lab frames and 556 gameplay frames with no joint
-warnings. See the lab's `docs/motion-revision-11.md` and
-`docs/evidence/revision-11.json`; owner visual acceptance remains pending.
-
-## Revision 12 athletic stance verification
-
-Forehand/backhand groundstrokes, slices and volleys now widen the foot spacing
-by 20 cm and lower the pelvis by 7.5 cm (groundstrokes/slices) or 6.5 cm
-(volleys). The stance eases in over 0.25 s from the shared ready/split boundary,
-holds through the shot and eases back into recovery. Dominant elbow bend and
-contact height are preserved, so gameplay height alignment retains the crouch.
-The backhand support-arm fit maintains a continuous elbow plane and grip.
-
-Revision-12 bundle: `tennis-local-v1.92d49b17d0d5.glb` (2,746,628 bytes). All shot
-clocks, the mannequin and the other 17 decoded clips are unchanged. The library
-passes glTF, 240 Hz anatomy/choreography and both-hand gameplay checks,
-including 11 mixed events and 19 movement variants per hand. Maximum contact
-error is below 0.001 mm. 229 frontend tests (including six new both-hand stance
-cases), 20 lab JavaScript tests, four Python rhythm tests and the production
-build pass. The new asset is precached; the existing chunk-size advisory remains.
-
-Browser review covers all six contact/preparation poses, 798 lab frames and
-4,948 frames across both full 13-shot gameplay sequences, with no joint
-warnings. Lab commits: `c3edff8` (authoring), `60c2a0d` (grip continuity and
-verification). See the lab's `docs/motion-revision-12.md` and
-`docs/evidence/revision-12.json`. Owner visual acceptance remains pending.
-
-## Revision 13 crossover verification
-
-Front/back crossovers now pivot the pelvis about 35.5 degrees, with a smaller
-chest turn, lateral weight transfer and a slight rise as weight changes legs.
-The runtime chooses the anatomical leading foot in the mirrored player's
-starting frame. This fixes misplaced left-handed drill anchors that previously
-forced the reach solver to lower the hips by as much as 21.4 cm. The leg solver
-and fixed bone lengths remain active.
-
-All four crossover drills in both hands now keep world pelvis height within
-0.888-0.908 m, comparable to walking (0.888 m minimum) and running (0.848 m).
-Additional reach correction stays below 1.45 cm. Regression checks inspect the
-actual blended rig, hip excursion, foot targets and continuity. The lab's
-`scripts/check_crossovers.mjs` runs after gameplay validation on published builds.
-
-Active bundle: `tennis-local-v1.bd5a22aed5cf.glb` (2,813,080 bytes). The mannequin,
-all 19 other decoded clips, stroke clocks and crossover travel metadata are
-unchanged. All 23 clips pass export/anatomy/choreography gates; both-hand gameplay
-and all eight crossover cases pass. 233 frontend tests, 20 lab JavaScript tests,
-four Python rhythm tests and the production build pass. Browser review covers
-1,994 frames of crossovers, walk/run and recovery into split-steps and strokes
-without joint warnings. See the lab's `docs/motion-revision-13.md` and
-`docs/evidence/revision-13.json`. Owner visual acceptance remains pending.
-Lab commits: `203b830` (diagnosis/contract), `d50115c` (authoring and verification).
+Public hosting, public provenance review, target-device performance and final owner technique acceptance remain separate release gates. See the integration receipt for the current verification run; historical revision test counts are not current suite totals.

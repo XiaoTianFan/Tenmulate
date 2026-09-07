@@ -1,7 +1,7 @@
 # V1 release matrix
 
-- **Snapshot:** 2026-08-30
-- **Scope:** Local public-free V1 with canonical scenes and a neutral mocap carrier
+- **Motion reconciliation:** 2026-09-07; unrelated rows retain their earlier verification scope
+- **Scope:** Local V1; current motion/model status follows the [integration receipt](motion-main-integration-2026-09-07.md)
 - **Authority:** [Product requirements](../product-requirements.md)
 
 Status meanings:
@@ -55,12 +55,12 @@ Status meanings:
 
 | ID | Status | Evidence or remaining gate |
 | --- | --- | --- |
-| OPP-01 | Carrier implemented; tennis motion pending | CC0 741 kB neutral GLB, 65-joint skin, 23-role adapter, ready pose, lazy animation loader, and failure fallback run in-browser. Mocap/deformation review remains. |
-| OPP-02 | Runtime boundary implemented; production asset pending | Deterministic contact/launch boundary and clip playback seam exist; separate racket plus contact markers require the selected mocap clips. |
-| OPP-03 | Runtime boundary implemented; production asset pending | Camera/ball sequence metadata and animation mixer exist; opponent footwork/root-motion review requires owner-supplied clips. |
-| OPP-04 | Metadata implemented; production asset pending | Every compiled shot accepts left/right opponent metadata and both hand sockets exist; visual mirror/distinct-clip review remains. |
-| OPP-05 | Trajectory/rhythm implemented; production asset pending | Eight legal serve trajectories span both hands and independent normal/compact metadata; distinct serve-motion timing remains. |
-| OPP-06 | Schema/runtime seam implemented; production asset pending | Serve rhythm is independent of pace in schema/editor/compiler; readable preparation and playback bounds require animation review. |
+| OPP-01 | Implemented; external validation | 1.88 m articulated mannequin, 65-bone rig, 24-clip combined GLB and load-failure fallback. Final owner/device acceptance remains. |
+| OPP-02 | Implemented; technique review | Rigid racket, per-clip contact anchors and real-rig both-hand contact checks. Dedicated techniques and remaining proxies are listed in the motion contract. |
+| OPP-03 | Implemented; technique review | Distance-driven gait, wide-recovery crossover, center bias, split-step and separate approach use one compilation/playback planner. Explicit jump/slide/back-cross primitives have runtime review coverage. |
+| OPP-04 | Implemented; technique review | Mirrored clips, grip/contact alignment, knee-plane preservation and crossover leading-foot choice pass both-hand gameplay checks. |
+| OPP-05 | Implemented; technique review | Separate normal/compact pinpoint clips selected by practice/editor rhythm; lower ballistic toss and quicker cadence preserve outgoing ball physics. |
+| OPP-06 | Implemented; technique review | Practice and per-event editor overrides select the authored service clock at rate 1. Lower toss, contact handoff, preserved ball flight and both-hand playback are verified; owner technique review remains. |
 | OPP-07 | Implemented; owner interaction review pending | Quick Practice and editor court plans expose the full 6.40 m baseline/3.66 m sideline ITF competition runoff. Rally defaults one metre behind the far baseline; storage migration, bounds, presets, and import rejection have automated coverage. |
 
 ## Drills and local content
@@ -72,7 +72,7 @@ Status meanings:
 | DRILL-03 | Implemented | Exact seed replay and bounded shot/timing variation have automated coverage. |
 | DRILL-04 | Implemented | 26 shots and 16 drills cover every named family and requested tactical sequence. |
 | DRILL-05 | Implemented | One explicit Trajectory toggle controls the predictive path without introducing a second setup mode. |
-| DRILL-06 | Implemented for code-owned primitives; asset validation pending | Five-track editor, undo/redo, live preview, bounded nested camera validation, and test play exist. Clip/GLB availability checks start with production assets. |
+| DRILL-06 | Implemented for code-owned primitives; asset validation pending | Five-track editor, undo/redo, live preview, bounded nested camera validation, and test play exist. The active combined GLB, clip inventory and publication calibration are checked independently by the consumer. |
 | DRILL-07 | Implemented | Size-limited schema-v1 JSON exchange allowlists fields and rejects duplicate IDs, remote URLs, invalid geometry, unknown primitives, and malformed JSON. |
 | DRILL-08 | Implemented for current bundled/local content | Production service worker hard-reloaded offline after network removal. Optional production asset caching/errors remain an asset-stage gate. |
 

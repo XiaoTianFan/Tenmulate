@@ -11,7 +11,7 @@ The system should optimize for perceptual credibility and testability, not for g
 
 ## 2. Proposed stack
 
-**Motion production update (2026-09-05):** [ADR-0012](decisions/0012-local-opponent-motion-pipeline.md) replaces cloud mocap with local video analysis, constraint correction, and Blender baking in `F:/Codes/Tenmulate_motion_analysis`. Only versioned runtime assets/metadata and the session-time animation controller enter this frontend. Inference is never a browser runtime dependency. The older cloud-production descriptions below are superseded in this scope.
+**Motion production update (2026-09-05):** [ADR-0012](decisions/0012-local-opponent-motion-pipeline.md) replaces cloud mocap with local video analysis, constraint correction, and Blender baking in `F:/Codes/Tenmulate_motion_analysis`. Only versioned runtime assets/metadata and the session-time animation controller enter this frontend. Inference is never a browser runtime dependency. The implemented method and current binding contract are in section 8.
 
 | Layer | Proposed choice | Rationale |
 | --- | --- | --- |
@@ -221,37 +221,50 @@ At the marker frame:
 
 ADR-0013 extends the earlier Blender pilots to all six built-in venues and removes procedural venue presentation. Source, provenance, reproducible builds, variant budgets and seated audiences are documented in [Six authored venues](development/indoor-venues-and-performance.md). The visible court/net is authored in GLB, while regulation coordinates and gameplay authority stay in TypeScript. Each manager validates requested ID, hash, size and independent gameplay anchors. A failed/unavailable asset shows a retryable error, not a different venue.
 
-1. Build exact court, net, ball, target-zone, trajectory/debug, and simple modular venue primitives directly in code where parametric precision and tiny payloads are valuable.
-2. Acquire, commission, model, scan, or generate a licensed game-realistic base character; record provider/model/version, prompts/references, input rights, output terms, and provenance.
-3. Normalize topology, separate materials/parts as needed, build/normalize the rig, and set meters/axes in Blender.
-4. Capture tennis-specific motion from licensed footage or mocap. AI auto-rigging/video/text motion is candidate production tooling, not acceptance evidence.
-5. Retarget and hand-clean feet, hips, shoulders, racket hand, non-racket arm, toss, trophy position, contact, follow-through, and recovery.
-6. Bake one action per named clip and add contact/rhythm/hand metadata.
-7. Export GLB, validate in an independent glTF viewer, optimize geometry and KTX2/Basis textures, and run the in-app asset validator.
-8. Preserve `.blend`, source material/license records, generation/capture receipts, export preset/version, and final GLB/content hashes.
+Motion production uses the independent local laboratory under ADR-0012; the current
+model/library contract is [ADR-0014](decisions/0014-articulated-player-and-complete-motion-library.md).
+The [motion runbook](development/local-motion-pipeline.md) is the operational authority.
 
-Source selection is made through the standardized bake-off in the 2026 AI 3D research note. Blender is the canonical finishing/source-of-truth environment; Blender MCP, if used, is an isolated local productivity helper and never part of the runtime.
+1. Inspect owner-supplied footage and record performer, view, source cadence and phase uncertainty.
+2. Author joint-space controls with anatomical constraints, keeping fixed segments and rigid grips.
+3. Bind the CC0 articulated mannequin to the established tennis armature; bake all 24 clips at 120 Hz.
+4. Validate exported transforms at 240 Hz, including contact, grip, stance and interval continuity.
+5. Publish the immutable combined model/motion GLB with matching provenance, clocks and calibration.
+6. Verify the actual frontend rig after blending/IK for both hands, then visually review playback.
 
-The accepted authoring constraint is cloud inference only: no local 3D or mocap model will be installed or run. Local Blender cleanup, retargeting, inspection, and deterministic export remain allowed because they are DCC production steps, not model inference. Runtime assets are hosted by the project under immutable URLs; provider generation endpoints are never called during a practice session.
+Recipes and source configuration are editable authority; Blender masters are reproducible
+outputs. Optional local pose extraction is diagnostic only. Cloud inference is not a
+production prerequisite, and no inference or reference-video fetch occurs during practice.
 
-### 8.4 Mocap and character binding contract
+### 8.4 Motion and character binding contract
 
-- A shippable opponent is a skinned mesh: topology + UV/PBR materials + canonical armature + skin weights.
-- Cloud mocap output is source-skeleton animation data, normally FBX/BVH and sometimes GLB. It is retargeted and baked onto the canonical target armature; the source skeleton is not a runtime dependency.
-- The implemented first slice uses one 741,412-byte texture-free base GLB and lazy animation GLBs targeting its exact versioned bone names. This split is already justified by the owner supplying mocap after the scene/carrier integration and keeps the unchanging mesh cacheable while clips iterate. The first accepted bundle must contain ready, right-handed forehand, right-handed backhand, normal serve, and essential footwork/recovery connectors. Compact serve follows once this retarget/blend chain passes and remains mandatory for V1.
-- The racket is a separate rigid GLB prop attached to a named right- or left-hand socket; it is not fused into or skin-weighted with the character body.
-- Rackets are rigid props attached to named left/right hand sockets. A serve ball follows a kinematic toss through the toss/contact markers, then transfers to the deterministic trajectory solver at contact.
-- Root motion, foot plants, toss, trophy, contact, and recovery are explicitly authored metadata. Normal-speed and frame-step tennis review are both required.
-- Professional match footage may be used as view-only reference. Cloud motion extraction requires documented download, upload, derivative-use, likeness, and commercial rights; public availability alone does not satisfy that gate.
+- The active 1.88 m articulated mannequin uses vertex-colored neutral panels and dark joints
+  on the existing 65-bone skeleton. Its source pack's animations are not imported.
+- Gameplay loads one hashed GLB containing the skinned model, separate rigid racket and
+  24 animation clips. The static carrier remains a build/provenance resource.
+- `src/content/opponent-motion.json` selects the runtime asset, clock and calibration;
+  `opponent-asset.json` selects model identity. Publication and the frontend integration
+  check enforce agreement with the published manifest.
+- The absolute session clock samples baked clips and the shared root-recovery planner.
+  Distance controls step cadence. Foot IK preserves knee planes; hand grips remain rigid.
+- `serve` and `serve-compact` are separate normal-rate clips. The selected release/contact
+  anchors drive a ballistic toss; outgoing ball physics remains independent of rhythm.
+- Groundstrokes, slices and volleys have dedicated clips. Half-volley, overhead and
+  one-handed-backhand labels retain documented proxies.
+- The build precaches the active combined opponent bundle only. Retained historical
+  bundles are not required offline downloads.
+- Technique acceptance requires normal-speed and phase-frame visual review in addition
+  to mechanics checks. Public source/provenance and target-device review remain release gates.
 
-The full contract and provider comparison are in [Mocap to web opponent](research/mocap-to-web-character-pipeline.md).
+Earlier provider comparisons are historical research in
+[Mocap to web opponent](research/mocap-to-web-character-pipeline.md).
 
 ## 9. Rendering architecture
 
 - The renderer adapter owns initialization, resize, pixel ratio, render passes, color management, and capability reporting.
 - The scene layer owns regulation court geometry, net, ball, opponent, lighting, venue adapters, and debug overlays.
 - Standard PBR materials first. Custom effects must work on the chosen backend path or have a tested accessible fallback.
-- Gameplay visibility materials are renderer-owned. The ball uses one shared optic yellow-green PBR material for every overlapping instance; the opponent uses one shared white PBR fill plus back-face outline clones bound to the source skinned meshes and skeletons. The outline writes no depth or shadow and never enters physics or collision state.
+- Gameplay visibility materials are renderer-owned. The ball uses one shared optic yellow-green PBR material for every overlapping instance; the opponent uses vertex-colored neutral panels/dark joints plus back-face outline clones bound to the source skinned meshes and skeletons; legacy uncolored carriers use a shared white fill. The outline writes no depth or shadow and never enters physics or collision state.
 - External asset loading is manifest-driven with explicit URL, byte size, hash, cache group, version, compatible skeleton/content versions, and a progress/error state.
 - The critical route loads UI, the selected Blender venue variant, ball and drill. Quality/Performance selection precedes GLB download; only one complete venue remains CPU/GPU-resident. Deselecting aborts transfers and releases completed geometry/materials/textures. Late parses are disposed. Invalid assets show retryable loading errors, with no procedural substitute.
 - Six authored identities cover hard, clay and grass variants of Outdoor Arena and Indoor Court. Packed Blender masters own architecture, access, seating, court/net, furniture and aligned fixture anchors. Separate low-detail exports retain registration, roof silhouette and seat positions while simplifying secondary detail, seats, nets and textures.
@@ -263,7 +276,7 @@ The full contract and provider comparison are in [Mocap to web opponent](researc
 - Weather does not change bounce physics in V1. Wind changes air-relative drag and Magnus force; lighting and wetness remain presentation-only. Any future wet-court physics must be an explicit, calibrated surface profile.
 - Adaptive quality can lower pixel ratio, shadow map resolution, anisotropy, texture resolution, post-processing, and venue detail. It cannot reduce simulation frequency or change shot outcomes.
 
-Provisional, benchmark-only delivery budgets are no more than 5 MiB compressed for the initial application, canonical court modules, and local texture path, and no more than 15 MiB additional data to start the first neutral-opponent drill. The complete animation library may be much larger because it is split, lazy-loaded, and cached; measured first-use and warm-cache behavior, not total repository size, determines acceptance.
+Provisional, benchmark-only delivery budgets are no more than 5 MiB compressed for the initial application, canonical court modules, and local texture path, and no more than 15 MiB additional data to start the first neutral-opponent drill. The current combined opponent library is about 2.85 MiB and is precached; measured first-use and warm-cache behavior, not retained historical repository assets, determines acceptance.
 
 ### 9.1 Future renderer reassessment matrix
 

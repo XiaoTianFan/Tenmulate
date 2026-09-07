@@ -1,5 +1,7 @@
 # Neutral opponent asset record
 
+> Historical carrier and skeleton-source record. The displayed player is now the [articulated mannequin](quaternius-articulated-mannequin.md); current animation delivery is defined in the [motion contract](../development/local-motion-pipeline.md).
+
 - **Runtime ID:** `quaternius-neutral-male-v1`
 - **Status:** Accepted as the V1 mocap carrier; tennis animation and racket still pending
 - **Retrieved and normalized:** 2026-08-30

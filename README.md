@@ -2,14 +2,14 @@
 
 Tenmulate is a browser-based, first-person tennis visualization tool. It places a player at a calibrated on-court point of view and plays configurable incoming ball trajectories for shadow swinging, return preparation, and tactical mental rehearsal.
 
-The repository contains the active V1 implementation: a deterministic Three.js court/ball simulation, complete starter shot library, rehearsal player, local drill editor, independently customizable camera-position and perspective presets, validated JSON exchange, and offline-capable app shell. Court environments have six procedural fallbacks plus two opt-in Blender-authored arenas. A compact CC0 neutral humanoid is integrated as the mocap carrier, with the ball machine retained only as its load-failure fallback.
+The repository contains the active V1 implementation: a deterministic Three.js court/ball simulation, complete starter shot library, rehearsal player, local drill editor, independently customizable camera-position and perspective presets, validated JSON exchange, and offline-capable app shell. All six built-in court environments use Blender-authored assets with Quality/Performance variants. A 1.88 m CC0 articulated mannequin runs the 24-clip tennis library, including normal and compact pinpoint serves, in actual gameplay. The ball machine remains the opponent load-failure fallback.
 
 ## Implemented direction
 
 - React, TypeScript, and Vite for the application shell.
 - Three.js `WebGLRenderer` with WebGL 2 for the V1 runtime, isolated behind a typed scene adapter; WebGPU remains a later production-asset benchmark.
 - A tennis-specific, fixed-step ball-flight solver using gravity, aerodynamic drag, Magnus lift, and calibrated bounce response.
-- A reproducible visual pipeline: Blender source/scripts and optimized GLBs for the hard and clay outdoor arenas, six reusable Three.js fallback compositions, shared dynamic PBR lighting, and one neutral faceless GLB mocap carrier. Gameplay coordinates and simulation remain TypeScript-owned.
+- A reproducible visual pipeline: Blender source/scripts and optimized GLBs for all six venues, shared dynamic PBR lighting, and a neutral articulated player with reference-authored tennis motions. Gameplay coordinates and simulation remain TypeScript-owned.
 - A complete public-free V1 with local-first settings, full drill authoring, all requested shot families, and no runtime camera capture or body tracking.
 
 The renderer and simulation decision is accepted for V1. Production 3D assets, device/browser validation, and public hosting still have explicit release gates.
@@ -25,7 +25,8 @@ The renderer and simulation decision is accepted for V1. Production 3D assets, d
 | [AI 3D tool market map](docs/research/ai-3d-asset-tools-2026.md) | August 2026 Chinese and international asset/mocap options and bake-off plan |
 | [Cloud world-generation research](docs/research/world-generation-and-scene-reconstruction-2026.md) | Historical Aholo/Marble/splat evaluation; rejected for production by ADR-0005 |
 | [Mocap-to-web character pipeline](docs/research/mocap-to-web-character-pipeline.md) | Mesh/rig/skin/animation definitions, retargeting, tennis cleanup, formats, and rights gate |
-| [Neutral opponent asset record](docs/assets/quaternius-neutral-opponent.md) | Exact CC0 source, normalization, hashes, skeleton/socket contract, and remaining mocap gates |
+| [Articulated player](docs/assets/quaternius-articulated-mannequin.md) | Active CC0 model, source/binder and preserved rig contract |
+| [Current motion pipeline](docs/development/local-motion-pipeline.md) | 24 clips, reference authoring, normal/compact serves, recovery and gameplay integration |
 | [Court environment concepts](docs/concepts/court-environment-concepts-2026-08.md) | Bird's-eye and player-level boards for owner art-direction review |
 | [Scene-generation prompt kit](docs/concepts/scene-generation-prompt-kit.md) | Four reusable perspective prefixes, including a 360-degree panorama, and six standalone court/environment prompts |
 | [Opponent character 01](docs/concepts/opponent-character-01.md) | First fictional right-handed male design sheet and detachable-racket production guidance |
@@ -52,7 +53,19 @@ The renderer and simulation decision is accepted for V1. Production 3D assets, d
 - Court environment directions: six accepted on 2026-08-29; outdoor Panel 1 selected as the product and vertical-slice baseline.
 - First opponent concept sheet: generated on 2026-08-29; owner/rigging review pending.
 - Setup, rehearsal, and timeline-editor visual concepts: generated on 2026-08-29 and adopted as the implementation reference.
-- Technical implementation: the complete local V1 is runnable, automated-tested, browser-verified, offline-capable, responsive, and performance-adaptive. Six procedural venues, two optional Blender arena replacements and the neutral opponent carrier run in-browser; tennis mocap, racket/contact review, target-device/owner visual acceptance, and public-release operations remain open.
+- Technical implementation: the complete local V1 is runnable, automated-tested, browser-verified, offline-capable, responsive, and performance-adaptive. Six authored venues and the articulated player with tennis strokes, both serve rhythms, recovery and movement run in-browser. Final technique, target-device/owner acceptance and public-release operations remain open.
 - Production deployment: not started.
 
-Review the new clay model at `/venue-review.html?venue=clay-sunset-arena&camera=corner` on the local server. Normal practice remains procedural by default; `?venueAsset=blender` or `VITE_AUTHORED_ARENA=1` enables both authored replacements. See [ADR-0010](docs/decisions/0010-blender-clay-arena-and-multi-venue-boundary.md).
+## Run locally
+
+Install with `npm ci`, then `npm run dev` (default `http://127.0.0.1:4173/`).
+For this motion review use `npm run dev -- --host 127.0.0.1 --port 5173 --strictPort`.
+Run `npm test` and `npm run build`; the build also verifies the selected motion asset and offline cache.
+
+Use **Return → Opponent → Serve rhythm** to choose Normal or Compact.
+Groundstroke/slice/volley selection uses the same mannequin and recovery controller.
+The sibling MotionLab provides phase and movement review at ports 4184/4185; see
+the [motion runbook](docs/development/local-motion-pipeline.md).
+Venue review remains `/venue-review.html?venue=clay-sunset-arena&camera=corner`.
+All six authored venues are the default under [ADR-0013](docs/decisions/0013-six-authored-venues-and-audience.md).
+No public deployment is implied by these local services.
