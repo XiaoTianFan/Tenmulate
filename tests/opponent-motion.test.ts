@@ -84,6 +84,27 @@ describe('local motion asset and shared contact clock', () => {
     expect(createHash('sha256').update(bytes).digest('hex')).toBe(OPPONENT_MOTION.sha256);
     expect(bytes.length).toBe(OPPONENT_MOTION.bytes);
   });
+  it.each(['forehand','backhand','forehand-slice','backhand-slice','forehand-volley','backhand-volley'] as const)('%s retains its wider lower base after gameplay contact alignment', async clip => {
+    const rig=await loadRig();
+    const point=(name:string)=>rig.group.getObjectByName(name)!.getWorldPosition(new THREE.Vector3());
+    for(const hand of ['right','left'] as const){
+      const event=motionEvent(repetition(clip,0,2,clip.endsWith('volley')?7:12.8,hand));
+      for(const time of [event.contactTime-.10,event.contactTime,event.contactTime+.10]){
+        const pose=sampleOpponentTimeline([event],time)!;
+        rig.sampleMotion(pose);
+        const left=point('foot_l'),right=point('foot_r');
+        expect(Math.hypot(left.x-right.x,left.z-right.z)).toBeGreaterThan(.65);
+        // Keep the authored crouch even when ball height adds a world offset.
+        const localHipHeight=(point('pelvis').y-pose.verticalCorrection-OPPONENT_MOTION.floorOffset)/OPPONENT_MOTION.scale;
+        expect(localHipHeight).toBeLessThan(.87);
+        if(time===event.contactTime){
+          expect(localHipHeight).toBeLessThan(.845);
+          expect(rig.getContactPosition()!.distanceTo(new THREE.Vector3(event.source.x,event.source.y,event.source.z))).toBeLessThan(.002);
+        }
+      }
+    }
+    rig.dispose();
+  });
   it('holds the forehand hip line while the shoulders reach contact for either hand', async () => {
     const rig=await loadRig();
     const line=(left:string,right:string)=>{

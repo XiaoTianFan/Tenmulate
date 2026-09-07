@@ -1,6 +1,6 @@
 # Local opponent motion pipeline
 
-- **Updated:** 2026-09-07, revision 11 forehand hip separation and volley continuity
+- **Updated:** 2026-09-07, revision 12 wider athletic rally stances
 - **State:** Twenty-three-clip reference-led library integrated and mechanically verified; visual style remains owner-reviewable
 - **Authority:** [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md)
 - **Laboratory:** `F:/Codes/Tenmulate_motion_analysis`, independent Git repository
@@ -99,7 +99,7 @@ extension/flexion is removed while the compact punch, grip, balance arm and
 chest turn are retained. Both behaviors are tested after gameplay blending/IK
 for right- and left-handed play.
 
-Active bundle: `tennis-local-v1.ae42964156f7.glb` (2,746,628 bytes). The mannequin,
+Revision-11 bundle: `tennis-local-v1.ae42964156f7.glb` (2,746,628 bytes). The mannequin,
 other 21 decoded clips and their metadata are exactly unchanged. All individual
 shot contact, duration and recovery clocks are preserved. All 23 clips pass
 240 Hz anatomy/choreography and zero-error/warning glTF validation. Gameplay
@@ -108,3 +108,26 @@ passes 11 mixed events plus 19 movement variants per hand. 223 frontend tests,
 Browser review covers 506 lab frames and 556 gameplay frames with no joint
 warnings. See the lab's `docs/motion-revision-11.md` and
 `docs/evidence/revision-11.json`; owner visual acceptance remains pending.
+
+## Revision 12 athletic stance verification
+
+Forehand/backhand groundstrokes, slices and volleys now widen the foot spacing
+by 20 cm and lower the pelvis by 7.5 cm (groundstrokes/slices) or 6.5 cm
+(volleys). The stance eases in over 0.25 s from the shared ready/split boundary,
+holds through the shot and eases back into recovery. Dominant elbow bend and
+contact height are preserved, so gameplay height alignment retains the crouch.
+The backhand support-arm fit maintains a continuous elbow plane and grip.
+
+Active bundle: `tennis-local-v1.92d49b17d0d5.glb` (2,746,628 bytes). All shot
+clocks, the mannequin and the other 17 decoded clips are unchanged. The library
+passes glTF, 240 Hz anatomy/choreography and both-hand gameplay checks,
+including 11 mixed events and 19 movement variants per hand. Maximum contact
+error is below 0.001 mm. 229 frontend tests (including six new both-hand stance
+cases), 20 lab JavaScript tests, four Python rhythm tests and the production
+build pass. The new asset is precached; the existing chunk-size advisory remains.
+
+Browser review covers all six contact/preparation poses, 798 lab frames and
+4,948 frames across both full 13-shot gameplay sequences, with no joint
+warnings. Lab commits: `c3edff8` (authoring), `60c2a0d` (grip continuity and
+verification). See the lab's `docs/motion-revision-12.md` and
+`docs/evidence/revision-12.json`. Owner visual acceptance remains pending.
