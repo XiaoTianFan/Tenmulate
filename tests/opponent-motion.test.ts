@@ -11,9 +11,9 @@ import { compileSession } from '../src/engine/session/compileSession';
 import { motionEvent, minimumMotionGap, sampleOpponentTimeline, strokeForShot, OPPONENT_MOTION, MAX_OPPONENT_SPEED, type MotionRepetition, type StrokeId } from '../src/engine/session/opponentTimeline';
 
 const repetition = (clip: StrokeId, index = 0, x = 0, z = 12.5, hand: 'left' | 'right' = 'right'): MotionRepetition => ({
-  index, startTime: 3 + index * 8, shot: { ...SHOTS[0]!, family: clip === 'serve' ? 'serve' : clip.endsWith('-volley') ? 'volley' : 'groundstroke',
-    stroke: clip === 'serve' ? undefined : clip.startsWith('backhand') ? 'backhand' : 'forehand', spin: clip.endsWith('slice') ? 'slice' : 'topspin', opponentHand: hand, serveRhythm: 'normal',
-    source: { x, y: clip === 'serve' ? 2.75 : clip.endsWith('-volley') ? 1.32 : 1.1, z }, target: { x: 1.7, z: -9 } },
+  index, startTime: 3 + index * 8, shot: { ...SHOTS[0]!, family: clip.startsWith('serve') ? 'serve' : clip.endsWith('-volley') ? 'volley' : 'groundstroke',
+    stroke: clip.startsWith('serve') ? undefined : clip.startsWith('backhand') ? 'backhand' : 'forehand', spin: clip.endsWith('slice') ? 'slice' : 'topspin', opponentHand: hand, serveRhythm: clip === 'serve-compact' ? 'compact' : 'normal',
+    source: { x, y: clip.startsWith('serve') ? 2.75 : clip.endsWith('-volley') ? 1.32 : 1.1, z }, target: { x: 1.7, z: -9 } },
 });
 const bytes = await readFile(new URL(`../public${OPPONENT_MOTION.url}`, import.meta.url));
 const loadRig = async () => {
@@ -24,6 +24,25 @@ const loadRig = async () => {
 afterEach(() => vi.restoreAllMocks());
 
 describe('local motion asset and shared contact clock', () => {
+  it('uses a separate compact clip with a lower toss, without changing ball pace', () => {
+    const base=SHOTS.find(s=>s.family==='serve')!;
+    const drill={...DRILLS[0]!,events:undefined,shotIds:[base.id]};
+    const settings={repetitions:2,interval:5,variationPercent:0,timingVariationPercent:0,launchSpeedKmh:110,surface:'hard',seed:'serve-rhythms',spin:'preset',opponentHand:'right',workBlockSize:2,restSeconds:0} as const;
+    const sessions=(['normal','compact'] as const).map(serveRhythm=>compileSession(drill,{...settings,serveRhythm}));
+    const [normal,compact]=sessions.map(s=>motionEvent(s.repetitions[0]!));
+    expect(normal!.clip).toBe('serve');expect(compact!.clip).toBe('serve-compact');
+    expect(compact!.rate).toBe(1);expect(normal!.rate).toBe(1);
+    expect(compact!.contactTime-compact!.start).toBeLessThan(normal!.contactTime-normal!.start);
+    const physicalTrajectories=sessions.map(s=>{
+      const {intent: _intent,...physical}=s.repetitions[0]!.trajectory;return physical;
+    });
+    expect(physicalTrajectories[0]).toEqual(physicalTrajectories[1]);
+    const apex=(event:ReturnType<typeof motionEvent>)=>{
+      let top=0;for(let t=event.start;t<event.contactTime;t+=1/240)top=Math.max(top,sampleOpponentTimeline([event],t)!.toss?.y??0);return top;
+    };
+    expect(apex(compact!)).toBeLessThan(apex(normal!)-.25);
+    expect(strokeForShot({...base,family:'overhead',serveRhythm:'compact'},0)).toBe('serve');
+  });
   it.each([4,5,6,7])('crossover drill %i turns the hips without squatting in either hand', async index => {
     const rig=await loadRig();
     const point=(name:string)=>rig.group.getObjectByName(name)!.getWorldPosition(new THREE.Vector3());
@@ -177,7 +196,7 @@ describe('local motion asset and shared contact clock', () => {
     }
     rig.dispose();
   });
-  it.each(['forehand', 'backhand', 'forehand-slice', 'backhand-slice', 'forehand-volley', 'backhand-volley', 'serve'] as const)('%s hits the exact launch point for either hand and reproduces arbitrary seeks', async clip => {
+  it.each(['forehand', 'backhand', 'forehand-slice', 'backhand-slice', 'forehand-volley', 'backhand-volley', 'serve', 'serve-compact'] as const)('%s hits the exact launch point for either hand and reproduces arbitrary seeks', async clip => {
     const rig = await loadRig();
     for (const hand of ['right', 'left'] as const) {
       const event = motionEvent(repetition(clip, 0, 2, 12.8, hand));
@@ -195,8 +214,8 @@ describe('local motion asset and shared contact clock', () => {
     }
     rig.dispose();
   });
-  it('hands a continuous serve toss to the outgoing ball without an extra contact ball', () => {
-    const event = motionEvent(repetition('serve'));
+  it.each(['serve','serve-compact'] as const)('%s hands a continuous toss to the outgoing ball without an extra contact ball', clip => {
+    const event = motionEvent(repetition(clip));
     expect(sampleOpponentTimeline([event], event.contactTime - .00001)!.toss).not.toBeNull();
     const toss = sampleOpponentTimeline([event], event.contactTime - .00001)!.toss!;
     expect(Math.hypot(toss.x - event.source.x, toss.y - event.source.y, toss.z - event.source.z)).toBeLessThan(.001);
@@ -244,11 +263,11 @@ describe('local motion asset and shared contact clock', () => {
     expect(waiting.layers[0]!.clip).toBe('ready');
     expect(sampleOpponentTimeline([a, b], plan.splitStart + .3)!.layers[0]!.clip).toBe('split-step');
   });
-  it('starts the serve toss at the corrected tossing wrist for either hand', async () => {
+  it.each(['serve','serve-compact'] as const)('%s starts its toss at the corrected tossing wrist for either hand', async clip => {
     const rig=await loadRig();
     for(const hand of ['right','left'] as const){
-      const event=motionEvent(repetition('serve',0,2,12.8,hand));
-      const sample=sampleOpponentTimeline([event],event.start+OPPONENT_MOTION.clips.serve.tossRelease+1e-8)!;
+      const event=motionEvent(repetition(clip,0,2,12.8,hand));
+      const sample=sampleOpponentTimeline([event],event.start+OPPONENT_MOTION.clips[clip].tossRelease+1e-8)!;
       rig.sampleMotion(sample);
       const wrist=rig.group.getObjectByName('hand_l')!.getWorldPosition(new THREE.Vector3());
       expect(wrist.distanceTo(new THREE.Vector3(sample.toss!.x,sample.toss!.y,sample.toss!.z))).toBeLessThan(.002);

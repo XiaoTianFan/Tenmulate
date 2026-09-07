@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { OPPONENT_MOTION, type MotionSample } from '../session/opponentTimeline';
+import { OPPONENT_MOTION, isServeMotion, type MotionSample } from '../session/opponentTimeline';
 import { DEFAULT_RALLY_OPPONENT_POSITION } from '../../domain/court';
 import {
   OPPONENT_ASSET,
@@ -306,12 +306,12 @@ export class OpponentRig {
       // taller player's contact correction crossed it on consecutive frames.
       const plantedAnkleHeight = .087 * OPPONENT_MOTION.scale + OPPONENT_MOTION.floorOffset;
       const lift = Math.min(left.y, right.y) - plantedAnkleHeight;
-      const airborneWeight = sample.event?.clip === 'serve'
+      const airborneWeight = isServeMotion(sample.event?.clip ?? '')
         ? THREE.MathUtils.smoothstep(lift, .01, .08) : 0;
       if (airborneWeight < 1) {
         // Preserve the service stance and airborne recovery knee's authored
         // bend plane when correcting contact height over the planted foot.
-        const preserveBend = sample.event?.clip === 'serve';
+        const preserveBend = isServeMotion(sample.event?.clip ?? '');
         left.y += sample.verticalCorrection * airborneWeight;
         right.y += sample.verticalCorrection * airborneWeight;
         this.solveFoot('l', left, preserveBend);

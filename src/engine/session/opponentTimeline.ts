@@ -6,7 +6,8 @@ import type { ShotDefinitionV1 } from '../../content/types';
 import type { Vec3 } from '../../domain/vector';
 
 export const OPPONENT_MOTION = library;
-export type StrokeId = 'forehand' | 'backhand' | 'forehand-slice' | 'backhand-slice' | 'forehand-volley' | 'backhand-volley' | 'serve';
+export type StrokeId = 'forehand' | 'backhand' | 'forehand-slice' | 'backhand-slice' | 'forehand-volley' | 'backhand-volley' | 'serve' | 'serve-compact';
+export const isServeMotion = (clip: string): boolean => clip === 'serve' || clip === 'serve-compact';
 export type MotionId = keyof typeof library.clips;
 export type ClipMetadata = Readonly<{ duration: number; contact?: number; contactLocal?: readonly number[]; tossRelease?: number; tossLocal?: readonly number[]; recovery: number; loop: boolean }>;
 export const motionClip = (id: MotionId): ClipMetadata => library.clips[id];
@@ -20,7 +21,8 @@ export type MotionEvent = Readonly<{
 export type MotionRepetition = Readonly<{ index: number; startTime: number; shot: ShotDefinitionV1 }>;
 
 export const strokeForShot = (shot: ShotDefinitionV1, index: number): StrokeId => {
-  if (shot.family === 'serve' || shot.family === 'overhead') return 'serve';
+  if (shot.family === 'serve') return shot.serveRhythm === 'compact' ? 'serve-compact' : 'serve';
+  if (shot.family === 'overhead') return 'serve';
   const relativeSide = shot.source.x * (shot.opponentHand === 'left' ? -1 : 1);
   const side = shot.stroke ?? (shot.backhandStyle ? 'backhand' : Math.abs(relativeSide) > 0.4 ? relativeSide < 0 ? 'backhand' : 'forehand' : index % 2 ? 'backhand' : 'forehand');
   if (shot.family === 'volley') return `${side}-volley`;
@@ -34,7 +36,9 @@ export const rotateMotionPoint = (point: readonly number[], yaw: number, hand: '
 
 export const motionEvent = (repetition: MotionRepetition): MotionEvent => {
   const { shot, index, startTime } = repetition, clip = strokeForShot(shot, index), metadata = motionClip(clip);
-  const rate = shot.family === 'serve' && shot.serveRhythm === 'compact' ? 1.25 : 1;
+  // Each service rhythm is authored in seconds. Ball pace is independent, and
+  // the compact clip must not receive the former additional 1.25x speed-up.
+  const rate = 1;
   const yaw = Math.atan2(shot.target.x - shot.source.x, shot.target.z - shot.source.z);
   const local = rotateMotionPoint(metadata.contactLocal!, yaw, shot.opponentHand);
   return { index, clip, contactTime: startTime, start: startTime - metadata.contact! / rate,
@@ -68,7 +72,7 @@ export const sampleOpponentTimeline = (events: readonly MotionEvent[], time: num
     const contactEnvelope = smoothStep(localTime / clip.contact!) * smoothStep((clip.duration - localTime) / (clip.duration - clip.contact!));
     const verticalCorrection = (event.source.y - contactHeight) * contactEnvelope;
     let toss: Vec3 | null = null;
-    if (event.clip === 'serve' && clip.tossRelease !== undefined && localTime >= clip.tossRelease && localTime < clip.contact!) {
+    if (isServeMotion(event.clip) && clip.tossRelease !== undefined && localTime >= clip.tossRelease && localTime < clip.contact!) {
       const release = rotateMotionPoint(clip.tossLocal!, event.yaw, event.hand);
       const releaseEnvelope = smoothStep(clip.tossRelease / clip.contact!) * smoothStep((clip.duration - clip.tossRelease) / (clip.duration - clip.contact!));
       const start = { x: event.root.x + release.x, y: release.y + (event.source.y - contactHeight) * releaseEnvelope, z: event.root.z + release.z };

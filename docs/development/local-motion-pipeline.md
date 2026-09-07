@@ -1,7 +1,7 @@
 # Local opponent motion pipeline
 
-- **Updated:** 2026-09-07, revision 13 crossover hip transfer and support height
-- **State:** Twenty-three-clip reference-led library integrated and mechanically verified; visual style remains owner-reviewable
+- **Updated:** 2026-09-07, compact pinpoint service addition
+- **State:** Twenty-four-clip reference-led library integrated and mechanically verified; visual style remains owner-reviewable
 - **Authority:** [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md)
 - **Laboratory:** `F:/Codes/Tenmulate_motion_analysis`, independent Git repository
 - **Revision-6 lab commit:** `0399730`. Evidence and the six-image ledger are recorded in the lab's `docs/motion-revision-6.md` and `docs/evidence/revision-6.json`.
@@ -10,6 +10,40 @@
 
 - **Revision-8 lab commits:** contract `6c89efa`, implementation/evidence `711f983`. See `docs/motion-revision-8.md` and `docs/evidence/revision-8.json` in the lab.
 - **Revision-10 lab commits:** contract `7ae4bb2`, implementation/evidence `7065a3a`. See `docs/motion-revision-10.md` and `docs/evidence/revision-10.json` in the lab.
+
+## Compact service addition
+
+`serveRhythm: compact` now selects the separate `serve-compact` animation instead
+of playing the normal serve at 1.25×. Normal remains `serve`; overhead retains its
+existing normal-serve proxy. Contact time, toss release, mirrored contact-height
+correction and airborne knee-plane preservation cover both service clips.
+Ball trajectories and pace are unchanged when only the serve rhythm changes.
+
+The compact clip has a pinpoint gather, earlier racket pickup, brief trophy,
+quicker launch and continuous deceleration. Release/contact are **0.633 / 1.300 s**,
+with a **2.400 s** complete cycle; normal remains **0.883 / 1.783 / 3.250 s**.
+The source is the owner's `Nick Kyrgios Serve.mp4`; its first pass supplies rhythm,
+and its same-camera slow replay supplies limb-order evidence. It is reference-led
+authoring, not an extracted motion-capture result.
+
+Active asset: `tennis-local-v1.f313ece32de3.glb`, **2,993,676 bytes**, SHA-256
+`f313ece32de3db2f70f3e45ec07a947774c7552a3533fb85bf5c39d74c356e45`.
+All 23 previous clips retain identical decoded tracks and metadata. All 24 clips
+pass the lab gates, both hands pass gameplay checks at 240 Hz, 237 frontend tests
+pass, and the production build passes. At an equal 2.75 m contact height, the new
+toss apex is 2.874 m versus 3.256 m for normal. The prior published GLB is retained.
+
+The lab source/authoring commit is `f3cee2f`; see the sibling lab's
+`docs/compact-serve.md` and `docs/evidence/compact-serve.json` for source uncertainty,
+geometry decisions and validation evidence. Review URLs:
+
+- `http://127.0.0.1:4184/?clip=serve-compact`
+- `http://127.0.0.1:4185/review/gameplay.html?sequence=serves`
+
+Both review panels explicitly label the new same-camera replay, and MotionLab
+shows the ballistic toss. The normal/compact comparison uses the real game scene
+at the same ball pace. The lab canvas now keeps the full body within its grid row.
+Visual technique acceptance remains owner-reviewable.
 
 ## Production method
 
@@ -37,7 +71,7 @@ The owner supplied approximate UCLA starting regions; bounded frame inspection s
 
 ## Library and gameplay
 
-The 120 Hz library contains **23 clips**: front/back crossovers in both directions, jump, left/right/forward slides, plus ready, split-step, four `move-*` adjustments, run-forward, walk-forward, forehand, backhand, forehand-slice, backhand-slice, serve, **forehand-volley and backhand-volley**. The denser solve/bake preserves the supporting grip between frames during the fast backhand drop; temporal fitting bounds scale with elapsed time. All strokes return to shared ready. Forehand/backhand/serve durations remain **2.4 / 2.2 / 3.25 s**, with impact at **0.983333 / 1.166667 / 1.783333 s**. Slices contact at 1.05/1.15 s. Serve toss release is at **.883333 s**. Both volleys last **1.8 s**, with contact at **.700 / .583333 s**.
+The 120 Hz library contains **24 clips**: front/back crossovers in both directions, jump, left/right/forward slides, plus ready, split-step, four `move-*` adjustments, run-forward, walk-forward, forehand, backhand, forehand-slice, backhand-slice, serve, serve-compact, **forehand-volley and backhand-volley**. The denser solve/bake preserves the supporting grip between frames during the fast backhand drop; temporal fitting bounds scale with elapsed time. All strokes return to shared ready. Forehand/backhand/serve durations remain **2.4 / 2.2 / 3.25 s**, with impact at **0.983333 / 1.166667 / 1.783333 s**. Slices contact at 1.05/1.15 s. Serve toss release is at **.883333 s**. Both volleys last **1.8 s**, with contact at **.700 / .583333 s**.
 
 `src/content/opponent-motion.json` identifies the content-hashed active GLB, size, digest and runtime timing contract. `public/assets/opponents/tennis-local-v1.manifest.json` binds visual references, carrier, authoring code, Blender version and rhythm curves. Revision 10 uses `tennis-local-v1.e21e894bfe91.glb`, **2,844,856 bytes**, SHA-256 `e21e894bfe917f1444237c7ff7676f3c2b1a91e201e388036ed83fd993282192`. The existing 3 MiB precache ceiling supports this 2.72 MiB library; the built worker includes only the active tennis library. Earlier libraries remain in Git history.
 
