@@ -13,6 +13,7 @@ import { netHeightAt, type FlightSample, type ResolvedTrajectory } from '../engi
 import type { CompiledRepetition, CompiledSession } from '../engine/session/compileSession';
 import type { LandingZone } from '../engine/trajectory/landingZone';
 import type { ReturnZone } from '../engine/session/returnZone';
+import { DEFAULT_BALL_FOCUS, type BallFocusSettings } from '../engine/rendering/ballFocus';
 
 export type SceneViewportProps = Readonly<{
   active?: boolean;
@@ -31,6 +32,7 @@ export type SceneViewportProps = Readonly<{
   cameraMotion?: CameraMotion | null;
   followSessionCamera?: boolean;
   highContrastBall?: boolean;
+  ballFocus?: BallFocusSettings;
   showBallTrail?: boolean;
   onAimChange?: (directionDeg: number) => void;
   onLandingZoneChange?: (zone: LandingZone) => void;
@@ -78,6 +80,7 @@ export function SceneViewport({
   cameraMotion = null,
   followSessionCamera = false,
   highContrastBall = false,
+  ballFocus = DEFAULT_BALL_FOCUS,
   showBallTrail = false,
   onAimChange,
   onLandingZoneChange,
@@ -163,6 +166,7 @@ export function SceneViewport({
   }, [active]);
 
   useEffect(() => sceneRef.current?.setCamera(camera), [camera]);
+  useEffect(() => sceneRef.current?.setBallFocus(ballFocus), [ballFocus]);
   useEffect(() => sceneRef.current?.setReturnZonePreview(returnZonePreview?.zone ?? null,returnZonePreview?.camera ?? camera),[returnZonePreview,camera]);
   useEffect(() => sceneRef.current?.setSession(session ?? null, sessionClock ?? null, onSessionIndex), [session, sessionClock, onSessionIndex]);
   useEffect(() => sceneRef.current?.setTrajectory(trajectory), [trajectory]);

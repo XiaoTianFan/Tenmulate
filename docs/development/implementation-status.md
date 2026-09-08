@@ -9,6 +9,21 @@
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
+## Optional ball focus — 2026-09-08
+
+[ADR-0023](../decisions/0023-optional-ball-focus-rendering.md) adds a default-off
+Perspective toggle in Practice, drill editing and playback settings. Approaching
+balls become lighter and luminous; the surrounding world softens up to the selected
+0–6 px ceiling. The depth-tested ball mask remains sharp after resize and respects
+occlusion. Focus settings persist independently of pending practice-form saves and
+do not reset sessions or remount the court.
+
+Verification: **313 tests / 31 files**, production build/active motion cache guard,
+desktop/phone browser flow, keyboard controls, mask/depth readback, pixel comparison
+and repeated GPU texture cleanup pass. See the [receipt](ball-focus-2026-09-08.md).
+Browser timing samples were too variable for a device-performance conclusion;
+thermal qualification, owner acceptance and public deployment remain separate.
+
 ## Continuous drill camera and reusable shots — 2026-09-08
 
 [ADR-0022](../decisions/0022-continuous-drill-camera-and-reusable-shots.md) replaces

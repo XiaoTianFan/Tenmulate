@@ -1,4 +1,5 @@
 import { MapPin } from 'lucide-react';
+import { BallFocusControls } from './BallFocusControls';
 import type { DrillDefinitionV1, DrillEventV1, ShotDefinitionV1 } from '../content/types';
 import { SHOTS, drillShotPace } from '../content/bundled';
 import type { CameraConfiguration } from '../engine/rendering/TennisScene';
@@ -37,7 +38,8 @@ export function DrillShotControls({event,shot,drill,camera,onChange,onCameraChan
       </div>
       <EditorNumber label="Shot movement pace (%)" value={event.movementPercent} fallback={drill.defaultMovementPercent??100} min={50} max={150} step={5} onChange={movementPercent=>onChange({movementPercent})}/>
     </details>
-    <details className="editor-section" open><summary>Player camera</summary>
+    <details className="editor-section" open><summary>Perspective</summary>
+      <BallFocusControls />
       <div className="court-preset-list">{DEFAULT_CAMERA_POSITION_PRESETS.map(preset=><button type="button" key={preset.id} onClick={()=>{
         const position={...camera,...preset.position};
         onCameraChange({...position,...cameraLookAtCourtPoint(position,preset.lookAt??{x:0,y:0,z:COURT.halfLength})});

@@ -18,7 +18,8 @@ const LoadingScreen = () => <main className="route-loading" aria-live="polite"><
 
 export function App() {
   const appData = useAppData();
-  return <SharedCourtProvider environment={appData.data.preferences.environment} quality={appData.data.preferences.quality}>
+  return <SharedCourtProvider environment={appData.data.preferences.environment} quality={appData.data.preferences.quality}
+    ballFocus={appData.data.preferences.ballFocus} onBallFocusChange={appData.saveBallFocus}>
     <AppRoutes appData={appData} />
   </SharedCourtProvider>;
 }

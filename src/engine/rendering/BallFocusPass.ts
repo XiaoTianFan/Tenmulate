@@ -23,7 +23,10 @@ export class BallFocusPass {
     fragmentShader: `uniform sampler2D sceneDepth; uniform vec2 resolution; uniform float focus;
       void main() {
         float depth = texture2D(sceneDepth, gl_FragCoord.xy / resolution).r;
-        if (gl_FragCoord.z > depth + .0000002) discard;
+        // Resolved MSAA depth comes from a subpixel sample. Allow only the local
+        // depth slope across that pixel, so the ball does not mask itself.
+        float tolerance = max(.0000002, fwidth(gl_FragCoord.z) * .75);
+        if (gl_FragCoord.z > depth + tolerance) discard;
         gl_FragColor = vec4(1., focus, 0., 1.);
       }`,
     depthTest: false, depthWrite: false, toneMapped: false,

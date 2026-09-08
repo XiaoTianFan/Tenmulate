@@ -11,6 +11,14 @@ The system should optimize for perceptual credibility and testability, not for g
 
 ## 2. Proposed stack
 
+**Optional ball focus (2026-09-08):** [ADR-0023](decisions/0023-optional-ball-focus-rendering.md)
+adds an independent visual preference to the shared renderer. Camera-relative ball
+distance controls pale emission, a depth-tested sharp-ball mask and a half-resolution
+background blur/glow composite. The direct render path remains active when disabled
+or fully out of range. Perspective exposes the shared toggle and bounded maximum
+blur without changing session identity, camera authoring or deterministic timing.
+See the [verification receipt](development/ball-focus-2026-09-08.md).
+
 **Shared court and editing contract (2026-09-08):** [ADR-0020](decisions/0020-shared-court-and-transactional-zone-editing.md) moves renderer ownership to `SharedCourtProvider`. Route `CourtViewport` slots reuse the same portal, canvas, scene, WebGL context and unchanged assets. Parking or document hiding suspends rendering without disposal. `LandingZoneControl` previews translation and anchored edge/corner resizing using reusable scene geometry; it publishes one rectangle on release and restores the model on cancellation. Session identity guards prevent callback changes from rebuilding the preview. Editor edits become one undo entry, and practice preferences flush when leaving the page. The shipped corner/volley position presets carry a far-baseline `lookAt` target while retaining the selected FOV. The [verification receipt](development/shared-court-and-zone-resize-2026-09-08.md) records measured interaction latency and resource reuse.
 
 **Landing-zone contract (2026-09-08):** [ADR-0018](decisions/0018-uniform-landing-zones-and-continuous-preview.md) supersedes the fixed landing intent and CSS controls below. `landingZone.ts` clips court/service-box rectangles before independent uniform X/Z sampling. `compileSession` derives contact orientation and fitted launch parameters from that sample, using separate seeded streams. [ADR-0019](decisions/0019-direct-landing-zone-manipulation.md) replaces the axis arrows with `LandingZoneControl`: raycast the rendered area, retain the grab offset, and translate both court coordinates on one ground plane. `SceneViewport` captures either zone movement or camera look at primary-button press. `ContinuousPracticePreview` streams fresh batches on an absolute clock through the same recovery planner; launched sessions stay finite. The [direct-drag receipt](development/landing-zone-direct-drag-2026-09-08.md) records current interaction evidence.

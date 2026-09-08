@@ -19,6 +19,12 @@ blue footprint beside the yellow landing zone. Playback holds each shot's view,
 then follows the opponent while accelerating and braking into the next position.
 See the [drill camera and editor receipt](docs/development/drill-camera-and-editor-2026-09-08.md).
 
+**Perspective → Ball focus** optionally brightens approaching balls and adds a
+soft glow while blurring the rest of the court. Set **Maximum blur** directly
+under the toggle (0–6 px; default 3). This viewing preference stays shared across
+Practice, drill editing and playback, and starts off. See the
+[ball-focus verification receipt](docs/development/ball-focus-2026-09-08.md).
+
 ## Implemented direction
 
 - React, TypeScript, and Vite for the application shell.

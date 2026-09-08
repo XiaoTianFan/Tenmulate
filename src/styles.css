@@ -122,6 +122,8 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .setup-section-body { padding: 0 0 14px; }
 .toggle-field { min-height: 45px; display: grid; grid-template-columns: 94px 1fr 42px; align-items: center; gap: 8px; color: #d4dbde; font-size: 13px; }
 .toggle-field small { color: var(--muted); font-size: 11px; }
+.ball-focus-controls .range-field { grid-template-columns: 94px minmax(0, 1fr) 42px 24px; }
+.ball-focus-controls input[type="range"] { min-width: 0; }
 .toggle { position: relative; width: 46px; height: 25px; padding: 0; border: 1px solid var(--divider); border-radius: 99px; background: #0a0f12; cursor: pointer; }
 .toggle span { position: absolute; left: 3px; top: 3px; width: 17px; height: 17px; border-radius: 50%; background: #71818a; transition: transform 140ms ease, background 140ms ease; }
 .toggle.active { border-color: #6d9bc2; background: #10253a; }

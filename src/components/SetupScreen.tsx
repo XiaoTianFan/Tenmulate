@@ -19,6 +19,7 @@ import { AppHeader, type AppRoute } from './AppHeader';
 import { CourtPlan, type CourtPoint } from './CourtPlan';
 import { Modal } from './Modal';
 import { CourtViewport } from './SharedCourt';
+import { BallFocusControls } from './BallFocusControls';
 import { landingZoneCenter, type LandingZone } from '../engine/trajectory/landingZone';
 import { cameraLookAtCourtPoint } from '../domain/camera';
 
@@ -94,7 +95,7 @@ type SetupScreenProps = Readonly<{
   onStart: (launch: SessionLaunch) => void;
   onSaveCameraPositionPreset: (preset: CameraPositionPresetV1) => void;
   onSavePerspectivePreset: (preset: PerspectivePresetV1) => void;
-  onPreferencesChange: (preferences: PracticePreferencesV1) => void;
+  onPreferencesChange: (preferences: Omit<PracticePreferencesV1, 'ballFocus'>) => void;
 }>;
 
 export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSITION_PRESETS, perspectivePresets = DEFAULT_PERSPECTIVE_PRESETS, initialPreferences, onRoute, onStart, onSaveCameraPositionPreset, onSavePerspectivePreset, onPreferencesChange }: SetupScreenProps) {
@@ -213,7 +214,7 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
     setReturnPreviewIndex(index); setPreviewRepetition({ session: previewSession, repetition });
   }, [previewSession]);
 
-  const pendingPreferences = useRef(initialPreferences);
+  const pendingPreferences = useRef<Omit<PracticePreferencesV1, 'ballFocus'>>(initialPreferences);
   useEffect(() => {
     pendingPreferences.current = { sessionCategory, trajectoryEnabled, launchSpeedKmh, interval, rhythmPercent, movementPercent, practiceStroke, trajectoryMode, returnTargetMode, repetitions, variation, timingVariation, workBlockSize, restSeconds, surface, shotType, spin, spinRateRpm, bounceFactor, opponentHand, serveRhythm, landingZone, landingDepthM, aimDirectionDeg, opponentPosition, camera, environment, quality, screenWidthCm, screenHeightCm, viewDistanceCm };
     const timeout = window.setTimeout(() => onPreferencesChange(pendingPreferences.current), 180);
@@ -531,6 +532,7 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
             <RangeField label={isOutdoorVenue(venue) ? 'Sun direction' : 'Light direction'} value={lightDirection} min={-180} max={180} step={5} unit="°" onChange={setLightDirection} /><RangeField label="Light level" value={lightIntensity} min={0.35} max={1.5} step={0.05} unit="×" onChange={setLightIntensity} /><RangeField label="Wind direction" value={windDirection} min={-180} max={180} step={5} unit="°" onChange={setWindDirection} /><RangeField label="Wind speed" value={windSpeedMps} min={0} max={15} step={0.5} unit="m/s" onChange={setWindSpeedMps} />
           </SetupSection>
           <SetupSection title="Perspective" subtitle="Height, 360° look, and field of view">
+            <BallFocusControls />
             <RangeField label="Camera height" value={eyeHeight} min={CAMERA_EYE_HEIGHT_MIN} max={CAMERA_EYE_HEIGHT_MAX} step={0.05} unit="m" onChange={(value) => { setEyeHeight(value); setSelectedPositionPreset(''); }} />
             <RangeField label="Yaw" value={yaw} min={-180} max={180} step={0.1} unit="°" onChange={(value) => { updateCameraYaw(value); setSelectedPerspectivePreset(''); }} />
             <RangeField label="Pitch" value={pitch} min={-180} max={180} step={0.1} unit="°" onChange={(value) => { setPitch(value); setSelectedPerspectivePreset(''); }} />

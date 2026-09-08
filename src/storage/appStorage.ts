@@ -1,4 +1,5 @@
 import { normalizeLandingZone, type LandingZoneSize } from '../engine/trajectory/landingZone';
+import { DEFAULT_BALL_FOCUS, normalizeBallFocus, type BallFocusSettings } from '../engine/rendering/ballFocus';
 import type { CameraConfiguration } from '../engine/rendering/TennisScene';
 import type { QualityMode } from '../engine/rendering/TennisScene';
 import type { DrillDefinitionV1, SavedShotV1 } from '../content/types';
@@ -46,6 +47,7 @@ export type AppDataV1 = Readonly<{
 }>;
 
 export type PracticePreferencesV1 = Readonly<{
+  ballFocus: BallFocusSettings;
   sessionCategory: string;
   trajectoryEnabled: boolean;
   launchSpeedKmh: number;
@@ -80,6 +82,7 @@ export type PracticePreferencesV1 = Readonly<{
 }>;
 
 export const DEFAULT_PREFERENCES: PracticePreferencesV1 = {
+  ballFocus: DEFAULT_BALL_FOCUS,
   sessionCategory: 'Quick Rally', trajectoryEnabled: true, launchSpeedKmh: 70, interval: 5, rhythmPercent: 100, movementPercent: 100, practiceStroke: 'alternate', trajectoryMode: 'natural', returnTargetMode: 'pattern', repetitions: 12, variation: 8, timingVariation: 0,
   workBlockSize: 4, restSeconds: 20, surface: 'hard', shotType: 'groundstroke', spin: 'topspin', spinRateRpm: 1103, bounceFactor: 1,
   opponentHand: 'right', serveRhythm: 'preset', landingDepthM: 8.5,
@@ -185,6 +188,7 @@ export const loadAppData = (): AppDataV1 => {
     const preferences = {
       ...DEFAULT_PREFERENCES,
       ...canonicalCandidate,
+      ballFocus: normalizeBallFocus(candidate.ballFocus),
       trajectoryEnabled: typeof candidate.trajectoryEnabled === 'boolean'
         ? candidate.trajectoryEnabled
         : candidate.mode === 'learning'

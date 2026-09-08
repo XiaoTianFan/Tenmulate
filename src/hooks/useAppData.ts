@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { normalizeBallFocus, type BallFocusSettings } from '../engine/rendering/ballFocus';
 import type { DrillDefinitionV1, SavedShotV1 } from '../content/types';
 import { DEFAULT_APP_DATA, loadAppData, saveAppData, type AppDataV1, type CameraPositionPresetV1, type PerspectivePresetV1, type PracticePreferencesV1 } from '../storage/appStorage';
 
@@ -22,10 +23,16 @@ export const useAppData = () => {
       ? current.perspectivePresets.map((item) => item.id === preset.id ? preset : item)
       : [...current.perspectivePresets, preset],
   })), []);
-  const savePreferences = useCallback((preferences: PracticePreferencesV1) => setData((current) => ({ ...current, preferences })), []);
+  // A pending practice form save must preserve independently changed visual preferences.
+  const savePreferences = useCallback((preferences: Omit<PracticePreferencesV1, 'ballFocus'>) => setData((current) => ({
+    ...current, preferences: { ...preferences, ballFocus: current.preferences.ballFocus },
+  })), []);
+  const saveBallFocus = useCallback((ballFocus: BallFocusSettings) => setData(current => ({
+    ...current, preferences: { ...current.preferences, ballFocus: normalizeBallFocus(ballFocus) },
+  })), []);
 
   return {
     data,
-    saveDrill, deleteDrill, saveShot, deleteShot, saveCameraPositionPreset, savePerspectivePreset, savePreferences,
+    saveDrill, deleteDrill, saveShot, deleteShot, saveCameraPositionPreset, savePerspectivePreset, savePreferences, saveBallFocus,
   };
 };
