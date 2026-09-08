@@ -75,6 +75,10 @@ Current practice/landing behavior: [ADR-0018](decisions/0018-uniform-landing-zon
 
 ## Change discipline
 
+Current short-running correction after owner feedback:
+[ADR-0033](decisions/0033-complete-short-running-steps.md) and
+[actual footwork verification](development/short-running-steps-2026-09-08.md).
+
 Current gait and pace ownership: [ADR-0032](decisions/0032-speed-and-cadence-locomotion.md)
 and [movement verification receipt](development/movement-selection-2026-09-08.md).
 

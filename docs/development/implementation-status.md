@@ -9,6 +9,17 @@
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
+## Complete short running steps after owner correction — 2026-09-08
+
+The owner rejected the short-jog appearance below despite correct clip selection.
+[ADR-0033](../decisions/0033-complete-short-running-steps.md) replaces urgent short
+travel with two complete foot placements and a matching anatomical source phase.
+Actual ankle lift rises from 5–9 cm to about 19 cm, with planted endpoints and no
+extra hip lowering. The 2.5 s / 150%/150% fixture retains its shot intervals.
+**355 tests / 37 files**, all 16 drill checks, rendered comparisons, production
+build and motion/cache guard pass. Edge and Codex load the correction; Edge keeps
+the reported timing setup. See the [receipt](short-running-steps-2026-09-08.md).
+
 ## Speed and cadence based movement — 2026-09-08
 
 [ADR-0032](../decisions/0032-speed-and-cadence-locomotion.md) removes short-distance
