@@ -18,6 +18,7 @@ import type { SessionLaunch } from '../app/types';
 import { practiceAudio } from '../engine/audio/AudioCueEngine';
 import { crossedCues, sessionCues } from '../engine/audio/sessionCues';
 import type { CameraMotion } from '../engine/rendering/TennisScene';
+import { compileSession } from '../engine/session/compileSession';
 import { useSessionPlayer } from '../hooks/useSessionPlayer';
 import { Modal } from './Modal';
 import { SceneViewport } from './SceneViewport';
@@ -44,12 +45,16 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
   const audioRef = useRef(practiceAudio);
   const previousCueRef = useRef('');
   const audioTimeRef = useRef(0);
-  const player = useSessionPlayer(launch.session, playbackRate);
-  const repetition = launch.session.repetitions[player.currentIndex] ?? launch.session.repetitions[0];
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const effectiveCameraMotionScale = reducedMotion ? 0 : cameraMotionScale;
+  const session = useMemo(() => effectiveCameraMotionScale === (launch.session.settings.cameraMotionScale ?? 1)
+    ? launch.session : compileSession(launch.session.drill, { ...launch.session.settings, camera: launch.camera, cameraMotionScale: effectiveCameraMotionScale }),
+  [effectiveCameraMotionScale, launch.session, launch.camera]);
+  const player = useSessionPlayer(session, playbackRate);
+  const repetition = session.repetitions[player.currentIndex] ?? session.repetitions[0];
   const trajectory = repetition?.trajectory;
   const shot = repetition?.shot;
-  const timedCues = useMemo(() => sessionCues(launch.session), [launch.session]);
-  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const timedCues = useMemo(() => sessionCues(session), [session]);
   const onMetrics = useCallback(() => undefined, []);
 
   useEffect(() => {
@@ -133,16 +138,16 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
   if (!trajectory || !shot) return null;
   const playing = player.status === 'playing';
   const paused = player.status === 'paused';
-  const repetitionNumber = Math.min(player.currentIndex + 1, launch.session.repetitions.length);
+  const repetitionNumber = Math.min(player.currentIndex + 1, session.repetitions.length);
   const resolvedSpeed = Math.round(Math.hypot(trajectory.launchVelocity.x, trajectory.launchVelocity.y, trajectory.launchVelocity.z) * 3.6);
 
   return (
     <main className={hudHidden ? 'rehearsal-shell hud-hidden' : 'rehearsal-shell'} onMouseMove={() => { if (hudHidden) setHudHidden(false); }}>
-      <SceneViewport camera={launch.camera} trajectory={trajectory} surface={launch.surface} environment={launch.environment} quality={launch.quality} running={playing} resetToken={resetToken} showTrajectory={launch.trajectoryEnabled || showDiagnostics} playbackRate={playbackRate} loopTrajectory={false} cameraMotion={cameraMotion} highContrastBall={highContrastBall} showBallTrail={showBallTrail} onMetrics={onMetrics} session={launch.session} sessionClock={player.clock} />
+      <SceneViewport camera={launch.camera} trajectory={trajectory} surface={launch.surface} environment={launch.environment} quality={launch.quality} running={playing} resetToken={resetToken} showTrajectory={launch.trajectoryEnabled || showDiagnostics} playbackRate={playbackRate} loopTrajectory={false} cameraMotion={cameraMotion} highContrastBall={highContrastBall} showBallTrail={showBallTrail} onMetrics={onMetrics} session={session} sessionClock={player.clock} />
       <header className="rehearsal-header">
         <strong>Tenmulate</strong>
-        <span className="drill-title">{launch.session.drill.title}</span>
-        <span className="rep-status">Set {player.currentSet} of {player.setCount} · Rep {repetitionNumber} of {launch.session.repetitions.length}</span>
+        <span className="drill-title">{session.drill.title}</span>
+        <span className="rep-status">Set {player.currentSet} of {player.setCount} · Rep {repetitionNumber} of {session.repetitions.length}</span>
         <div>
           <button type="button" onClick={() => setShowDiagnostics((value) => !value)}><Settings size={18} /> Settings</button>
           <button type="button" onClick={() => setHudHidden(true)}><EyeOff size={18} /> Hide UI</button>
@@ -157,8 +162,9 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
 
       <aside className="rehearsal-mode-panel">
         <span className={launch.trajectoryEnabled ? 'active' : ''}>Trajectory {launch.trajectoryEnabled ? 'on' : 'off'}</span>
-        <small>Seed {launch.session.settings.seed}</small>
-        {launch.session.motionTimingAdjusted ? <small>Rhythm includes stroke preparation and court movement.</small> : null}
+        <small>Rhythm {session.rhythmPercent}% · Seed {session.settings.seed}</small>
+        {session.mode === 'drill' ? <small>{repetition?.returnStatus === 'linked' ? 'Rally return' : repetition?.returnStatus === 'infeasible' || repetition?.returnStatus === 'unreachable' ? 'Next shot begins a new feed' : 'New point'}</small> : null}
+        {session.motionTimingAdjusted ? <small>Rhythm includes stroke preparation and court movement.</small> : null}
       </aside>
 
       <div className="rehearsal-transport" aria-label="Playback controls">
@@ -186,7 +192,7 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
       {showDiagnostics ? (
         <aside className="coach-overlay">
           <h2>Session settings</h2>
-          <label className="compact-range"><span>Camera motion</span><input aria-label="Camera motion intensity" type="range" min="0" max="1" step="0.25" value={cameraMotionScale} onChange={(event) => setCameraMotionScale(Number(event.target.value))} /><output>{Math.round(cameraMotionScale * 100)}%</output></label>
+          <label className="compact-range"><span>Camera motion (restarts set)</span><input aria-label="Camera motion intensity" type="range" min="0" max="1" step="0.25" value={cameraMotionScale} onChange={(event) => setCameraMotionScale(Number(event.target.value))} /><output>{Math.round(cameraMotionScale * 100)}%</output></label>
           <label className="compact-range"><span>Countdown</span><input aria-label="Countdown volume" type="range" min="0" max="1" step="0.1" value={audioLevels.countdown} onChange={(event) => setAudioLevels((current) => ({ ...current, countdown: Number(event.target.value) }))} /><output>{Math.round(audioLevels.countdown * 100)}%</output></label>
           <label className="compact-range"><span>Contact</span><input aria-label="Contact volume" type="range" min="0" max="1" step="0.1" value={audioLevels.contact} onChange={(event) => setAudioLevels((current) => ({ ...current, contact: Number(event.target.value) }))} /><output>{Math.round(audioLevels.contact * 100)}%</output></label>
           <label className="compact-range"><span>Bounce</span><input aria-label="Bounce volume" type="range" min="0" max="1" step="0.1" value={audioLevels.bounce} onChange={(event) => setAudioLevels((current) => ({ ...current, bounce: Number(event.target.value) }))} /><output>{Math.round(audioLevels.bounce * 100)}%</output></label>
@@ -199,8 +205,8 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
 
       {player.status === 'completed' ? (
         <Modal title="Set complete" actions={<><button className="secondary-button" type="button" onClick={onExit}>Back to setup</button><button className="secondary-button" type="button" onClick={onRandomize}>New variation</button><button className="primary-button inline" type="button" onClick={player.restart}>Replay same seed</button></>}>
-          <p>{launch.session.drill.title}: {launch.session.repetitions.length} repetition{launch.session.repetitions.length === 1 ? '' : 's'} completed in {Math.round(launch.session.duration)} seconds.</p>
-          <dl className="session-summary"><div><dt>Trajectory</dt><dd>{launch.trajectoryEnabled ? 'on' : 'off'}</dd></div><div><dt>Shot type</dt><dd>{launch.session.settings.practiceShotType ?? 'Drill-authored'}</dd></div><div><dt>Venue</dt><dd>{launch.environment.venue}</dd></div><div><dt>Surface</dt><dd>{launch.surface}</dd></div><div><dt>Landing depth</dt><dd>{launch.session.settings.landingDepthM ? `${launch.session.settings.landingDepthM.toFixed(1)} m` : 'Drill-authored'}</dd></div><div><dt>Spin rate</dt><dd>{launch.session.settings.spinRateRpm !== undefined ? `${Math.round(launch.session.settings.spinRateRpm)} rpm` : 'Drill-authored'}</dd></div><div><dt>Bounce height</dt><dd>{(launch.session.settings.bounceFactor ?? 1).toFixed(2)}×</dd></div><div><dt>Launch speed</dt><dd>{launch.session.settings.launchSpeedKmh} km/h</dd></div><div><dt>Interval</dt><dd>{launch.session.settings.interval.toFixed(1)} s ± {launch.session.settings.timingVariationPercent}%</dd></div><div><dt>Seed</dt><dd>{launch.session.settings.seed}</dd></div></dl>
+          <p>{session.drill.title}: {session.repetitions.length} repetition{session.repetitions.length === 1 ? '' : 's'} completed in {Math.round(session.duration)} seconds.</p>
+          <dl className="session-summary"><div><dt>Trajectory</dt><dd>{launch.trajectoryEnabled ? 'on' : 'off'}</dd></div><div><dt>Shot type</dt><dd>{session.settings.practiceShotType ?? 'Drill-authored'}</dd></div><div><dt>Venue</dt><dd>{launch.environment.venue}</dd></div><div><dt>Surface</dt><dd>{launch.surface}</dd></div><div><dt>Landing depth</dt><dd>{session.settings.landingDepthM ? `${session.settings.landingDepthM.toFixed(1)} m` : 'Drill-authored'}</dd></div><div><dt>Spin rate</dt><dd>{session.settings.spinRateRpm !== undefined ? `${Math.round(session.settings.spinRateRpm)} rpm` : 'Drill-authored'}</dd></div><div><dt>Bounce height</dt><dd>{(session.settings.bounceFactor ?? 1).toFixed(2)}×</dd></div><div><dt>Launch speed</dt><dd>{session.settings.launchSpeedKmh} km/h</dd></div><div><dt>Rhythm</dt><dd>{session.rhythmPercent}% ± {session.settings.timingVariationPercent}%</dd></div><div><dt>Seed</dt><dd>{session.settings.seed}</dd></div></dl>
           <p>The same seed reproduces the same shot order and bounded landing variation.</p>
         </Modal>
       ) : null}

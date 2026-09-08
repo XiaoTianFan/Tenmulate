@@ -24,6 +24,23 @@ const loadRig = async () => {
 afterEach(() => vi.restoreAllMocks());
 
 describe('local motion asset and shared contact clock', () => {
+  it('preserves real racket contacts after IK at both rhythm bounds and for both hands',async()=>{
+    const rig=await loadRig();
+    for(const hand of ['right','left'] as const)for(const rate of [.85,1,1.2])for(const clip of ['forehand','backhand','forehand-slice','backhand-slice','forehand-volley','backhand-volley','serve','serve-compact'] as const){
+      const event=motionEvent({...repetition(clip,0,2,12.8,hand),motionRate:rate});
+      for(const t of [event.start,event.contactTime,event.end]){
+        const pose=sampleOpponentTimeline([event],t)!;rig.sampleMotion(pose);
+        expect(pose.layers.every(l=>Number.isFinite(l.time))).toBe(true);
+        if(t===event.contactTime)expect(rig.getContactPosition()!.distanceTo(new THREE.Vector3(event.source.x,event.source.y,event.source.z))).toBeLessThan(.002);
+      }
+      rig.sampleMotion(sampleOpponentTimeline([event],event.contactTime)!);
+      const contact=rig.getContactPosition()!.clone();
+      rig.sampleMotion(sampleOpponentTimeline([event],event.start)!);
+      rig.sampleMotion(sampleOpponentTimeline([event],event.contactTime)!);
+      expect(rig.getContactPosition()!.distanceTo(contact)).toBeLessThan(1e-7);
+    }
+    rig.dispose();
+  });
   it('uses a separate compact clip with a lower toss, without changing ball pace', () => {
     const base=SHOTS.find(s=>s.family==='serve')!;
     const drill={...DRILLS[0]!,events:undefined,shotIds:[base.id]};

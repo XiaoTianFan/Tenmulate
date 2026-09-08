@@ -2,6 +2,7 @@ import type { DrillDefinitionV1 } from '../content/types';
 import { DEFAULT_ENVIRONMENT } from '../domain/environment';
 import { compileSession } from '../engine/session/compileSession';
 import type { SessionLaunch } from './types';
+import { rhythmFromLegacyInterval } from '../engine/session/rhythm';
 
 export const DEFAULT_CAMERA = Object.freeze({
   eyeHeight: 1.7,
@@ -12,10 +13,10 @@ export const DEFAULT_CAMERA = Object.freeze({
   fov: 70,
 });
 
-export const createDefaultLaunch = (drill: DrillDefinitionV1): SessionLaunch => ({
+export const createDefaultLaunch = (drill: DrillDefinitionV1, rhythmPercent = drill.defaultRhythmPercent ?? rhythmFromLegacyInterval(drill.defaultInterval)): SessionLaunch => ({
   session: compileSession(drill, {
-    repetitions: drill.events?.length ?? drill.defaultRepetitions,
-    interval: drill.defaultInterval,
+    repetitions: drill.defaultRepetitions,
+    rhythmPercent, mode: 'drill', camera: DEFAULT_CAMERA,
     variationPercent: 0,
     timingVariationPercent: 0,
     launchSpeedKmh: 78,

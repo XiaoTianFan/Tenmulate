@@ -561,7 +561,7 @@ export const integrateTrajectory = (intent: ShotIntent, launchVelocity: Vec3, st
       receiverRecorded = true;
     }
 
-    const completedPostBounceWindow = firstBounceTime !== null
+    const completedPostBounceWindow = stopTime === MAX_SIMULATION_SECONDS && firstBounceTime !== null
       && time >= firstBounceTime + POST_BOUNCE_SIMULATION_SECONDS;
     if (index % 4 === 0 || completedPostBounceWindow || time === stopTime) {
       samples.push({ time, position, velocity, bounced });

@@ -6,6 +6,13 @@ import { OPPONENT_POSITION_LIMITS } from '../src/domain/court';
 import { compileSession } from '../src/engine/session/compileSession';
 
 describe('versioned drill documents', () => {
+  it('round-trips rhythm and rejects non-finite or out-of-range percentages',()=>{
+    const drill={...DRILLS[0]!,defaultRhythmPercent:125};
+    expect(parseDrillJson(JSON.stringify(drill)).defaultRhythmPercent).toBe(125);
+    for(const value of [0,151,NaN,Infinity,'100'])expect(validateDrill({...drill,defaultRhythmPercent:value}).valid).toBe(false);
+    const {defaultRhythmPercent:_rhythm,...legacy}=drill;
+    expect(validateDrill(legacy).valid).toBe(true);
+  });
   it('materializes bundled shot sequences into editable events', () => {
     const events = materializeEvents(DRILLS[2]!);
     expect(events).toHaveLength(5);

@@ -17,9 +17,11 @@ import { SHOTS, SHOT_BY_ID } from '../content/bundled';
 import { materializeEvents } from '../content/editing';
 import type { DrillDefinitionV1, DrillEventV1 } from '../content/types';
 import { downloadDrill, parseDrillJson, validateDrill } from '../content/validation';
+import { rhythmFromLegacyInterval } from '../engine/session/rhythm';
 import { DEFAULT_CAMERA } from '../app/defaults';
 import { OPPONENT_POSITION_PRESETS } from '../domain/court';
-import { resolveTrajectory, type SpinKind } from '../engine/trajectory/physics';
+import type { SpinKind } from '../engine/trajectory/physics';
+import { compileSession } from '../engine/session/compileSession';
 import type { SceneMetrics } from '../engine/rendering/TennisScene';
 import { AppHeader, type AppRoute } from './AppHeader';
 import { CourtPlan, type CourtPoint } from './CourtPlan';
@@ -80,24 +82,17 @@ export function DrillEditorScreen({ route, initialDrill, onRoute, onSave, onTest
   const events = drill.events ?? [];
   const selected = events.find((event) => event.id === selectedId) ?? events[0];
   const sourceShot = selected ? SHOT_BY_ID.get(selected.shotId) : SHOTS[0]!;
-  const previewShot = sourceShot ? {
-    ...sourceShot,
-    source: {
-      ...sourceShot.source,
-      x: selected?.opponentPosition?.x ?? sourceShot.source.x,
-      z: selected?.opponentPosition?.z ?? sourceShot.source.z,
-    },
-    paceKmh: selected?.paceKmh ?? sourceShot.paceKmh,
-    spin: selected?.spin && selected.spin !== 'preset' ? selected.spin : sourceShot.spin,
-    target: selected?.target ?? sourceShot.target,
-    cameraMotion: selected?.cameraMotion ?? sourceShot.cameraMotion,
-    cue: selected?.cue || sourceShot.cue,
-  } : SHOTS[0]!;
-  const trajectory = useMemo(() => resolveTrajectory({
-    ...previewShot,
-    launchSpeedKmh: previewShot.paceKmh,
-    minimumNetClearanceM: previewShot.netClearanceM,
-  }), [previewShot]);
+  const previewSession = useMemo(() => {
+    const base = sourceShot ?? SHOTS[0]!;
+    const event = { ...selected, id: selected?.id ?? 'preview', shotId: base.id, paceKmh: selected?.paceKmh ?? base.paceKmh };
+    return compileSession({ ...drill, events: [event], shotIds: [base.id] }, {
+      repetitions: 2, mode: 'quick-practice', rhythmPercent: drill.defaultRhythmPercent ?? rhythmFromLegacyInterval(drill.defaultInterval),
+      variationPercent: 0, timingVariationPercent: 0, launchSpeedKmh: event.paceKmh, surface: base.surface,
+      seed: 'editor-preview', spin: 'preset', opponentHand: base.opponentHand, workBlockSize: 2, restSeconds: 0,
+      serveRhythm: 'preset', opponentPosition: event.opponentPosition ?? base.source, camera: DEFAULT_CAMERA,
+    });
+  }, [drill, selected, sourceShot]);
+  const trajectory = previewSession.repetitions[0]!.trajectory;
   const validation = validateDrill(drill);
 
   const commit = (next: DrillDefinitionV1) => setHistory((current) => ({ past: [...current.past.slice(-49), current.present], present: next, future: [] }));
@@ -200,13 +195,13 @@ export function DrillEditorScreen({ route, initialDrill, onRoute, onSave, onTest
 
         <section className="editor-stage">
           <div className="editor-scene">
-            <SceneViewport camera={DEFAULT_CAMERA} trajectory={trajectory} surface={sourceShot?.surface ?? 'hard'} running resetToken={resetToken} showTrajectory loopTrajectory cameraMotion={null} onMetrics={onMetrics} />
+            <SceneViewport camera={DEFAULT_CAMERA} trajectory={trajectory} surface={sourceShot?.surface ?? 'hard'} running resetToken={resetToken} showTrajectory loopTrajectory session={previewSession} cameraMotion={null} onMetrics={onMetrics} />
             <div className="editor-scene-label"><span>Event {Math.max(1, events.findIndex((event) => event.id === selected?.id) + 1)}</span><strong>{sourceShot?.label}</strong></div>
           </div>
           <div className="timeline" aria-label="Deterministic drill timeline">
             <div className="timeline-toolbar">
               <strong>{drill.title}</strong>
-              <span>{(events.length * drill.defaultInterval).toFixed(1)} s</span>
+              <span>{drill.defaultRhythmPercent ?? rhythmFromLegacyInterval(drill.defaultInterval)}% rhythm</span>
               <span className={validation.valid ? 'validation valid' : 'validation invalid'}><CheckCircle2 size={14} /> {validation.valid ? 'Valid' : `${validation.errors.length} issues`}</span>
             </div>
             <div className="timeline-body">
@@ -236,7 +231,7 @@ export function DrillEditorScreen({ route, initialDrill, onRoute, onSave, onTest
           </div>
           <label className="stack-field"><span>Drill title</span><input value={drill.title} maxLength={100} onChange={(event) => updateDrill({ title: event.target.value })} /></label>
           <label className="stack-field"><span>Description</span><textarea value={drill.description} maxLength={400} rows={3} onChange={(event) => updateDrill({ description: event.target.value })} /></label>
-          <label className="stack-field"><span>Interval</span><input type="number" min="1" max="30" step="0.1" value={drill.defaultInterval} onChange={(event) => updateDrill({ defaultInterval: Number(event.target.value) })} /></label>
+          <label className="stack-field"><span>Rhythm (%)</span><input type="number" min="50" max="150" step="5" value={drill.defaultRhythmPercent ?? rhythmFromLegacyInterval(drill.defaultInterval)} onChange={(event) => updateDrill({ defaultRhythmPercent: Number(event.target.value) })} /></label>
           <div className="inspector-divider"><span>Selected event</span><div><button type="button" onClick={duplicate} aria-label="Duplicate event"><Copy size={15} /></button><button type="button" onClick={remove} disabled={events.length === 1} aria-label="Delete event"><Trash2 size={15} /></button></div></div>
           {selected && sourceShot ? (
             <>

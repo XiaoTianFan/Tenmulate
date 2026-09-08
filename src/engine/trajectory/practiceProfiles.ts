@@ -2,7 +2,7 @@ import { COURT, DEFAULT_RALLY_OPPONENT_POSITION, DEUCE_SERVE_OPPONENT_POSITION }
 import type { SpinKind } from './physics';
 import { GROUNDSTROKE_FLAT_SPIN_PROFILE, GROUNDSTROKE_TOPSPIN_DEFAULT_RPM } from './spinCalibration';
 
-export type PracticeShotType = 'groundstroke' | 'serve' | 'volley' | 'lob';
+export type PracticeShotType = 'groundstroke' | 'serve' | 'volley' | 'lob' | 'overhead';
 
 export type SpinRateProfile = Readonly<{
   defaultRpm: number;
@@ -25,6 +25,14 @@ export type PracticeShotProfile = Readonly<{
 }>;
 
 export const PRACTICE_SHOT_PROFILES: Readonly<Record<PracticeShotType, PracticeShotProfile>> = {
+  overhead: {
+    label: 'Overhead', contactHeight: 2.7, opponentPosition: { x: 0, z: 4.5 },
+    defaultLaunchSpeedKmh: 90, launchSpeedRangeKmh: { min: 50, max: 150 },
+    minimumNetClearanceM: .12, defaultLandingDepthM: 8.5,
+    landingDepthRangeM: { min: 3, max: COURT.halfLength - .25 },
+    defaultSpin: 'flat', spins: ['flat', 'topspin'],
+    spinRates: { flat: { defaultRpm: 760, minRpm: 250, maxRpm: 1600 }, topspin: { defaultRpm: 1103, minRpm: 300, maxRpm: 3000 } },
+  },
   groundstroke: {
     label: 'Groundstroke',
     contactHeight: 1.15,
@@ -94,7 +102,7 @@ export const PRACTICE_SHOT_PROFILES: Readonly<Record<PracticeShotType, PracticeS
 };
 
 export const isPracticeShotType = (value: unknown): value is PracticeShotType => (
-  value === 'groundstroke' || value === 'serve' || value === 'volley' || value === 'lob'
+  value === 'groundstroke' || value === 'serve' || value === 'volley' || value === 'lob' || value === 'overhead'
 );
 
 export const spinForPracticeShot = (shotType: PracticeShotType, spin: unknown): SpinKind => {

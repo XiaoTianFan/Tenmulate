@@ -2,7 +2,7 @@ import { COURT } from '../../domain/court';
 import type { ShotDefinitionV1 } from '../../content/types';
 import type { Vec3 } from '../../domain/vector';
 import { integrateTrajectory, netHeightAt, type ResolvedTrajectory, type ShotIntent } from '../trajectory/physics';
-import { reachableContacts, type PlayerPosition } from './playerCoverage';
+import { reachableContacts, playerAt, type PlayerPath } from './playerCoverage';
 
 export type RallyReturn = Readonly<{ trajectory: ResolvedTrajectory; contactTime: number;
   duration: number; contactErrorM: number; speedRatio: number }>;
@@ -17,12 +17,12 @@ function solveReturn(intent: ShotIntent, target: Vec3, duration: number, bounced
     y:bounced ? Math.max(2, duration*4.4) : (d.y+4.905*duration*duration)/duration };
   const simulate = (v: Vec3) => integrateTrajectory(intent,v,duration);
   let flight = simulate(velocity);
-  for(let iteration=0;iteration<18;iteration++) {
+  for(let iteration=0;iteration<24;iteration++) {
     const end=flight.samples.at(-1)!.position, error=minus(target,end);
-    if(norm(error)<.04) return flight;
+    if(norm(error)<.012) return flight;
     // Finite differences include aerodynamic loss and bounce friction. A wider
     // derivative step avoids unstable derivatives at discrete ground contacts.
-    const h=.3, axes=['x','y','z'] as const;
+    const h=norm(error)<.2?.06:.3, axes=['x','y','z'] as const;
     const columns=axes.map(axis => {
       const p=simulate({...velocity,[axis]:velocity[axis]+h}).samples.at(-1)!.position;
       return {x:(p.x-end.x)/h,y:(p.y-end.y)/h,z:(p.z-end.z)/h};
@@ -46,12 +46,12 @@ function solveReturn(intent: ShotIntent, target: Vec3, duration: number, bounced
     }
     if(!improved)break;
   }
-  return norm(minus(target,flight.samples.at(-1)!.position))<.07?flight:null;
+  return norm(minus(target,flight.samples.at(-1)!.position))<.025?flight:null;
 }
 
 /** Every accepted return starts on the incoming flight and arrives at the next
  * racket's exact scheduled contact (within the numerical solver tolerance). */
-export function planRallyReturn(incoming: ResolvedTrajectory, next: ShotDefinitionV1, player: PlayerPosition,
+export function planRallyReturn(incoming: ResolvedTrajectory, next: ShotDefinitionV1, player: PlayerPath,
   minimumGap: number, preferredGap: number): RallyReturn | null {
   if(next.family==='serve')return null;
   const contacts=reachableContacts(incoming,player);
@@ -59,7 +59,8 @@ export function planRallyReturn(incoming: ResolvedTrajectory, next: ShotDefiniti
   const target=next.source, mustBounce=!['volley','overhead'].includes(next.family);
   const preferred=incoming.resolved.launchSpeedKmh;
   // Bounded candidate set keeps compilation deterministic and interactive.
-  const ranked=[...contacts].sort((a,b)=>Math.hypot(a.position.x-player.x,a.position.z-player.z)-Math.hypot(b.position.x-player.x,b.position.z-player.z));
+  const distance=(s:typeof contacts[number])=>Math.hypot(s.position.x-playerAt(player,s.time).x,s.position.z-playerAt(player,s.time).z);
+  const ranked=[...contacts].sort((a,b)=>distance(a)-distance(b));
   const candidates=[ranked[0]!,contacts[0]!,contacts[Math.floor(contacts.length/2)]!,contacts.at(-1)!];
   let best:RallyReturn|null=null,bestScore=Infinity;
   for(const contact of candidates) {
@@ -73,10 +74,12 @@ export function planRallyReturn(incoming: ResolvedTrajectory, next: ShotDefiniti
         spin:mustBounce?'topspin':'flat',spinRateRpm:mustBounce?900:0,family:mustBounce?'groundstroke':'volley',
         surface:incoming.intent.surface,windVelocity:incoming.intent.windVelocity,receiverZ:target.z};
       const flight=solveReturn(intent,target,duration,mustBounce);
-      if(!flight)continue;
+      if(!flight||Math.abs(flight.samples.at(-1)!.time-duration)>1e-8)continue;
       const ratio=flight.resolved.launchSpeedKmh/preferred;
       const net=flight.events.find(e=>e.type==='net-crossing'),bounce=flight.events.find(e=>e.type==='bounce');
+      const maximumApex=next.family==='overhead'?10:next.family==='volley'?4.5:6;
       if(ratio<.65||ratio>1.35||!net||net.position.y<netHeightAt(net.position.x)+COURT.ballRadius+.05
+        ||flight.apexHeight>maximumApex
         ||flight.events.some(e=>e.type==='second-bounce')||!!bounce!==mustBounce)continue;
       if(bounce&&(bounce.time<=net.time||bounce.position.z>COURT.halfLength||bounce.position.z<=0||Math.abs(bounce.position.x)>COURT.singlesWidth/2))continue;
       const score=Math.abs(contact.time+duration-preferredGap)+Math.abs(1-ratio)*.7;

@@ -3,6 +3,31 @@
 - **Purpose:** Record concept-to-browser inspection after every implementation stage
 - **Reference viewport:** 1920 × 1080 unless stated otherwise
 
+## Gameplay rhythm integration — 2026-09-08
+
+The goal's visible comparison was: fixed-home practice, direct fast drill travel,
+percentage rhythm controls and an incoming → return → next racket ball handoff.
+The existing Playwright runtime drove Chrome because the Browser skill was not
+available. Development and production preview (`http://127.0.0.1:5173/`) were
+inspected at 1440 × 1000 and 767 × 898.
+
+- Setup: 150% rhythm changes the derived contact interval; the loaded opponent
+  moves through existing gait clips. Return → Compact appears in setup and actual
+  rehearsal. Overhead is available as a shot type, using the documented proxy.
+- Rehearsal: pause/next works; fast Corner switch runs between its explicit
+  sideline origins. A production return-flight frame shows the ball returning
+  while the opponent approaches the next stroke. Camera-intensity changes restart
+  and recompile the session as labeled.
+- Editor/library: percentage rhythm can be set, saved locally and used to run a
+  drill. Desktop and mobile screenshots show controls without horizontal overflow.
+- Mismatch found and fixed: early return solutions used excessively high arcs to
+  occupy a full recovery gap. ADR-0016 changes the natural drill baseline and
+  bounds return apex; fixed-speed drill resolution also removes hidden pace growth.
+- No application console errors. The existing GPU shader precision warning and
+  large renderer build chunk remain. Automated FPS does not establish device
+  acceptance. Full measurements and external screenshot paths are in the
+  [integration receipt](gameplay-rhythm-integration-2026-09-08.md).
+
 ## Stage 18: six Blender venues, Performance and seated audiences — 2026-09-05
 
 The owner requested three fully authored indoor halls, retirement of procedural

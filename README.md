@@ -63,7 +63,11 @@ For this motion review use `npm run dev -- --host 127.0.0.1 --port 5173 --strict
 Run `npm test` and `npm run build`; the build also verifies the selected motion asset and offline cache.
 
 Use **Return → Opponent → Serve rhythm** to choose Normal or Compact.
-Groundstroke/slice/volley selection uses the same mannequin and recovery controller.
+Groundstroke/slice/volley/overhead selection uses the same mannequin and movement controller.
+**Rhythm** (50–150%) controls repetition pacing independently of ball speed.
+Quick Practice returns to its selected home; drills recover or move directly as
+space and time permit, with physical return flights for valid rally links.
+See [gameplay rhythm integration](docs/development/gameplay-rhythm-integration-2026-09-08.md).
 The sibling MotionLab provides phase and movement review at ports 4184/4185; see
 the [motion runbook](docs/development/local-motion-pipeline.md).
 Venue review remains `/venue-review.html?venue=clay-sunset-arena&camera=corner`.

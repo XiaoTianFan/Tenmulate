@@ -23,7 +23,7 @@ The opponent retains its separately authored 4.8 m/s and 6.5 m/s² travel bounds
 
 Coverage is time dependent: accelerated distance after the response delay, then
 constant-speed distance, plus racket reach. Camera lateral position and distance
-behind the baseline locate the viewer on court; changing field of view or camera
+behind the baseline locate the viewer on court. For scripted drill camera motion, the same interpolation and intensity locate the virtual viewing frame at each candidate contact; changing field of view or camera
 height does not make the assumed adult taller. Candidate interception points must
 clear the net, lie on the viewer's side, fit the contact height, precede the
 second bounce, and have a legal first bounce if taken after the bounce. A serve

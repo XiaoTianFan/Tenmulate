@@ -48,7 +48,7 @@ export function App() {
         route={route}
         customDrills={appData.data.customDrills}
         onRoute={setRoute}
-        onRun={(drill) => setLaunch(createDefaultLaunch(drill))}
+        onRun={(drill, rhythm) => setLaunch(createDefaultLaunch(drill, rhythm))}
         onEdit={editDrill}
         onSave={appData.saveDrill}
         onDelete={appData.deleteDrill}

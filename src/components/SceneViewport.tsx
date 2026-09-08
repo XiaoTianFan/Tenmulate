@@ -33,6 +33,7 @@ type SceneViewportProps = Readonly<{
   onMetrics: (metrics: SceneMetrics) => void;
   session?: CompiledSession;
   sessionClock?: Readonly<{ current: number }>;
+  onSessionIndex?: (index:number)=>void;
 }>;
 
 type CameraPointerDrag = {
@@ -72,6 +73,7 @@ export function SceneViewport({
   onMetrics,
   session,
   sessionClock,
+  onSessionIndex,
 }: SceneViewportProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sceneRef = useRef<TennisScene | null>(null);
@@ -122,7 +124,7 @@ export function SceneViewport({
   }, [onMetrics]);
 
   useEffect(() => sceneRef.current?.setCamera(camera), [camera]);
-  useEffect(() => sceneRef.current?.setSession(session ?? null, sessionClock ?? null), [session, sessionClock]);
+  useEffect(() => sceneRef.current?.setSession(session ?? null, sessionClock ?? null, onSessionIndex), [session, sessionClock, onSessionIndex]);
   useEffect(() => sceneRef.current?.setTrajectory(trajectory), [trajectory]);
   useEffect(() => sceneRef.current?.setSurface(surface), [surface]);
   useEffect(() => sceneRef.current?.setEnvironment(environment), [environment]);
@@ -168,7 +170,7 @@ export function SceneViewport({
       y: localY,
       placeBelow: localY < 150,
       sample,
-      trajectory,
+      trajectory: sceneRef.current?.getDisplayedTrajectory() ?? trajectory,
     });
   };
 
@@ -185,11 +187,12 @@ export function SceneViewport({
     showTrajectory ? 'Hover trajectory for data' : null,
   ].filter(Boolean).join(' · ') || null;
 
-  const bounce = trajectory.events.find((event) => event.type === 'bounce');
-  const net = trajectory.events.find((event) => event.type === 'net-crossing');
-  const receiver = trajectory.events.find((event) => event.type === 'receiver-plane');
-  const spinLabel = `${trajectory.intent.spin[0]?.toUpperCase()}${trajectory.intent.spin.slice(1)}`;
-  const visibleTooltip = showTrajectory && trajectoryTooltip?.trajectory === trajectory ? trajectoryTooltip : null;
+  const visibleTooltip = showTrajectory && trajectoryTooltip?.trajectory === sceneRef.current?.getDisplayedTrajectory() ? trajectoryTooltip : null;
+  const tooltipTrajectory = visibleTooltip?.trajectory ?? trajectory;
+  const bounce = tooltipTrajectory.events.find((event) => event.type === 'bounce');
+  const net = tooltipTrajectory.events.find((event) => event.type === 'net-crossing');
+  const receiver = tooltipTrajectory.events.find((event) => event.type === 'receiver-plane');
+  const spinLabel = `${tooltipTrajectory.intent.spin[0]?.toUpperCase()}${tooltipTrajectory.intent.spin.slice(1)}`;
   const tooltipSpeedKmh = visibleTooltip
     ? Math.hypot(visibleTooltip.sample.velocity.x, visibleTooltip.sample.velocity.y, visibleTooltip.sample.velocity.z) * 3.6
     : 0;
@@ -241,13 +244,13 @@ export function SceneViewport({
             {visibleTooltip.sample.time.toFixed(2)} s · {visibleTooltip.sample.position.y.toFixed(2)} m high · {Math.round(tooltipSpeedKmh)} km/h
           </span>
           <dl>
-            <div><dt>Launch</dt><dd>{trajectory.resolved.launchSpeedKmh.toFixed(1)} km/h</dd></div>
+            <div><dt>Launch</dt><dd>{tooltipTrajectory.resolved.launchSpeedKmh.toFixed(1)} km/h</dd></div>
             <div><dt>Spin</dt><dd>{Math.round(trajectory.resolved.spinRateRpm)} rpm</dd></div>
-            <div><dt>Angle</dt><dd>{trajectory.resolved.launchAngleDeg.toFixed(1)}°</dd></div>
-            <div><dt>Apex</dt><dd>{trajectory.apexHeight.toFixed(2)} m</dd></div>
+            <div><dt>Angle</dt><dd>{tooltipTrajectory.resolved.launchAngleDeg.toFixed(1)}°</dd></div>
+            <div><dt>Apex</dt><dd>{tooltipTrajectory.apexHeight.toFixed(2)} m</dd></div>
             <div><dt>Net</dt><dd>{net ? `${(net.position.y - netHeightAt(net.position.x)).toFixed(2)} m clear` : 'No crossing'}</dd></div>
             <div><dt>Landing</dt><dd>{bounce ? `${bounce.position.x.toFixed(2)}, ${bounce.position.z.toFixed(2)} m` : 'Unresolved'}</dd></div>
-            <div><dt>Target error</dt><dd>{bounce ? `${Math.hypot(bounce.position.x - trajectory.intent.target.x, bounce.position.z - trajectory.intent.target.z).toFixed(2)} m` : 'Unresolved'}</dd></div>
+            <div><dt>Target error</dt><dd>{bounce ? `${Math.hypot(bounce.position.x - tooltipTrajectory.intent.target.x, bounce.position.z - tooltipTrajectory.intent.target.z).toFixed(2)} m` : 'Unresolved'}</dd></div>
             <div><dt>Bounce</dt><dd>{bounce?.postSpeedKmh !== undefined ? `${Math.round(bounce.speedKmh)} → ${Math.round(bounce.postSpeedKmh)} km/h` : 'Unresolved'}</dd></div>
             <div><dt>Arrival</dt><dd>{receiver ? `${receiver.position.y.toFixed(2)} m · ${Math.round(receiver.speedKmh)} km/h` : 'Before baseline'}</dd></div>
           </dl>

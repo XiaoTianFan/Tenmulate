@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { Copy, Download, FileUp, PencilLine, Play, Trash2 } from 'lucide-react';
+import { rhythmFromLegacyInterval } from '../engine/session/rhythm';
 import { DRILLS } from '../content/bundled';
 import { createEditableCopy } from '../content/editing';
 import type { DrillDefinitionV1 } from '../content/types';
@@ -13,7 +14,7 @@ type DrillLibraryScreenProps = Readonly<{
   route: AppRoute;
   customDrills: readonly DrillDefinitionV1[];
   onRoute: (route: AppRoute) => void;
-  onRun: (drill: DrillDefinitionV1) => void;
+  onRun: (drill: DrillDefinitionV1, rhythmPercent: number) => void;
   onEdit: (drill: DrillDefinitionV1) => void;
   onSave: (drill: DrillDefinitionV1) => void;
   onDelete: (id: string) => void;
@@ -22,6 +23,7 @@ type DrillLibraryScreenProps = Readonly<{
 export function DrillLibraryScreen({ route, customDrills, onRoute, onRun, onEdit, onSave, onDelete }: DrillLibraryScreenProps) {
   const allDrills = [...DRILLS, ...customDrills];
   const [selectedId, setSelectedId] = useState(allDrills[0]?.id ?? '');
+  const [rhythmOverride, setRhythmOverride] = useState<number | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const selected = allDrills.find((drill) => drill.id === selectedId) ?? allDrills[0];
@@ -55,13 +57,13 @@ export function DrillLibraryScreen({ route, customDrills, onRoute, onRun, onEdit
         </aside>
 
         <section className="drill-table" aria-label="Available drills">
-          <header><span>Drill</span><span>Family</span><span>Events</span><span>Interval</span></header>
+          <header><span>Drill</span><span>Family</span><span>Events</span><span>Rhythm</span></header>
           {allDrills.map((drill) => (
-            <button key={drill.id} type="button" className={drill.id === selected?.id ? 'drill-table-row selected' : 'drill-table-row'} onClick={() => setSelectedId(drill.id)}>
+            <button key={drill.id} type="button" className={drill.id === selected?.id ? 'drill-table-row selected' : 'drill-table-row'} onClick={() => { setSelectedId(drill.id); setRhythmOverride(null); }}>
               <span><strong>{drill.title}</strong><small>{drill.description}</small></span>
               <span>{drill.category}</span>
               <span>{drill.events?.length ?? drill.shotIds.length}</span>
-              <span>{drill.defaultInterval.toFixed(1)} s</span>
+              <span>{drill.defaultRhythmPercent ?? rhythmFromLegacyInterval(drill.defaultInterval)}%</span>
             </button>
           ))}
         </section>
@@ -75,10 +77,11 @@ export function DrillLibraryScreen({ route, customDrills, onRoute, onRun, onEdit
               <div><dt>Category</dt><dd>{selected.category}</dd></div>
               <div><dt>Sequence</dt><dd>{selected.events?.length ?? selected.shotIds.length} events</dd></div>
               <div><dt>Default set</dt><dd>{selected.defaultRepetitions} reps</dd></div>
-              <div><dt>Interval</dt><dd>{selected.defaultInterval.toFixed(1)} seconds</dd></div>
+              <div><dt>Rhythm</dt><dd>{rhythmOverride ?? selected.defaultRhythmPercent ?? rhythmFromLegacyInterval(selected.defaultInterval)}%</dd></div>
               <div><dt>Storage</dt><dd>{isCustom ? 'This browser' : 'App bundle'}</dd></div>
             </dl>
-            <button className="primary-button" type="button" onClick={() => onRun(selected)}><Play size={17} /> Run drill</button>
+            <label className="stack-field"><span>Rhythm (%)</span><input aria-label="Drill rhythm" type="range" min="50" max="150" step="5" value={rhythmOverride ?? selected.defaultRhythmPercent ?? rhythmFromLegacyInterval(selected.defaultInterval)} onChange={event => setRhythmOverride(Number(event.target.value))} /></label>
+            <button className="primary-button" type="button" onClick={() => onRun(selected, rhythmOverride ?? selected.defaultRhythmPercent ?? rhythmFromLegacyInterval(selected.defaultInterval))}><Play size={17} /> Run drill</button>
             <button className="secondary-button full-width" type="button" onClick={() => onEdit(isCustom ? selected : createEditableCopy(selected))}>{isCustom ? <PencilLine size={16} /> : <Copy size={16} />} {isCustom ? 'Edit drill' : 'Make editable copy'}</button>
             <button className="text-action centered" type="button" onClick={() => downloadDrill(selected)}><Download size={15} /> Export JSON</button>
             {isCustom ? <button className="danger-action" type="button" onClick={() => { onDelete(selected.id); setSelectedId(DRILLS[0]!.id); }}><Trash2 size={15} /> Delete local drill</button> : null}

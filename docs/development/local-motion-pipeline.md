@@ -1,6 +1,6 @@
 # Local opponent motion pipeline
 
-Current runtime contract, reconciled 2026-09-07. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) establishes the local production boundary; [ADR-0014](../decisions/0014-articulated-player-and-complete-motion-library.md) records the current model and library. The [integration receipt](motion-main-integration-2026-09-07.md) separates merge, automated checks, live review and remaining release gates.
+Current runtime contract, reconciled 2026-09-08. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) establishes the local production boundary; [ADR-0014](../decisions/0014-articulated-player-and-complete-motion-library.md) records the current model and library. The [integration receipt](motion-main-integration-2026-09-07.md) separates merge, automated checks, live review and remaining release gates.
 
 ## Authority and ownership
 
@@ -42,7 +42,13 @@ Ready, split and movement share a two-hand belly/chest carry and forward athleti
 
 `strokeForShot` resolves serve rhythm, then overhead's normal-serve proxy, stroke side and volley family before spin. Slices select their own clips. **Half-volley, overhead and one-handed-backhand labels still use core-motion proxies**; they are not newly captured dedicated techniques.
 
-Automatic session recovery goes toward a handed baseline-center bias, turns toward the net, split-steps for 0.6 s, then approaches the next shot. Wide lateral recovery starts with a front crossover. Routes of at least 1.65 m run; 0.65–1.65 m walk; shorter routes adjust. The planner reserves complete strokes, travel and rest rather than teleporting or compressing a stroke. Final shots also recover. Speed and travel-acceleration bounds are 4.8 m/s and 6.5 m/s², authored limits rather than athlete measurements.
+[ADR-0015](../decisions/0015-mode-aware-gameplay-rhythm.md) and [ADR-0016](../decisions/0016-bounded-rally-arcs-and-drill-pace.md) replace mandatory recovery with a shared mode-aware planner. Quick Practice nudges around a fixed selected home and returns there after every shot. Drills recover toward baseline center 1.5 m behind the line with a small shot-side bias when time allows. Fast drills travel directly; serve-and-volley approaches the net directly. Short net sequences keep recovery near the net. Full recovery reserves a split-step, approach and preparation; short rests cannot override its movement budget. Final shots recover, and the initial practice approach starts at home.
+
+Rhythm is a 50–150% control. Its natural baseline accounts for the two stroke phases, bounded court travel and the ball's travel time. Drills use the minimum direct route for this baseline and take the recovery detour only when it fits; Quick Practice always budgets the home route. Uniform motion scaling stays within 0.85–1.2; longer gaps contain ready time. A requested rhythm that cannot fit the route is extended. World travel remains bounded to 4.8 m/s and 6.5 m/s², authored limits rather than athlete measurements. Routes of at least 1.65 m run; 0.65–1.65 m walk; shorter routes adjust. The complete gait library and foot correction remain active.
+
+Setup, editor preview and rehearsal consume compiled sessions. The quick-practice camera stays at the chosen position. Drill receiver coverage follows the rendered scripted camera, including its intensity setting; changing that intensity restarts and recompiles the set. The coverage model and its explicit 12% screen allowance are documented in [player coverage](../research/player-coverage.md). Quick Practice records reachability without altering the incoming ball. Drills link accepted returns through the physical solver, with distinct outgoing/return handoffs and matching contact/bounce audio. A return must arrive within 2.5 cm of the next racket contact and keep launch speed within 0.65–1.35 of the incoming launch. Ordinary return arcs are capped at 6 m, volley feeds at 4.5 m, and overhead lob feeds at 10 m. Compiled drills preserve the selected outgoing launch speed instead of letting the legacy target solver increase it. Failed links, rest boundaries and new serves start a new feed.
+
+The return solver searches a bounded set of candidate interception times and flight durations. A failed solve means no valid link was found, not a proof that every possible human return is impossible. The model is a virtual-camera coverage heuristic, not body tracking.
 
 The same runtime supports 19 explicit movement review drills, including back crossovers, jump and sideways/forward/diagonal slides. Automatic hard-court recovery uses footsteps; merely bundling a slide does not make every recovery a slide. `sampleMovementDrill` provides explicit variants for future gameplay selection without a second animator.
 
@@ -55,9 +61,9 @@ Select **Return**, then **Opponent → Serve rhythm**. Choose Normal or Compact.
 | Normal `serve` | 0.883 s | 1.783 s | 3.250 s |
 | Compact `serve-compact` | 0.633 s | 1.300 s | 2.400 s |
 
-Both run at their authored rate of 1. Compact is a distinct pinpoint gather, low toss, early pickup and quick launch, not normal sped up by 1.25×. The source is the owner's Kyrgios clip: first-pass cadence plus same-camera slow replay for geometry. At equal 2.75 m contact height, measured toss apices are 3.256 m normal and 2.874 m compact.
+Both run at their authored rate of 1 at 100% rhythm, with the same bounded uniform scaling at other percentages. Compact is a distinct pinpoint gather, low toss, early pickup and quick launch, not normal sped up by 1.25×. The source is the owner's Kyrgios clip: first-pass cadence plus same-camera slow replay for geometry. At equal 2.75 m contact height, measured toss apices are 3.256 m normal and 2.874 m compact.
 
-The toss starts at the corrected release hand, follows a ballistic path and hands over to the outgoing ball at contact. Rhythm does not change outgoing ball physics. Both handedness settings use the same validated mirroring, contact alignment and airborne knee-plane preservation.
+For serves, the toss starts at the corrected release hand, follows a ballistic path and hands over to the outgoing ball at contact. Rhythm does not change outgoing ball physics. Both handedness settings use the same validated mirroring, contact alignment and airborne knee-plane preservation.
 
 ## Build, publish and review
 
@@ -85,6 +91,6 @@ The normal/compact comparison is `?sequence=serves` on the gameplay review URL. 
 
 Blender bakes at 120 Hz. The lab checks exported and interpolated poses at 240 Hz: 63 articulated joints, fixed lengths, grips, signed racket face, clearance proxies, contact, stance, continuity and clip closure. Both-hand gameplay repeats checks after real blending/IK, including 38 movement sweeps and crossover support checks. These are animation plausibility gates, not clinical certification or complete mesh-collision testing.
 
-Visual review must include normal-speed playback, frame stepping and representative front/rear/side/gameplay views. Independent reference takes align by named phase; missing views and secondary performers stay labeled. The compact replay is explicitly the same camera. Tests do not replace the owner's technique review.
+Visual review must include normal-speed playback, frame stepping and representative front/rear/side/gameplay views. Independent reference takes align by named phase; missing views and secondary performers stay labeled. The compact replay is explicitly the same camera. The overhead quick-practice option uses the existing serve-motion proxy without a self-toss; it is not a newly authored overhead technique. Tests do not replace the owner's technique review.
 
 Public hosting, public provenance review, target-device performance and final owner technique acceptance remain separate release gates. See the integration receipt for the current verification run; historical revision test counts are not current suite totals.

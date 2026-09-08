@@ -4,12 +4,12 @@ import { SHOT_BY_ID } from '../../content/bundled';
 import type { SurfaceId } from '../../domain/court';
 import type { OpponentHand, ServeRhythm } from '../../content/types';
 import type { ResolvedTrajectory } from '../trajectory/physics';
-import { resolveTrajectory, type SpinKind } from '../trajectory/physics';
+import { aimDirectionToCourtPoint, resolveTrajectory, type SpinKind } from '../trajectory/physics';
 import { createSeededRandom } from '../random/seeded';
 import { minimumMotionGap, motionEvent } from './opponentTimeline';
 import type { MotionRepetition } from './opponentTimeline';
 import { motionRateForRhythm, normalizeRhythm, rhythmFromLegacyInterval } from './rhythm';
-import { assessReachability, cameraPlayerPosition, type Reachability } from './playerCoverage';
+import { assessReachability, cameraPlayerPosition, cameraCoveragePath, type Reachability } from './playerCoverage';
 import { planRallyReturn, type RallyReturn } from './rally';
 import type { Vec3 } from '../../domain/vector';
 import {
@@ -34,6 +34,7 @@ export type SessionSettings = Readonly<{
   rhythmPercent?: number;
   mode?: 'quick-practice' | 'drill';
   camera?: Readonly<{ lateral: number; behindBaseline: number }>;
+  cameraMotionScale?: number;
   variationPercent: number;
   timingVariationPercent: number;
   launchSpeedKmh: number;
@@ -67,7 +68,8 @@ export type CompiledRepetition = MotionRepetition & Readonly<{
 
 export type CompiledSession = Readonly<{
   solverVersion: 'ball-v6-spin-target';
-  contentVersion: '2026.08.29';
+  plannerVersion: 'gameplay-rhythm-v1';
+  contentVersion: '2026.09.08';
   drill: DrillDefinitionV1;
   settings: SessionSettings;
   repetitions: readonly CompiledRepetition[];
@@ -93,8 +95,9 @@ export const compileSession = (
     : drill.shotIds.map((shotId, index) => ({ id: `${drill.id}-${index}`, shotId }));
   const startTime = 3;
   const mode = settings.mode ?? (settings.practiceShotType ? 'quick-practice' : 'drill');
-  const rhythmPercent = normalizeRhythm(settings.rhythmPercent ?? drill.defaultRhythmPercent
-    ?? rhythmFromLegacyInterval(settings.interval ?? drill.defaultInterval));
+  const rhythmPercent = normalizeRhythm(settings.rhythmPercent ?? (settings.interval !== undefined
+    ? rhythmFromLegacyInterval(settings.interval)
+    : drill.defaultRhythmPercent ?? rhythmFromLegacyInterval(drill.defaultInterval)));
   const motionRate = motionRateForRhythm(rhythmPercent);
   const playerPosition = cameraPlayerPosition(settings.camera);
   const quickOrigin = settings.opponentPosition ?? (settings.practiceShotType
@@ -162,7 +165,7 @@ export const compileSession = (
       surface: settings.surface,
       spin: selectedSpin,
       opponentHand: settings.opponentHand,
-      cameraMotion: sourceEvent && 'cameraMotion' in sourceEvent && sourceEvent.cameraMotion !== undefined ? sourceEvent.cameraMotion ?? undefined : sourceShot.cameraMotion,
+      cameraMotion: mode === 'quick-practice' ? undefined : sourceEvent && 'cameraMotion' in sourceEvent && sourceEvent.cameraMotion !== undefined ? sourceEvent.cameraMotion ?? undefined : sourceShot.cameraMotion,
       cue: sourceEvent && 'cue' in sourceEvent && sourceEvent.cue ? sourceEvent.cue : sourceShot.cue,
       serveRhythm: (settings.practiceShotType ?? sourceShot.family) === 'serve'
         ? sourceEvent && 'serveRhythm' in sourceEvent && sourceEvent.serveRhythm && sourceEvent.serveRhythm !== 'preset'
@@ -177,7 +180,7 @@ export const compileSession = (
       ...shot, launchSpeedKmh,
       spinRateRpm: settings.practiceShotType ? spinRateForPracticeShot(settings.practiceShotType, selectedSpin, settings.spinRateRpm) : undefined,
       minimumNetClearanceM: shot.netClearanceM, shotType: settings.practiceShotType,
-      aimDirectionDeg: returnServePlacement ? undefined : settings.aimDirectionDeg,
+      aimDirectionDeg: returnServePlacement ? undefined : settings.aimDirectionDeg ?? (mode === 'drill' ? aimDirectionToCourtPoint(source,target) : undefined),
       windVelocity: settings.windVelocity, bounceFactor: settings.bounceFactor,
     });
     repetitions.push({
@@ -188,7 +191,7 @@ export const compileSession = (
       returnServePlacement,
       motionRate, recoveryPolicy: mode === 'quick-practice' ? 'home' : 'auto',
       home: mode === 'quick-practice' ? { x: quickOrigin.x, y: 0, z: quickOrigin.z + .45 } : undefined,
-      reachability: assessReachability(trajectory, playerPosition),
+      reachability: assessReachability(trajectory, cameraCoveragePath(settings.camera,shot.cameraMotion,settings.cameraMotionScale)),
       returnStatus: mode === 'quick-practice' ? 'quick-practice' : 'end',
     });
   }
@@ -204,17 +207,19 @@ export const compileSession = (
   for (let index = 1; index < repetitions.length; index += 1) {
     const previous = repetitions[index - 1]!, next = repetitions[index]!;
     const full = minimumMotionGap({ ...previous, motionRate: 1, recoveryPolicy: 'recover' }, { ...next, motionRate: 1 });
+    const direct = minimumMotionGap({ ...previous, motionRate: 1, recoveryPolicy: 'direct' }, { ...next, motionRate: 1 });
     const receiverTime = previous.reachability.contact?.time ?? previous.trajectory.events.find(e=>e.type==='receiver-plane')?.time ?? 2;
     const flightBaseline = mode === 'drill' ? receiverTime + Math.hypot(next.shot.source.x-playerPosition.x,next.shot.source.z-playerPosition.z)/(previous.trajectory.resolved.launchSpeedKmh/3.6)*1.5 : receiverTime+.35;
-    const baseline = Math.max(full, flightBaseline);
+    const baseline = Math.max(mode === 'quick-practice' ? full : direct, flightBaseline);
     const variation = 1 + (timingRandom()*2-1)*Math.min(.5,Math.max(0,settings.timingVariationPercent/100));
     const requestedGap = baseline/(rhythmPercent/100)*variation;
     const proposed = { ...next, startTime: previous.startTime+requestedGap };
-    const required = minimumMotionGap(previous, proposed);
-    let gap = Math.max(requestedGap, required);
     const rest = index % workBlockSize === 0 && restSeconds > 0;
+    const schedulingPrevious = rest && mode === 'drill' ? { ...previous, recoveryPolicy: 'recover' as const } : previous;
+    const required = minimumMotionGap(schedulingPrevious, proposed);
+    let gap = Math.max(requestedGap, required);
     if (mode === 'drill' && !rest && next.shot.family !== 'serve' && previous.reachability.reachable) {
-      const rally = planRallyReturn(previous.trajectory,next.shot,playerPosition,required,gap);
+      const rally = planRallyReturn(previous.trajectory,next.shot,cameraCoveragePath(settings.camera,previous.shot.cameraMotion,settings.cameraMotionScale),required,gap);
       repetitions[index-1] = { ...previous, rallyReturn: rally ?? undefined, returnStatus: rally ? 'linked' : 'infeasible' };
       if(rally)gap=rally.contactTime+rally.duration;
     } else if (mode === 'drill') {
@@ -228,7 +233,7 @@ export const compileSession = (
     }
     // Lock the chosen route before playback; a longer solved return must not
     // silently switch direct travel back to a full recovery detour.
-    const route=planRecovery(motionEvent(previous),motionEvent(proposed));
+    const route=planRecovery(motionEvent(schedulingPrevious),motionEvent(proposed));
     repetitions[index-1]={...repetitions[index-1]!,recoveryPolicy:mode==='quick-practice'?'home':!rest&&route.kind==='direct'?'direct':'recover'};
     repetitions[index] = { ...next, startTime: previous.startTime+gap };
     if(Math.abs(gap-requestedGap)>.001)motionTimingAdjusted=true;
@@ -239,7 +244,8 @@ export const compileSession = (
 
   return {
     solverVersion: 'ball-v6-spin-target',
-    contentVersion: '2026.08.29',
+    plannerVersion: 'gameplay-rhythm-v1',
+    contentVersion: '2026.09.08',
     drill,
     settings: { ...settings, rhythmPercent, mode },
     repetitions,

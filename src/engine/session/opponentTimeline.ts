@@ -18,6 +18,7 @@ export type MotionEvent = Readonly<{
   index: number; clip: StrokeId; contactTime: number; start: number; end: number;
   rate: number; hand: 'left' | 'right'; yaw: number; root: Vec3; source: Vec3;
   home?: Vec3; recoveryPolicy?: 'home' | 'auto' | 'recover' | 'direct';
+  tossEnabled?: boolean;
 }>;
 export type MotionRepetition = Readonly<{ index: number; startTime: number; shot: ShotDefinitionV1;
   motionRate?: number; home?: Vec3; recoveryPolicy?: MotionEvent['recoveryPolicy'] }>;
@@ -46,7 +47,7 @@ export const motionEvent = (repetition: MotionRepetition): MotionEvent => {
   return { index, clip, contactTime: startTime, start: startTime - metadata.contact! / rate,
     end: startTime + (metadata.duration - metadata.contact!) / rate, rate, yaw, hand: shot.opponentHand,
     root: { x: shot.source.x - local.x, y: 0, z: shot.source.z - local.z }, source: shot.source,
-    home: repetition.home, recoveryPolicy: repetition.recoveryPolicy };
+    home: repetition.home, recoveryPolicy: repetition.recoveryPolicy, tossEnabled: shot.family === 'serve' };
 };
 
 export const minimumMotionGap = (previous: MotionRepetition, next: MotionRepetition): number => {
@@ -75,7 +76,7 @@ export const sampleOpponentTimeline = (events: readonly MotionEvent[], time: num
     const contactEnvelope = smoothStep(localTime / clip.contact!) * smoothStep((clip.duration - localTime) / (clip.duration - clip.contact!));
     const verticalCorrection = (event.source.y - contactHeight) * contactEnvelope;
     let toss: Vec3 | null = null;
-    if (isServeMotion(event.clip) && clip.tossRelease !== undefined && localTime >= clip.tossRelease && localTime < clip.contact!) {
+    if (isServeMotion(event.clip) && event.tossEnabled !== false && clip.tossRelease !== undefined && localTime >= clip.tossRelease && localTime < clip.contact!) {
       const release = rotateMotionPoint(clip.tossLocal!, event.yaw, event.hand);
       const releaseEnvelope = smoothStep(clip.tossRelease / clip.contact!) * smoothStep((clip.duration - clip.tossRelease) / (clip.duration - clip.contact!));
       const start = { x: event.root.x + release.x, y: release.y + (event.source.y - contactHeight) * releaseEnvelope, z: event.root.z + release.z };

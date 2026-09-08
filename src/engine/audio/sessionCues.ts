@@ -5,8 +5,15 @@ export const sessionCues = (session: CompiledSession): TimedCue[] => session.rep
   const cues: TimedCue[] = [{ time: repetition.startTime, kind: 'contact' }];
   const bounce = repetition.trajectory.events.find(event => event.type === 'bounce');
   const receiver = repetition.trajectory.events.find(event => event.type === 'receiver-plane');
-  if (bounce) cues.push({ time: repetition.startTime + bounce.time, kind: 'bounce' });
-  if (receiver) cues.push({ time: repetition.startTime + Math.max(.08, receiver.time - .55), kind: 'footwork' });
+  if (bounce && bounce.time <= (repetition.rallyReturn?.contactTime ?? Infinity)) cues.push({ time: repetition.startTime + bounce.time, kind: 'bounce' });
+  if(repetition.rallyReturn){
+    const rally=repetition.rallyReturn;
+    cues.push({time:repetition.startTime+rally.contactTime,kind:'contact'});
+    const returnBounce=rally.trajectory.events.find(event=>event.type==='bounce');
+    if(returnBounce)cues.push({time:repetition.startTime+rally.contactTime+returnBounce.time,kind:'bounce'});
+  }
+  const responseTime=repetition.rallyReturn?.contactTime??receiver?.time;
+  if (responseTime!==undefined) cues.push({ time: repetition.startTime + Math.max(.08, responseTime - .55), kind: 'footwork' });
   return cues;
 }).sort((a, b) => a.time - b.time);
 

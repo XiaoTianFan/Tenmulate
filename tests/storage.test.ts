@@ -14,6 +14,15 @@ class MemoryStorage {
 
 describe('local application data', () => {
   beforeEach(() => vi.stubGlobal('localStorage', new MemoryStorage()));
+  it('migrates seconds once and gives persisted rhythm precedence',()=>{
+    const legacy={...DEFAULT_PREFERENCES,rhythmPercent:undefined,interval:7};
+    localStorage.setItem('tenmulate.appData.v1',JSON.stringify({schemaVersion:1,preferences:legacy}));
+    expect(loadAppData().preferences.rhythmPercent).toBe(50);
+    localStorage.setItem('tenmulate.appData.v1',JSON.stringify({schemaVersion:1,preferences:{...legacy,rhythmPercent:125}}));
+    expect(loadAppData().preferences.rhythmPercent).toBe(125);
+    localStorage.setItem('tenmulate.appData.v1',JSON.stringify({schemaVersion:1,preferences:{...legacy,rhythmPercent:900}}));
+    expect(loadAppData().preferences.rhythmPercent).toBe(150);
+  });
 
   it('uses the reference Rally ball settings for a clean application', () => {
     expect(DEFAULT_PREFERENCES).toMatchObject({

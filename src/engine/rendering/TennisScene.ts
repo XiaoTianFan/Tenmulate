@@ -14,7 +14,9 @@ import { AUTHORED_VENUES, isAuthoredVenue, VenueAssetManager, type AuthoredVenue
 import { resolveVenueLighting } from './venueLighting';
 import { AudienceSystem, type AudienceState } from './AudienceSystem';
 import type { CompiledSession } from '../session/compileSession';
-import { motionEvent, motionClip, sampleOpponentTimeline, type MotionEvent, type MotionSample } from '../session/opponentTimeline';
+import { motionEvent, sampleOpponentTimeline, type MotionEvent, type MotionSample } from '../session/opponentTimeline';
+import { planRecovery } from '../session/opponentMovement';
+import { sessionFlights } from '../session/sessionFlights';
 import { SHOTS } from '../../content/bundled';
 
 export type CameraConfiguration = Readonly<{
@@ -133,6 +135,10 @@ export class TennisScene {
   private session: CompiledSession | null = null;
   private sessionClock: Readonly<{ current: number }> | null = null;
   private motionEvents: readonly MotionEvent[] = [];
+  private onSessionIndex: ((index:number)=>void) | null = null;
+  private sessionIndex = -1;
+  private lineTrajectory: ResolvedTrajectory | null = null;
+  private baseCameraConfiguration: CameraConfiguration | null = null;
   private previewEvent: MotionEvent | null = null;
   private elapsed = 0;
   private running = true;
@@ -213,6 +219,7 @@ export class TennisScene {
     this.scene.add(this.opponent.group);
     this.fallbackBallMachine = court.group.getObjectByName('temporary-ball-machine');
     void this.opponent.load().then(() => {
+      this.canvas.dataset.opponentAsset = 'ready';
       if (this.fallbackBallMachine) this.fallbackBallMachine.visible = false;
     }).catch((error: unknown) => {
       if (error instanceof OpponentRigDisposedError) return;
@@ -255,7 +262,7 @@ export class TennisScene {
 
   setTrajectory(trajectory: ResolvedTrajectory): void {
     this.trajectory = trajectory;
-    this.elapsed = 0;
+    if (!this.session) this.elapsed = 0;
     const family = trajectory.intent.shotType ?? trajectory.intent.family;
     this.previewEvent = motionEvent({ index: 0, startTime: 3, shot: {
       ...SHOTS[0]!, ...trajectory.intent, family: family === 'serve' || family === 'overhead' || family === 'volley' || family === 'lob' ? family : 'groundstroke',
@@ -265,6 +272,12 @@ export class TennisScene {
       this.fallbackBallMachine.position.x = trajectory.intent.source.x;
       this.fallbackBallMachine.position.z = trajectory.intent.source.z;
     }
+    this.setTrajectoryLine(trajectory);
+  }
+
+  private setTrajectoryLine(trajectory: ResolvedTrajectory): void {
+    if(this.lineTrajectory===trajectory)return;
+    this.lineTrajectory=trajectory;
     const points = trajectory.samples.map(
       (sample) => new THREE.Vector3(sample.position.x, sample.position.y, sample.position.z),
     );
@@ -272,9 +285,11 @@ export class TennisScene {
     this.trajectoryLine.geometry = new THREE.BufferGeometry().setFromPoints(points);
   }
 
-  setSession(session: CompiledSession | null, clock: Readonly<{ current: number }> | null): void {
+  setSession(session: CompiledSession | null, clock: Readonly<{ current: number }> | null, onIndex?: (index:number)=>void): void {
+    if(this.session!==session&&!clock){this.elapsed=0;this.sessionIndex=-1;}
     this.session = session;
     this.sessionClock = clock;
+    this.onSessionIndex=onIndex??null;
     this.motionEvents = session?.repetitions.map(motionEvent) ?? [];
   }
 
@@ -307,6 +322,7 @@ export class TennisScene {
 
   setCameraMotion(motion: CameraMotion | null): void {
     this.cameraMotion = motion;
+    if(!motion&&this.baseCameraConfiguration){this.cameraConfiguration=this.baseCameraConfiguration;this.applyCamera();}
   }
 
   setSurface(surface: SurfaceId): void {
@@ -407,6 +423,7 @@ export class TennisScene {
   retryVenue(): void { this.activeAuthoredArena?.retry(); this.audience.retry(); this.syncArenaPresentation(); }
 
   setCamera(configuration: CameraConfiguration): void {
+    this.baseCameraConfiguration=configuration;
     this.cameraConfiguration = configuration;
     this.applyCamera();
   }
@@ -425,8 +442,11 @@ export class TennisScene {
     return aimDirectionToCourtPoint(this.trajectory.intent.source, point);
   }
 
+  getDisplayedTrajectory(): ResolvedTrajectory | null { return this.lineTrajectory; }
+
   trajectorySampleFromClientPoint(clientX: number, clientY: number, thresholdPx = 11): FlightSample | null {
-    if (!this.trajectory || !this.trajectoryLine.visible) return null;
+    const trajectory = this.lineTrajectory;
+    if (!trajectory || !this.trajectoryLine.visible) return null;
     const bounds = this.canvas.getBoundingClientRect();
     if (bounds.width <= 0 || bounds.height <= 0) return null;
     const pointer = { x: clientX - bounds.left, y: clientY - bounds.top };
@@ -440,9 +460,9 @@ export class TennisScene {
       };
     };
     let closest: Readonly<{ left: FlightSample; right: FlightSample; alpha: number; distancePx: number }> | null = null;
-    for (let index = 1; index < this.trajectory.samples.length; index += 1) {
-      const left = this.trajectory.samples[index - 1];
-      const right = this.trajectory.samples[index];
+    for (let index = 1; index < trajectory.samples.length; index += 1) {
+      const left = trajectory.samples[index - 1];
+      const right = trajectory.samples[index];
       if (!left || !right) continue;
       const start = project(left);
       const end = project(right);
@@ -508,6 +528,7 @@ export class TennisScene {
     this.lastFrame = now;
     if (this.sessionClock) this.elapsed = this.sessionClock.current;
     else if (this.running) this.elapsed += delta * this.playbackRate;
+    if(this.session&&!this.sessionClock&&this.loopTrajectory&&this.session.duration>0)this.elapsed%=this.session.duration;
     this.skySystem.update(now);
     this.weatherSystem.update(this.elapsed);
     const wind = windVelocityFromEnvironment(this.environmentConfiguration);
@@ -524,13 +545,15 @@ export class TennisScene {
       let motionTime = this.elapsed;
       const visibleFlights: { trajectory: ResolvedTrajectory; time: number }[] = [];
       if (this.session) {
-        for (const repetition of this.session.repetitions) {
-          const age = this.elapsed - repetition.startTime;
-          if (age >= 0 && age <= (repetition.trajectory.samples.at(-1)?.time ?? 0)) visibleFlights.unshift({ trajectory: repetition.trajectory, time: age });
-        }
+        const flights=sessionFlights(this.session,this.elapsed);
+        visibleFlights.push(...flights);
+        this.canvas.dataset.ballPhase=flights[0]?.phase??'none';
+        this.canvas.dataset.sessionTime=this.elapsed.toFixed(4);
+        const index=this.session.repetitions.reduce((active,rep)=>this.elapsed>=rep.startTime?rep.index:active,0);
+        if(index!==this.sessionIndex){this.sessionIndex=index;this.onSessionIndex?.(index);}
+        this.setTrajectoryLine(flights[0]?.trajectory??this.trajectory);
       } else if (this.previewEvent) {
-        const clip = motionClip(this.previewEvent.clip);
-        const interval = Math.max(clip.duration + .18, this.trajectoryInterval ?? duration + .5);
+        const interval = Math.max(this.previewEvent.end-this.previewEvent.start+planRecovery(this.previewEvent,this.previewEvent).requiredDuration, this.trajectoryInterval ?? duration + .5);
         const cycle = this.loopTrajectory ? Math.max(0, Math.floor((this.elapsed - 3) / interval)) : 0;
         const shiftEvent = (offset: number): MotionEvent => ({ ...this.previewEvent!, index: offset,
           start: this.previewEvent!.start + offset * interval, end: this.previewEvent!.end + offset * interval,

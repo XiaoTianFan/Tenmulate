@@ -1,7 +1,7 @@
 # Technical architecture
 
 - **Status:** Proposed
-- **Last updated:** 2026-09-05
+- **Last updated:** 2026-09-08
 
 ## 1. Architectural objective
 
@@ -27,6 +27,8 @@ The system should optimize for perceptual credibility and testability, not for g
 | Asset delivery | Hashed static manifests + object/CDN origin candidate | Keeps large optional GLB/animation/venue payloads independently cacheable and lazy-loaded; provider selection follows measured egress/caching tests. |
 | Test layers | Vitest-style unit/property tests, browser E2E, frame-time harness, visual snapshots | Separates numerical truth, sequence behavior, runtime behavior, and visual fidelity. Exact test framework is selected during scaffold. |
 | V1 persistence | Versioned local JSON + browser storage + service-worker cache | Presets, calibration, custom drills, and selected offline content need no account; keeps public-free V1 deployable as a static application. |
+
+**Gameplay integration update (2026-09-08):** [ADR-0015](decisions/0015-mode-aware-gameplay-rhythm.md) and [ADR-0016](decisions/0016-bounded-rally-arcs-and-drill-pace.md) establish the mode-aware compiler: fixed-home practice, tactical recovery/direct routes, percentage rhythm, calibrated receiver coverage and physically solved return links. All application previews share that compiler. Compiled drill feeds now use fixed-speed angle resolution, while raw legacy asset/physics authoring remains available internally. See the [integration receipt](development/gameplay-rhythm-integration-2026-09-08.md) for the current evidence and limits.
 
 ## 3. System boundaries
 
@@ -104,7 +106,7 @@ type BallState = {
 
 Shot definitions store an authoring intent and a resolved launch solution. This lets content authors say “land deep cross-court and arrive shoulder-high” while tests preserve the exact resolved parameters.
 
-Quick Practice exposes only a target-practice authoring path: Groundstroke, Serve, Volley, or Lob; launch speed; compatible spin type and continuous rpm; landing depth; direction; surface; and cadence. There is no user-facing raw-angle or manual-ballistics mode. A right-button drag is raycast from the current FPV camera onto the regulation court plane and converted through the shared player-view horizontal convention. `ball-v6-spin-target` treats launch speed as an exact magnitude, retains shot-profile net clearance as an internal safety constraint, samples the valid fixed-speed launch-angle envelope, and refines the closest first-bounce target. Groundstroke/Volley prefer the lower matching branch; Lob prefers the high branch; Serve clamps depth and direction inside the diagonally opposite service box. If the selected combination is impossible, the physical closest result is retained without changing speed or fabricating a target hit. Bundled/editor-authored V1 content retains its validated compatibility fields internally, but does not add a second Quick Practice control mode. Both paths use the same forces, bounce profiles, and event reporting.
+Quick Practice exposes only a target-practice authoring path: Groundstroke, Serve, Volley, Lob, or Overhead; launch speed; compatible spin type and continuous rpm; landing depth; direction; surface; and cadence. There is no user-facing raw-angle or manual-ballistics mode. A right-button drag is raycast from the current FPV camera onto the regulation court plane and converted through the shared player-view horizontal convention. `ball-v6-spin-target` treats launch speed as an exact magnitude, retains shot-profile net clearance as an internal safety constraint, samples the valid fixed-speed launch-angle envelope, and refines the closest first-bounce target. Groundstroke/Volley prefer the lower matching branch; Lob prefers the high branch; Serve clamps depth and direction inside the diagonally opposite service box. If the selected combination is impossible, the physical closest result is retained without changing speed or fabricating a target hit. Bundled/editor-authored V1 content retains its validated compatibility fields internally, but does not add a second Quick Practice control mode. Both paths use the same forces, bounce profiles, and event reporting.
 
 The four left-rail setup presets compose camera and feed choices rather than naming the opponent's stroke in every case. In particular, Volley selects the `position-net` user camera plus the standard behind-baseline Groundstroke profile. Choosing Volley in the explicit Shot type control remains the separate authoring path for a spin-free opponent volley from near the net.
 

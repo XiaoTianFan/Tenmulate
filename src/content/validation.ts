@@ -20,7 +20,7 @@ const categories: readonly SessionCategory[] = [
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
-const allowedDrillKeys = new Set(['schemaVersion', 'id', 'title', 'description', 'category', 'shotIds', 'events', 'defaultInterval', 'defaultRepetitions']);
+const allowedDrillKeys = new Set(['schemaVersion', 'id', 'title', 'description', 'category', 'shotIds', 'events', 'defaultInterval', 'defaultRhythmPercent', 'defaultRepetitions']);
 const allowedEventKeys = new Set(['id', 'shotId', 'paceKmh', 'spin', 'target', 'opponentPosition', 'cameraMotion', 'cue', 'serveRhythm', 'netClearanceM']);
 const allowedCameraMotionKeys = new Set(['from', 'to', 'duration', 'delay']);
 const allowedCameraKeys = new Set(['eyeHeight', 'behindBaseline', 'lateral', 'yaw', 'pitch', 'fov']);
@@ -91,7 +91,8 @@ export const validateDrill = (value: unknown): ValidationResult => {
       if (Array.isArray(value.shotIds) && JSON.stringify(eventShotIds) !== JSON.stringify(value.shotIds)) errors.push('shotIds must match the event sequence.');
     }
   }
-  if (typeof value.defaultInterval !== 'number' || value.defaultInterval < 1 || value.defaultInterval > 30) errors.push('defaultInterval must be between 1 and 30 seconds.');
+  if (typeof value.defaultInterval !== 'number' || !Number.isFinite(value.defaultInterval) || value.defaultInterval < 1 || value.defaultInterval > 30) errors.push('defaultInterval must be between 1 and 30 seconds.');
+  if (value.defaultRhythmPercent !== undefined && (typeof value.defaultRhythmPercent !== 'number' || !Number.isFinite(value.defaultRhythmPercent) || value.defaultRhythmPercent < 50 || value.defaultRhythmPercent > 150)) errors.push('defaultRhythmPercent must be between 50 and 150.');
   if (typeof value.defaultRepetitions !== 'number' || !Number.isInteger(value.defaultRepetitions) || value.defaultRepetitions < 1 || value.defaultRepetitions > 200) errors.push('defaultRepetitions must be an integer from 1 to 200.');
   const serialized = JSON.stringify(value);
   if (/https?:\/\//i.test(serialized)) errors.push('Remote URLs are not allowed in drill JSON.');
