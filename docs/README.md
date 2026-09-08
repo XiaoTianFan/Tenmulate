@@ -13,6 +13,11 @@ This folder is the project record for product discovery, design, architecture, a
 - `open-questions.md`: unresolved owner choices and research spikes.
 - `development/`: implementation status, verification evidence, and operational development notes.
 
+## Current research reading packets
+
+- [TennisVAR and TANS crash course](research/tennisvar-tans-crash-course-2026-09-08.md): original papers, guided methodology, results, limitations, notation examples, and a reading plan.
+- [TennisVAR/TANS integration assessment](research/tennisvar-tans-integration-2026-09-08.md): current code fit, public release audit, source receipts, and a proposed chart-to-rehearsal pilot. Research only; no implementation or accepted ADR change.
+
 ## Status language
 
 - **Draft**: being explored; content may change without a superseding decision.

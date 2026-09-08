@@ -33,3 +33,6 @@ __pycache__/
 # Browser verification artifacts
 output/playwright/
 .playwright-cli/
+
+# Locally retrieved research PDFs (source URLs/hashes live in docs/research)
+output/pdf/
