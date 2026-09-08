@@ -19,14 +19,14 @@ export type SavedViewV1 = Readonly<{
 
 export type CameraPosition = Readonly<Pick<CameraConfiguration, 'eyeHeight' | 'behindBaseline' | 'lateral'>>;
 export type PerspectiveConfiguration = Readonly<Pick<CameraConfiguration, 'yaw' | 'pitch' | 'fov'>>;
-export type CameraPositionPresetV1 = Readonly<{ id: string; name: string; position: CameraPosition }>;
+export type CameraPositionPresetV1 = Readonly<{ id: string; name: string; position: CameraPosition; lookAt?: Readonly<{ x: number; y: number; z: number }> }>;
 export type PerspectivePresetV1 = Readonly<{ id: string; name: string; perspective: PerspectiveConfiguration }>;
 
 export const DEFAULT_CAMERA_POSITION_PRESETS: readonly CameraPositionPresetV1[] = [
   { id: 'position-baseline', name: 'Baseline', position: { eyeHeight: 1.7, behindBaseline: 1.5, lateral: 0 } },
-  { id: 'position-left', name: 'Left corner', position: { eyeHeight: 1.68, behindBaseline: 1.4, lateral: 2.6 } },
-  { id: 'position-right', name: 'Right corner', position: { eyeHeight: 1.68, behindBaseline: 1.4, lateral: -2.6 } },
-  { id: 'position-net', name: 'At the net', position: { eyeHeight: 1.66, behindBaseline: -6.7, lateral: -0.4 } },
+  { id: 'position-left', name: 'Left corner', position: { eyeHeight: 1.68, behindBaseline: 2.8, lateral: 3.6 }, lookAt: { x: 0, y: 0, z: COURT.halfLength } },
+  { id: 'position-right', name: 'Right corner', position: { eyeHeight: 1.68, behindBaseline: 2.8, lateral: -3.6 }, lookAt: { x: 0, y: 0, z: COURT.halfLength } },
+  { id: 'position-net', name: 'At the net', position: { eyeHeight: 1.66, behindBaseline: COURT.serviceLineFromNet - 1 - COURT.halfLength, lateral: 0 }, lookAt: { x: 0, y: 0, z: COURT.halfLength } },
   { id: 'position-overhead', name: 'Overhead', position: { eyeHeight: 1.7, behindBaseline: -3.2, lateral: 0 } },
 ];
 
@@ -98,15 +98,17 @@ export const DEFAULT_APP_DATA: AppDataV1 = {
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value);
 
-const normalizePlayerViewCameraPreset = (preset: CameraPositionPresetV1): CameraPositionPresetV1 => (
-  preset.id === 'position-left'
-  && preset.name === 'Left corner'
-  && preset.position.eyeHeight === 1.68
-  && preset.position.behindBaseline === 1.4
-  && preset.position.lateral === -2.6
-    ? { ...preset, position: { ...preset.position, lateral: 2.6 } }
-    : preset
-);
+const normalizePlayerViewCameraPreset = (preset: CameraPositionPresetV1): CameraPositionPresetV1 => {
+  const current = DEFAULT_CAMERA_POSITION_PRESETS.find(item => item.id === preset.id && item.name === preset.name);
+  if (!current || preset.lookAt) return preset;
+  const p = preset.position;
+  const oldCorner = (preset.id === 'position-left' || preset.id === 'position-right')
+    && p.eyeHeight === 1.68 && p.behindBaseline === 1.4
+    && (preset.id === 'position-left' ? Math.abs(p.lateral) === 2.6 : p.lateral === -2.6);
+  const oldNet = preset.id === 'position-net' && p.eyeHeight === 1.66 && p.behindBaseline === -6.7 && p.lateral === -.4;
+  // Only untouched shipped values migrate. Owner-created/edited positions survive.
+  return oldCorner || oldNet ? current : preset;
+};
 
 const addRightCornerToLegacyBuiltIns = (presets: readonly CameraPositionPresetV1[]): readonly CameraPositionPresetV1[] => {
   if (presets.some((preset) => preset.id === 'position-right')) return presets;

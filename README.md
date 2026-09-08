@@ -4,10 +4,13 @@ Tenmulate is a browser-based, first-person tennis visualization tool. It places 
 
 The repository contains the active V1 implementation: a deterministic Three.js court/ball simulation, complete starter shot library, rehearsal player, local drill editor, independently customizable camera-position and perspective presets, validated JSON exchange, and offline-capable app shell. All six built-in court environments use Blender-authored assets with Quality/Performance variants. A 1.88 m CC0 articulated mannequin runs the 25-clip tennis library, including normal/compact serves and a distinct backhand overhead, in actual gameplay. The ball machine remains the opponent load-failure fallback.
 
-Quick Practice and drills use editable uniform landing zones. Hover and left-drag
-anywhere inside the rendered zone to move it freely along the court; drag elsewhere
-to look around. Setup previews stream fresh feeds continuously; launched sets honor
-their chosen repetitions and rests. See the [direct-drag verification receipt](docs/development/landing-zone-direct-drag-2026-09-08.md).
+Quick Practice and drills use editable uniform landing zones. Left-drag the interior
+to move, a side to resize one dimension, or a corner to resize both. Drag elsewhere
+to look around. The zone previews immediately and recalculates the session once on
+release. Practice, Editor and drill playback share one mounted court; the library
+parks it without rendering. Setup previews stream fresh feeds continuously;
+launched sets honor their chosen repetitions and rests. See the
+[shared-court verification receipt](docs/development/shared-court-and-zone-resize-2026-09-08.md).
 
 ## Implemented direction
 

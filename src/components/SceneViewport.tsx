@@ -11,8 +11,11 @@ import {
 } from '../engine/rendering/TennisScene';
 import { netHeightAt, type FlightSample, type ResolvedTrajectory } from '../engine/trajectory/physics';
 import type { CompiledRepetition, CompiledSession } from '../engine/session/compileSession';
+import type { LandingZone } from '../engine/trajectory/landingZone';
 
-type SceneViewportProps = Readonly<{
+export type SceneViewportProps = Readonly<{
+  active?: boolean;
+  viewKey?: object;
   camera: CameraConfiguration;
   trajectory: ResolvedTrajectory;
   surface: SurfaceId;
@@ -28,11 +31,11 @@ type SceneViewportProps = Readonly<{
   highContrastBall?: boolean;
   showBallTrail?: boolean;
   onAimChange?: (directionDeg: number) => void;
-  landingTarget?:Readonly<{x:number;z:number}>;
-  onLandingChange?: (point:Readonly<{x:number;z:number}>)=>void;
+  onLandingZoneChange?: (zone: LandingZone) => void;
   onCameraFovChange?: (fov: number) => void;
   onCameraLookChange?: (look: CameraLook) => void;
   onMetrics: (metrics: SceneMetrics) => void;
+  onPointerActivity?: () => void;
   session?: CompiledSession;
   sessionClock?: Readonly<{ current: number }>;
   onSessionIndex?: (index:number, repetition: CompiledRepetition)=>void;
@@ -55,6 +58,8 @@ type TrajectoryTooltipState = Readonly<{
 }>;
 
 export function SceneViewport({
+  active = true,
+  viewKey,
   camera,
   trajectory,
   surface,
@@ -70,11 +75,11 @@ export function SceneViewport({
   highContrastBall = false,
   showBallTrail = false,
   onAimChange,
-  onLandingChange,
-  landingTarget,
+  onLandingZoneChange,
   onCameraFovChange,
   onCameraLookChange,
   onMetrics,
+  onPointerActivity,
   session,
   sessionClock,
   onSessionIndex,
@@ -82,6 +87,8 @@ export function SceneViewport({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sceneRef = useRef<TennisScene | null>(null);
   const pointerDrag = useRef<CameraPointerDrag | null>(null);
+  const metricsListener = useRef(onMetrics);
+  metricsListener.current = onMetrics;
   const [error, setError] = useState<string | null>(null);
   const [venueStatus, setVenueStatus] = useState<SceneMetrics['venueAsset']>({ status: 'loading', loadedBytes: 0, totalBytes: 0 });
   const [audienceError, setAudienceError] = useState<string | null>(null);
@@ -111,7 +118,7 @@ export function SceneViewport({
     let scene: TennisScene;
     try {
       scene = new TennisScene(canvas, metrics => {
-        onMetrics(metrics);
+        metricsListener.current(metrics);
         setVenueStatus(previous => previous.status === metrics.venueAsset.status && previous.loadedBytes === metrics.venueAsset.loadedBytes ? previous : metrics.venueAsset);
         setAudienceError(metrics.audience.status === 'error' ? metrics.audience.message ?? 'Audience unavailable' : null);
       }, initialSceneOptions.current);
@@ -125,13 +132,27 @@ export function SceneViewport({
       scene.dispose();
       sceneRef.current = null;
     };
-  }, [onMetrics]);
+  }, []);
+
+  useEffect(() => {
+    sceneRef.current?.landingZoneControl.end(false);
+    sceneRef.current?.landingZoneControl.leave();
+    const drag = pointerDrag.current, canvas = canvasRef.current;
+    if (drag && canvas?.hasPointerCapture(drag.pointerId)) canvas.releasePointerCapture(drag.pointerId);
+    pointerDrag.current = null;
+    setTrajectoryTooltip(null);
+  }, [viewKey, active]);
+  useEffect(() => {
+    const update = () => sceneRef.current?.setActive(active && !document.hidden);
+    update(); document.addEventListener('visibilitychange', update);
+    return () => document.removeEventListener('visibilitychange', update);
+  }, [active]);
 
   useEffect(() => sceneRef.current?.setCamera(camera), [camera]);
   useEffect(() => sceneRef.current?.setSession(session ?? null, sessionClock ?? null, onSessionIndex), [session, sessionClock, onSessionIndex]);
   useEffect(() => sceneRef.current?.setTrajectory(trajectory), [trajectory]);
-  useEffect(() => sceneRef.current?.setLandingTarget(landingTarget ?? trajectory.intent.target,
-    showTrajectory ? onLandingChange ?? null : null), [landingTarget, trajectory, showTrajectory, onLandingChange]);
+  useEffect(() => sceneRef.current?.setLandingZoneInteraction(
+    showTrajectory ? onLandingZoneChange ?? null : null), [showTrajectory, onLandingZoneChange]);
   useEffect(() => sceneRef.current?.setSurface(surface), [surface]);
   useEffect(() => sceneRef.current?.setEnvironment(environment), [environment]);
   useEffect(() => sceneRef.current?.setQualityMode(quality), [quality]);
@@ -190,7 +211,7 @@ export function SceneViewport({
 
   const finishPointer = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     if (pointerDrag.current?.pointerId !== event.pointerId) return;
-    if (pointerDrag.current.mode === 'landing') sceneRef.current?.landingZoneControl.end();
+    if (pointerDrag.current.mode === 'landing') sceneRef.current?.landingZoneControl.end(event.type === 'pointerup');
     pointerDrag.current = null;
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
     if (event.type === 'pointerup' && event.pointerType !== 'touch') sceneRef.current?.landingZoneControl.hover(event.clientX, event.clientY);
@@ -198,10 +219,10 @@ export function SceneViewport({
   };
 
   const interactionHint = [
-    onLandingChange ? 'Left-drag zone to move' : null,
-    onCameraLookChange ? onLandingChange ? 'Drag elsewhere to look' : 'Left-drag to look' : null,
+    onLandingZoneChange ? 'Drag zone to move · Edges to resize' : null,
+    onCameraLookChange ? onLandingZoneChange ? 'Drag elsewhere to look' : 'Left-drag to look' : null,
     onCameraFovChange ? 'Wheel to zoom' : null,
-    !onLandingChange && onAimChange ? 'Right-drag to aim' : null,
+    !onLandingZoneChange && onAimChange ? 'Right-drag to aim' : null,
     showTrajectory ? 'Hover trajectory for data' : null,
   ].filter(Boolean).join(' · ') || null;
 
@@ -219,13 +240,13 @@ export function SceneViewport({
     <div className="scene-viewport">
       <canvas
         ref={canvasRef}
-        className={[onCameraLookChange ? 'look-enabled' : '', onAimChange ? 'aim-enabled' : '', onLandingChange ? 'landing-enabled' : ''].filter(Boolean).join(' ') || undefined}
+        className={[onCameraLookChange ? 'look-enabled' : '', onAimChange ? 'aim-enabled' : '', onLandingZoneChange ? 'landing-enabled' : ''].filter(Boolean).join(' ') || undefined}
         tabIndex={0}
-        aria-label={onLandingChange ? 'Live tennis court. Left-drag the landing zone to move it along the court; drag elsewhere to look. Enter selects the zone; arrow keys move it relative to the view; Escape deselects.' : 'Live first-person tennis court preview'}
+        aria-label={onLandingZoneChange ? 'Live tennis court. Left-drag inside the landing zone to move; drag an edge or corner to resize; drag elsewhere to look. Enter selects the zone; arrow keys move it; Escape deselects.' : 'Live first-person tennis court preview'}
         onContextMenu={onAimChange ? (event) => event.preventDefault() : undefined}
-        onPointerDown={onLandingChange || onAimChange || onCameraLookChange ? (event) => {
+        onPointerDown={onLandingZoneChange || onAimChange || onCameraLookChange ? (event) => {
           if (pointerDrag.current) return;
-          const mode = event.button === 0 && sceneRef.current?.landingZoneControl.begin(event.clientX, event.clientY)
+          const mode = event.button === 0 && sceneRef.current?.landingZoneControl.begin(event.clientX, event.clientY, event.pointerType === 'touch')
             ? 'landing' : event.button === 0 && onCameraLookChange
             ? 'look'
             : event.button === 2 && onAimChange
@@ -246,7 +267,9 @@ export function SceneViewport({
           event.currentTarget.setPointerCapture(event.pointerId);
           if (mode === 'aim') updateAimFromPointer(event);
         } : undefined}
-        onPointerMove={showTrajectory || onAimChange || onCameraLookChange ? updateFromPointer : undefined}
+        onPointerMove={showTrajectory || onAimChange || onCameraLookChange || onPointerActivity ? event => {
+          onPointerActivity?.(); updateFromPointer(event);
+        } : undefined}
         onPointerUp={finishPointer}
         onPointerCancel={finishPointer}
         onLostPointerCapture={finishPointer}

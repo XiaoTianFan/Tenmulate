@@ -148,7 +148,18 @@ describe('local application data', () => {
         { id: 'position-left', name: 'Left corner', position: { eyeHeight: 1.68, behindBaseline: 1.4, lateral: -2.6 } },
       ],
     }));
-    expect(loadAppData().cameraPositionPresets[0]?.position.lateral).toBe(2.6);
+    expect(loadAppData().cameraPositionPresets[0]?.position.lateral).toBe(3.6);
+  });
+
+  it('migrates untouched corner/net defaults and preserves customized positions', () => {
+    const custom = { id: 'position-left', name: 'Left corner', position: { eyeHeight: 1.8, behindBaseline: 2, lateral: 3 } };
+    saveAppData({ ...DEFAULT_APP_DATA, cameraPositionPresets: [custom,
+      { id: 'position-right', name: 'Right corner', position: { eyeHeight: 1.68, behindBaseline: 1.4, lateral: -2.6 } },
+      { id: 'position-net', name: 'At the net', position: { eyeHeight: 1.66, behindBaseline: -6.7, lateral: -.4 } }] });
+    const presets = loadAppData().cameraPositionPresets;
+    expect(presets[0]).toEqual(custom);
+    expect(presets[1]).toEqual(DEFAULT_APP_DATA.cameraPositionPresets.find(p => p.id === 'position-right'));
+    expect(presets[2]).toEqual(DEFAULT_APP_DATA.cameraPositionPresets.find(p => p.id === 'position-net'));
   });
 
   it('adds the right receiver corner to a persisted legacy built-in camera set', () => {

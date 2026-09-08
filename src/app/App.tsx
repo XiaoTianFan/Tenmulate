@@ -7,6 +7,7 @@ import { compileSession } from '../engine/session/compileSession';
 import { useAppData } from '../hooks/useAppData';
 import { createDefaultLaunch } from './defaults';
 import type { SessionLaunch } from './types';
+import { SharedCourtProvider } from '../components/SharedCourt';
 
 const SetupScreen = lazy(() => import('../components/SetupScreen').then((module) => ({ default: module.SetupScreen })));
 const RehearsalScreen = lazy(() => import('../components/RehearsalScreen').then((module) => ({ default: module.RehearsalScreen })));
@@ -16,10 +17,20 @@ const DrillEditorScreen = lazy(() => import('../components/DrillEditorScreen').t
 const LoadingScreen = () => <main className="route-loading" aria-live="polite"><strong>Tenmulate</strong><span>Preparing court…</span></main>;
 
 export function App() {
+  const appData = useAppData();
+  return <SharedCourtProvider environment={appData.data.preferences.environment} quality={appData.data.preferences.quality}>
+    <AppRoutes appData={appData} />
+  </SharedCourtProvider>;
+}
+
+function AppRoutes({ appData }: { appData: ReturnType<typeof useAppData> }) {
   const [route, setRoute] = useState<AppRoute>('practice');
   const [launch, setLaunch] = useState<SessionLaunch | null>(null);
   const [editorDrill, setEditorDrill] = useState<DrillDefinitionV1>(() => createEditableCopy(DRILLS[2]!));
-  const appData = useAppData();
+  const drillLaunch = (drill: DrillDefinitionV1, rhythm?: number, interval?: number, movement?: number): SessionLaunch => ({
+    ...createDefaultLaunch(drill, rhythm, interval, movement),
+    environment: appData.data.preferences.environment, quality: appData.data.preferences.quality,
+  });
 
   if (launch) {
     return <Suspense fallback={<LoadingScreen />}>
@@ -48,7 +59,7 @@ export function App() {
         route={route}
         customDrills={appData.data.customDrills}
         onRoute={setRoute}
-        onRun={(drill, rhythm, interval, movement) => setLaunch(createDefaultLaunch(drill, rhythm, interval, movement))}
+        onRun={(drill, rhythm, interval, movement) => setLaunch(drillLaunch(drill, rhythm, interval, movement))}
         onEdit={editDrill}
         onSave={appData.saveDrill}
         onDelete={appData.deleteDrill}
@@ -64,7 +75,7 @@ export function App() {
         initialDrill={editorDrill}
         onRoute={setRoute}
         onSave={(drill) => { appData.saveDrill(drill); setEditorDrill(drill); }}
-        onTest={(drill) => setLaunch(createDefaultLaunch(drill))}
+        onTest={(drill) => setLaunch(drillLaunch(drill))}
       />
     </Suspense>;
   }

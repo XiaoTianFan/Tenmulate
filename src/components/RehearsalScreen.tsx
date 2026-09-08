@@ -21,7 +21,7 @@ import type { CameraMotion } from '../engine/rendering/TennisScene';
 import { compileSession } from '../engine/session/compileSession';
 import { useSessionPlayer } from '../hooks/useSessionPlayer';
 import { Modal } from './Modal';
-import { SceneViewport } from './SceneViewport';
+import { CourtViewport } from './SharedCourt';
 import { RETURN_SERVE_PLACEMENT_LABELS } from '../domain/returnPractice';
 
 type RehearsalScreenProps = Readonly<{
@@ -143,7 +143,7 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
 
   return (
     <main className={hudHidden ? 'rehearsal-shell hud-hidden' : 'rehearsal-shell'} onMouseMove={() => { if (hudHidden) setHudHidden(false); }}>
-      <SceneViewport camera={launch.camera} trajectory={trajectory} surface={launch.surface} environment={launch.environment} quality={launch.quality} running={playing} resetToken={resetToken} showTrajectory={launch.trajectoryEnabled || showDiagnostics} playbackRate={playbackRate} loopTrajectory={false} cameraMotion={cameraMotion} highContrastBall={highContrastBall} showBallTrail={showBallTrail} onMetrics={onMetrics} session={session} sessionClock={player.clock} />
+      <CourtViewport camera={launch.camera} trajectory={trajectory} surface={launch.surface} environment={launch.environment} quality={launch.quality} running={playing} resetToken={resetToken} showTrajectory={launch.trajectoryEnabled || showDiagnostics} playbackRate={playbackRate} loopTrajectory={false} cameraMotion={cameraMotion} highContrastBall={highContrastBall} showBallTrail={showBallTrail} onMetrics={onMetrics} onPointerActivity={() => { if (hudHidden) setHudHidden(false); }} session={session} sessionClock={player.clock} />
       <header className="rehearsal-header">
         <strong>Tenmulate</strong>
         <span className="drill-title">{session.drill.title}</span>

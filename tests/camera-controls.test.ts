@@ -6,9 +6,12 @@ import {
   cameraFovAfterWheel,
   cameraLookAfterDrag,
   cameraRotationRadians,
+  cameraLookAtCourtPoint,
   wrapCameraAngle,
   type CameraLook,
 } from '../src/domain/camera';
+import { DEFAULT_CAMERA_POSITION_PRESETS } from '../src/storage/appStorage';
+import { COURT } from '../src/domain/court';
 
 const forwardFor = (look: CameraLook): THREE.Vector3 => {
   const rotation = cameraRotationRadians(look);
@@ -16,6 +19,16 @@ const forwardFor = (look: CameraLook): THREE.Vector3 => {
 };
 
 describe('360-degree camera look controls', () => {
+  it('aims both wider, deeper corners and the centered volley position at the far baseline center', () => {
+    for (const preset of DEFAULT_CAMERA_POSITION_PRESETS.filter(p => p.lookAt)) {
+      const p = preset.position, target = new THREE.Vector3(0, 0, COURT.halfLength);
+      const origin = new THREE.Vector3(p.lateral, p.eyeHeight, -COURT.halfLength - p.behindBaseline);
+      const direction = forwardFor(cameraLookAtCourtPoint(p, preset.lookAt!));
+      expect(direction.distanceTo(target.sub(origin).normalize())).toBeLessThan(1e-8);
+      if (preset.id === 'position-net') { expect(origin.z).toBeCloseTo(-COURT.serviceLineFromNet + 1); expect(origin.x).toBe(0); }
+      else { expect(p.behindBaseline).toBeGreaterThan(1.4); expect(Math.abs(p.lateral)).toBeGreaterThan(2.6); expect(Math.abs(p.lateral)).toBeLessThan(COURT.singlesWidth / 2); }
+    }
+  });
   it('wraps yaw and pitch through a complete revolution', () => {
     expect(wrapCameraAngle(181)).toBe(-179);
     expect(wrapCameraAngle(-181)).toBe(179);

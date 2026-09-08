@@ -1,4 +1,4 @@
-import { normalizeLandingZone } from '../engine/trajectory/landingZone';
+import { landingZoneCenter, normalizeLandingZone } from '../engine/trajectory/landingZone';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import {
   CheckCircle2,
@@ -27,7 +27,7 @@ import type { CameraConfiguration, SceneMetrics } from '../engine/rendering/Tenn
 import { AppHeader, type AppRoute } from './AppHeader';
 import { CourtPlan, type CourtPoint } from './CourtPlan';
 import { Modal } from './Modal';
-import { SceneViewport } from './SceneViewport';
+import { CourtViewport } from './SharedCourt';
 
 type EditorHistory = Readonly<{
   past: readonly DrillDefinitionV1[];
@@ -200,7 +200,7 @@ export function DrillEditorScreen({ route, initialDrill, onRoute, onSave, onTest
 
         <section className="editor-stage">
           <div className="editor-scene">
-            <SceneViewport camera={previewCamera} trajectory={trajectory} surface={sourceShot?.surface ?? 'hard'} running resetToken={resetToken} showTrajectory loopTrajectory session={previewSession} onSessionIndex={onPreviewIndex} cameraMotion={null} onLandingChange={target => updateEvent({target})} onCameraLookChange={look=>setPreviewCamera(camera=>({...camera,...look}))} onCameraFovChange={fov=>setPreviewCamera(camera=>({...camera,fov}))} onMetrics={onMetrics} />
+            <CourtViewport camera={previewCamera} trajectory={trajectory} surface={sourceShot?.surface ?? 'hard'} running resetToken={resetToken} showTrajectory loopTrajectory session={previewSession} onSessionIndex={onPreviewIndex} cameraMotion={null} onLandingZoneChange={zone => updateEvent({target: landingZoneCenter(zone), landingZone: {width: zone.maxX-zone.minX, depth: zone.maxZ-zone.minZ}})} onCameraLookChange={look=>setPreviewCamera(camera=>({...camera,...look}))} onCameraFovChange={fov=>setPreviewCamera(camera=>({...camera,fov}))} onMetrics={onMetrics} />
             <div className="editor-scene-label"><span>Event {Math.max(1, events.findIndex((event) => event.id === selected?.id) + 1)}</span><strong>{sourceShot?.label}</strong></div>
           </div>
           <div className="timeline" aria-label="Deterministic drill timeline">
@@ -250,9 +250,8 @@ export function DrillEditorScreen({ route, initialDrill, onRoute, onSave, onTest
               {sourceShot.family === 'serve' ? <label className="stack-field"><span>Serve rhythm</span><select value={selected.serveRhythm ?? 'preset'} onChange={(event) => updateEvent({ serveRhythm: event.target.value as 'preset' | 'normal' | 'compact' })}><option value="preset">Shot preset</option><option value="normal">Normal · high toss</option><option value="compact">Compact · quick toss</option></select></label> : null}
               <div className="paired-fields"><label className="stack-field"><span>Zone center X</span><input type="number" min="-4.115" max="4.115" step="0.05" value={(selected.target?.x ?? sourceShot.target.x).toFixed(2)} onChange={(event) => updateEvent({ target: { x: Number(event.target.value), z: selected.target?.z ?? sourceShot.target.z } })} /></label><label className="stack-field"><span>Zone center Z</span><input type="number" min="-11.885" max="-0.01" step="0.05" value={(selected.target?.z ?? sourceShot.target.z).toFixed(2)} onChange={(event) => updateEvent({ target: { x: selected.target?.x ?? sourceShot.target.x, z: Number(event.target.value) } })} /></label></div>
               <div className="paired-fields"><label className="stack-field"><span>Zone width (m)</span><input aria-label="Editor zone width" type="number" min="0.2" max="6" step="0.1" value={zoneSize.width} onChange={event => updateEvent({landingZone:{...zoneSize,width:Number(event.target.value)}})} /></label><label className="stack-field"><span>Zone depth (m)</span><input aria-label="Editor zone depth" type="number" min="0.2" max="6" step="0.1" value={zoneSize.depth} onChange={event => updateEvent({landingZone:{...zoneSize,depth:Number(event.target.value)}})} /></label></div>
-              <small>Uniform landings within the highlighted court or service-box zone.</small>
               <small className={`trajectory-resolution${trajectory.solution?.status==='unreachable'?' warning':''}`} role="status">{trajectory.solution?.status==='unreachable'?'Sample outside this shot’s reach. Adjust pace, spin or zone.':`Resolved ${trajectory.resolved.launchSpeedKmh.toFixed(1)} km/h · ${Math.round(trajectory.resolved.spinRateRpm)} rpm for this landing.`}</small>
-              <label className="stack-field"><span>Speed &amp; spin variation (±%)</span><input aria-label="Editor parameter variation" type="number" min="0" max="25" step="1" value={selected.variationPercent ?? 8} onChange={event => updateEvent({variationPercent:Number(event.target.value)})} /></label>
+              <label className="stack-field"><span>Shot Variation (±%)</span><input aria-label="Editor parameter variation" type="number" min="0" max="25" step="1" value={selected.variationPercent ?? 8} onChange={event => updateEvent({variationPercent:Number(event.target.value)})} /></label>
               <label className="stack-field"><span>Camera motion</span><select value={motionKey(selected)} onChange={(event) => updateEvent({ cameraMotion: cameraMotions[event.target.value as keyof typeof cameraMotions] })}>{Object.keys(cameraMotions).map((key) => <option key={key} value={key}>{key.replace('-', ' ')}</option>)}</select></label>
               <label className="stack-field"><span>Preparation cue</span><input maxLength={60} value={selected.cue ?? ''} placeholder={sourceShot.cue} onChange={(event) => updateEvent({ cue: event.target.value || undefined })} /></label>
             </>

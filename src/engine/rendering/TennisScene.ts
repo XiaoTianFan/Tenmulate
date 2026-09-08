@@ -19,7 +19,8 @@ import { planRecovery } from '../session/opponentMovement';
 import { ContinuousPracticePreview } from '../session/practicePreview';
 import { sessionFlights } from '../session/sessionFlights';
 import type { CompiledRepetition } from '../session/compileSession';
-import { LandingZoneControl, type LandingPoint } from './LandingZoneControl';
+import { LandingZoneControl } from './LandingZoneControl';
+import { landingZoneLimits, type LandingZone } from '../trajectory/landingZone';
 import { SHOTS } from '../../content/bundled';
 
 export type CameraConfiguration = Readonly<{
@@ -148,6 +149,8 @@ export class TennisScene {
   private previewEvent: MotionEvent | null = null;
   private elapsed = 0;
   private running = true;
+  private active = true;
+  private sessionRevision = 0;
   private playbackRate = 1;
   private loopTrajectory = true;
   private trajectoryInterval: number | null = null;
@@ -175,6 +178,8 @@ export class TennisScene {
     private readonly onMetrics?: (metrics: SceneMetrics) => void,
     options: Readonly<{ quality?: QualityMode; environment?: EnvironmentConfiguration }> = {},
   ) {
+    this.canvas.dataset.sceneInstance = crypto.randomUUID();
+    this.canvas.dataset.sceneActive = 'true';
     this.renderer = new THREE.WebGLRenderer({
       canvas,
       antialias: true,
@@ -269,6 +274,7 @@ export class TennisScene {
   }
 
   setTrajectory(trajectory: ResolvedTrajectory): void {
+    if (this.trajectory === trajectory) return;
     this.trajectory = trajectory;
     if (!this.session) this.elapsed = 0;
     const family = trajectory.intent.shotType ?? trajectory.intent.family;
@@ -286,7 +292,8 @@ export class TennisScene {
   private setTrajectoryLine(trajectory: ResolvedTrajectory): void {
     if(this.lineTrajectory===trajectory)return;
     this.lineTrajectory=trajectory;
-    this.landingZoneControl.setZone(this.trajectoryLine.visible ? trajectory.intent.landingZone ?? null : null);
+    this.landingZoneControl.setZone(this.trajectoryLine.visible ? trajectory.intent.landingZone ?? null : null,
+      landingZoneLimits(trajectory.intent.shotType ?? trajectory.intent.family ?? 'groundstroke', trajectory.intent.source));
     const bounce = trajectory.events.find(event => event.type === 'bounce');
     if (bounce) this.landingZoneControl.setBounce(bounce.position);
     const points = trajectory.samples.map(
@@ -297,6 +304,10 @@ export class TennisScene {
   }
 
   setSession(session: CompiledSession | null, clock: Readonly<{ current: number }> | null, onIndex?: (index:number, repetition: CompiledRepetition)=>void): void {
+    this.onSessionIndex = onIndex ?? null;
+    if (this.session === session && this.sessionClock === clock) return;
+    this.landingZoneControl.acceptModel();
+    this.canvas.dataset.sessionRevision = String(++this.sessionRevision);
     if(this.session!==session&&!clock){this.elapsed=0;this.sessionIndex=-1;}
     this.session = session;
     this.sessionClock = clock;
@@ -306,8 +317,8 @@ export class TennisScene {
     this.previewCycle = -1;
   }
 
-  setLandingTarget(target: LandingPoint, onChange: ((point: LandingPoint) => void) | null): void {
-    this.landingZoneControl.configure(target, onChange);
+  setLandingZoneInteraction(onChange: ((zone: LandingZone) => void) | null): void {
+    this.landingZoneControl.configure(onChange);
   }
 
   setTrajectoryVisible(visible: boolean): void {
@@ -552,6 +563,17 @@ export class TennisScene {
     this.lastFrame = performance.now();
   }
 
+  /** Keep GPU resources resident while a route without a court is displayed. */
+  setActive(active: boolean): void {
+    if (this.active === active) return;
+    this.active = active;
+    this.canvas.dataset.sceneActive = String(active);
+    this.lastFrame = performance.now();
+    this.metricStartedAt = this.lastFrame; this.metricFrames = 0;
+    if (active) this.resize();
+    this.renderer.setAnimationLoop(active ? this.animate : null);
+  }
+
   reset(): void {
     this.elapsed = 0;
   }
@@ -701,6 +723,7 @@ export class TennisScene {
   };
 
   private resize(): void {
+    if (!this.active || !this.canvas.clientWidth || !this.canvas.clientHeight) return;
     const width = Math.max(1, this.canvas.clientWidth);
     const height = Math.max(1, this.canvas.clientHeight);
     this.renderer.setSize(width, height, false);

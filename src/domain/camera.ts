@@ -1,4 +1,13 @@
+import { COURT } from './court';
+
 export type CameraLook = Readonly<{ yaw: number; pitch: number }>;
+
+export function cameraLookAtCourtPoint(position: Readonly<{ lateral: number; behindBaseline: number; eyeHeight: number }>,
+  target: Readonly<{ x: number; y: number; z: number }>): CameraLook {
+  const dx = target.x - position.lateral, dz = target.z + COURT.halfLength + position.behindBaseline;
+  return { yaw: Math.atan2(dx, dz) * 180 / Math.PI,
+    pitch: Math.atan2(target.y - position.eyeHeight, Math.hypot(dx, dz)) * 180 / Math.PI };
+}
 
 export const CAMERA_LOOK_DEGREES_PER_PIXEL = 0.22;
 export const CAMERA_FOV_MIN = 5;

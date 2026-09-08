@@ -7,7 +7,7 @@ import { CAMERA_EYE_HEIGHT_MAX, CAMERA_EYE_HEIGHT_MIN, DEFAULT_RALLY_OPPONENT_PO
 import { SCENE_DEFINITIONS, VENUE_LABELS, isOutdoorVenue, windVelocityFromEnvironment, type AudienceOccupancy, type EnvironmentConfiguration, type LightingPreset, type VenueId, type WeatherCondition } from '../domain/environment';
 import { RETURN_SERVE_PATTERN, RETURN_SERVE_PLACEMENT_LABELS, returnReceiverSideForCameraPreset, returnServerPosition, type ReturnReceiverSide } from '../domain/returnPractice';
 import type { CameraConfiguration, QualityMode, SceneMetrics } from '../engine/rendering/TennisScene';
-import { compileSession, type CompiledRepetition } from '../engine/session/compileSession';
+import { compileSession, type CompiledRepetition, type CompiledSession } from '../engine/session/compileSession';
 import { compilePracticePreview } from '../engine/session/practicePreview';
 import { aimDirectionToCourtPoint, type SpinKind } from '../engine/trajectory/physics';
 import { PRACTICE_SHOT_PROFILES, legalServeTarget, practiceLandingTarget, spinForPracticeShot, spinRateForPracticeShot, spinRateProfileForPracticeShot, type PracticeShotType } from '../engine/trajectory/practiceProfiles';
@@ -18,7 +18,9 @@ import { useCameraKeyboardLock } from '../hooks/useCameraKeyboardLock';
 import { AppHeader, type AppRoute } from './AppHeader';
 import { CourtPlan, type CourtPoint } from './CourtPlan';
 import { Modal } from './Modal';
-import { SceneViewport } from './SceneViewport';
+import { CourtViewport } from './SharedCourt';
+import { landingZoneCenter, type LandingZone } from '../engine/trajectory/landingZone';
+import { cameraLookAtCourtPoint } from '../domain/camera';
 
 type PracticePresetId = 'rally' | 'return' | 'volley' | 'overhead';
 type DialogId = 'safety' | 'display' | 'help' | 'opponent' | 'new-position' | 'new-perspective' | null;
@@ -132,7 +134,7 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
     initialPractice.id === 'return' && initialPreferences.camera.lateral < 0 ? 'right' : initialPractice.returnReceiverSide ?? 'left'
   ));
   const [returnPreviewIndex, setReturnPreviewIndex] = useState(0);
-  const [previewRepetition, setPreviewRepetition] = useState<CompiledRepetition | null>(null);
+  const [previewRepetition, setPreviewRepetition] = useState<{ session: CompiledSession; repetition: CompiledRepetition } | null>(null);
   const [opponentPosition, setOpponentPosition] = useState<CourtPoint>(initialPreferences.opponentPosition ?? initialPractice.opponent);
   const [venue, setVenue] = useState<VenueId>(initialPreferences.environment.venue);
   const [audience, setAudience] = useState<AudienceOccupancy>(initialPreferences.environment.audience ?? 'empty');
@@ -204,17 +206,21 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
     serveRhythm, landingZone, landingDepthM, aimDirectionDeg, opponentPosition, returnPatternActive, returnReceiverSide, windVelocity]);
   const deferredSettings = useDeferredValue(sessionSettings);
   const previewSession = useMemo(() => compilePracticePreview(drill,deferredSettings),[drill,deferredSettings]);
-  const trajectory = (previewRepetition ?? previewSession.repetitions[0])!.trajectory;
+  const trajectory = (previewRepetition?.session === previewSession ? previewRepetition.repetition : previewSession.repetitions[0])!.trajectory;
   const bounce = trajectory.events.find(event => event.type === 'bounce');
   const previewGap = previewSession.repetitions[1] ? previewSession.repetitions[1].startTime - previewSession.repetitions[0]!.startTime : 0;
   const onPreviewIndex = useCallback((index: number, repetition: CompiledRepetition) => {
-    setReturnPreviewIndex(index); setPreviewRepetition(repetition);
-  }, []);
+    setReturnPreviewIndex(index); setPreviewRepetition({ session: previewSession, repetition });
+  }, [previewSession]);
 
+  const pendingPreferences = useRef(initialPreferences);
   useEffect(() => {
-    const timeout = window.setTimeout(() => onPreferencesChange({ sessionCategory, trajectoryEnabled, launchSpeedKmh, interval, rhythmPercent, movementPercent, practiceStroke, trajectoryMode, returnTargetMode, repetitions, variation, timingVariation, workBlockSize, restSeconds, surface, shotType, spin, spinRateRpm, bounceFactor, opponentHand, serveRhythm, landingZone, landingDepthM, aimDirectionDeg, opponentPosition, camera, environment, quality, screenWidthCm, screenHeightCm, viewDistanceCm }), 180);
+    pendingPreferences.current = { sessionCategory, trajectoryEnabled, launchSpeedKmh, interval, rhythmPercent, movementPercent, practiceStroke, trajectoryMode, returnTargetMode, repetitions, variation, timingVariation, workBlockSize, restSeconds, surface, shotType, spin, spinRateRpm, bounceFactor, opponentHand, serveRhythm, landingZone, landingDepthM, aimDirectionDeg, opponentPosition, camera, environment, quality, screenWidthCm, screenHeightCm, viewDistanceCm };
+    const timeout = window.setTimeout(() => onPreferencesChange(pendingPreferences.current), 180);
     return () => window.clearTimeout(timeout);
   }, [aimDirectionDeg, bounceFactor, camera, environment, interval, movementPercent, practiceStroke, trajectoryMode, returnTargetMode, rhythmPercent, landingZone, landingDepthM, launchSpeedKmh, onPreferencesChange, opponentHand, opponentPosition, quality, repetitions, restSeconds, screenHeightCm, screenWidthCm, serveRhythm, sessionCategory, shotType, spin, spinRateRpm, surface, timingVariation, trajectoryEnabled, variation, viewDistanceCm, workBlockSize]);
+  // A route change can follow a pointer release before the debounce expires.
+  useEffect(() => () => onPreferencesChange(pendingPreferences.current), [onPreferencesChange]);
 
   useEffect(() => {
     let frame = 0;
@@ -318,6 +324,10 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
     setBehindBaseline(preset.position.behindBaseline);
     setLateral(preset.position.lateral);
     setSelectedPositionPreset(preset.id);
+    if (preset.lookAt) {
+      const look = cameraLookAtCourtPoint(preset.position, preset.lookAt);
+      updateCameraYaw(look.yaw); setPitch(look.pitch); setSelectedPerspectivePreset('');
+    }
     const receiverSide = returnReceiverSideForCameraPreset(preset.id);
     if (practicePreset === 'return' && shotType === 'serve' && receiverSide) {
       setReturnReceiverSide(receiverSide);
@@ -386,6 +396,10 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
     const target=practiceLandingTarget(opponentPosition,aimDirectionDeg,landingDepthM);
     setOpponentPosition(point);
     setAimDirectionDeg(aimDirectionToCourtPoint(point,target));
+  };
+  const changeLandingZone = (zone: LandingZone) => {
+    setLandingZone({ width: zone.maxX - zone.minX, depth: zone.maxZ - zone.minZ });
+    changeLanding(landingZoneCenter(zone));
   };
   const resetView = () => {
     if (cameraPositionPresets[0]) applyCameraPosition(cameraPositionPresets[0]);
@@ -469,7 +483,7 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
 
         <section className="preview-column" aria-label="Live court preview">
           <div className="setup-court-view" data-camera-eye-height={eyeHeight.toFixed(3)}>
-            <SceneViewport camera={camera} trajectory={trajectory} surface={surface} environment={environment} quality={quality} running resetToken={resetToken} showTrajectory={trajectoryEnabled} loopTrajectory session={previewSession} onSessionIndex={onPreviewIndex} onLandingChange={changeLanding} landingTarget={returnPatternActive ? trajectory.intent.target : shotType==='serve'?legalServeTarget(opponentPosition,aimDirectionDeg,landingDepthM):practiceLandingTarget(opponentPosition,aimDirectionDeg,landingDepthM)} onCameraFovChange={updateCameraFov} onCameraLookChange={updateCameraLook} onMetrics={onMetrics} />
+            <CourtViewport camera={camera} trajectory={trajectory} surface={surface} environment={environment} quality={quality} running resetToken={resetToken} showTrajectory={trajectoryEnabled} loopTrajectory session={previewSession} onSessionIndex={onPreviewIndex} onLandingZoneChange={changeLandingZone} onCameraFovChange={updateCameraFov} onCameraLookChange={updateCameraLook} onMetrics={onMetrics} />
             <div className="court-metadata" aria-live="polite">{metrics ? `${metrics.renderer} · ${metrics.fps} fps · ${metrics.pixelRatio.toFixed(2)}× ${metrics.quality}` : 'Starting renderer'} · Stroke {rhythmPercent}%{previewGap ? ` · About ${previewGap.toFixed(1)} s between shots` : ''}</div>
           </div>
           <div className="preset-toolbar">
@@ -500,9 +514,7 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
             <RangeField label="Zone center depth" value={landingDepthM} min={shotProfile.landingDepthRangeM.min} max={shotProfile.landingDepthRangeM.max} step={0.1} unit="m" onChange={depth => changeLanding({...practiceLandingTarget(opponentPosition,aimDirectionDeg,landingDepthM),z:-depth})} />
             <RangeField label="Zone width" value={landingZone.width} min={.2} max={6} step={.1} unit="m" onChange={width => setLandingZone({...landingZone, width})} />
             <RangeField label="Zone depth" value={landingZone.depth} min={.2} max={6} step={.1} unit="m" onChange={depth => setLandingZone({...landingZone, depth})} />
-            <small>Uniform landings across the highlighted zone, bounded by the court or service box.</small>
-            <RangeField label="Speed & spin variation" value={variation} min={0} max={25} step={1} unit="%" onChange={setVariation} />
-            <small>Uniform ± variation before trajectory fitting. Launch angle follows each sampled landing.</small>
+            <RangeField label="Shot Variation" value={variation} min={0} max={25} step={1} unit="%" onChange={setVariation} />
             <label className="select-field"><span>Trajectory style</span><select aria-label="Trajectory style" value={trajectoryMode} onChange={event=>setTrajectoryMode(event.target.value as 'natural'|'exact')}><option value="natural">Natural target</option><option value="exact">Exact sampled speed & spin</option></select></label>
             <small className={`trajectory-resolution${trajectory.solution?.status==='unreachable'?' warning':''}`} role="status">{trajectory.solution?.status==='unreachable'?'Sample outside this shot’s reach. Adjust speed, spin or zone.':`Resolved ${trajectory.resolved.launchSpeedKmh.toFixed(1)} km/h · ${Math.round(trajectory.resolved.spinRateRpm)} rpm.`} {trajectoryMode==='natural'?'Zone fitting may adjust speed up to 50% and spin up to 20%.':'Each sampled speed and spin stays fixed; some landings may be out of reach.'}</small>
             <RangeField label="Shot interval" value={interval} min={1} max={30} step={0.1} unit="s" onChange={setInterval} />

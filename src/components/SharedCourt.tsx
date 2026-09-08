@@ -1,0 +1,45 @@
+import { createContext, useCallback, useContext, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
+import { SceneViewport, type SceneViewportProps } from './SceneViewport';
+import type { EnvironmentConfiguration } from '../domain/environment';
+import type { QualityMode } from '../engine/rendering/TennisScene';
+
+type Lease = { publish: (owner: object, slot: HTMLDivElement, props: SceneViewportProps) => void; release: (owner: object) => void };
+const CourtContext = createContext<Lease | null>(null);
+
+/** One stable portal host, canvas, scene and WebGL context for the whole app. */
+export function SharedCourtProvider({ children, environment, quality }: { children: ReactNode; environment: EnvironmentConfiguration; quality: QualityMode }) {
+  const [host] = useState(() => { const element = document.createElement('div'); element.className = 'shared-court-host'; return element; });
+  const parking = useRef<HTMLDivElement>(null);
+  const ownerRef = useRef<object | null>(null);
+  const [view, setView] = useState<{ owner: object; props: SceneViewportProps; active: boolean } | null>(null);
+  const publish = useCallback<Lease['publish']>((owner, slot, props) => {
+    ownerRef.current = owner;
+    // Move the portal container, never recreate the portal or its React children.
+    if (host.parentElement !== slot) slot.appendChild(host);
+    setView({ owner, props, active: true });
+  }, [host]);
+  const release = useCallback((owner: object) => {
+    if (ownerRef.current !== owner) return;
+    ownerRef.current = null;
+    parking.current?.appendChild(host);
+    setView(previous => previous ? { ...previous, active: false } : null);
+  }, [host]);
+  const lease = useMemo(() => ({ publish, release }), [publish, release]);
+  return <CourtContext.Provider value={lease}>
+    {children}
+    <div ref={parking} hidden aria-hidden="true" />
+    {view ? createPortal(<SceneViewport {...view.props} environment={view.props.environment ?? environment}
+      quality={view.props.quality ?? quality} active={view.active} viewKey={view.owner} />, host) : null}
+  </CourtContext.Provider>;
+}
+
+/** A route only supplies its viewport rectangle and current gameplay configuration. */
+export function CourtViewport(props: SceneViewportProps) {
+  const lease = useContext(CourtContext);
+  if (!lease) throw new Error('CourtViewport requires SharedCourtProvider');
+  const slot = useRef<HTMLDivElement>(null), owner = useRef({});
+  useLayoutEffect(() => { if (slot.current) lease.publish(owner.current, slot.current, props); });
+  useLayoutEffect(() => { const token = owner.current; return () => lease.release(token); }, [lease]);
+  return <div ref={slot} className="scene-viewport-slot" />;
+}
