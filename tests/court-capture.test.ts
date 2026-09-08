@@ -58,13 +58,14 @@ describe('court capture lifetime and failures', () => {
     const { capture, acquireAudio } = setup();
     await capture.start(false);
     expect(acquireAudio).not.toHaveBeenCalled();
-    expect(capture.getSnapshot().state).toBe('capturing');
+    expect(capture.getSnapshot()).toMatchObject({ state: 'capturing', includeAudio: false });
   });
 
   it('cancels a pending audio start without leaking or replacing a newer stream', async () => {
     let resolve!: (value: AudioCaptureLease) => void;
     const { capture, audio, canvas } = setup(() => new Promise(done => { resolve = done; }));
     const pending = capture.start();
+    expect(capture.getSnapshot()).toMatchObject({ state: 'starting', includeAudio: true });
     await capture.start(); // Double click does not allocate another source.
     const cancelled = canvas.captureStream.mock.results[0].value as MediaStream;
     capture.stop();

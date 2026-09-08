@@ -6,7 +6,7 @@ import './casting.css';
 
 /** Native screen mirroring is separate from the optional local capture preview. */
 export function CastingButton() {
-  const { capture, available, rendering, state, stream, muted, error } = useCourtCapture();
+  const { capture, available, rendering, state, stream, muted, error, includeAudio: capturedAudio } = useCourtCapture();
   const [open, setOpen] = useState(false);
   const [includeAudio, setIncludeAudio] = useState(true);
   const [previewError, setPreviewError] = useState(false);
@@ -68,7 +68,7 @@ export function CastingButton() {
             <p className="casting-note">Up to 30 frames per second · up to 720p · preview muted to avoid duplicate audio. Quality and frame delivery depend on your device.</p>
           </> : null}
           <div className="casting-actions">
-            <label><input type="checkbox" checked={includeAudio} disabled={active} onChange={event => setIncludeAudio(event.target.checked)} /> Include practice audio</label>
+            <label><input type="checkbox" checked={active ? capturedAudio : includeAudio} disabled={active} onChange={event => setIncludeAudio(event.target.checked)} /> Include practice audio</label>
             {active ? <button type="button" onClick={capture.stop}>Stop local capture</button>
               : <button type="button" disabled={!available} onClick={() => void capture.start(includeAudio)}>Start local capture</button>}
           </div>

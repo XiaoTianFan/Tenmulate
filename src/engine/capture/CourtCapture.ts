@@ -2,6 +2,7 @@ export type AudioCaptureLease = { stream: MediaStream; release: () => void };
 export type CaptureSnapshot = Readonly<{
   available: boolean;
   rendering: boolean;
+  includeAudio: boolean;
   state: 'idle' | 'starting' | 'capturing' | 'error';
   stream: MediaStream | null;
   muted: boolean;
@@ -15,7 +16,7 @@ export class CourtCapture {
   private pendingStream: MediaStream | null = null;
   private generation = 0;
   private listeners = new Set<() => void>();
-  private snapshot: CaptureSnapshot = { available: false, rendering: false, state: 'idle', stream: null, muted: false, error: null };
+  private snapshot: CaptureSnapshot = { available: false, rendering: false, includeAudio: false, state: 'idle', stream: null, muted: false, error: null };
 
   constructor(private acquireAudio: () => Promise<AudioCaptureLease>) {}
 
@@ -61,7 +62,7 @@ export class CourtCapture {
       return;
     }
     const generation = ++this.generation;
-    this.update({ state: 'starting', error: null, muted: false });
+    this.update({ state: 'starting', error: null, muted: false, includeAudio });
     try {
       // Browser-owned capture of the existing drawing buffer; no screenshots or second renderer.
       const stream = this.canvas.captureStream(30);
@@ -103,7 +104,7 @@ export class CourtCapture {
     this.pendingStream = null;
     this.audio?.release();
     this.audio = null;
-    this.update({ state: 'idle', stream: null, muted: false, error: null });
+    this.update({ state: 'idle', stream: null, muted: false, error: null, includeAudio: false });
   };
 }
 

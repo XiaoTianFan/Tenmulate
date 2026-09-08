@@ -24,9 +24,12 @@ AirPlay of the live canvas MediaStream. The app cannot initiate or verify native
 Screen Mirroring, and the manual guide does not meet the website-initiated receiver
 requirement. No actual iOS/TV session or performance acceptance is claimed. See
 [ADR-0034](../decisions/0034-persistent-court-capture.md) for source evidence and
-the ownership/transport contract. Initial validation: 13 focused capture lifecycle
-and resolution tests plus TypeScript compilation pass; browser and final build
-verification are recorded separately when completed.
+the ownership/transport contract. The 369-test suite passed; the final audio-status
+adjustment passed the 13 capture tests and production build again. Desktop, 320 px
+layout and production touch-emulation checks verify live video, practice audio and
+source/track identity across route transitions. See the
+[verification receipt](persistent-court-capture-2026-09-09.md) for exact evidence
+and outstanding device gates.
 
 ## Serve rhythm placement and choices — 2026-09-08
 
