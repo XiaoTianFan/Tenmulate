@@ -15,6 +15,7 @@ This folder is the project record for product discovery, design, architecture, a
 
 ## Current research reading packets
 
+- [LAN casting and browser mirroring](research/lan-casting-and-mirroring-2026-09-08.md): native iOS/Mac mirroring, Lebo web/SDK evidence, browser capture limits, custom receiver options and current-code implications. Research only; Sony/Lebo LAN description rechecked, no casting session or implementation.
 - [TennisVAR and TANS crash course](research/tennisvar-tans-crash-course-2026-09-08.md): original papers, guided methodology, results, limitations, notation examples, and a reading plan.
 - [TennisVAR/TANS integration assessment](research/tennisvar-tans-integration-2026-09-08.md): current code fit, public release audit, source receipts, and a proposed chart-to-rehearsal pilot. Research only; no implementation or accepted ADR change.
 
