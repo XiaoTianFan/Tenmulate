@@ -53,7 +53,7 @@ Spare time is spent ready before approach, with no static prepared-pose dwell.
 The stroke starts after the completed unit turn, with no ready-pose reset. Foot IK
 fades into the baked stance; contact alignment uses the same height envelope on
 both sides of entry. The shared compiler/planner reserves this transition before
-assigning contact times (`gameplay-rhythm-v6`). Standalone strokes without incoming
+assigning contact times (`gameplay-rhythm-v7`). Standalone strokes without incoming
 travel, serves and overhead proxies retain full preparation. The GLB is byte-identical
 to the preceding bundle; only phase/entry metadata changes. See the
 [prepared-entry verification](prepared-stroke-entry-2026-09-08.md).
@@ -73,8 +73,13 @@ gaps; resolved stroke clocks remain uniformly scaled and independent of ball spe
 Long gaps contain ready time. Return links must fit within one physics tick of the
 scheduled interval. Travel retains push-off, cruise and braking with zero endpoint
 velocity/acceleration, bounded to 7.2 m/s and 12 m/s². At preferred 100%, the movement
-limits remain 3.2 m/s and 4.4 m/s² before fitting. Walk/run selection follows distance
-and peak speed, with continuous gait blending. Torso acceleration lean preserves
+limits remain 3.2 m/s and 4.4 m/s² before fitting.
+[ADR-0032](../decisions/0032-speed-and-cadence-locomotion.md) solves adjustment,
+walking, jogging and running weights from planned speed, acceleration and cadence
+demand, including short quick routes. Stable per-leg weights and cycle distance
+drive both source poses and foot plants; source-rate budgets are 1.25× walk,
+1.35× adjustment and 1.8× run. The preceding shot's movement rate owns recovery;
+the incoming shot's rate owns its approach. Torso acceleration lean preserves
 pelvis and fixed-length foot IK. Slides/crossovers retain their authored poses;
 near-zero-distance legs reserve a smooth turn. These envelopes are product calibrations.
 

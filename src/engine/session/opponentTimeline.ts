@@ -71,7 +71,8 @@ export type MotionSample = Readonly<{
   root: Vec3; yaw: number; hand: 'left' | 'right';
   layers: readonly Readonly<{ clip: MotionId; time: number; weight: number }>[];
   event: MotionEvent | null; verticalCorrection: number;
-  movement?: Readonly<{stage:MovementStage;speed:number;acceleration?:number;distance:number;phase:number;heading:number}>;
+  movement?: Readonly<{stage:MovementStage;speed:number;acceleration?:number;distance:number;phase:number;heading:number;
+    gait?:'adjust'|'walk'|'jog'|'run'|'authored';stride?:number;runWeight?:number;cadenceHz?:number}>;
   footTargets?: Readonly<{ left: Vec3; right: Vec3 }>;
   footTargetWeight?: number;
   /** Local head counter-turn keeps the gaze toward play during lateral running. */

@@ -1,6 +1,7 @@
 import library from '../../content/opponent-motion.json';
 import type { Vec3 } from '../../domain/vector';
 import type { MotionEvent, MotionId, MotionSample } from './opponentTimeline';
+import { solveLocomotion } from './locomotion';
 
 export const MAX_OPPONENT_SPEED = 7.2;
 export const MAX_TRAVEL_ACCELERATION = 12;
@@ -45,6 +46,7 @@ export function planRecovery(previous:MotionEvent,next?:MotionEvent):RecoveryPla
   const center=recoveryCenter(previous);
   const availableTime=next?next.start-previous.end:Infinity;
   const rate=Math.min(3,Math.max(.5,previous.movementRate??1));
+  const approachRate=Math.min(3,Math.max(.5,next?.movementRate??rate));
   const splitSeconds=SPLIT_SECONDS/rate;
   const arrival=entrySpec(next)?next:undefined;
   const legTime=(from:Vec3,to:Vec3,rate:number,fromYaw:number,toYaw:number)=>{
@@ -53,14 +55,14 @@ export function planRecovery(previous:MotionEvent,next?:MotionEvent):RecoveryPla
   };
   const serveApproach=next&&previous.clip.startsWith('serve')&&previous.tossEnabled!==false&&next.root.z<previous.root.z-3;
   const approachDuration=(from:Vec3,rate:number,fromYaw:number)=>next?Math.max(legTime(from,next.root,rate,fromYaw,next.yaw),(entrySpec(next)?.blendSeconds??0)/next.rate):0;
-  const fullAt=(rate:number)=>legTime(previous.root,center,rate,previous.yaw,Math.PI)+splitSeconds+approachDuration(center,rate,Math.PI);
-  const direct=!!next&&(previous.recoveryPolicy==='direct'||previous.recoveryPolicy==='auto'&&(serveApproach||availableTime+1e-7<fullAt(rate)));
+  const fullDuration=legTime(previous.root,center,rate,previous.yaw,Math.PI)+splitSeconds+approachDuration(center,approachRate,Math.PI);
+  const direct=!!next&&(previous.recoveryPolicy==='direct'||previous.recoveryPolicy==='auto'&&(serveApproach||availableTime+1e-7<fullDuration));
   const recoverTime=legTime(previous.root,center,rate,previous.yaw,Math.PI);
-  const approachTime=approachDuration(center,rate,Math.PI);
+  const approachTime=approachDuration(center,approachRate,Math.PI);
   const requiredDuration=recoverTime+splitSeconds+approachTime;
   const start=previous.end,available=next?next.start-start:requiredDuration;
   if(direct&&next){
-    const travel=approachDuration(previous.root,rate,previous.yaw),end=start+Math.max(travel,available);
+    const travel=approachDuration(previous.root,approachRate,previous.yaw),end=start+Math.max(travel,available);
     // Arrive exactly as the stroke starts. Serve-and-volley departs immediately;
     // other direct routes can wait in ready before the final approach.
     const leg:TravelLeg={from:previous.root,to:next.root,start:serveApproach?start:end-travel,end,fromYaw:previous.yaw,toYaw:next.yaw,stage:'approach',arrival};
@@ -105,16 +107,15 @@ export function sampleTravel(leg:TravelLeg,time:number,hand:'left'|'right'):Moti
   const u=clamp((time-leg.start)/duration),curve=travelCurve(u),progress=curve.progress,covered=d*progress;
   const speed=curve.velocity*d/duration,acceleration=curve.acceleration*d/(duration*duration),root=point(leg.from,leg.to,progress);
   const heading=Math.atan2(leg.to.x-leg.from.x,leg.to.z-leg.from.z);
-  const peakSpeed=d/(.7*duration);
-  const running=leg.clip==='run-forward'||!leg.clip&&d>=1.1&&peakSpeed>2.25;
-  const walking=leg.clip==='walk-forward'||!leg.clip&&!running&&d>=.65;
-  const travelTurn=running||walking;
+  const gait=leg.clip?null:solveLocomotion(d,duration,Math.abs(Math.sin(heading-leg.fromYaw)));
+  const running=leg.clip==='run-forward',walking=leg.clip==='walk-forward';
+  const headingWeight=gait?.headingWeight??(running||walking?1:0);
+  const travelTurn=headingWeight>0;
   const elapsed=time-leg.start,remaining=leg.end-time;
   const cross=!!leg.crossover&&duration>1.2;
   const turnIn=cross?.45:0,turnDuration=Math.min(.48,duration*.26);
-  const yaw=travelTurn?yawMix(yawMix(leg.fromYaw,heading,ease((elapsed-turnIn)/turnDuration)),leg.toYaw,ease((turnDuration-remaining)/turnDuration)):yawMix(leg.fromYaw,leg.toYaw,progress);
-  const lx=(leg.to.x-leg.from.x)*Math.cos(yaw)-(leg.to.z-leg.from.z)*Math.sin(yaw);
-  const lz=(leg.to.x-leg.from.x)*Math.sin(yaw)+(leg.to.z-leg.from.z)*Math.cos(yaw);
+  const travelYaw=yawMix(yawMix(leg.fromYaw,heading,ease((elapsed-turnIn)/turnDuration)),leg.toYaw,ease((turnDuration-remaining)/turnDuration));
+  const yaw=yawMix(yawMix(leg.fromYaw,leg.toYaw,progress),travelYaw,headingWeight);
   const mirror=hand==='left'?-1:1;
   const localRight=(leg.to.x-leg.from.x)*Math.cos(leg.fromYaw)-(leg.to.z-leg.from.z)*Math.sin(leg.fromYaw);
   const crossDirection=localRight*mirror<0?'right':'left';
@@ -122,19 +123,26 @@ export function sampleTravel(leg:TravelLeg,time:number,hand:'left'|'right'):Moti
   // mirrored player's frame, while the drill's travel direction stays fixed.
   const requestedClip=leg.clip?.startsWith('cross-')
     ? `cross-${leg.clip.includes('-back-')?'back':'front'}-${crossDirection}` as MotionId : leg.clip;
-  const clip:MotionId=requestedClip??(running?'run-forward':walking?'walk-forward':Math.abs(lx)>Math.abs(lz)?lx<0?'move-right':'move-left':lz>0?'move-forward':'move-backward');
+  // Choose adjustment direction in the initial body frame. Choosing it from the
+  // turning torso each frame could flip clips midway through a single footstep.
+  const localForward=(leg.to.x-leg.from.x)*Math.sin(leg.fromYaw)+(leg.to.z-leg.from.z)*Math.cos(leg.fromYaw);
+  const adjustment:MotionId=Math.abs(localRight)>Math.abs(localForward)?localRight*mirror<0?'move-right':'move-left':localForward>0?'move-forward':'move-backward';
+  const clip:MotionId=requestedClip??(gait!.run>=.5?'run-forward':gait!.walk>gait!.adjust?'walk-forward':adjustment);
   const spec=library.clips[clip] as {duration:number;locomotion?:{cycleDistance?:number;stanceFraction?:number;footLift?:number}};
-  const stride=spec.locomotion?.cycleDistance??(running?2.15:walking?.95:.72);
+  const stride=gait?.stride??spec.locomotion?.cycleDistance??(running?2.15:walking?.95:.72);
   const phase=covered/stride,blend=ease(elapsed/.22)*ease(remaining/.22);
   const crossWeight=cross?1-ease((elapsed-.55)/.35):0;
   const crossClip=('cross-front-'+crossDirection) as MotionId;
   const crossSpec=library.clips[crossClip] as {duration:number}|undefined;
   const isSpecial=clip.startsWith('slide-')||clip.startsWith('cross-');
-  const runWeight=running&&!leg.clip?ease((speed-1.1)/1.7):1;
+  const runWeight=gait?.run??(running?1:0);
   const baseLayers:MotionSample['layers']=[
     {clip:'ready',time:0,weight:1-blend},
-    {clip,time:isSpecial?progress*spec.duration:(phase%1)*spec.duration,weight:blend*(1-crossWeight)*runWeight},
-    ...(runWeight<1?[{clip:'walk-forward' as const,time:(phase%1)*library.clips['walk-forward'].duration,weight:blend*(1-crossWeight)*(1-runWeight)}]:[]),
+    ...(gait?[
+      {clip:'run-forward' as const,time:(phase%1)*library.clips['run-forward'].duration,weight:blend*(1-crossWeight)*gait.run},
+      {clip:'walk-forward' as const,time:(phase%1)*library.clips['walk-forward'].duration,weight:blend*(1-crossWeight)*gait.walk},
+      {clip:adjustment,time:(phase%1)*library.clips[adjustment].duration,weight:blend*(1-crossWeight)*gait.adjust},
+    ].filter(layer=>layer.weight>0):[{clip,time:isSpecial?progress*spec.duration:(phase%1)*spec.duration,weight:blend*(1-crossWeight)}]),
     ...(cross&&crossSpec&&crossWeight>0?[{clip:crossClip,time:clamp(elapsed/.9)*crossSpec.duration,weight:blend*crossWeight}]:[])];
   const rotated=(p:readonly number[],a:number):Vec3=>{
     const x=p[0]!*library.scale*mirror,z=p[2]!*library.scale;
@@ -144,16 +152,17 @@ export function sampleTravel(leg:TravelLeg,time:number,hand:'left'|'right'):Moti
     // Invert the same distance curve to get the foot's facing at touchdown.
     let lo=0,hi=1;for(let i=0;i<18;i++){const m=(lo+hi)/2;if(travelCurve(m).progress<clamp(s/d))lo=m;else hi=m;}
     const t=(lo+hi)/2*duration;
-    return travelTurn?yawMix(yawMix(leg.fromYaw,heading,ease((t-turnIn)/turnDuration)),leg.toYaw,ease((turnDuration-duration+t)/turnDuration)):yawMix(leg.fromYaw,leg.toYaw,clamp(s/d));
+    const travel=yawMix(yawMix(leg.fromYaw,heading,ease((t-turnIn)/turnDuration)),leg.toYaw,ease((turnDuration-duration+t)/turnDuration));
+    return yawMix(yawMix(leg.fromYaw,leg.toYaw,clamp(s/d)),travel,headingWeight);
   };
   const foot=(side:'left'|'right'):Vec3=>{
     const offset=side==='right'?.5:0,cycle=Math.floor(phase-offset),v=phase-offset-cycle;
-    const stance=spec.locomotion?.stanceFraction??(running?.36:.62),swing=clamp((v-stance)/(1-stance));
-    const lane=running||walking?.13:.26;
+    const stance=gait?.stance??spec.locomotion?.stanceFraction??(running?.36:.62),swing=clamp((v-stance)/(1-stance));
+    const lane=mix(.26,.13,headingWeight);
     const at=(s:number)=>{const center=point(leg.from,leg.to,clamp(s/d)),local=rotated([side==='left'?lane:-lane,.087,side==='left'?.05:-.025],yawAtDistance(s));return {x:center.x+local.x,y:local.y,z:center.z+local.z};};
     const plant=(cycle+offset+stance/2)*stride,a=at(plant),b=at(plant+stride);
     // Recover the heel early behind the pelvis, then lower it before placement.
-    const t=ease(swing),lift=Math.sin(Math.PI*Math.pow(swing,running?.65:1))*(spec.locomotion?.footLift??.065);
+    const t=ease(swing),lift=Math.sin(Math.PI*Math.pow(swing,mix(1,.65,runWeight)))*(gait?.lift??spec.locomotion?.footLift??.065);
     const moving={x:mix(a.x,b.x,t),y:mix(a.y,b.y,t)+(v>stance?lift:0),z:mix(a.z,b.z,t)};
     const local=rotated([side==='left'?.26:-.26,.087,side==='left'?.05:-.025],yaw);
     return {x:mix(root.x+local.x,moving.x,blend),y:mix(local.y,moving.y,blend),z:mix(root.z+local.z,moving.z,blend)};
@@ -189,7 +198,8 @@ export function sampleTravel(leg:TravelLeg,time:number,hand:'left'|'right'):Moti
   const layers:MotionSample['layers']=arrival?[...baseLayers.map(layer=>({...layer,weight:layer.weight*(1-preparedWeight)})),
     {clip:arrival.clip,time:preparationTime,weight:preparedWeight}]:baseLayers;
   return {root,yaw,hand,event:null,verticalCorrection:arrival?entryCorrection(arrival,preparationTime)*preparedWeight:0,toss:null,layers,
-    movement:{stage:leg.stage,speed,acceleration,distance:covered,phase,heading},
+    movement:{stage:leg.stage,speed,acceleration,distance:covered,phase,heading,
+      gait:gait?.gait??'authored',stride,runWeight,cadenceHz:speed/stride},
     travelLean:travelTurn?Math.max(-.2,Math.min(.2,Math.atan2(acceleration,9.81)*.35+speed/MAX_OPPONENT_SPEED*.055))*blend*(1-crossWeight)*(1-preparedWeight):0,
     lookYaw:travelTurn?Math.max(-1,Math.min(1,Math.atan2(Math.sin(leg.toYaw-yaw),Math.cos(leg.toYaw-yaw))))*blend*(1-preparedWeight):0,
     ...(footTargets?{footTargets,footTargetWeight:1-preparedWeight}:{})};

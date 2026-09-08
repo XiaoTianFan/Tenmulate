@@ -1,4 +1,4 @@
-import { planRecovery, sampleMovementDrill } from '../src/engine/session/opponentMovement';
+import { planRecovery, sampleMovementDrill, sampleTravel, travelDuration } from '../src/engine/session/opponentMovement';
 import { readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import * as THREE from 'three';
@@ -27,6 +27,34 @@ const loadRig = async () => {
 afterEach(() => vi.restoreAllMocks());
 
 describe('local motion asset and shared contact clock', () => {
+  it('keeps short jogging foot plants, joint lengths and rigid grips after real rig correction', async () => {
+    const rig = await loadRig();
+    const point = (name: string) => rig.group.getObjectByName(name)!.getWorldPosition(new THREE.Vector3());
+    for (const hand of ['left', 'right'] as const) for (const distance of [.7, .8, .9]) {
+      const from = { x: 0, y: 0, z: 13 }, to = { x: distance, y: 0, z: 13 };
+      const leg = { from, to, start: 0, end: travelDuration(from, to, 7.2, 12),
+        fromYaw: Math.PI, toYaw: Math.PI, stage: 'approach' as const };
+      let previous: THREE.Vector3[] | undefined, lengths: number[] | undefined;
+      for (let frame = 0; frame <= Math.ceil(leg.end * 240); frame++) {
+        const pose = sampleTravel(leg, Math.min(leg.end, frame / 240), hand);
+        rig.sampleMotion(pose);
+        const feet = [point('foot_l'), point('foot_r')];
+        if (previous) feet.forEach((p, i) => expect(p.distanceTo(previous![i]!)).toBeLessThan(.035));
+        previous = feet;
+        const current = ['l', 'r'].flatMap(side => [point(`thigh_${side}`).distanceTo(point(`calf_${side}`)), point(`calf_${side}`).distanceTo(point(`foot_${side}`))]);
+        lengths ??= current;
+        // The source animation stores transforms as float32 (micrometer allowance).
+        current.forEach((length, i) => expect(Math.abs(length - lengths![i]!)).toBeLessThan(1e-6));
+        if (pose.footTargets) for (const [i, side] of ['left', 'right'].entries()) {
+          const p = pose.footTargets[side as 'left' | 'right'];
+          expect(feet[i]!.distanceTo(new THREE.Vector3(p.x, p.y, p.z))).toBeLessThan(.002);
+        }
+        const grip = rig.getRacketSocket('right')!.matrixWorld.clone();
+        rig.sampleMotion(pose); expect(rig.getRacketSocket('right')!.matrixWorld.elements).toEqual(grip.elements);
+      }
+    }
+    rig.dispose();
+  });
   it('keeps post-IK contact and root continuity when fresh preview batches replace one another',async()=>{
     const rig=await loadRig();
     for(const opponentHand of ['right','left'] as const)for(const practiceShotType of ['groundstroke','serve','volley','overhead'] as const){
@@ -327,8 +355,9 @@ describe('local motion asset and shared contact clock', () => {
   it('walks a nearby route with low foot lift and preserves elbow hinges during blends', async () => {
     const rig=await loadRig();
     for(const hand of ['right','left'] as const){
-      // Keep the route away from the nudge/walk boundary as reach varies by model.
-      const events=[motionEvent({...repetition('forehand',0,0,12.5,hand),home:{x:0,y:0,z:12.1}}),motionEvent(repetition('forehand',1,0,11.4,hand))];
+      // A deliberately unhurried route must still walk after athletic short
+      // moves are allowed to jog. Speed, not distance alone, chooses its gait.
+      const events=[motionEvent({...repetition('forehand',0,0,12.5,hand),movementRate:.5,home:{x:0,y:0,z:12.1}}),motionEvent({...repetition('forehand',1,0,11.4,hand),movementRate:.5})];
       let walks=0,blends=0;
       for(let t=events[0]!.end+.01;t<events[1]!.start;t+=1/60){
         const pose=sampleOpponentTimeline(events,t)!;
@@ -475,7 +504,7 @@ describe('local motion asset and shared contact clock', () => {
     const facing=new THREE.Vector3(shoulder.z,0,-shoulder.x).normalize();
     expect(facing.dot(new THREE.Vector3(Math.sin(heading),0,Math.cos(heading)))).toBeGreaterThan(.96);
     expect(middle.pose.movement!.speed).toBeGreaterThan(1.8);
-    expect(middle.pose.movement!.phase*2.15).toBeCloseTo(middle.pose.movement!.distance,6);
+    expect(middle.pose.movement!.phase*middle.pose.movement!.stride!).toBeCloseTo(middle.pose.movement!.distance,6);
     const before=rig.group.getObjectByName('Head')!.matrixWorld.clone();
     rig.sampleMotion(middle.pose);expect(rig.group.getObjectByName('Head')!.matrixWorld.elements).toEqual(before.elements);
     rig.sampleMotion(sampleOpponentTimeline(events,events[1]!.contactTime)!);rig.sampleMotion(middle.pose);

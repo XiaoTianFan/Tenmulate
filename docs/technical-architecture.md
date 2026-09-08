@@ -221,13 +221,19 @@ Resolved shots are checked into source as versioned JSON. Runtime playback does 
 ## 7. Drill timeline
 
 **Current runtime (2026-09-08):** [ADR-0022](decisions/0022-continuous-drill-camera-and-reusable-shots.md)
-uses `CompiledSession.cameraTimeline`; ADR-0029 advances the planner to `gameplay-rhythm-v6`. The compiler
+uses `CompiledSession.cameraTimeline`; [ADR-0032](decisions/0032-speed-and-cadence-locomotion.md)
+advances the planner to `gameplay-rhythm-v7`. The compiler
 reserves camera travel, gaze fades and next-stroke preparation in the same absolute
 schedule as opponent recovery and physics-solved returns. `TennisScene` samples the
 camera on the session clock, independently of React's HUD repetition updates.
 Rehearsal opts into this camera; Editor and MotionLab retain manual inspection views.
 Quintic travel bounds peak speed/acceleration and fixes angular branches through
 opponent-tracking fades, including authored views near the yaw wrap.
+
+Automatic opponent locomotion solves gait weights and cycle distance from the
+leg's speed, acceleration and cadence demand. Pose blending and fixed-length
+foot IK share one distance phase. The recovery/approach budget uses each owning
+shot's resolved movement rate; the interval-first search remains primary.
 
 `DrillDefinitionV1.returnZone` supplies forward distance, width and depth in meters.
 `playerCoverage` and `rally` use the same camera-relative rectangle, legal height

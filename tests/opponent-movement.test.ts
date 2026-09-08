@@ -55,7 +55,7 @@ describe('court recovery and distance-driven footwork',()=>{
     let plantedPairs=0;
     for(let t=.3;t<duration-.3;t+=1/240){
       const a=sampleTravel(leg,t,'right'),b=sampleTravel(leg,t+1/240,'right');
-      expect(a.movement!.phase*2.15).toBeCloseTo(a.movement!.distance,8);
+      expect(a.movement!.phase*a.movement!.stride!).toBeCloseTo(a.movement!.distance,8);
       for(const side of ['left','right'] as const){
         const x=a.footTargets![side],y=b.footTargets![side];
         const plantedHeight=.087*OPPONENT_MOTION.scale+OPPONENT_MOTION.floorOffset;
