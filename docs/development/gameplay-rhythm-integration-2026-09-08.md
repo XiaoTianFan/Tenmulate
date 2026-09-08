@@ -6,6 +6,10 @@ was the owner's Quick Practice / Pre-programmed Drills gameplay integration brie
 [ADR-0015](../decisions/0015-mode-aware-gameplay-rhythm.md) and [ADR-0016](../decisions/0016-bounded-rally-arcs-and-drill-pace.md) record the decisions;
 [local motion pipeline](local-motion-pipeline.md) is the current runtime contract.
 
+Implementation stages: `f983ce1` adds the planner, coverage model and physical
+return solver; `433f60a` integrates all gameplay surfaces and records the bounded
+arc and fixed-speed refinements from production review.
+
 ## Requirement and evidence map
 
 | Requirement | Implementation authority | Verification |
