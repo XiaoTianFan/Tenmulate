@@ -37,6 +37,8 @@ export type ShotIntent = Readonly<{
   source: Vec3;
   target: Readonly<{ x: number; z: number }>;
   aimDirectionDeg?: number;
+  /** Natural permits bounded speed/spin adjustment; exact preserves both. */
+  trajectoryMode?: 'natural' | 'exact';
   launchSpeedKmh: number;
   spin: SpinKind;
   spinRateRpm?: number;
@@ -71,6 +73,7 @@ export type ResolvedTrajectory = Readonly<{
   samples: readonly FlightSample[];
   events: readonly TrajectoryEvent[];
   apexHeight: number;
+  solution?: Readonly<{ mode: 'natural' | 'exact'; status: 'matched' | 'adjusted' | 'unreachable'; targetErrorM: number }>;
   resolved: Readonly<{
     launchSpeedKmh: number;
     launchAngleDeg: number;
@@ -83,7 +86,8 @@ const trajectoryShotType = (intent: Pick<ShotIntent, 'shotType' | 'family'>): Pr
   if (intent.shotType) return intent.shotType;
   if (intent.family === 'serve') return 'serve';
   if (intent.family === 'volley') return 'volley';
-  if (intent.family === 'lob' || intent.family === 'overhead') return 'lob';
+  if (intent.family === 'lob') return 'lob';
+  if (intent.family === 'overhead') return 'overhead';
   return 'groundstroke';
 };
 
@@ -306,18 +310,21 @@ const directedVelocity = (intent: ShotIntent): Vec3 => {
   const shotType = trajectoryShotType(intent);
   const defaultClearance = shotType === 'lob' ? 1.2 : shotType === 'serve' || shotType === 'volley' ? 0.08 : 0.12;
   const clearance = Math.min(shotType === 'lob' ? 6 : 1.8, Math.max(0.04, intent.minimumNetClearanceM ?? defaultClearance));
-  const minimumAngle = (shotType === 'lob' ? 25 : shotType === 'volley' ? -14 : -5) * Math.PI / 180;
+  const minimumAngle = (shotType === 'lob' ? 25 : shotType === 'volley' || shotType === 'overhead' ? -25 : -5) * Math.PI / 180;
   const maximumAngle = (shotType === 'lob' ? 78 : shotType === 'volley' ? 52 : 58) * Math.PI / 180;
   const calmIntent = { ...intent, windVelocity: undefined };
-  const sampleCount = 48;
+  const sampleCount = 32;
   const angleStep = (maximumAngle - minimumAngle) / sampleCount;
   type Candidate = Readonly<{ angle: number; velocity: Vec3; score: number; bounceZ: number }>;
   let best: Candidate | null = null;
   let fallback: Candidate | null = null;
+  const flights = new Map<number, ReturnType<typeof firstFlight>>();
 
   const candidateAt = (angle: number, requireNetClearance: boolean): Candidate | null => {
     const velocity = velocityForDirectionAndAngle(speed, direction, angle);
-    const { bounce, netCrossing } = firstFlight(calmIntent, velocity);
+    const flight = flights.get(angle) ?? firstFlight(calmIntent, velocity);
+    flights.set(angle,flight);
+    const { bounce, netCrossing } = flight;
     const score = Math.hypot(bounce.position.x - intent.target.x, bounce.position.z - intent.target.z);
     if (!fallback || bounce.position.z < fallback.bounceZ) {
       fallback = { angle, velocity, score, bounceZ: bounce.position.z };
@@ -334,8 +341,15 @@ const directedVelocity = (intent: ShotIntent): Vec3 => {
     return shotType === 'lob' && Math.abs(candidate.score - current.score) <= 0.03 && candidate.angle > current.angle;
   };
 
+  // Range has two angle roots. Follow only the ascending-range branch for
+  // ordinary shots; a tiny heading change must never select the lob root.
+  let previousDepth = Infinity;
   for (let index = 0; index <= sampleCount; index += 1) {
-    const candidate = candidateAt(minimumAngle + angleStep * index, true);
+    const angle = minimumAngle + angleStep * index;
+    const raw = candidateAt(angle, false)!;
+    if (shotType !== 'lob' && raw.bounceZ > previousDepth + .015) break;
+    previousDepth = raw.bounceZ;
+    const candidate = candidateAt(angle, true);
     if (candidate && prefer(candidate, best)) best = candidate;
   }
 
@@ -462,9 +476,47 @@ const targetAdjustedVelocity = (intent: ShotIntent): Vec3 => {
   return velocity;
 };
 
+/** Natural shots keep a low arc and publish every bounded adjustment. The
+ * target remains an intention: an infeasible request is never labelled matched. */
 export const resolveTrajectory = (intent: ShotIntent): ResolvedTrajectory => {
-  const launchVelocity = targetAdjustedVelocity(intent);
-  return integrateTrajectory(intent, launchVelocity);
+  if (intent.trajectoryMode !== 'natural') {
+    return integrateTrajectory(intent, targetAdjustedVelocity(intent));
+  }
+  const type = trajectoryShotType(intent);
+  const baseSpin = intent.spinRateRpm ?? defaultSpinRateRpm(intent);
+  const desiredAngle = type === 'lob' ? 78 : type === 'serve' ? 12 : type === 'overhead' ? 12 : type === 'volley' ? 18 : 22;
+  const evaluate = (speedFactor: number, spinFactor: number) => {
+    const candidateIntent = { ...intent, launchSpeedKmh: intent.launchSpeedKmh * speedFactor,
+      spinRateRpm: baseSpin * spinFactor, aimDirectionDeg: aimDirectionToCourtPoint(intent.source, intent.target) };
+    // Correct heading for spin while keeping the same selected landing point.
+    let velocity = targetAdjustedVelocity(candidateIntent);
+    if (type !== 'serve') for (let i = 0; i < 3; i++) {
+      const bounce = firstBounce(candidateIntent, velocity);
+      if (Math.abs(bounce.position.x-intent.target.x)<.02) break;
+      candidateIntent.aimDirectionDeg += Math.atan2(intent.target.x-bounce.position.x,Math.max(2,intent.source.z-intent.target.z))*180/Math.PI;
+      velocity = directedVelocity(candidateIntent);
+    }
+    const result = integrateTrajectory(candidateIntent, velocity);
+    const bounce = result.events.find(e=>e.type==='bounce'), net = result.events.find(e=>e.type==='net-crossing');
+    const error = bounce ? Math.hypot(bounce.position.x-intent.target.x,bounce.position.z-intent.target.z) : 50;
+    const legal = !!net && !!bounce && net.time < bounce.time && net.position.y >= netHeightAt(net.position.x)+(intent.minimumNetClearanceM??.08)-.015;
+    const score = (legal?0:1000) + error*20 + Math.max(0,result.resolved.launchAngleDeg-desiredAngle)*.2
+      + Math.abs(speedFactor-1)*2 + Math.abs(spinFactor-1)*.8;
+    return { result, error, legal, score, speedFactor, spinFactor };
+  };
+  let best = evaluate(1,1);
+  if (best.error>.12 || !best.legal || best.result.resolved.launchAngleDeg>desiredAngle+1) {
+    for (const speed of [1.05,1.1,1.15,.95,.9,.85]) {
+      const candidate=evaluate(speed,1); if(candidate.score<best.score)best=candidate;
+      if(best.legal && best.error<.12 && best.result.resolved.launchAngleDeg<=desiredAngle)break;
+    }
+    // Spin adjustment is a second choice, after the speed neighborhood.
+    if(best.error>.12 || !best.legal || best.result.resolved.launchAngleDeg>desiredAngle+1) for (const spin of [.8,.9,1.1,1.2]) {
+      const candidate=evaluate(best.speedFactor,spin); if(candidate.score<best.score)best=candidate;
+    }
+  }
+  const status = !best.legal || best.error>.18 ? 'unreachable' : Math.abs(best.speedFactor-1)>.001 || Math.abs(best.spinFactor-1)>.001 ? 'adjusted' : 'matched';
+  return { ...best.result, intent, solution: { mode:'natural', status, targetErrorM:best.error } };
 };
 
 /** Forward integration also serves inverse rally authoring in either direction. */
