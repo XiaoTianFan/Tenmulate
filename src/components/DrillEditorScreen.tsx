@@ -1,3 +1,4 @@
+import { normalizeLandingZone } from '../engine/trajectory/landingZone';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import {
   CheckCircle2,
@@ -22,7 +23,7 @@ import { DEFAULT_CAMERA } from '../app/defaults';
 import { OPPONENT_POSITION_PRESETS } from '../domain/court';
 import type { SpinKind } from '../engine/trajectory/physics';
 import { compileSession } from '../engine/session/compileSession';
-import type { SceneMetrics } from '../engine/rendering/TennisScene';
+import type { CameraConfiguration, SceneMetrics } from '../engine/rendering/TennisScene';
 import { AppHeader, type AppRoute } from './AppHeader';
 import { CourtPlan, type CourtPoint } from './CourtPlan';
 import { Modal } from './Modal';
@@ -73,6 +74,9 @@ export function DrillEditorScreen({ route, initialDrill, onRoute, onSave, onTest
   const [history, setHistory] = useState<EditorHistory>({ past: [], present: normalized, future: [] });
   const [selectedId, setSelectedId] = useState(normalized.events?.[0]?.id ?? '');
   const [resetToken, setResetToken] = useState(0);
+  const [previewIndex, setPreviewIndex] = useState(0);
+  const onPreviewIndex = useCallback((index:number)=>setPreviewIndex(index),[]);
+  const [previewCamera, setPreviewCamera] = useState<CameraConfiguration>({...DEFAULT_CAMERA,eyeHeight:3,behindBaseline:3,pitch:-8,fov:78});
   const [message, setMessage] = useState<string | null>(null);
   const [positionDraft, setPositionDraft] = useState<CourtPoint | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -87,12 +91,13 @@ export function DrillEditorScreen({ route, initialDrill, onRoute, onSave, onTest
     const event = { ...selected, id: selected?.id ?? 'preview', shotId: base.id, paceKmh: selected?.paceKmh ?? base.paceKmh };
     return compileSession({ ...drill, events: [event], shotIds: [base.id] }, {
       repetitions: 2, mode: 'drill', shotIntervalSeconds:drill.defaultInterval, movementPercent:drill.defaultMovementPercent??100, trajectoryMode:'natural', rhythmPercent: drill.defaultRhythmPercent ?? rhythmFromLegacyInterval(drill.defaultInterval),
-      variationPercent: 0, timingVariationPercent: 0, launchSpeedKmh: event.paceKmh, surface: base.surface,
+      variationPercent: 8, timingVariationPercent: 0, launchSpeedKmh: event.paceKmh, surface: base.surface,
       seed: 'editor-preview', spin: 'preset', opponentHand: base.opponentHand, workBlockSize: 2, restSeconds: 0,
       serveRhythm: 'preset', opponentPosition: event.opponentPosition ?? base.source, camera: DEFAULT_CAMERA,
     });
   }, [drill, selected, sourceShot]);
-  const trajectory = previewSession.repetitions[0]!.trajectory;
+  const trajectory = (previewSession.repetitions[previewIndex] ?? previewSession.repetitions[0])!.trajectory;
+  const zoneSize = normalizeLandingZone(selected?.landingZone, sourceShot?.family);
   const validation = validateDrill(drill);
 
   const commit = (next: DrillDefinitionV1) => setHistory((current) => ({ past: [...current.past.slice(-49), current.present], present: next, future: [] }));
@@ -195,7 +200,7 @@ export function DrillEditorScreen({ route, initialDrill, onRoute, onSave, onTest
 
         <section className="editor-stage">
           <div className="editor-scene">
-            <SceneViewport camera={DEFAULT_CAMERA} trajectory={trajectory} surface={sourceShot?.surface ?? 'hard'} running resetToken={resetToken} showTrajectory loopTrajectory session={previewSession} cameraMotion={null} onMetrics={onMetrics} />
+            <SceneViewport camera={previewCamera} trajectory={trajectory} surface={sourceShot?.surface ?? 'hard'} running resetToken={resetToken} showTrajectory loopTrajectory session={previewSession} onSessionIndex={onPreviewIndex} cameraMotion={null} onLandingChange={target => updateEvent({target})} onCameraLookChange={look=>setPreviewCamera(camera=>({...camera,...look}))} onCameraFovChange={fov=>setPreviewCamera(camera=>({...camera,fov}))} onMetrics={onMetrics} />
             <div className="editor-scene-label"><span>Event {Math.max(1, events.findIndex((event) => event.id === selected?.id) + 1)}</span><strong>{sourceShot?.label}</strong></div>
           </div>
           <div className="timeline" aria-label="Deterministic drill timeline">
@@ -243,7 +248,11 @@ export function DrillEditorScreen({ route, initialDrill, onRoute, onSave, onTest
               <label className="stack-field"><span>Net clearance</span><input type="number" min="0.08" max="1.8" step="0.02" value={selected.netClearanceM ?? ''} placeholder="0.24 session" onChange={(event) => updateEvent({ netClearanceM: event.target.value ? Number(event.target.value) : undefined })} /></label>
               <button type="button" className="configuration-action editor-position-action" onClick={() => setPositionDraft(selected.opponentPosition ?? { x: sourceShot.source.x, z: sourceShot.source.z })}><MapPin size={16} /><span>Opponent position</span><small>{(selected.opponentPosition?.x ?? sourceShot.source.x).toFixed(1)}, {(selected.opponentPosition?.z ?? sourceShot.source.z).toFixed(1)} m</small></button>
               {sourceShot.family === 'serve' ? <label className="stack-field"><span>Serve rhythm</span><select value={selected.serveRhythm ?? 'preset'} onChange={(event) => updateEvent({ serveRhythm: event.target.value as 'preset' | 'normal' | 'compact' })}><option value="preset">Shot preset</option><option value="normal">Normal · high toss</option><option value="compact">Compact · quick toss</option></select></label> : null}
-              <div className="paired-fields"><label className="stack-field"><span>Target X</span><input type="number" min="-4.115" max="4.115" step="0.05" value={(selected.target?.x ?? sourceShot.target.x).toFixed(2)} onChange={(event) => updateEvent({ target: { x: Number(event.target.value), z: selected.target?.z ?? sourceShot.target.z } })} /></label><label className="stack-field"><span>Target Z</span><input type="number" min="-11.885" max="-0.01" step="0.05" value={(selected.target?.z ?? sourceShot.target.z).toFixed(2)} onChange={(event) => updateEvent({ target: { x: selected.target?.x ?? sourceShot.target.x, z: Number(event.target.value) } })} /></label></div>
+              <div className="paired-fields"><label className="stack-field"><span>Zone center X</span><input type="number" min="-4.115" max="4.115" step="0.05" value={(selected.target?.x ?? sourceShot.target.x).toFixed(2)} onChange={(event) => updateEvent({ target: { x: Number(event.target.value), z: selected.target?.z ?? sourceShot.target.z } })} /></label><label className="stack-field"><span>Zone center Z</span><input type="number" min="-11.885" max="-0.01" step="0.05" value={(selected.target?.z ?? sourceShot.target.z).toFixed(2)} onChange={(event) => updateEvent({ target: { x: selected.target?.x ?? sourceShot.target.x, z: Number(event.target.value) } })} /></label></div>
+              <div className="paired-fields"><label className="stack-field"><span>Zone width (m)</span><input aria-label="Editor zone width" type="number" min="0.2" max="6" step="0.1" value={zoneSize.width} onChange={event => updateEvent({landingZone:{...zoneSize,width:Number(event.target.value)}})} /></label><label className="stack-field"><span>Zone depth (m)</span><input aria-label="Editor zone depth" type="number" min="0.2" max="6" step="0.1" value={zoneSize.depth} onChange={event => updateEvent({landingZone:{...zoneSize,depth:Number(event.target.value)}})} /></label></div>
+              <small>Uniform landings within the highlighted court or service-box zone.</small>
+              <small className={`trajectory-resolution${trajectory.solution?.status==='unreachable'?' warning':''}`} role="status">{trajectory.solution?.status==='unreachable'?'Sample outside this shot’s reach. Adjust pace, spin or zone.':`Resolved ${trajectory.resolved.launchSpeedKmh.toFixed(1)} km/h · ${Math.round(trajectory.resolved.spinRateRpm)} rpm for this landing.`}</small>
+              <label className="stack-field"><span>Speed &amp; spin variation (±%)</span><input aria-label="Editor parameter variation" type="number" min="0" max="25" step="1" value={selected.variationPercent ?? 8} onChange={event => updateEvent({variationPercent:Number(event.target.value)})} /></label>
               <label className="stack-field"><span>Camera motion</span><select value={motionKey(selected)} onChange={(event) => updateEvent({ cameraMotion: cameraMotions[event.target.value as keyof typeof cameraMotions] })}>{Object.keys(cameraMotions).map((key) => <option key={key} value={key}>{key.replace('-', ' ')}</option>)}</select></label>
               <label className="stack-field"><span>Preparation cue</span><input maxLength={60} value={selected.cue ?? ''} placeholder={sourceShot.cue} onChange={(event) => updateEvent({ cue: event.target.value || undefined })} /></label>
             </>

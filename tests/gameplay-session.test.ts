@@ -83,7 +83,7 @@ describe('mode-aware gameplay planning', () => {
     expect(assessReachability(trajectory,{x:40,z:-13}).reachable).toBe(false);
     expect(movementReach(.1)).toBe(0);
     expect(movementReach(1)).toBeLessThan(movementReach(2));
-    expect(trajectory.resolved.launchSpeedKmh).toBeCloseTo(session.repetitions[0]!.shot.paceKmh,8);
+    expect(Math.abs(trajectory.resolved.launchSpeedKmh / session.repetitions[0]!.shot.paceKmh - 1)).toBeLessThanOrEqual(.150001);
   });
   it('uses camera position, scripted motion and a modest display allowance',()=>{
     const path=cameraCoveragePath({lateral:2,behindBaseline:1.5},{to:{lateral:-2,behindBaseline:-4},duration:2},.5);

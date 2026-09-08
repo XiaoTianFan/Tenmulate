@@ -1,6 +1,7 @@
 import { COURT, type SurfaceId } from '../../domain/court';
 import { add, cross, magnitude, scale, subtract, vec3, type Vec3 } from '../../domain/vector';
 import type { PracticeShotType } from './practiceProfiles';
+import type { LandingZone } from './landingZone';
 import { GROUNDSTROKE_FLAT_SPIN_PROFILE, GROUNDSTROKE_TOPSPIN_DEFAULT_RPM } from './spinCalibration';
 
 const GRAVITY = vec3(0, -9.81, 0);
@@ -36,6 +37,7 @@ export const SURFACE_PROFILES: Record<SurfaceId, SurfaceProfile> = {
 export type ShotIntent = Readonly<{
   source: Vec3;
   target: Readonly<{ x: number; z: number }>;
+  landingZone?: LandingZone;
   aimDirectionDeg?: number;
   /** Natural permits bounded speed/spin adjustment; exact preserves both. */
   trajectoryMode?: 'natural' | 'exact';
@@ -94,7 +96,7 @@ const trajectoryShotType = (intent: Pick<ShotIntent, 'shotType' | 'family'>): Pr
 const radiansPerSecondFromRpm = (rpm: number): number => rpm * Math.PI * 2 / 60;
 const rpmFromRadiansPerSecond = (radiansPerSecond: number): number => radiansPerSecond * 60 / (Math.PI * 2);
 
-const defaultSpinRateRpm = (intent: Pick<ShotIntent, 'spin' | 'shotType' | 'family'>): number => {
+export const defaultSpinRateRpm = (intent: Pick<ShotIntent, 'spin' | 'shotType' | 'family'>): number => {
   const shotType = trajectoryShotType(intent);
   if (shotType === 'volley') return 0;
   if (shotType === 'serve') {
@@ -519,6 +521,16 @@ export const resolveTrajectory = (intent: ShotIntent): ResolvedTrajectory => {
     // Spin adjustment is a second choice, after the speed neighborhood.
     if(best.error>.12 || !best.legal || best.result.resolved.launchAngleDeg>desiredAngle+1) for (const spin of [.8,.9,1.1,1.2]) {
       const candidate=evaluate(best.speedFactor,spin); if(candidate.score<best.score)best=candidate;
+    }
+  }
+  // Zone membership is the primary intention. Short half-volleys in particular
+  // need a slower ball than the old point-target ±15% neighborhood permits.
+  // Keep the sampled target (no rejection bias), and publish the resolved speed.
+  if (intent.landingZone && (!best.legal || best.error>.18)) {
+    for (const speed of [.8,.7,.6,.5,1.2,1.35,1.5]) {
+      const candidate=evaluate(speed,best.spinFactor);
+      if(candidate.score<best.score)best=candidate;
+      if(best.legal && best.error<.12)break;
     }
   }
   const status = !best.legal || best.error>.18 ? 'unreachable' : Math.abs(best.speedFactor-1)>.001 || Math.abs(best.spinFactor-1)>.001 ? 'adjusted' : 'matched';

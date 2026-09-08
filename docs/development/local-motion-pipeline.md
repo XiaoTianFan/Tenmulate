@@ -4,6 +4,14 @@ Current runtime contract, reconciled 2026-09-08. [ADR-0012](../decisions/0012-lo
 
 ## Authority and ownership
 
+The current landing and setup-preview contract is
+[ADR-0018](../decisions/0018-uniform-landing-zones-and-continuous-preview.md).
+`compileSession` samples uniform landing zones for all practice families and drill
+events before deriving contact orientation, trajectory, reachability and rally
+links. `ContinuousPracticePreview` joins fresh batches through the same recovery
+planner on an absolute clock. Its setup stream has no set-end rest or restart;
+launched practice still uses the finite compiled session. No motion asset changed.
+
 | Surface | Authority |
 | --- | --- |
 | Gameplay, ball flight, session clock, world travel and foot correction | This repository: `compileSession.ts`, `opponentTimeline.ts`, `opponentMovement.ts`, `OpponentRig.ts`, `TennisScene.ts` |

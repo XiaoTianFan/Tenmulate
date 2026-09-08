@@ -14,6 +14,17 @@ class MemoryStorage {
 
 describe('local application data', () => {
   beforeEach(() => vi.stubGlobal('localStorage', new MemoryStorage()));
+  it('migrates legacy landing points to zones and preserves edited dimensions',()=>{
+    const save=(preferences:unknown)=>localStorage.setItem('tenmulate.appData.v1',JSON.stringify({schemaVersion:1,preferences}));
+    save({...DEFAULT_PREFERENCES,landingZone:undefined});
+    expect(loadAppData().preferences.landingZone).toEqual({width:1.6,depth:2});
+    save({...DEFAULT_PREFERENCES,shotType:'serve',landingZone:undefined});
+    expect(loadAppData().preferences.landingZone).toEqual({width:.9,depth:1.2});
+    save({...DEFAULT_PREFERENCES,landingZone:{width:2.7,depth:1.3}});
+    expect(loadAppData().preferences.landingZone).toEqual({width:2.7,depth:1.3});
+    save({...DEFAULT_PREFERENCES,landingZone:{width:null,depth:-5}});
+    expect(loadAppData().preferences.landingZone).toEqual({width:1.6,depth:.2});
+  });
   it('migrates seconds once and gives persisted rhythm precedence',()=>{
     const legacy={...DEFAULT_PREFERENCES,rhythmPercent:undefined,interval:7};
     localStorage.setItem('tenmulate.appData.v1',JSON.stringify({schemaVersion:1,preferences:legacy}));

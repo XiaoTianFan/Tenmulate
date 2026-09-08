@@ -1,3 +1,4 @@
+import { normalizeLandingZone, type LandingZoneSize } from '../engine/trajectory/landingZone';
 import type { CameraConfiguration } from '../engine/rendering/TennisScene';
 import type { QualityMode } from '../engine/rendering/TennisScene';
 import type { DrillDefinitionV1 } from '../content/types';
@@ -66,6 +67,7 @@ export type PracticePreferencesV1 = Readonly<{
   opponentHand: 'left' | 'right';
   serveRhythm: 'preset' | 'normal' | 'compact';
   landingDepthM: number;
+  landingZone: LandingZoneSize;
   aimDirectionDeg: number;
   opponentPosition: Readonly<{ x: number; z: number }>;
   camera: CameraConfiguration;
@@ -80,6 +82,7 @@ export const DEFAULT_PREFERENCES: PracticePreferencesV1 = {
   sessionCategory: 'Quick Rally', trajectoryEnabled: true, launchSpeedKmh: 70, interval: 5, rhythmPercent: 100, movementPercent: 100, practiceStroke: 'alternate', trajectoryMode: 'natural', returnTargetMode: 'pattern', repetitions: 12, variation: 8, timingVariation: 0,
   workBlockSize: 4, restSeconds: 20, surface: 'hard', shotType: 'groundstroke', spin: 'topspin', spinRateRpm: 1103, bounceFactor: 1,
   opponentHand: 'right', serveRhythm: 'preset', landingDepthM: 8.5,
+  landingZone: { width: 1.6, depth: 2 },
   aimDirectionDeg: 0, opponentPosition: DEFAULT_RALLY_OPPONENT_POSITION,
   camera: { eyeHeight: 1.7, behindBaseline: 1.5, lateral: 0, yaw: 0, pitch: -1.7, fov: 70 },
   environment: DEFAULT_ENVIRONMENT, quality: 'auto', screenWidthCm: 120, screenHeightCm: 67.5, viewDistanceCm: 250,
@@ -203,6 +206,7 @@ export const loadAppData = (): AppDataV1 => {
       bounceFactor: typeof candidate.bounceFactor === 'number'
         ? Math.min(1.4, Math.max(0.6, candidate.bounceFactor))
         : DEFAULT_PREFERENCES.bounceFactor,
+      landingZone: normalizeLandingZone(candidate.landingZone, shotType),
       landingDepthM: typeof candidate.landingDepthM === 'number'
         ? Math.min(depthRange.max, Math.max(depthRange.min, candidate.landingDepthM))
         : shotProfile.defaultLandingDepthM,

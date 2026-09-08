@@ -4,7 +4,8 @@ import { SHOT_BY_ID } from '../../content/bundled';
 import type { SurfaceId } from '../../domain/court';
 import type { OpponentHand, ServeRhythm } from '../../content/types';
 import type { ResolvedTrajectory } from '../trajectory/physics';
-import { aimDirectionToCourtPoint, resolveTrajectory, type SpinKind } from '../trajectory/physics';
+import { aimDirectionToCourtPoint, defaultSpinRateRpm, resolveTrajectory, type SpinKind } from '../trajectory/physics';
+import { normalizeLandingZone, resolveLandingZone, sampleLandingZone, sampleParameter, type LandingZoneSize } from '../trajectory/landingZone';
 import { createSeededRandom } from '../random/seeded';
 import { minimumMotionGap, motionEvent, motionClip, rotateMotionPoint, strokeForShot } from './opponentTimeline';
 import type { MotionRepetition } from './opponentTimeline';
@@ -24,6 +25,7 @@ import {
   practiceLandingTarget,
   spinForPracticeShot,
   spinRateForPracticeShot,
+  spinRateProfileForPracticeShot,
   type PracticeShotType,
 } from '../trajectory/practiceProfiles';
 
@@ -36,6 +38,7 @@ export type SessionSettings = Readonly<{
   movementPercent?: number;
   practiceStroke?: 'forehand' | 'backhand' | 'alternate';
   trajectoryMode?: 'natural' | 'exact';
+  landingZone?: LandingZoneSize;
   mode?: 'quick-practice' | 'drill';
   camera?: Readonly<{ lateral: number; behindBaseline: number }>;
   cameraMotionScale?: number;
@@ -71,8 +74,9 @@ export type CompiledRepetition = MotionRepetition & Readonly<{
 }>;
 
 export type CompiledSession = Readonly<{
+  previewLoop?: true;
   solverVersion: 'ball-v6-spin-target';
-  plannerVersion: 'gameplay-rhythm-v2';
+  plannerVersion: 'gameplay-rhythm-v3';
   contentVersion: '2026.09.08';
   drill: DrillDefinitionV1;
   settings: SessionSettings;
@@ -88,7 +92,9 @@ export const compileSession = (
   drill: DrillDefinitionV1,
   settings: SessionSettings,
 ): CompiledSession => {
-  const random = createSeededRandom(settings.seed);
+  const landingRandom = createSeededRandom(`${settings.seed}:landing`);
+  const speedRandom = createSeededRandom(`${settings.seed}:speed`);
+  const spinRandom = createSeededRandom(`${settings.seed}:spin`);
   const timingRandom = createSeededRandom(`${settings.seed}:timing`);
   const repetitions: CompiledRepetition[] = [];
   const restPeriods: { afterIndex: number; startTime: number; endTime: number }[] = [];
@@ -114,10 +120,8 @@ export const compileSession = (
     const shotId = sourceEvent?.shotId;
     const sourceShot = shotId ? SHOT_BY_ID.get(shotId) : undefined;
     if (!sourceShot) throw new Error(`Unknown bundled shot: ${shotId ?? '(missing)'}`);
-    const variation = settings.variationPercent / 100;
-    const xJitter = (random() * 2 - 1) * 0.55 * variation;
-    const zJitter = (random() * 2 - 1) * 1.1 * variation;
-    const speedJitter = (random() * 2 - 1) * settings.launchSpeedKmh * 0.12 * variation;
+    const eventVariation = sourceEvent && 'variationPercent' in sourceEvent ? sourceEvent.variationPercent : undefined;
+    const variation = Math.min(.25, Math.max(0, (eventVariation ?? settings.variationPercent) / 100));
     const eventSpin = sourceEvent && 'spin' in sourceEvent ? sourceEvent.spin : undefined;
     const practiceProfile = settings.practiceShotType ? PRACTICE_SHOT_PROFILES[settings.practiceShotType] : null;
     const selectedSpin = settings.practiceShotType
@@ -125,13 +129,13 @@ export const compileSession = (
       : eventSpin && eventSpin !== 'preset'
         ? eventSpin
         : settings.spin === 'preset' ? sourceShot.spin : settings.spin;
-    const launchSpeedKmh = Math.max(25, (
+    const launchSpeedKmh = sampleParameter((
       sourceEvent && 'paceKmh' in sourceEvent && sourceEvent.paceKmh
         ? sourceEvent.paceKmh
         : practiceProfile
           ? settings.launchSpeedKmh
           : settings.launchSpeedKmh + (sourceShot.paceKmh - 78) * 0.35
-    ) + speedJitter);
+    ), variation, practiceProfile?.launchSpeedRangeKmh.min ?? 25, practiceProfile?.launchSpeedRangeKmh.max ?? 260, speedRandom);
     let source = {
       ...sourceShot.source,
       x: mode === 'quick-practice' ? quickOrigin.x : sourceEvent && 'opponentPosition' in sourceEvent && sourceEvent.opponentPosition
@@ -143,22 +147,27 @@ export const compileSession = (
         : settings.opponentPosition?.z ?? sourceShot.source.z,
     };
     const authoredTarget = {
-      x: (sourceEvent && 'target' in sourceEvent && sourceEvent.target ? sourceEvent.target.x : sourceShot.target.x) + xJitter,
-      z: (sourceEvent && 'target' in sourceEvent && sourceEvent.target ? sourceEvent.target.z : sourceShot.target.z) + zJitter,
+      x: sourceEvent && 'target' in sourceEvent && sourceEvent.target ? sourceEvent.target.x : sourceShot.target.x,
+      z: sourceEvent && 'target' in sourceEvent && sourceEvent.target ? sourceEvent.target.z : sourceShot.target.z,
     };
     const returnServePlacement = settings.practiceShotType === 'serve' && settings.returnReceiverSide
       ? RETURN_SERVE_PATTERN[index % RETURN_SERVE_PATTERN.length]
       : undefined;
-    const target = returnServePlacement && settings.returnReceiverSide
+    const center = returnServePlacement && settings.returnReceiverSide
       ? returnServeTarget(settings.returnReceiverSide, returnServePlacement, settings.landingDepthM ?? PRACTICE_SHOT_PROFILES.serve.defaultLandingDepthM)
       : settings.practiceShotType === 'serve'
         ? legalServeTarget(quickOrigin, settings.aimDirectionDeg ?? 0, settings.landingDepthM ?? PRACTICE_SHOT_PROFILES.serve.defaultLandingDepthM)
       : practiceProfile
         ? practiceLandingTarget(quickOrigin, settings.aimDirectionDeg ?? 0, settings.landingDepthM ?? practiceProfile.defaultLandingDepthM)
         : authoredTarget;
+    const family = settings.practiceShotType ?? sourceShot.family;
+    const eventZone = sourceEvent && 'landingZone' in sourceEvent ? sourceEvent.landingZone : undefined;
+    const zoneSize = normalizeLandingZone(eventZone ?? settings.landingZone, family);
+    const landingZone = resolveLandingZone(center, zoneSize, family, source);
+    const target = sampleLandingZone(landingZone, landingRandom);
     let shot: ShotDefinitionV1 = {
       ...sourceShot,
-      family: settings.practiceShotType ?? sourceShot.family,
+      family,
       source,
       stroke: mode === 'quick-practice' && settings.practiceShotType && settings.practiceShotType !== 'serve'
         ? settings.practiceStroke === 'alternate' || !settings.practiceStroke ? index % 2 ? 'backhand' : 'forehand' : settings.practiceStroke
@@ -198,9 +207,13 @@ export const compileSession = (
       }
       shot={...shot,source};
     }
+    const nominalSpin = settings.practiceShotType ? spinRateForPracticeShot(settings.practiceShotType, selectedSpin, settings.spinRateRpm)
+      : defaultSpinRateRpm({ spin: selectedSpin, family });
+    const spinRange = settings.practiceShotType ? spinRateProfileForPracticeShot(settings.practiceShotType, selectedSpin) : null;
+    const spinRateRpm = sampleParameter(nominalSpin, variation, spinRange?.minRpm ?? 0, spinRange?.maxRpm ?? 6000, spinRandom);
     const trajectory = resolveTrajectory({
-      ...shot, launchSpeedKmh, trajectoryMode: settings.trajectoryMode,
-      spinRateRpm: settings.practiceShotType ? spinRateForPracticeShot(settings.practiceShotType, selectedSpin, settings.spinRateRpm) : undefined,
+      ...shot, landingZone, launchSpeedKmh, trajectoryMode: settings.trajectoryMode ?? 'natural',
+      spinRateRpm,
       minimumNetClearanceM: shot.netClearanceM, shotType: settings.practiceShotType,
       aimDirectionDeg: returnServePlacement ? undefined : aimDirectionToCourtPoint(source,target),
       windVelocity: settings.windVelocity, bounceFactor: settings.bounceFactor,
@@ -261,7 +274,7 @@ export const compileSession = (
 
   return {
     solverVersion: 'ball-v6-spin-target',
-    plannerVersion: 'gameplay-rhythm-v2',
+    plannerVersion: 'gameplay-rhythm-v3',
     contentVersion: '2026.09.08',
     drill,
     settings: { ...settings, rhythmPercent, shotIntervalSeconds: interval, movementPercent:movementRate*100, mode },

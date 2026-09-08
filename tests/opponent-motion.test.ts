@@ -8,6 +8,8 @@ import { SHOTS, DRILLS } from '../src/content/bundled';
 import { OpponentRig } from '../src/engine/rendering/OpponentRig';
 import { OPPONENT_ASSET } from '../src/domain/opponent';
 import { compileSession } from '../src/engine/session/compileSession';
+import { compilePracticePreview, ContinuousPracticePreview } from '../src/engine/session/practicePreview';
+import { PRACTICE_SHOT_PROFILES } from '../src/engine/trajectory/practiceProfiles';
 import { motionEvent, minimumMotionGap, sampleOpponentTimeline, strokeForShot, OPPONENT_MOTION, MAX_OPPONENT_SPEED, type MotionRepetition, type StrokeId } from '../src/engine/session/opponentTimeline';
 
 const repetition = (clip: StrokeId, index = 0, x = 0, z = 12.5, hand: 'left' | 'right' = 'right'): MotionRepetition => ({
@@ -24,6 +26,28 @@ const loadRig = async () => {
 afterEach(() => vi.restoreAllMocks());
 
 describe('local motion asset and shared contact clock', () => {
+  it('keeps post-IK contact and root continuity when fresh preview batches replace one another',async()=>{
+    const rig=await loadRig();
+    for(const opponentHand of ['right','left'] as const)for(const practiceShotType of ['groundstroke','serve','volley','overhead'] as const){
+      const p=PRACTICE_SHOT_PROFILES[practiceShotType];
+      const preview=new ContinuousPracticePreview(compilePracticePreview(DRILLS[0]!,{
+        repetitions:1,practiceShotType,opponentHand,opponentPosition:p.opponentPosition,landingDepthM:p.defaultLandingDepthM,
+        rhythmPercent:150,shotIntervalSeconds:1,variationPercent:8,timingVariationPercent:0,launchSpeedKmh:p.defaultLaunchSpeedKmh,
+        surface:'hard',seed:'post-ik-zone',spin:'preset',workBlockSize:1,restSeconds:120,serveRhythm:'preset',
+      }));
+      const seam=preview.frame(0).nextContact;
+      const before=preview.frame(seam-1/120),at=preview.frame(seam),after=preview.frame(seam+1/120);
+      let previous:THREE.Vector3|null=null;
+      for(const [frame,time] of [[before,seam-1/120],[at,seam],[after,seam+1/120]] as const){
+        const pose=sampleOpponentTimeline(frame.events,time)!;rig.sampleMotion(pose);
+        const contact=rig.getContactPosition()!.clone();
+        if(previous)expect(contact.distanceTo(previous)).toBeLessThan(.6);
+        if(time===seam)expect(contact.distanceTo(new THREE.Vector3(pose.event!.source.x,pose.event!.source.y,pose.event!.source.z))).toBeLessThan(.002);
+        previous=contact;
+      }
+    }
+    rig.dispose();
+  });
   it('preserves real racket contacts after IK at both rhythm bounds and for both hands',async()=>{
     const rig=await loadRig();
     for(const hand of ['right','left'] as const)for(const rate of [.5,.85,1,1.2,1.5])for(const clip of ['forehand','backhand','forehand-slice','backhand-slice','forehand-volley','backhand-volley','serve','serve-compact','backhand-overhead'] as const){

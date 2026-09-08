@@ -16,7 +16,10 @@ import { AudienceSystem, type AudienceState } from './AudienceSystem';
 import type { CompiledSession } from '../session/compileSession';
 import { motionEvent, sampleOpponentTimeline, type MotionEvent, type MotionSample } from '../session/opponentTimeline';
 import { planRecovery } from '../session/opponentMovement';
+import { ContinuousPracticePreview } from '../session/practicePreview';
 import { sessionFlights } from '../session/sessionFlights';
+import type { CompiledRepetition } from '../session/compileSession';
+import { LandingTargetGizmo, type LandingPoint } from './LandingTargetGizmo';
 import { SHOTS } from '../../content/bundled';
 
 export type CameraConfiguration = Readonly<{
@@ -135,7 +138,10 @@ export class TennisScene {
   private session: CompiledSession | null = null;
   private sessionClock: Readonly<{ current: number }> | null = null;
   private motionEvents: readonly MotionEvent[] = [];
-  private onSessionIndex: ((index:number)=>void) | null = null;
+  private practicePreview: ContinuousPracticePreview | null = null;
+  private previewCycle = -1;
+  readonly landingGizmo: LandingTargetGizmo;
+  private onSessionIndex: ((index:number, repetition: CompiledRepetition)=>void) | null = null;
   private sessionIndex = -1;
   private lineTrajectory: ResolvedTrajectory | null = null;
   private baseCameraConfiguration: CameraConfiguration | null = null;
@@ -215,6 +221,8 @@ export class TennisScene {
       return [id, manager];
     })) as Record<AuthoredVenueId, VenueAssetManager>;
     this.scene.add(court.group);
+    this.landingGizmo = new LandingTargetGizmo(this.camera, canvas);
+    this.scene.add(this.landingGizmo.root, this.landingGizmo.zoneRoot);
     this.scene.add(this.audience.group);
     this.scene.add(this.opponent.group);
     this.fallbackBallMachine = court.group.getObjectByName('temporary-ball-machine');
@@ -278,6 +286,9 @@ export class TennisScene {
   private setTrajectoryLine(trajectory: ResolvedTrajectory): void {
     if(this.lineTrajectory===trajectory)return;
     this.lineTrajectory=trajectory;
+    this.landingGizmo.setZone(this.trajectoryLine.visible ? trajectory.intent.landingZone ?? null : null);
+    const bounce = trajectory.events.find(event => event.type === 'bounce');
+    if (bounce) this.landingGizmo.setBounce(bounce.position);
     const points = trajectory.samples.map(
       (sample) => new THREE.Vector3(sample.position.x, sample.position.y, sample.position.z),
     );
@@ -285,16 +296,23 @@ export class TennisScene {
     this.trajectoryLine.geometry = new THREE.BufferGeometry().setFromPoints(points);
   }
 
-  setSession(session: CompiledSession | null, clock: Readonly<{ current: number }> | null, onIndex?: (index:number)=>void): void {
+  setSession(session: CompiledSession | null, clock: Readonly<{ current: number }> | null, onIndex?: (index:number, repetition: CompiledRepetition)=>void): void {
     if(this.session!==session&&!clock){this.elapsed=0;this.sessionIndex=-1;}
     this.session = session;
     this.sessionClock = clock;
     this.onSessionIndex=onIndex??null;
     this.motionEvents = session?.repetitions.map(motionEvent) ?? [];
+    this.practicePreview = session?.previewLoop ? new ContinuousPracticePreview(session) : null;
+    this.previewCycle = -1;
+  }
+
+  setLandingTarget(target: LandingPoint, onChange: ((point: LandingPoint) => void) | null): void {
+    this.landingGizmo.configure(target, onChange);
   }
 
   setTrajectoryVisible(visible: boolean): void {
     this.trajectoryLine.visible = visible;
+    this.landingGizmo.setZone(visible ? this.lineTrajectory?.intent.landingZone ?? null : null);
   }
 
   setBallPresentation(highContrast: boolean, showTrail: boolean): void {
@@ -543,7 +561,7 @@ export class TennisScene {
     this.lastFrame = now;
     if (this.sessionClock) this.elapsed = this.sessionClock.current;
     else if (this.running) this.elapsed += delta * this.playbackRate;
-    if(this.session&&!this.sessionClock&&this.loopTrajectory&&this.session.duration>0)this.elapsed%=this.session.duration;
+    if(this.session&&!this.session.previewLoop&&!this.sessionClock&&this.loopTrajectory&&this.session.duration>0)this.elapsed%=this.session.duration;
     this.skySystem.update(now);
     this.weatherSystem.update(this.elapsed);
     const wind = windVelocityFromEnvironment(this.environmentConfiguration);
@@ -560,13 +578,18 @@ export class TennisScene {
       let motionTime = this.elapsed;
       const visibleFlights: { trajectory: ResolvedTrajectory; time: number }[] = [];
       if (this.session) {
-        const flights=sessionFlights(this.session,this.elapsed);
+        const frame=this.practicePreview?.frame(this.elapsed);
+        const flights=frame?.flights ?? sessionFlights(this.session,this.elapsed);
+        if (frame) events=frame.events;
+        this.canvas.dataset.previewCycle=String(frame?.cycle ?? 0);
+        this.canvas.dataset.previewNextContact=String(frame?.nextContact ?? 0);
         visibleFlights.push(...flights);
         this.canvas.dataset.ballPhase=flights[0]?.phase??'none';
         this.canvas.dataset.sessionTime=this.elapsed.toFixed(4);
-        const index=this.session.repetitions.reduce((active,rep)=>this.elapsed>=rep.startTime?rep.index:active,0);
-        if(index!==this.sessionIndex){this.sessionIndex=index;this.onSessionIndex?.(index);}
-        this.setTrajectoryLine(flights[0]?.trajectory??this.trajectory);
+        const repetition=frame?.repetition ?? this.session.repetitions.reduce((active,rep)=>motionTime>=rep.startTime?rep:active,this.session.repetitions[0]!);
+        const index=repetition.index, cycle=frame?.cycle??0;
+        if(index!==this.sessionIndex || cycle!==this.previewCycle){this.sessionIndex=index;this.previewCycle=cycle;this.onSessionIndex?.(index,repetition);}
+        this.setTrajectoryLine(flights[0]?.trajectory??repetition.trajectory);
       } else if (this.previewEvent) {
         const interval = Math.max(this.previewEvent.end-this.previewEvent.start+planRecovery(this.previewEvent,this.previewEvent).requiredDuration, this.trajectoryInterval ?? duration + .5);
         const cycle = this.loopTrajectory ? Math.max(0, Math.floor((this.elapsed - 3) / interval)) : 0;
@@ -636,10 +659,14 @@ export class TennisScene {
       this.applyCamera();
     }
     this.audience.update(this.elapsed);
+    this.landingGizmo.update();
     this.renderer.render(this.scene, this.camera);
     this.metricFrames += 1;
     const metricElapsed = now - this.metricStartedAt;
     if (metricElapsed >= 1000) {
+      this.canvas.dataset.landingZone=JSON.stringify(this.lineTrajectory?.intent.landingZone??null);
+      this.canvas.dataset.landingTarget=JSON.stringify(this.lineTrajectory?.intent.target??null);
+      this.canvas.dataset.landingHandles=JSON.stringify(this.landingGizmo.screenPoints());
       this.canvas.dataset.audience = this.audience.state.status;
       this.canvas.dataset.spectators = String(this.audience.state.count);
       this.onMetrics?.({

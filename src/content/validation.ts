@@ -21,7 +21,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const allowedDrillKeys = new Set(['schemaVersion', 'id', 'title', 'description', 'category', 'shotIds', 'events', 'defaultInterval', 'defaultRhythmPercent', 'defaultMovementPercent', 'defaultRepetitions']);
-const allowedEventKeys = new Set(['id', 'shotId', 'paceKmh', 'spin', 'target', 'opponentPosition', 'cameraMotion', 'cue', 'serveRhythm', 'netClearanceM']);
+const allowedEventKeys = new Set(['id', 'shotId', 'paceKmh', 'spin', 'target', 'landingZone', 'variationPercent', 'opponentPosition', 'cameraMotion', 'cue', 'serveRhythm', 'netClearanceM']);
 const allowedCameraMotionKeys = new Set(['from', 'to', 'duration', 'delay']);
 const allowedCameraKeys = new Set(['eyeHeight', 'behindBaseline', 'lateral', 'yaw', 'pitch', 'fov']);
 
@@ -50,6 +50,15 @@ const validateEvent = (value: unknown, index: number, errors: string[]): value i
     if (!isRecord(value.target) || typeof value.target.x !== 'number' || typeof value.target.z !== 'number') errors.push(`Event ${index + 1} target is invalid.`);
     else if (Math.abs(value.target.x) > 4.115 || value.target.z >= 0 || value.target.z < -11.885) errors.push(`Event ${index + 1} target is outside the near singles court.`);
   }
+  const zone = value.landingZone;
+  if (zone !== undefined && (!isRecord(zone)
+    || Object.keys(zone).some(key => key !== 'width' && key !== 'depth')
+    || !['width', 'depth'].every(key => typeof zone[key] === 'number'
+      && Number.isFinite(zone[key]) && zone[key] >= .2 && zone[key] <= 6))) {
+    errors.push(`Event ${index + 1} landing zone dimensions must be 0.2–6 m.`);
+  }
+  if (value.variationPercent !== undefined && (typeof value.variationPercent !== 'number' || !Number.isFinite(value.variationPercent)
+    || value.variationPercent < 0 || value.variationPercent > 25)) errors.push(`Event ${index + 1} speed and spin variation must be 0–25%.`);
   if (value.opponentPosition !== undefined) {
     if (!isRecord(value.opponentPosition) || typeof value.opponentPosition.x !== 'number' || typeof value.opponentPosition.z !== 'number') errors.push(`Event ${index + 1} opponent position is invalid.`);
     else if (Math.abs(value.opponentPosition.x) > OPPONENT_POSITION_LIMITS.halfWidth || Math.abs(value.opponentPosition.z) > OPPONENT_POSITION_LIMITS.halfLength) errors.push(`Event ${index + 1} opponent position is outside the ITF competition runoff.`);

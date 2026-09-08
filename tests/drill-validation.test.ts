@@ -19,7 +19,7 @@ describe('versioned drill documents', () => {
     expect(events.map((event) => event.shotId)).toEqual(DRILLS[2]!.shotIds);
   });
 
-  it('accepts local event overrides and compiles them exactly with variation disabled', () => {
+  it('accepts local event overrides and preserves their zone and fixed parameters with parameter variation disabled', () => {
     const source = DRILLS[0]!;
     const drill = {
       ...source,
@@ -56,11 +56,11 @@ describe('versioned drill documents', () => {
     expect(session.repetitions[0]!.shot).toMatchObject({
       paceKmh: 101,
       spin: 'slice',
-      target: { x: 1.25, z: -7.5 },
       source: { x: -2.5, y: 1.15, z: 10.8 },
       cue: 'MOVE NOW',
       opponentHand: 'left',
     });
+    expect(session.repetitions[0]!.trajectory.intent.landingZone).toEqual({minX:1.25-.8,maxX:2.05,minZ:-8.5,maxZ:-6.5});
   });
 
   it('rejects remote URLs, unknown primitives, invalid geometry, and unsupported schemas', () => {

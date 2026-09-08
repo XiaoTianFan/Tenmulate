@@ -17,7 +17,7 @@ export const createDefaultLaunch = (drill: DrillDefinitionV1, rhythmPercent = dr
   session: compileSession(drill, {
     repetitions: drill.defaultRepetitions,
     rhythmPercent, shotIntervalSeconds: interval, movementPercent, trajectoryMode: 'natural', mode: 'drill', camera: DEFAULT_CAMERA,
-    variationPercent: 0,
+    variationPercent: 8,
     timingVariationPercent: 0,
     launchSpeedKmh: 78,
     surface: 'hard',

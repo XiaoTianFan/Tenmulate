@@ -1,6 +1,7 @@
 import type { SurfaceId } from '../domain/court';
 import type { CameraConfiguration } from '../engine/rendering/TennisScene';
 import type { SpinKind } from '../engine/trajectory/physics';
+import type { LandingZoneSize } from '../engine/trajectory/landingZone';
 
 export type OpponentHand = 'left' | 'right';
 export type ServeRhythm = 'normal' | 'compact';
@@ -63,6 +64,8 @@ export type DrillEventV1 = Readonly<{
   paceKmh?: number;
   spin?: 'preset' | SpinKind;
   target?: Readonly<{ x: number; z: number }>;
+  landingZone?: LandingZoneSize;
+  variationPercent?: number;
   opponentPosition?: Readonly<{ x: number; z: number }>;
   cameraMotion?: CameraMotionDefinition | null;
   cue?: string;

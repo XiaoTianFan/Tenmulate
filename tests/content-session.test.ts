@@ -74,8 +74,8 @@ describe('session compiler', () => {
     expect(first.repetitions.map((entry) => entry.shot.target)).not.toEqual(second.repetitions.map((entry) => entry.shot.target));
     for (const entry of second.repetitions) {
       const source = SHOTS.find((shot) => shot.id === entry.shot.id)!;
-      expect(Math.abs(entry.shot.target.x - source.target.x)).toBeLessThanOrEqual(0.55 * 0.08 + Number.EPSILON);
-      expect(Math.abs(entry.shot.target.z - source.target.z)).toBeLessThanOrEqual(1.1 * 0.08 + Number.EPSILON);
+      expect(Math.abs(entry.shot.target.x - source.target.x)).toBeLessThanOrEqual(0.8 + Number.EPSILON);
+      expect(Math.abs(entry.shot.target.z - source.target.z)).toBeLessThanOrEqual(1 + Number.EPSILON);
     }
   });
 
@@ -138,6 +138,7 @@ describe('session compiler', () => {
       practiceShotType: 'groundstroke',
       spin: 'flat',
       spinRateRpm: 0,
+      variationPercent: 0, trajectoryMode: 'exact',
       launchSpeedKmh: 68,
       landingDepthM: 9.5,
     });
@@ -172,9 +173,11 @@ describe('session compiler', () => {
     });
 
     expect(leftSession.repetitions.map((entry) => entry.returnServePlacement)).toEqual([...RETURN_SERVE_PATTERN, ...RETURN_SERVE_PATTERN]);
-    expect(leftSession.repetitions.map((entry) => entry.shot.target.x)).toEqual([0.28, 2.25, 3.895, 0.28, 2.25, 3.895]);
+    expect(leftSession.repetitions.every((entry, i) => Math.abs(entry.shot.target.x - [0.28, 2.25, 3.895][i % 3]!) <= .45)).toBe(true);
+    expect(leftSession.repetitions.every(entry => entry.shot.target.x > 0 && entry.shot.target.x < 4.115)).toBe(true);
     expect(leftSession.repetitions.every((entry) => entry.shot.source.x < 0 && motionEvent(entry).root.z > COURT.halfLength)).toBe(true);
-    expect(rightSession.repetitions.map((entry) => entry.shot.target.x)).toEqual([-0.28, -2.25, -3.895]);
+    expect(rightSession.repetitions.every((entry, i) => Math.abs(entry.shot.target.x + [0.28, 2.25, 3.895][i]!) <= .45)).toBe(true);
+    expect(rightSession.repetitions.every(entry => entry.shot.target.x < 0 && entry.shot.target.x > -4.115)).toBe(true);
     expect(rightSession.repetitions.every((entry) => entry.shot.source.x > 0 && motionEvent(entry).root.z > COURT.halfLength)).toBe(true);
   });
 
@@ -195,9 +198,9 @@ describe('session compiler', () => {
     const net = repetition.trajectory.events.find((event) => event.type === 'net-crossing')!;
     expect(repetition.shot.family).toBe('lob');
     expect(repetition.shot.source.y).toBe(1.05);
-    expect(repetition.shot.depth).toBe('Deep');
+    expect(repetition.trajectory.intent.landingZone).toMatchObject({minZ:-10.3,maxZ:-8.3});
     expect(net.time).toBeLessThan(bounce.time);
     expect(repetition.trajectory.apexHeight).toBeGreaterThan(5);
-    expect(bounce.position.z).toBeCloseTo(-9.3, 1);
+    expect(bounce.position.z).toBeCloseTo(repetition.shot.target.z, 1);
   });
 });

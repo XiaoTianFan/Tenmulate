@@ -13,7 +13,7 @@ const settings: SessionSettings = {repetitions:3,mode:'quick-practice',practiceS
   opponentHand:'right',serveRhythm:'normal',workBlockSize:50,restSeconds:0};
 
 describe('recovery-centered practice and independent clocks',()=>{
-  it('keeps actual first bounces on the fixed target with either stroke side and hand',()=>{
+  it('keeps actual first bounces on their sampled zone targets with either stroke side and hand',()=>{
     for(const opponentHand of ['right','left'] as const)for(const practiceShotType of ['groundstroke','volley','overhead'] as const){
       const profile=PRACTICE_SHOT_PROFILES[practiceShotType];
       const session=compileSession(DRILLS[0]!,{...settings,practiceShotType,opponentHand,
@@ -27,7 +27,7 @@ describe('recovery-centered practice and independent clocks',()=>{
       if(practiceShotType==='overhead')expect(motionEvent(session.repetitions[1]!).clip).toBe('backhand-overhead');
     }
   });
-  it.each(['right','left'] as const)('steps the body to each side, moving contact while retaining the landing target (%s)',opponentHand=>{
+  it.each(['right','left'] as const)('steps the body to each side, moving contact while retaining the landing zone (%s)',opponentHand=>{
     for(const practiceShotType of ['groundstroke','volley','overhead'] as const){
       const session=compileSession(DRILLS[0]!,{...settings,practiceShotType,opponentHand});
       const [a,b]=session.repetitions.map(motionEvent);
@@ -36,7 +36,8 @@ describe('recovery-centered practice and independent clocks',()=>{
       expect(Math.abs(a!.root.x)).toBeCloseTo(.7,5);
       expect(Math.abs(b!.root.x)).toBeCloseTo(.8,5);
       expect(Math.abs(a!.source.x-b!.source.x)).toBeGreaterThan(1);
-      expect(session.repetitions[0]!.shot.target).toEqual(session.repetitions[1]!.shot.target);
+      expect(session.repetitions[0]!.trajectory.intent.landingZone).toEqual(session.repetitions[1]!.trajectory.intent.landingZone);
+      expect(session.repetitions[0]!.shot.target).not.toEqual(session.repetitions[1]!.shot.target);
       expect(sampleOpponentTimeline(session.repetitions.map(motionEvent),session.duration)!.root).toEqual(a!.home);
     }
     const serve=compileSession(DRILLS[0]!,{...settings,practiceShotType:'serve',opponentHand});
