@@ -51,7 +51,7 @@ export function CastingButton() {
             <li>Open Control Center, tap <strong>Screen Mirroring</strong>, then choose your receiver.</li>
             <li>Return to Tenmulate. Configure Quick Practice or a drill, then start practicing.</li>
           </ol>
-          <p>Look for your receiver’s name, such as 乐播投屏（SONY XR-75X95J） or 奇异果TV, if it is available.</p>
+          <p>Look for your receiver’s name in the list.</p>
           <p className="casting-note">This mirrors your device screen, including controls. Tenmulate cannot open that system picker or verify the connection. Keep this page visible and your device unlocked; resume practice if iOS pauses it.</p>
         </section>
         <section>
