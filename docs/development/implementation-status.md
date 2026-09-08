@@ -9,6 +9,18 @@
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
+## Frame-exit focus cutoff — 2026-09-08
+
+[ADR-0026](../decisions/0026-frame-exit-focus-cutoff.md) moves blur removal to the
+first frame where the ball's rendered bounds leave the picture. Partially visible
+balls retain focus. Current camera matrices account for look direction, FOV and
+resize; the exponential curve, 1.5 px default and sharp ball layer remain unchanged.
+
+Verification: 8 focused tests, production/PWA build and active motion/cache guard
+pass. Actual rendering passes 48 edge/scale/viewport samples, camera/FOV changes,
+overlapping-ball handoff and exact pixel equality with effect off after exit.
+The local preview is refreshed with existing settings preserved; ADR-0026 records evidence.
+
 ## Net-to-camera blur curve and finer control — 2026-09-08
 
 [ADR-0025](../decisions/0025-net-to-camera-focus-envelope.md) sets Maximum blur to

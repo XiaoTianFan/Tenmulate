@@ -15,8 +15,8 @@ const EXPONENTIAL_RANGE = Math.expm1(4);
 
 /** Net is z=0. Only incoming flights crossing onto the camera's court half qualify.
  * Normalize court depth so baseline, corner and volley views share the same curve.
- * Position alone controls the envelope: no release tail after passing the camera,
- * and no early screen-edge fade when a close ball moves below the viewport.
+ * Position alone controls the envelope; the renderer separately excludes balls
+ * outside the camera frustum, with no screen-edge taper or release tail.
  */
 export function ballFocusWeight(ballZ: number, sourceZ: number, cameraZ: number, forwardDistance: number): number {
   if (![ballZ, sourceZ, cameraZ, forwardDistance].every(Number.isFinite)

@@ -19,7 +19,9 @@ defocus while preserving the focal plane. The direct render path remains active 
 or fully out of range. Perspective exposes the shared toggle and bounded maximum
 blur without changing session identity, camera authoring or deterministic timing.
 [ADR-0025](decisions/0025-net-to-camera-focus-envelope.md) replaces the distance fade
-with a net-to-camera exponential envelope and immediate camera crossing cutoff.
+with a net-to-camera exponential envelope. [ADR-0026](decisions/0026-frame-exit-focus-cutoff.md)
+moves the cutoff earlier to the first frame where the ball's rendered bounds leave
+the camera frustum, accounting for camera motion, FOV, resize and ball scale.
 The control now spans 0–5 px in 0.1 px steps, default 1.5 px. Source-side gating
 excludes tosses and outgoing returns; the envelope reads current world/camera
 positions without storing attack/release history. See the

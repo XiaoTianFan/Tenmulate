@@ -126,6 +126,8 @@ export class TennisScene {
   private focusDistance = 16;
   private highContrastBall = false;
   private readonly focusPoint = new THREE.Vector3();
+  private readonly focusProjection = new THREE.Matrix4();
+  private readonly focusFrustum = new THREE.Frustum();
   private readonly focusLight = new THREE.Color(0xffffdc);
   private readonly focusEmission = new THREE.Color(0xfff7b3);
   private readonly trajectoryLine: THREE.Line;
@@ -371,14 +373,21 @@ export class TennisScene {
     let target = 0;
     let focusDistance = this.focusDistance;
     this.camera.updateMatrixWorld();
+    if (this.ballFocus.enabled) this.focusFrustum.setFromProjectionMatrix(
+      this.focusProjection.multiplyMatrices(this.camera.projectionMatrix, this.camera.matrixWorldInverse));
     const presentation = this.highContrastBall ? BALL_PRESENTATION.highContrast : BALL_PRESENTATION.standard;
     for (const ball of this.balls) {
       let weight = 0;
       if (this.ballFocus.enabled && ball.visible) {
-        this.focusPoint.copy(ball.position).applyMatrix4(this.camera.matrixWorldInverse);
-        const forward = -this.focusPoint.z;
-        weight = ballFocusWeight(ball.position.z, ball.userData.focusSourceZ, this.camera.position.z, forward);
-        if (weight > target) focusDistance = Math.max(.1, forward);
+        // Match the rendered ball bounds, including its high-contrast scale. Keep
+        // partially visible balls focused, then clear on the first off-frame draw.
+        ball.updateWorldMatrix(true, false);
+        if (this.focusFrustum.intersectsObject(ball)) {
+          this.focusPoint.copy(ball.position).applyMatrix4(this.camera.matrixWorldInverse);
+          const forward = -this.focusPoint.z;
+          weight = ballFocusWeight(ball.position.z, ball.userData.focusSourceZ, this.camera.position.z, forward);
+          if (weight > target) focusDistance = Math.max(.1, forward);
+        }
       }
       target = Math.max(target, weight);
       ball.userData.focusWeight = weight;
