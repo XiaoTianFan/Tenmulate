@@ -9,6 +9,15 @@
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
+## Stable net weave across perspectives — 2026-09-08
+
+[ADR-0028](../decisions/0028-filtered-net-weave.md) replaces the displayed net cords
+with analytically filtered coverage while preserving authored tape, posts and sag.
+All twelve venue variants load the same presentation. In 168 FOV/resolution samples,
+old Performance weave disappears 116 times; the new weave remains visible throughout.
+Two ownership/registration tests, actual close/corner/wide captures, the production
+build and active motion/cache guard pass. No source asset changes or public deployment.
+
 ## Ball-only highlight; scene blur removed — 2026-09-08
 
 [ADR-0027](../decisions/0027-ball-only-highlight.md) removes the lens compositor,

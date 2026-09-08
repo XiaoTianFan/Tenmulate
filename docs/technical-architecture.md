@@ -11,6 +11,13 @@ The system should optimize for perceptual credibility and testability, not for g
 
 ## 2. Proposed stack
 
+**Filtered net (2026-09-08):** [ADR-0028](decisions/0028-filtered-net-weave.md)
+replaces the displayed weave in both authored venue variants with one surface
+whose shader integrates thread coverage across the pixel footprint. Source bounds,
+sag, pitch, tape/posts and TypeScript collision authority remain. Subpixel weave
+converges to average coverage rather than disappearing at an alpha cutoff. The
+venue manager owns and disposes the replacement with its loaded GLB.
+
 **Optional ball highlight (2026-09-08):** [ADR-0027](decisions/0027-ball-only-highlight.md)
 removes all ball-focus postprocessing. Each frame changes only active ball materials'
 color/emission, then renders the scene directly. Trajectory, trail and landing-zone

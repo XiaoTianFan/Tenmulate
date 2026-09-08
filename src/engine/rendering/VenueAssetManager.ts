@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { COURT, type SurfaceId } from '../../domain/court';
 import type { SceneMaterialBundle } from './sceneMaterials';
+import { installFilteredNet } from './filteredNet';
 
 export const AUTHORED_VENUES = {
   'hard-open-arena': { surface: 'hard' },
@@ -250,6 +251,7 @@ export class VenueAssetManager {
         }
         if (object.userData.surfaceRole) this.surfaces.set(object, object.material);
       });
+      installFilteredNet(parsed);
       const fixtures: THREE.Object3D[] = [];
       parsed.traverse(object => { if (object.userData.role === 'venue-light') fixtures.push(object); });
       // Legacy hard-arena anchors describe only two sides; preserve its four fixtures.

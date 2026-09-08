@@ -26,6 +26,10 @@ or postprocessing. The optional toggle stays shared across Practice, drill editi
 and playback, and preserves existing on/off choices. See the
 [ball-only highlight decision and verification](docs/decisions/0027-ball-only-highlight.md).
 
+The net uses filtered thread coverage in both Quality and Performance modes, so
+wide views and zoom changes retain the weave. Authored sag, tape and posts remain.
+See the [net rendering decision](docs/decisions/0028-filtered-net-weave.md).
+
 ## Implemented direction
 
 - React, TypeScript, and Vite for the application shell.
