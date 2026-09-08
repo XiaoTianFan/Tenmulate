@@ -52,10 +52,11 @@ unless geometry falls below 40% and bytes below 65% of Quality; hard caps are
   decode cannot reattach after cancellation. Large assets are runtime-cached only,
   excluded from the app shell precache. Cache bounds: twelve GLBs, six manifests,
   ten audience resources; no all-venue prefetch.
-- Empty (default), Half seated and Fully seated settings persist with practice
+- Half seated (default for all six courts as of 2026-09-08), Empty and Fully seated settings persist with practice
   preferences and carry into rehearsal. Half is an exact deterministic subset of
   Full. Audience placement comes from every original Blender seat, including the
-  grass baseline pavilion, and is identical between quality levels.
+  grass baseline pavilion, and is identical between quality levels. Missing or
+  invalid occupancy uses Half seated; an explicitly saved Empty/Full choice remains valid.
 - A shared front/back 16-person atlas pair is sampled by spatially chunked
   `InstancedMesh` cards: two triangles per person, no skeletons or per-seat frame
   work, depth writes and chroma-key discard instead of transparent blending.

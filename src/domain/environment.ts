@@ -14,7 +14,8 @@ export type VenueSetting = 'outdoor' | 'indoor';
 export type LightingPreset = 'day' | 'golden-hour' | 'night' | 'indoor-neutral' | 'indoor-warm' | 'indoor-bright';
 export type WeatherCondition = 'clear' | 'overcast' | 'rain';
 export type AudienceOccupancy = 'empty' | 'half' | 'full';
-export const normalizeAudienceOccupancy = (value: unknown): AudienceOccupancy => value === 'half' || value === 'full' ? value : 'empty';
+export const normalizeAudienceOccupancy = (value: unknown): AudienceOccupancy =>
+  value === 'empty' || value === 'half' || value === 'full' ? value : DEFAULT_ENVIRONMENT.audience;
 
 export type SceneDefinition = Readonly<{
   id: VenueId;
@@ -69,7 +70,7 @@ export type EnvironmentConfiguration = Readonly<{
 }>;
 
 export const DEFAULT_ENVIRONMENT: EnvironmentConfiguration = Object.freeze({
-  audience: 'empty',
+  audience: 'half',
   venue: 'hard-open-arena',
   lighting: 'day',
   lightDirection: 145,

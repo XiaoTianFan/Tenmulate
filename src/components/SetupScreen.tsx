@@ -4,7 +4,7 @@ import { DRILL_BY_CATEGORY } from '../content/bundled';
 import type { SessionCategory } from '../content/types';
 import { CAMERA_FOV_MAX, CAMERA_FOV_MIN, clampCameraFov, type CameraLook } from '../domain/camera';
 import { CAMERA_EYE_HEIGHT_MAX, CAMERA_EYE_HEIGHT_MIN, DEFAULT_RALLY_OPPONENT_POSITION, OPPONENT_POSITION_PRESETS, cameraHeightMovementKey, cameraMovementForKeys, isCameraHeightShortcut, type CameraMoveKey, type SurfaceId } from '../domain/court';
-import { SCENE_DEFINITIONS, VENUE_LABELS, isOutdoorVenue, windVelocityFromEnvironment, type AudienceOccupancy, type EnvironmentConfiguration, type LightingPreset, type VenueId, type WeatherCondition } from '../domain/environment';
+import { DEFAULT_ENVIRONMENT, SCENE_DEFINITIONS, VENUE_LABELS, isOutdoorVenue, windVelocityFromEnvironment, type AudienceOccupancy, type EnvironmentConfiguration, type LightingPreset, type VenueId, type WeatherCondition } from '../domain/environment';
 import { RETURN_SERVE_PATTERN, RETURN_SERVE_PLACEMENT_LABELS, returnReceiverSideForCameraPreset, returnServerPosition, type ReturnReceiverSide } from '../domain/returnPractice';
 import type { CameraConfiguration, QualityMode, SceneMetrics } from '../engine/rendering/TennisScene';
 import { compileSession, type CompiledRepetition, type CompiledSession } from '../engine/session/compileSession';
@@ -138,7 +138,7 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
   const [previewRepetition, setPreviewRepetition] = useState<{ session: CompiledSession; repetition: CompiledRepetition } | null>(null);
   const [opponentPosition, setOpponentPosition] = useState<CourtPoint>(initialPreferences.opponentPosition ?? initialPractice.opponent);
   const [venue, setVenue] = useState<VenueId>(initialPreferences.environment.venue);
-  const [audience, setAudience] = useState<AudienceOccupancy>(initialPreferences.environment.audience ?? 'empty');
+  const [audience, setAudience] = useState<AudienceOccupancy>(initialPreferences.environment.audience ?? DEFAULT_ENVIRONMENT.audience);
   const [lighting, setLighting] = useState<LightingPreset>(initialPreferences.environment.lighting);
   const [lightDirection, setLightDirection] = useState(initialPreferences.environment.lightDirection);
   const [lightIntensity, setLightIntensity] = useState(initialPreferences.environment.lightIntensity);

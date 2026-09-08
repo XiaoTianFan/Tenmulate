@@ -62,11 +62,12 @@ describe('all six shipped Blender venue variants', () => {
 });
 
 describe('deterministic audience occupancy', () => {
-  it('preserves old settings as empty and rejects unknown occupancy', () => {
-    expect(normalizeEnvironmentConfiguration({}).audience).toBe('empty');
+  it('defaults every venue to half seated while preserving explicit occupancy', () => {
+    for (const venue of VENUE_IDS) expect(normalizeEnvironmentConfiguration({venue}).audience).toBe('half');
+    expect(normalizeEnvironmentConfiguration({audience:'empty'}).audience).toBe('empty');
     expect(normalizeEnvironmentConfiguration({audience:'half'}).audience).toBe('half');
     expect(normalizeEnvironmentConfiguration({audience:'full'}).audience).toBe('full');
-    expect(normalizeEnvironmentConfiguration({audience:Infinity}).audience).toBe('empty');
+    expect(normalizeEnvironmentConfiguration({audience:Infinity}).audience).toBe('half');
   });
   it('uses exact half, unique seats and stable identities without a per-frame random generator', () => {
     const half=occupiedSeatIndices(14381,'half');

@@ -9,6 +9,15 @@
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
+## Half-seated venue default — 2026-09-08
+
+All six courts now default to **Half seated**, including default session launches
+and saved environments without an audience field. Explicit Empty/Full choices
+remain available. The practice fallback uses the shared environment default.
+Verification: 34 focused venue/audience/storage tests and the production build
+pass. A fresh-profile browser check renders the exact half-seat count in all six
+courts without errors. The user's saved setting is Half seated and survives refresh.
+
 ## Interval-first motion and continuous arrival — 2026-09-08
 
 [ADR-0029](../decisions/0029-interval-first-motion.md) searches stroke/movement
