@@ -11,6 +11,15 @@ The system should optimize for perceptual credibility and testability, not for g
 
 ## 2. Proposed stack
 
+**Measured renderer costs (2026-09-08):** [ADR-0031](decisions/0031-measured-renderer-cost-and-preview-preparation.md)
+adds opt-in CPU stage and asynchronous GPU timing with actual adapter/buffer
+metadata. Unlit fixture lights are excluded from shader generation and the physical
+sky draws after opaque depth. A single module worker prepares the next unused
+practice batch with the identical compiler, seeds and interval solver; the render
+thread applies it at the original boundary. Worker lifecycle follows session
+ownership. The [receipt](development/renderer-performance-2026-09-08.md) separates
+GPU execution cost, CPU stalls and browser presentation cadence.
+
 **Groundstroke inverse search (2026-09-08):** [ADR-0030](decisions/0030-groundstroke-net-clearance-search.md)
 replaces the old angle proxy and speed-first fitting. `ball-v7-net-clearance`
 fits Natural groundstroke speed/spin together, ranking actual clearance above

@@ -62,6 +62,9 @@ export class DynamicSkySystem {
     addTwilightColor(this.sky);
     addTwilightColor(this.environmentSky);
     this.sky.name = 'dynamic-physical-sky';
+    // Sky vertices sit at the far depth. Opaque court/stadium depth can reject
+    // their expensive cloud shading; transparent nets/weather still follow it.
+    this.sky.renderOrder = 10_000;
     this.sky.scale.setScalar(380);
     this.sky.visible = false;
     this.environmentSky.scale.setScalar(120);

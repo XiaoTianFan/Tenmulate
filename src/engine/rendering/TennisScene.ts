@@ -27,6 +27,7 @@ import { LandingZoneControl } from './LandingZoneControl';
 import { landingZoneLimits, type LandingZone } from '../trajectory/landingZone';
 import { SHOTS } from '../../content/bundled';
 import { RendererProfiler } from './RendererProfiler';
+import { PracticePreviewWorker } from '../session/PracticePreviewWorker';
 
 export type CameraConfiguration = Readonly<{
   eyeHeight: number;
@@ -129,6 +130,7 @@ export class TennisScene {
   private readonly focusEmission = new THREE.Color(0xfff7b3);
   private readonly trajectoryLine: THREE.Line;
   private readonly ballTrail: THREE.Line;
+  private readonly trailPositions = new THREE.BufferAttribute(new Float32Array(30), 3).setUsage(THREE.DynamicDrawUsage);
   private readonly hemisphere: THREE.HemisphereLight;
   private readonly sun: THREE.DirectionalLight;
   private readonly opponent = new OpponentRig();
@@ -275,7 +277,7 @@ export class TennisScene {
     );
     this.scene.add(this.trajectoryLine);
     this.ballTrail = new THREE.Line(
-      new THREE.BufferGeometry(),
+      new THREE.BufferGeometry().setAttribute('position', this.trailPositions),
       new THREE.LineBasicMaterial({ color: BALL_PRESENTATION.trailColor, transparent: true, opacity: 0.52 }),
     );
     this.ballTrail.visible = false;
@@ -324,6 +326,7 @@ export class TennisScene {
   setSession(session: CompiledSession | null, clock: Readonly<{ current: number }> | null, onIndex?: (index:number, repetition: CompiledRepetition)=>void): void {
     this.onSessionIndex = onIndex ?? null;
     if (this.session === session && this.sessionClock === clock) return;
+    this.profiler?.reset();
     this.landingZoneControl.acceptModel();
     this.canvas.dataset.sessionRevision = String(++this.sessionRevision);
     if(this.session!==session&&!clock){this.elapsed=0;this.sessionIndex=-1;}
@@ -331,7 +334,8 @@ export class TennisScene {
     this.sessionClock = clock;
     this.onSessionIndex=onIndex??null;
     this.motionEvents = session?.repetitions.map(motionEvent) ?? [];
-    this.practicePreview = session?.previewLoop ? new ContinuousPracticePreview(session) : null;
+    this.practicePreview?.dispose();
+    this.practicePreview = session?.previewLoop ? new ContinuousPracticePreview(session, new PracticePreviewWorker()) : null;
     this.previewCycle = -1;
   }
 
@@ -464,6 +468,9 @@ export class TennisScene {
     group.traverse(object => {
       if (!(object instanceof THREE.PointLight || object instanceof THREE.SpotLight)) return;
       object.intensity = Number(object.userData.baseIntensity ?? 35) * intensity * fixtureScale;
+      // Three still generates/evaluates lighting code for visible zero lights.
+      // Restore them for dusk/night/indoors; never discard a nonzero contribution.
+      object.visible = object.intensity > 0;
       object.color.setHex(configuration.lighting === 'indoor-warm' ? 0xffd09a : 0xe7f2ff);
     });
   }
@@ -699,9 +706,11 @@ export class TennisScene {
         this.canvas.dataset.motionClip = motion.layers.find(layer => layer.weight > .5)?.clip ?? 'ready';
         this.canvas.dataset.motionTime = motion.layers[0]?.time.toFixed(4) ?? '0';
         this.canvas.dataset.opponentRoot = [motion.root.x, motion.root.z].map(v => v.toFixed(4)).join(',');
-        const contact = this.opponent.getContactPosition();
-        if (motion.event && contact && Math.abs(motionTime - motion.event.contactTime) < 1 / 60) this.canvas.dataset.contactError = contact.distanceTo(new THREE.Vector3(motion.event.source.x, motion.event.source.y, motion.event.source.z)).toFixed(5);
-        else delete this.canvas.dataset.contactError;
+        if (motion.event && Math.abs(motionTime - motion.event.contactTime) < 1 / 60) {
+          const contact = this.opponent.getContactPosition();
+          if (contact) this.canvas.dataset.contactError = contact.distanceTo(this.focusPoint.set(motion.event.source.x, motion.event.source.y, motion.event.source.z)).toFixed(5);
+          else delete this.canvas.dataset.contactError;
+        } else delete this.canvas.dataset.contactError;
       }
       this.profiler?.mark('opponent');
       this.ensureBallCount(Math.max(1, visibleFlights.length + (motion?.toss ? 1 : 0)));
@@ -720,13 +729,12 @@ export class TennisScene {
       const ballActive = visibleFlights.length > 0;
       this.ballTrail.visible = this.showBallTrail && ballActive;
       if (this.showBallTrail && ballActive) {
-        const points: THREE.Vector3[] = [];
         for (let index = 9; index >= 0; index -= 1) {
           const trailPosition = sampleTrajectoryAt(visibleFlights[0]!.trajectory, Math.max(0, cycleTime - index * 0.018), false);
-          points.push(new THREE.Vector3(trailPosition.x, trailPosition.y, trailPosition.z));
+          this.trailPositions.setXYZ(9 - index, trailPosition.x, trailPosition.y, trailPosition.z);
         }
-        this.ballTrail.geometry.dispose();
-        this.ballTrail.geometry = new THREE.BufferGeometry().setFromPoints(points);
+        this.trailPositions.needsUpdate = true;
+        this.ballTrail.geometry.computeBoundingSphere();
       }
     } else {
       for (const ball of this.balls) ball.visible = false;
@@ -812,6 +820,7 @@ export class TennisScene {
       pixelRatio: this.renderer.getPixelRatio(), quality: this.qualityMode,
       venue: this.environmentConfiguration.venue, variant: this.activeAuthoredArena?.variant,
       audience: this.audience.state, shadowMapSize: this.sun.shadow.mapSize.x,
+      previewPreparation: this.practicePreview?.preparation,
       drawCalls: this.renderer.info.render.calls, triangles: this.renderer.info.render.triangles,
       geometries: this.renderer.info.memory.geometries, textures: this.renderer.info.memory.textures,
     };
@@ -831,6 +840,7 @@ export class TennisScene {
 
   dispose(): void {
     this.profiler?.dispose();
+    this.practicePreview?.dispose();
     this.resizeObserver.disconnect();
     this.renderer.setAnimationLoop(null);
     for (const arena of Object.values(this.authoredArenas)) arena.dispose();

@@ -75,6 +75,9 @@ Current practice/landing behavior: [ADR-0018](decisions/0018-uniform-landing-zon
 
 ## Change discipline
 
+Current renderer cost and preview preparation: [ADR-0031](decisions/0031-measured-renderer-cost-and-preview-preparation.md)
+and [GPU/CPU profiling receipt](development/renderer-performance-2026-09-08.md).
+
 Current drill camera and reusable-shot authoring: [ADR-0022](decisions/0022-continuous-drill-camera-and-reusable-shots.md)
 and [camera/editor verification](development/drill-camera-and-editor-2026-09-08.md).
 

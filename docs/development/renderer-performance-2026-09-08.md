@@ -60,6 +60,13 @@ was changed. GPU timings are not foreground FPS acceptance: compositor cadence,
 browser scheduling, presentation, display refresh and other applications matter.
 The largest RTX case had 8.3 ms median RAF cadence despite 2.23 ms GPU execution.
 
+The final repository benchmark independently reproduced the RTX result over 240
+measured frames: **3.134 → 2.183 ms GPU** at 3840 × 2400 drawing-buffer resolution
+(30.3% lower), with identical 227 calls / 1,823,775 triangles in the paired final
+frame and about 1.6 ms median CPU work. At the three smaller sizes the pairs were
+0.790/0.772, 1.075/0.979 and 1.482/1.294 ms. All reported GL errors are zero.
+`renderer-final-rtx.json` retains the complete report.
+
 At the largest Intel size, single-feature diagnostics measured zero-light removal
 66.29 ms, sky-last 86.44 ms, no sky 78.30 ms, no audience 77.16 ms and no shadow
 69.86 ms. The last three are attribution probes only; removing visual features is
@@ -74,4 +81,86 @@ Primary references: [Khronos asynchronous GPU timer contract](https://registry.k
 Local baseline artifacts are in
 `C:/Users/20378/.codex/visualizations/2026/09/08/01a07e7c-7199-7900-ab83-f0437137320b/`:
 `renderer-cost-probe.mjs`, `renderer-cost-baseline.json`, and
-`renderer-cost-rtx-baseline.json`. Implementation and visual verification follow.
+`renderer-cost-rtx-baseline.json`.
+
+## Implemented improvements
+
+[ADR-0031](../decisions/0031-measured-renderer-cost-and-preview-preparation.md)
+records the implementation. The sky order and zero-light changes keep all assets,
+shaders, effects and sampling levels intact. The optional trail now updates one
+existing position attribute and its bounds instead of disposing/recreating a GPU
+geometry every frame. Contact-anchor diagnostics run only near contact.
+
+An extended run spanning 120 simulated seconds (3,600 rendered samples) found the
+original preview compiled six fresh shots synchronously at 33, 63 and 93 seconds.
+These render-thread stalls were 115.5, 123.9 and 118.8 ms. A module worker now
+prepares that unused future batch, including interval fitting, before the boundary.
+It uses exactly the same compiler and seeds and keeps one result ready. Replacing
+the session terminates old work, seeking invalidates stale results, and failure or
+an unusually large forward seek retains deterministic synchronous recovery. That
+mode and cache misses appear in `previewPreparation`; normal playback never waits
+for a worker response or moves the session clock to hide a delay.
+
+| Extended rally measurement | Before | After |
+| --- | ---: | ---: |
+| Session-stage maximum | 124.1 ms | 0.7 ms |
+| CPU frame maximum | 126.2 ms | 4.8 ms |
+| CPU frame median / p95 | 1.6 / 2.6 ms | 1.6 / 2.6 ms |
+| Prepared boundary transitions / misses | — | 3 / 0 |
+
+The test advances the real scene clock at 1/30 s per rendered sample; it is a
+deterministic boundary test, not a two-minute wall-clock soak. Its three worker
+jobs all completed before their deadlines, despite playback advancing faster than
+real time. `renderer-timeline-before.json` and `renderer-timeline-after.json` retain
+complete CPU/GPU/RAF statistics. Occasional compositor/GPU scheduling spikes remain
+possible; moving compilation does not establish an absolute frame-time guarantee.
+
+## Visual and automated verification
+
+- Nine frozen-state, full-frame comparisons at 1280 × 800: all six venues, plus
+  Hard Open Arena dusk, night and rain. No color channel differs by more than 1/255;
+  at most six pixels differ at all. Indoor/dusk/night captures are byte-identical.
+  Nonzero fixtures remain visible and relighting restores previously hidden ones.
+- The trail keeps its geometry/attribute identity while positions advance in all
+  nine scenes. Actual day, night and indoor captures were visually inspected.
+- **344 tests / 36 files**, TypeScript, production build and active motion/cache
+  guard pass. The worker chunk is 49.29 kB and appears in the generated precache.
+  The existing shared renderer chunk-size advisory remains; it does not fail build.
+- Motion assets, physics parameters, shader quality, resolution policy and finite
+  drill playback are unchanged. Local implementation is not public deployment.
+
+Artifacts: `renderer-visual-checks.json` and `renderer-visual-*.png` in the directory
+above. Both actual browser tabs loaded production `app-mw90ryRe.js`. Their live
+reports confirmed `previewPreparation.mode = worker`, one completed boundary, no
+cache misses and another batch ready. Edge remained on Intel (Performance,
+1134 × 832 buffer); Codex remained on RTX (Quality, 915 × 771). Their respective
+GPU medians were 7.90 and 0.49 ms, which must not be treated as equivalent settings.
+The startup-inclusive Codex report also captured first-render shader cost; the
+controlled warmed measurements above intentionally separate that from steady play.
+
+The Codex canvas retained the same instance through Practice → Editor → Test drill.
+Playback reached the fourth shot and its scheduled rest. Both browsers were then
+returned to normal Practice with profiling disabled, preserving their preferences.
+All temporary benchmark browsers/servers were closed. Windows' Edge GPU preference
+was not changed, and no unrelated browser tabs were closed.
+
+## Repeat the controlled benchmark
+
+`scripts/profile-renderer.mjs` starts a temporary source server on port 4187, uses
+an isolated Edge profile, and closes both afterward. It requires Edge and an
+existing Playwright tooling installation; it adds no app dependency. Set
+`PLAYWRIGHT_MODULE` to that installation's `index.mjs` file URL if it is not
+resolvable from this checkout, then run:
+
+```powershell
+node scripts/profile-renderer.mjs --rtx --out renderer-rtx.json
+node scripts/profile-renderer.mjs --out renderer-default-adapter.json
+node scripts/profile-renderer.mjs --rtx --timeline --out renderer-timeline.json
+```
+
+The size matrix uses 60 warmup + 240 measured frames for each old-order/current
+pair. The old-order case restores zero-intensity light inclusion and early sky
+drawing only. The timeline option runs 3,600 frames on the current implementation.
+Always read the reported adapter; the process flag is a request, not proof of GPU
+selection. Do not run competing GPU benchmarks concurrently. For foreground FPS,
+measure the visible app separately with fixed viewport, DPR and Quality mode.

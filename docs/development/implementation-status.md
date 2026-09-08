@@ -9,6 +9,18 @@
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
+## Renderer profiling and rally stalls — 2026-09-08
+
+[ADR-0031](../decisions/0031-measured-renderer-cost-and-preview-preparation.md) adds
+opt-in CPU/GPU diagnostics, eliminates zero-light shading and hidden sky overdraw,
+reuses trail buffers, and prepares repeating practice batches in a worker. The
+actual Edge tab selected Intel UHD while Codex selected RTX 4080. At 9.22 million
+pixels, the controlled candidate lowered GPU cost by about 39% on Intel and 28%
+on RTX without lowering quality. The extended rally's session-stage maximum fell
+from 124.1 to 0.7 ms. Nine visual comparisons, **344 tests / 36 files**, production
+build and motion/cache guard pass. See the [receipt](renderer-performance-2026-09-08.md)
+for reproducible tooling, adapter evidence, timing limits and local artifacts.
+
 ## Lower natural groundstroke arcs — 2026-09-08
 
 [ADR-0030](../decisions/0030-groundstroke-net-clearance-search.md) replaces the
