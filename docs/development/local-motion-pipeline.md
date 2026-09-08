@@ -53,7 +53,7 @@ Spare time is spent ready before approach, with no static prepared-pose dwell.
 The stroke starts after the completed unit turn, with no ready-pose reset. Foot IK
 fades into the baked stance; contact alignment uses the same height envelope on
 both sides of entry. The shared compiler/planner reserves this transition before
-assigning contact times (`gameplay-rhythm-v7`). Standalone strokes without incoming
+assigning contact times (`gameplay-rhythm-v8`). Standalone strokes without incoming
 travel, serves and overhead proxies retain full preparation. The GLB is byte-identical
 to the preceding bundle; only phase/entry metadata changes. See the
 [prepared-entry verification](prepared-stroke-entry-2026-09-08.md).
@@ -79,7 +79,12 @@ walking, jogging and running weights from planned speed, acceleration and cadenc
 demand, including short quick routes. Stable per-leg weights and cycle distance
 drive both source poses and foot plants; source-rate budgets are 1.25× walk,
 1.35× adjustment and 1.8× run. The preceding shot's movement rate owns recovery;
-the incoming shot's rate owns its approach. Torso acceleration lean preserves
+the incoming shot's rate owns its approach.
+[ADR-0033](../decisions/0033-complete-short-running-steps.md) corrects the initially
+shuffling short-jog presentation: urgent short routes complete two finite foot
+placements with clear running heel lift, an anatomical source-phase offset and
+exact start/end anchors. The pattern blends into ordinary cyclic travel outside
+the short-route/rate envelope. Torso acceleration lean preserves
 pelvis and fixed-length foot IK. Slides/crossovers retain their authored poses;
 near-zero-distance legs reserve a smooth turn. These envelopes are product calibrations.
 

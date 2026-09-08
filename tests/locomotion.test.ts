@@ -11,8 +11,11 @@ describe('speed and cadence based locomotion', () => {
     const gait = solveLocomotion(distance, duration, 1);
     // Previously all three legal movements selected only walk-forward at
     // 1.48–1.68x source rate because none reached the 1.1 m distance gate.
-    expect(gait.gait).toBe('jog'); expect(gait.run).toBeGreaterThan(.9);
-    expect(gait.peakCadenceHz * OPPONENT_MOTION.clips['run-forward'].duration).toBeLessThan(1.1);
+    expect(gait.gait).toBe('run'); expect(gait.run).toBeGreaterThan(.9);
+    // Complete one source cycle / two foot placements rather than cutting a
+    // slowed jogging loop short. Its peak native rate remains near authored pace.
+    expect(gait.peakCadenceHz * OPPONENT_MOTION.clips['run-forward'].duration).toBeLessThan(1.3);
+    expect(distance / gait.stride).toBeCloseTo(1, 8);
   });
   it('retains slow walking, short lateral adjustment and full running as distinct cases', () => {
     expect(solveLocomotion(3, 3 / (.7 * .85), 0).gait).toBe('walk');
@@ -49,7 +52,7 @@ describe('speed and cadence based locomotion', () => {
       sampleTravel(leg, time + 5, hand);
       expect(sampleTravel(leg, time, hand)).toEqual(pose);
       for (const layer of pose.layers.filter(l => l.weight > .001 && l.clip !== 'ready'))
-        expect(layer.time / OPPONENT_MOTION.clips[layer.clip].duration).toBeCloseTo(pose.movement!.phase % 1, 8);
+        expect(layer.time / OPPONENT_MOTION.clips[layer.clip].duration).toBeCloseTo(pose.movement!.sourcePhase! % 1, 8);
       expect(pose.layers.reduce((sum, l) => sum + l.weight, 0)).toBeCloseTo(1, 8);
     }
   });
@@ -62,5 +65,20 @@ describe('speed and cadence based locomotion', () => {
     expect(fast.recover).toEqual(slow.recover);
     expect(fast.approach!.end - fast.approach!.start).toBeLessThan(slow.approach!.end - slow.approach!.start);
     expect(fast.approach!.end).toBeCloseTo(b.start, 8);
+  });
+  it('finishes both placements at the ready anchors throughout the short-run blend', () => {
+    for (const distance of [.45,.55,.7,.9,1.2,1.4,1.6,1.8]) for (const direction of [-1,1]) {
+      const leg={from:origin,to:{...origin,x:direction*distance},start:0,
+        end:travelDuration(origin,{...origin,x:distance}),fromYaw:Math.PI,toYaw:Math.PI,stage:'recover' as const};
+      for(const hand of ['left','right'] as const){
+        const start=sampleTravel(leg,0,hand),end=sampleTravel(leg,leg.end,hand),almost=sampleTravel(leg,leg.end-1e-5,hand);
+        for(const side of ['left','right'] as const){
+          const a=start.footTargets![side],b=end.footTargets![side],c=almost.footTargets![side];
+          expect(b.x-a.x).toBeCloseTo(direction*distance,7);
+          expect(b.y).toBeCloseTo(a.y,7);expect(b.z).toBeCloseTo(a.z,7);
+          expect(Math.hypot(b.x-c.x,b.y-c.y,b.z-c.z)).toBeLessThan(.00001);
+        }
+      }
+    }
   });
 });

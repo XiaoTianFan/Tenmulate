@@ -83,7 +83,7 @@ export type CompiledRepetition = MotionRepetition & Readonly<{
 export type CompiledSession = Readonly<{
   previewLoop?: true;
   solverVersion: 'ball-v7-net-clearance';
-  plannerVersion: 'gameplay-rhythm-v7';
+  plannerVersion: 'gameplay-rhythm-v8';
   contentVersion: '2026.09.08';
   drill: DrillDefinitionV1;
   settings: SessionSettings;
@@ -325,7 +325,7 @@ export const compileSession = (
 
   return {
     solverVersion: 'ball-v7-net-clearance',
-    plannerVersion: 'gameplay-rhythm-v7',
+    plannerVersion: 'gameplay-rhythm-v8',
     contentVersion: '2026.09.08',
     drill,
     settings: { ...settings, rhythmPercent, shotIntervalSeconds: interval, movementPercent:movementRate*100, mode },

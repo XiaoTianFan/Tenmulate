@@ -19,6 +19,7 @@ export type LocomotionPlan = Readonly<{
   gait: 'adjust' | 'walk' | 'jog' | 'run';
   walk: number; run: number; adjust: number;
   stride: number; stance: number; lift: number; headingWeight: number;
+  shortRun: number;
   peakSpeed: number; peakAcceleration: number; peakCadenceHz: number;
 }>;
 
@@ -32,7 +33,7 @@ export function solveLocomotion(distance: number, duration: number, lateral: num
   const walkingRate = peakSpeed * walk.duration / walk.locomotion.cycleDistance;
   // Hard push-offs recruit athletic footwork earlier, including short moves.
   // Cadence demand prevents accelerating a walk indefinitely below a speed gate.
-  const urgency = smooth(4, 10, peakAcceleration) * smooth(.8, 1.4, peakSpeed) * .45;
+  const urgency = smooth(4, 8, peakAcceleration) * smooth(.8, 1.2, peakSpeed);
   const runWeight = Math.max(smooth(LOCOMOTION_LIMITS.jogStartMps, LOCOMOTION_LIMITS.jogFullMps, peakSpeed),
     smooth(1.05, 1.5, walkingRate), urgency);
   const adjustWeight = (1 - runWeight) * (1 - smooth(.5, 1.5, distance)) * clamp(lateral);
@@ -42,18 +43,24 @@ export function solveLocomotion(distance: number, duration: number, lateral: num
     + adjustWeight * adjust.locomotion.cycleDistance;
   // A shared phase synchronizes both source clips with IK. Increase step length
   // before allowing an active walking/adjustment layer to exceed its rate budget.
-  const stride = Math.min(LOCOMOTION_LIMITS.maxStrideM, Math.max(preferredStride,
+  const cyclicStride = Math.min(LOCOMOTION_LIMITS.maxStrideM, Math.max(preferredStride,
     mix(preferredStride, peakSpeed * walk.duration / LOCOMOTION_LIMITS.walkRate, 1 - smooth(1.45, 2.6, peakSpeed)),
     mix(preferredStride, peakSpeed * adjust.duration / LOCOMOTION_LIMITS.adjustmentRate, 1 - smooth(1.45, 2.6, peakSpeed)),
     peakSpeed * run.duration / LOCOMOTION_LIMITS.runRate));
-  const runForm = smooth(1.3, 3.2, peakSpeed);
+  // Short urgent routes are a two-foot placement action, not a truncated loop.
+  // Only replace the cycle once walking/adjustment have completely faded out.
+  const cycleRate = distance > 0 ? peakSpeed * run.duration / distance : 0;
+  const shortRun = smooth(1.2, 1.4, peakSpeed) * smooth(8, 11, peakAcceleration)
+    * smooth(.4, .65, distance) * (1 - smooth(1.1, 1.8, distance)) * (1 - smooth(1.5, LOCOMOTION_LIMITS.runRate, cycleRate));
+  const stride = mix(cyclicStride, Math.max(distance, peakSpeed * run.duration / LOCOMOTION_LIMITS.runRate), shortRun);
+  const runForm = Math.max(smooth(1.3, 3.2, peakSpeed), urgency);
   const stance = walkWeight * walk.locomotion.stanceFraction + adjustWeight * adjust.locomotion.stanceFraction
     + runWeight * mix(.5, run.locomotion.stanceFraction, runForm);
   const lift = walkWeight * walk.locomotion.footLift + adjustWeight * adjust.locomotion.footLift
     + runWeight * mix(.085, run.locomotion.footLift, runForm);
   return {
-    gait: runWeight >= .5 ? peakSpeed >= 2.8 ? 'run' : 'jog' : adjustWeight > walkWeight ? 'adjust' : 'walk',
+    gait: runWeight >= .5 ? peakSpeed >= 2.8 || shortRun >= .5 ? 'run' : 'jog' : adjustWeight > walkWeight ? 'adjust' : 'walk',
     walk: walkWeight, run: runWeight, adjust: adjustWeight, stride, stance, lift,
-    headingWeight: walkWeight + runWeight, peakSpeed, peakAcceleration, peakCadenceHz: peakSpeed / stride,
+    shortRun, headingWeight: walkWeight + runWeight, peakSpeed, peakAcceleration, peakCadenceHz: peakSpeed / stride,
   };
 }

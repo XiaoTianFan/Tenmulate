@@ -130,7 +130,12 @@ export function sampleTravel(leg:TravelLeg,time:number,hand:'left'|'right'):Moti
   const clip:MotionId=requestedClip??(gait!.run>=.5?'run-forward':gait!.walk>gait!.adjust?'walk-forward':adjustment);
   const spec=library.clips[clip] as {duration:number;locomotion?:{cycleDistance?:number;stanceFraction?:number;footLift?:number}};
   const stride=gait?.stride??spec.locomotion?.cycleDistance??(running?2.15:walking?.95:.72);
-  const phase=covered/stride,blend=ease(elapsed/.22)*ease(remaining/.22);
+  const shortRun=gait?.shortRun??0,blendSeconds=mix(.22,.1,shortRun);
+  const phase=covered/stride,blend=ease(elapsed/blendSeconds)*ease(remaining/blendSeconds);
+  const swingFirst=localRight*mirror>=0?'right':'left';
+  // run-forward begins with the right foot in swing. Shift half a cycle when
+  // the finite placement action brings the anatomical left foot through first.
+  const sourcePhase=phase+(swingFirst==='left'?.5*shortRun:0);
   const crossWeight=cross?1-ease((elapsed-.55)/.35):0;
   const crossClip=('cross-front-'+crossDirection) as MotionId;
   const crossSpec=library.clips[crossClip] as {duration:number}|undefined;
@@ -139,9 +144,9 @@ export function sampleTravel(leg:TravelLeg,time:number,hand:'left'|'right'):Moti
   const baseLayers:MotionSample['layers']=[
     {clip:'ready',time:0,weight:1-blend},
     ...(gait?[
-      {clip:'run-forward' as const,time:(phase%1)*library.clips['run-forward'].duration,weight:blend*(1-crossWeight)*gait.run},
-      {clip:'walk-forward' as const,time:(phase%1)*library.clips['walk-forward'].duration,weight:blend*(1-crossWeight)*gait.walk},
-      {clip:adjustment,time:(phase%1)*library.clips[adjustment].duration,weight:blend*(1-crossWeight)*gait.adjust},
+      {clip:'run-forward' as const,time:(sourcePhase%1)*library.clips['run-forward'].duration,weight:blend*(1-crossWeight)*gait.run},
+      {clip:'walk-forward' as const,time:(sourcePhase%1)*library.clips['walk-forward'].duration,weight:blend*(1-crossWeight)*gait.walk},
+      {clip:adjustment,time:(sourcePhase%1)*library.clips[adjustment].duration,weight:blend*(1-crossWeight)*gait.adjust},
     ].filter(layer=>layer.weight>0):[{clip,time:isSpecial?progress*spec.duration:(phase%1)*spec.duration,weight:blend*(1-crossWeight)}]),
     ...(cross&&crossSpec&&crossWeight>0?[{clip:crossClip,time:clamp(elapsed/.9)*crossSpec.duration,weight:blend*crossWeight}]:[])];
   const rotated=(p:readonly number[],a:number):Vec3=>{
@@ -165,7 +170,21 @@ export function sampleTravel(leg:TravelLeg,time:number,hand:'left'|'right'):Moti
     const t=ease(swing),lift=Math.sin(Math.PI*Math.pow(swing,mix(1,.65,runWeight)))*(gait?.lift??spec.locomotion?.footLift??.065);
     const moving={x:mix(a.x,b.x,t),y:mix(a.y,b.y,t)+(v>stance?lift:0),z:mix(a.z,b.z,t)};
     const local=rotated([side==='left'?.26:-.26,.087,side==='left'?.05:-.025],yaw);
-    return {x:mix(root.x+local.x,moving.x,blend),y:mix(local.y,moving.y,blend),z:mix(root.z+local.z,moving.z,blend)};
+    const cyclic={x:mix(root.x+local.x,moving.x,blend),y:mix(local.y,moving.y,blend),z:mix(root.z+local.z,moving.z,blend)};
+    if(shortRun<=0)return cyclic;
+    // Exactly two purposeful placements for a short run. Each foot starts at
+    // its actual ready anchor, swings once, then stays planted at the finish.
+    // The shared distance phase survives seeks and dropped frames. Unlike a
+    // clamped repeating stride it cannot create a partial extra shuffle.
+    // Bring the trailing foot through first. Sending the leading foot straight
+    // to the far edge of the final stance would create an overextended lunge.
+    const step=clamp((progress-(side===swingFirst?0:.45))/.55);
+    const w=step*step*step*(10+step*(-15+6*step));
+    const startAnchor=rotated([side==='left'?.26:-.26,.087,side==='left'?.05:-.025],leg.fromYaw);
+    const endAnchor=rotated([side==='left'?.26:-.26,.087,side==='left'?.05:-.025],leg.toYaw);
+    const placed={x:mix(leg.from.x+startAnchor.x,leg.to.x+endAnchor.x,w),y:mix(startAnchor.y,endAnchor.y,w)+Math.sin(Math.PI*w)*gait!.lift,
+      z:mix(leg.from.z+startAnchor.z,leg.to.z+endAnchor.z,w)};
+    return {x:mix(cyclic.x,placed.x,shortRun),y:mix(cyclic.y,placed.y,shortRun),z:mix(cyclic.z,placed.z,shortRun)};
   };
   const crossingTargets=(endRoot:Vec3,v:number,name:string)=>{
     const leading=name.endsWith('left')?'left':'right';
@@ -199,7 +218,7 @@ export function sampleTravel(leg:TravelLeg,time:number,hand:'left'|'right'):Moti
     {clip:arrival.clip,time:preparationTime,weight:preparedWeight}]:baseLayers;
   return {root,yaw,hand,event:null,verticalCorrection:arrival?entryCorrection(arrival,preparationTime)*preparedWeight:0,toss:null,layers,
     movement:{stage:leg.stage,speed,acceleration,distance:covered,phase,heading,
-      gait:gait?.gait??'authored',stride,runWeight,cadenceHz:speed/stride},
+      gait:gait?.gait??'authored',stride,runWeight,cadenceHz:speed/stride,shortRun,sourcePhase},
     travelLean:travelTurn?Math.max(-.2,Math.min(.2,Math.atan2(acceleration,9.81)*.35+speed/MAX_OPPONENT_SPEED*.055))*blend*(1-crossWeight)*(1-preparedWeight):0,
     lookYaw:travelTurn?Math.max(-1,Math.min(1,Math.atan2(Math.sin(leg.toYaw-yaw),Math.cos(leg.toYaw-yaw))))*blend*(1-preparedWeight):0,
     ...(footTargets?{footTargets,footTargetWeight:1-preparedWeight}:{})};

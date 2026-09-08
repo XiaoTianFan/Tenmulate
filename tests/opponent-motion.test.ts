@@ -27,18 +27,29 @@ const loadRig = async () => {
 afterEach(() => vi.restoreAllMocks());
 
 describe('local motion asset and shared contact clock', () => {
-  it('keeps short jogging foot plants, joint lengths and rigid grips after real rig correction', async () => {
+  it('takes two clear running steps without a shuffle, limb stretch or grip drift on short urgent routes', async () => {
     const rig = await loadRig();
     const point = (name: string) => rig.group.getObjectByName(name)!.getWorldPosition(new THREE.Vector3());
-    for (const hand of ['left', 'right'] as const) for (const distance of [.7, .8, .9]) {
+    const floor = .087 * OPPONENT_MOTION.scale + OPPONENT_MOTION.floorOffset;
+    for (const hand of ['left', 'right'] as const) for (const distance of [.7, .8, .9, -.9]) {
       const from = { x: 0, y: 0, z: 13 }, to = { x: distance, y: 0, z: 13 };
       const leg = { from, to, start: 0, end: travelDuration(from, to, 7.2, 12),
         fromYaw: Math.PI, toYaw: Math.PI, stage: 'approach' as const };
       let previous: THREE.Vector3[] | undefined, lengths: number[] | undefined;
+      const liftPeaks=[0,0], liftoffs=[0,0], raised=[false,false];
       for (let frame = 0; frame <= Math.ceil(leg.end * 240); frame++) {
         const pose = sampleTravel(leg, Math.min(leg.end, frame / 240), hand);
         rig.sampleMotion(pose);
         const feet = [point('foot_l'), point('foot_r')];
+        feet.forEach((p,i)=>{
+          liftPeaks[i]=Math.max(liftPeaks[i]!,p.y-floor);
+          const up=p.y>floor+.025;
+          if(up&&!raised[i])liftoffs[i]++;
+          raised[i]=up;
+          // Grounded support must not scuff across the court between samples.
+          if(previous&&p.y<floor+.00001&&previous[i]!.y<floor+.00001)
+            expect(p.distanceTo(previous[i]!)).toBeLessThan(.0001);
+        });
         if (previous) feet.forEach((p, i) => expect(p.distanceTo(previous![i]!)).toBeLessThan(.035));
         previous = feet;
         const current = ['l', 'r'].flatMap(side => [point(`thigh_${side}`).distanceTo(point(`calf_${side}`)), point(`calf_${side}`).distanceTo(point(`foot_${side}`))]);
@@ -52,6 +63,9 @@ describe('local motion asset and shared contact clock', () => {
         const grip = rig.getRacketSocket('right')!.matrixWorld.clone();
         rig.sampleMotion(pose); expect(rig.getRacketSocket('right')!.matrixWorld.elements).toEqual(grip.elements);
       }
+      // This rejects the prior running-clip label with only ~5–8 cm of heel lift.
+      expect(liftPeaks.every(height=>height>.14)).toBe(true);
+      expect(liftoffs).toEqual([1,1]);
     }
     rig.dispose();
   });
