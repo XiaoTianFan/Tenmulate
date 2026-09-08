@@ -249,12 +249,17 @@ production prerequisite, and no inference or reference-video fetch occurs during
 - The active 1.88 m articulated mannequin uses vertex-colored neutral panels and dark joints
   on the existing 65-bone skeleton. Its source pack's animations are not imported.
 - Gameplay loads one hashed GLB containing the skinned model, separate rigid racket and
-  24 animation clips. The static carrier remains a build/provenance resource.
+  25 animation clips. The static carrier remains a build/provenance resource.
 - `src/content/opponent-motion.json` selects the runtime asset, clock and calibration;
   `opponent-asset.json` selects model identity. Publication and the frontend integration
   check enforce agreement with the published manifest.
 - The absolute session clock samples baked clips and the shared root-recovery planner.
   Distance controls step cadence. Foot IK preserves knee planes; hand grips remain rigid.
+- [ADR-0021](decisions/0021-prepared-stroke-entry-after-travel.md) adds lab-authored
+  completed-unit-turn entries for both drives, slices and volleys. Incoming travel
+  blends into and holds that pose, fading locomotion foot constraints. The shared
+  planner reserves its blend and remaining lead to contact; the stroke continues
+  from the authored entry time. Stationary starts and serves retain full preparation.
 - `serve` and `serve-compact` are separate normal-rate clips. The selected release/contact
   anchors drive a ballistic toss; outgoing ball physics remains independent of rhythm.
 - Groundstrokes, slices and volleys have dedicated clips. Half-volley, overhead and

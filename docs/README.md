@@ -75,6 +75,9 @@ Current practice/landing behavior: [ADR-0018](decisions/0018-uniform-landing-zon
 
 ## Change discipline
 
+Current move-to-hit sequencing: [ADR-0021](decisions/0021-prepared-stroke-entry-after-travel.md)
+and [prepared-entry verification](development/prepared-stroke-entry-2026-09-08.md).
+
 [ADR-0012](decisions/0012-local-opponent-motion-pipeline.md) accepts local opponent motion production in the sibling motion-analysis laboratory, replacing online mocap services.
 
 - Product changes update the PRD and, when architectural, add or supersede an ADR.

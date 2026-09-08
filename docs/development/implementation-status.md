@@ -9,7 +9,23 @@
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
-## Current shared court and landing-zone resizing — 2026-09-08
+## Current prepared stroke entry — 2026-09-08
+
+[ADR-0021](../decisions/0021-prepared-stroke-entry-after-travel.md) adds lab-authored
+completed unit-turn boundaries for both drives, slices and volleys. Incoming travel
+blends into and holds the prepared pose; gameplay starts the swing after the unit
+turn instead of resetting to ready. The shared practice/drill planner reserves the
+transition and preserves the authored contact clock. The rebuilt GLB is byte-identical;
+phase/entry metadata and runtime sequencing change. Stationary starts and serves
+keep full preparation.
+
+Verification: **300 tests / 28 files**, full lab build, post-IK both-hand gameplay,
+crossovers, production build and active-asset/cache guard pass. Browser review covers
+all six entries, both hands, practice/drill approaches and ordinary playback. The
+user's local preview is refreshed. See the [prepared-entry receipt](prepared-stroke-entry-2026-09-08.md)
+for evidence and owner/deployment limits.
+
+## Shared court and landing-zone resizing — 2026-09-08
 
 Implementation `32aabe2` applies [ADR-0020](../decisions/0020-shared-court-and-transactional-zone-editing.md). Practice, Editor and drill playback retain one mounted canvas/scene/WebGL context and unchanged venue/opponent assets; the library parks the scene with rendering stopped. Zone interior dragging and anchored side/corner resizing preview only scene geometry while held, then commit one session update and editor undo entry on release. Cancellation restores the model and immediate navigation preserves practice edits. The corner/volley camera positions now aim at opposite-baseline center; annotated explanations are removed and the variation label is **Shot Variation**.
 

@@ -78,6 +78,11 @@ space and time permit, with physical return flights for valid rally links.
 Quick Practice uses a body recovery center, separate stroke rhythm, shot interval and movement pace, and draggable first-bounce direction/depth handles. Natural targets avoid the high-angle branch and show any bounded speed/spin adjustment. See [current practice refinement](docs/development/practice-refinement-2026-09-08.md).
 The sibling MotionLab provides phase and movement review at ports 4184/4185; see
 the [motion runbook](docs/development/local-motion-pipeline.md).
+
+Moving opponents now arrive in the prepared groundstroke/slice/volley pose and
+continue into the swing without resetting to ready or repeating the unit turn.
+MotionLab exposes **Unit Turn Complete** and **From prepared pose** for review.
+See the [prepared-entry verification](docs/development/prepared-stroke-entry-2026-09-08.md).
 Venue review remains `/venue-review.html?venue=clay-sunset-arena&camera=corner`.
 All six authored venues are the default under [ADR-0013](docs/decisions/0013-six-authored-venues-and-audience.md).
 No public deployment is implied by these local services.

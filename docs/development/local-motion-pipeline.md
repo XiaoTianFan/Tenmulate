@@ -45,6 +45,17 @@ All **25 clips** share calibrated boundaries and the same rig. The overhead addi
 
 ## Stroke and movement behavior
 
+[ADR-0021](../decisions/0021-prepared-stroke-entry-after-travel.md) adds lab-authored
+`unitTurnComplete`/`preparedEntry` boundaries for both drives, slices and volleys.
+Incoming travel blends into this pose while braking and holds it through arrival.
+The stroke starts after the completed unit turn, with no ready-pose reset. Foot IK
+fades into the baked stance; contact alignment uses the same height envelope on
+both sides of entry. The shared compiler/planner reserves this transition before
+assigning contact times (`gameplay-rhythm-v4`). Standalone strokes without incoming
+travel, serves and overhead proxies retain full preparation. The GLB is byte-identical
+to the preceding bundle; only phase/entry metadata changes. See the
+[prepared-entry verification](prepared-stroke-entry-2026-09-08.md).
+
 Forehand preparation and lag follow the rear UCLA take's rhythm/height rather than the low-ball frontal take. A stable roughly 48-degree elbow follows a low-to-high hitting arc; the pelvis stays sideways longer as the shoulders rotate to contact. Backhand retains its deeper coil, two-hand grip, smooth drop and delayed pelvis release. Both volleys have distinct compact punches, controlled balancing arms and held chest turns. The six groundstroke/slice/volley clips widen the stance and lower the pelvis through the shot.
 
 Ready, split and movement share a two-hand belly/chest carry and forward athletic lean. Running uses rear heel recovery with distance-driven cadence. Crossovers rotate and translate the pelvis and use mirrored anatomical leading-foot selection, avoiding the former deep squat from unreachable foot targets.

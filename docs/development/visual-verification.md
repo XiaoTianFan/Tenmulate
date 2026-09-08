@@ -3,6 +3,17 @@
 - **Purpose:** Record concept-to-browser inspection after every implementation stage
 - **Reference viewport:** 1920 × 1080 unless stated otherwise
 
+## Prepared stroke entry after movement — 2026-09-08
+
+The [prepared-entry receipt](prepared-stroke-entry-2026-09-08.md) records six lab
+entry views and 24 actual-renderer sequences: both hands in practice/drills for
+drives, slices and volleys. Frame review follows braking, arrival, held preparation,
+strike entry and contact. Four ordinary-playback runs cover both modes and hands.
+The opponent retains its prepared pose through arrival and continues the swing
+without a ready reset. The source reference labels and original complete clips
+remain available. The existing user preview is refreshed with saved settings intact.
+Anatomical/continuity gates pass; owner technique acceptance remains separate.
+
 ## Shared court, zone resizing and camera presets — 2026-09-08
 
 The [shared-court receipt](shared-court-and-zone-resize-2026-09-08.md) records the current interaction and renderer lifetime under implementation `32aabe2`. Actual production Chrome confirms interior movement, anchored edge/corner resizing, one commit on release, cancellation, editor Undo/Redo/save and touch access. Practice/Editor/drill playback reuse one canvas and WebGL context, with one venue/opponent load; the library stops issuing draw calls. Left/right corner and centered volley images were compared with the user's three supplied references and their look targets verified numerically. The two annotated explanations are removed and **Shot Variation** is visible. The 1440×1000 desktop, 685×898 narrow and 390×844 touch layouts were inspected; narrow hint/status bounds do not overlap. The owner's existing in-app tab is refreshed. Local measurements establish reduced drag stalls and resource reuse, without claiming device-temperature or owner acceptance.

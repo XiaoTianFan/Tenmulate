@@ -7,7 +7,7 @@ import type { ResolvedTrajectory } from '../trajectory/physics';
 import { aimDirectionToCourtPoint, defaultSpinRateRpm, resolveTrajectory, type SpinKind } from '../trajectory/physics';
 import { normalizeLandingZone, resolveLandingZone, sampleLandingZone, sampleParameter, type LandingZoneSize } from '../trajectory/landingZone';
 import { createSeededRandom } from '../random/seeded';
-import { minimumMotionGap, motionEvent, motionClip, rotateMotionPoint, strokeForShot } from './opponentTimeline';
+import { minimumMotionGap, motionEvent, motionClip, rotateMotionPoint, strokeForShot, withPreparedApproach } from './opponentTimeline';
 import type { MotionRepetition } from './opponentTimeline';
 import { motionRateForRhythm, normalizeRhythm, normalizeShotInterval, rhythmFromLegacyInterval } from './rhythm';
 import { assessReachability, cameraCoveragePath, type Reachability } from './playerCoverage';
@@ -76,7 +76,7 @@ export type CompiledRepetition = MotionRepetition & Readonly<{
 export type CompiledSession = Readonly<{
   previewLoop?: true;
   solverVersion: 'ball-v6-spin-target';
-  plannerVersion: 'gameplay-rhythm-v3';
+  plannerVersion: 'gameplay-rhythm-v4';
   contentVersion: '2026.09.08';
   drill: DrillDefinitionV1;
   settings: SessionSettings;
@@ -233,19 +233,22 @@ export const compileSession = (
 
   let motionTimingAdjusted = false;
   // The initial home approach also has to finish before preparation starts.
-  const first = repetitions[0];
+  const first = repetitions[0] ? withPreparedApproach(null, repetitions[0]) : undefined;
   if (first?.home) {
     const event = motionEvent(first);
     const initial = { ...event, root: first.home, yaw: Math.PI, end: 0, recoveryPolicy: 'direct' as const };
     repetitions[0] = { ...first, startTime: Math.max(3, planRecovery(initial,event).requiredDuration + event.contactTime-event.start) };
   }
   for (let index = 1; index < repetitions.length; index += 1) {
-    const previous = repetitions[index - 1]!, next = repetitions[index]!;
-    const variation = 1 + (timingRandom()*2-1)*Math.min(.5,Math.max(0,settings.timingVariationPercent/100));
-    const requestedGap = interval*variation;
-    const proposed = { ...next, startTime: previous.startTime+requestedGap };
+    const previous = repetitions[index - 1]!;
     const rest = index % workBlockSize === 0 && restSeconds > 0;
     const schedulingPrevious = rest && mode === 'drill' ? { ...previous, recoveryPolicy: 'recover' as const } : previous;
+    const variation = 1 + (timingRandom()*2-1)*Math.min(.5,Math.max(0,settings.timingVariationPercent/100));
+    const requestedGap = interval*variation;
+    // Entry selection must see the requested contact clock. The draft's common
+    // initial time would incorrectly force a direct route for later repetitions.
+    const next = withPreparedApproach(schedulingPrevious, { ...repetitions[index]!, startTime: previous.startTime+requestedGap });
+    const proposed = next;
     const required = minimumMotionGap(schedulingPrevious, proposed);
     let gap = Math.max(requestedGap, required);
     if (mode === 'drill' && !rest && next.shot.family !== 'serve' && previous.reachability.reachable) {
@@ -274,7 +277,7 @@ export const compileSession = (
 
   return {
     solverVersion: 'ball-v6-spin-target',
-    plannerVersion: 'gameplay-rhythm-v3',
+    plannerVersion: 'gameplay-rhythm-v4',
     contentVersion: '2026.09.08',
     drill,
     settings: { ...settings, rhythmPercent, shotIntervalSeconds: interval, movementPercent:movementRate*100, mode },

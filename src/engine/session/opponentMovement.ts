@@ -12,8 +12,13 @@ const point = (a:Vec3,b:Vec3,t:number):Vec3 => ({x:mix(a.x,b.x,t),y:0,z:mix(a.z,
 const distance = (a:Vec3,b:Vec3) => Math.hypot(a.x-b.x,a.z-b.z);
 const yawMix = (a:number,b:number,t:number) => a+Math.atan2(Math.sin(b-a),Math.cos(b-a))*t;
 export type MovementStage = 'recover'|'split'|'approach'|'ready'|'drill';
-export type TravelLeg = Readonly<{from:Vec3;to:Vec3;start:number;end:number;fromYaw:number;toYaw:number;stage:MovementStage;crossover?:boolean;clip?:MotionId}>;
+export type TravelLeg = Readonly<{from:Vec3;to:Vec3;start:number;end:number;fromYaw:number;toYaw:number;stage:MovementStage;crossover?:boolean;clip?:MotionId;arrival?:MotionEvent}>;
 export type RecoveryPlan = Readonly<{kind:'recovery'|'direct';center:Vec3;recover:TravelLeg;approach:TravelLeg|null;splitStart:number;splitEnd:number;end:number;requiredDuration:number}>;
+const entrySpec = (event?: MotionEvent) => event?.entryTime ? (library.clips[event.clip] as {preparedEntry?:{time:number;blendSeconds:number}}).preparedEntry : undefined;
+const entryCorrection = (event: MotionEvent) => {
+  const clip=library.clips[event.clip];
+  return (event.source.y-clip.contactLocal[1]*library.scale-library.floorOffset)*ease((event.entryTime??0)/clip.contact);
+};
 
 /** Integrate a speed profile with separate push-off, cruise and braking phases.
  * Both velocity and acceleration vanish at the endpoints; seeks are stateless. */
@@ -40,25 +45,27 @@ export function planRecovery(previous:MotionEvent,next?:MotionEvent):RecoveryPla
   const center=recoveryCenter(previous);
   const availableTime=next?next.start-previous.end:Infinity;
   const preferred=Math.min(1.5,Math.max(.5,previous.movementRate??1));
+  const arrival=entrySpec(next)?next:undefined;
   const legTime=(from:Vec3,to:Vec3,rate:number,fromYaw:number,toYaw:number)=>{
     const turn=Math.abs(Math.atan2(Math.sin(toYaw-fromYaw),Math.cos(toYaw-fromYaw)));
     return Math.max(travelDuration(from,to,Math.min(MAX_OPPONENT_SPEED,3.2*rate),Math.min(MAX_TRAVEL_ACCELERATION,4.4*rate)),turn>1e-4?Math.max(.18,turn/2):0);
   };
   const serveApproach=next&&previous.clip.startsWith('serve')&&previous.tossEnabled!==false&&next.root.z<previous.root.z-3;
-  const fullAt=(rate:number)=>legTime(previous.root,center,rate,previous.yaw,Math.PI)+SPLIT_SECONDS+(next?legTime(center,next.root,rate,Math.PI,next.yaw):0)+.18;
+  const approachDuration=(from:Vec3,rate:number,fromYaw:number)=>next?Math.max(legTime(from,next.root,rate,fromYaw,next.yaw),(entrySpec(next)?.blendSeconds??0)/next.rate):0;
+  const fullAt=(rate:number)=>legTime(previous.root,center,rate,previous.yaw,Math.PI)+SPLIT_SECONDS+approachDuration(center,rate,Math.PI)+.18;
   const direct=!!next&&(previous.recoveryPolicy==='direct'||previous.recoveryPolicy==='auto'&&(serveApproach||availableTime+1e-7<fullAt(1.5)));
-  const requiredAt=(rate:number)=>direct&&next?legTime(previous.root,next.root,rate,previous.yaw,next.yaw)+.18:fullAt(rate);
+  const requiredAt=(rate:number)=>direct&&next?approachDuration(previous.root,rate,previous.yaw)+.18:fullAt(rate);
   // Interval pressure can accelerate travel, independently of the stroke clock.
   let rate=preferred;
   if(requiredAt(rate)>availableTime){let lo=rate,hi=1.5;for(let i=0;i<18;i++){const mid=(lo+hi)/2;if(requiredAt(mid)>availableTime)lo=mid;else hi=mid;}rate=hi;}
   const recoverTime=legTime(previous.root,center,rate,previous.yaw,Math.PI);
-  const approachTime=next?legTime(center,next.root,rate,Math.PI,next.yaw):0;
+  const approachTime=approachDuration(center,rate,Math.PI);
   const requiredDuration=recoverTime+SPLIT_SECONDS+approachTime+.18;
   const start=previous.end,available=next?next.start-start:requiredDuration;
   if(direct&&next){
-    const travel=legTime(previous.root,next.root,rate,previous.yaw,next.yaw),required=travel+.18;
+    const travel=approachDuration(previous.root,rate,previous.yaw),required=travel+.18;
     // Move immediately after the finish, then wait at the next preparation point.
-    const leg:TravelLeg={from:previous.root,to:next.root,start,end:start+travel,fromYaw:previous.yaw,toYaw:next.yaw,stage:'approach'};
+    const leg:TravelLeg={from:previous.root,to:next.root,start,end:start+travel,fromYaw:previous.yaw,toYaw:next.yaw,stage:'approach',arrival};
     return {kind:'direct',center:next.root,recover:leg,approach:null,splitStart:start+travel,splitEnd:start+travel,
       end:start+Math.max(required,available),requiredDuration:required};
   }
@@ -69,7 +76,7 @@ export function planRecovery(previous:MotionEvent,next?:MotionEvent):RecoveryPla
   return {kind:'recovery',center,requiredDuration,end,
     recover:{from:previous.root,to:center,start,end:start+recoverTime,fromYaw:previous.yaw,toYaw:Math.PI,stage:'recover',crossover:Math.abs(previous.root.x-center.x)>1.4},
     splitStart:splitEnd-SPLIT_SECONDS,splitEnd,
-    approach:next?{from:center,to:next.root,start:splitEnd,end:splitEnd+approachTime,fromYaw:Math.PI,toYaw:next.yaw,stage:'approach'}:null};
+    approach:next?{from:center,to:next.root,start:splitEnd,end:splitEnd+approachTime,fromYaw:Math.PI,toYaw:next.yaw,stage:'approach',arrival}:null};
 }
 
 function rest(root:Vec3,yaw:number,hand:'left'|'right',stage:MovementStage,time=0,split=false):MotionSample {
@@ -77,12 +84,25 @@ function rest(root:Vec3,yaw:number,hand:'left'|'right',stage:MovementStage,time=
     layers:[{clip:split?'split-step':'ready',time:split?clamp(time/SPLIT_SECONDS)*library.clips['split-step'].duration:0,weight:1}]};
 }
 
+function arrivalRest(leg:TravelLeg,hand:'left'|'right'):MotionSample {
+  const event=leg.arrival;
+  return event?{...rest(leg.to,leg.toYaw,hand,'approach'),verticalCorrection:entryCorrection(event),
+    layers:[{clip:event.clip,time:event.entryTime!,weight:1}]}:rest(leg.to,leg.toYaw,hand,'ready');
+}
+
 /** A pure distance clock makes cadence follow travel speed and survives seeks.
  * Plant positions are derived from route distance, never previous frame state. */
 export function sampleTravel(leg:TravelLeg,time:number,hand:'left'|'right'):MotionSample {
   const d=distance(leg.from,leg.to),duration=leg.end-leg.start;
-  if(duration<=0)return rest(leg.to,leg.toYaw,hand,leg.stage);
-  if(d<.015){const progress=ease((time-leg.start)/duration);return rest(point(leg.from,leg.to,progress),yawMix(leg.fromYaw,leg.toYaw,progress),hand,leg.stage);}
+  if(duration<=0)return arrivalRest(leg,hand);
+  if(d<.015){
+    const progress=ease((time-leg.start)/duration),sample=rest(point(leg.from,leg.to,progress),yawMix(leg.fromYaw,leg.toYaw,progress),hand,leg.stage);
+    // A route can become a turn in place after scheduling. Still finish its
+    // reserved preparation instead of snapping from ready at the boundary.
+    const event=leg.arrival;
+    return event?{...sample,verticalCorrection:entryCorrection(event)*progress,layers:[
+      {clip:'ready',time:0,weight:1-progress},{clip:event.clip,time:event.entryTime!,weight:progress}]}:sample;
+  }
   const u=clamp((time-leg.start)/duration),curve=travelCurve(u),progress=curve.progress,covered=d*progress;
   const speed=curve.velocity*d/duration,acceleration=curve.acceleration*d/(duration*duration),root=point(leg.from,leg.to,progress);
   const heading=Math.atan2(leg.to.x-leg.from.x,leg.to.z-leg.from.z);
@@ -112,7 +132,7 @@ export function sampleTravel(leg:TravelLeg,time:number,hand:'left'|'right'):Moti
   const crossSpec=library.clips[crossClip] as {duration:number}|undefined;
   const isSpecial=clip.startsWith('slide-')||clip.startsWith('cross-');
   const runWeight=running&&!leg.clip?ease((speed-1.1)/1.7):1;
-  const layers:MotionSample['layers']=[
+  const baseLayers:MotionSample['layers']=[
     {clip:'ready',time:0,weight:1-blend},
     {clip,time:isSpecial?progress*spec.duration:(phase%1)*spec.duration,weight:blend*(1-crossWeight)*runWeight},
     ...(runWeight<1?[{clip:'walk-forward' as const,time:(phase%1)*library.clips['walk-forward'].duration,weight:blend*(1-crossWeight)*(1-runWeight)}]:[]),
@@ -164,20 +184,24 @@ export function sampleTravel(leg:TravelLeg,time:number,hand:'left'|'right'):Moti
       footTargets={left:interpolate(footTargets.left,targets.left),right:interpolate(footTargets.right,targets.right)};
     }
   }
-  return {root,yaw,hand,event:null,verticalCorrection:0,toss:null,layers,
+  const arrival=leg.arrival,prepareSeconds=arrival?(entrySpec(arrival)?.blendSeconds??.48)/arrival.rate:0;
+  const preparedWeight=arrival?ease((prepareSeconds-remaining)/prepareSeconds):0;
+  const layers:MotionSample['layers']=arrival?[...baseLayers.map(layer=>({...layer,weight:layer.weight*(1-preparedWeight)})),
+    {clip:arrival.clip,time:arrival.entryTime!,weight:preparedWeight}]:baseLayers;
+  return {root,yaw,hand,event:null,verticalCorrection:arrival?entryCorrection(arrival)*preparedWeight:0,toss:null,layers,
     movement:{stage:leg.stage,speed,acceleration,distance:covered,phase,heading},
-    travelLean:travelTurn?Math.max(-.2,Math.min(.2,Math.atan2(acceleration,9.81)*.35+speed/MAX_OPPONENT_SPEED*.055))*blend*(1-crossWeight):0,
-    lookYaw:travelTurn?Math.max(-1,Math.min(1,Math.atan2(Math.sin(leg.toYaw-yaw),Math.cos(leg.toYaw-yaw))))*blend:0,
-    ...(footTargets?{footTargets}:{})};
+    travelLean:travelTurn?Math.max(-.2,Math.min(.2,Math.atan2(acceleration,9.81)*.35+speed/MAX_OPPONENT_SPEED*.055))*blend*(1-crossWeight)*(1-preparedWeight):0,
+    lookYaw:travelTurn?Math.max(-1,Math.min(1,Math.atan2(Math.sin(leg.toYaw-yaw),Math.cos(leg.toYaw-yaw))))*blend*(1-preparedWeight):0,
+    ...(footTargets?{footTargets,footTargetWeight:1-preparedWeight}:{})};
 }
 
 export function sampleRecovery(plan:RecoveryPlan,time:number,hand:'left'|'right'):MotionSample {
   if(time<plan.recover.end)return sampleTravel(plan.recover,time,hand);
-  if(plan.kind==='direct')return rest(plan.recover.to,plan.recover.toYaw,hand,'ready');
+  if(plan.kind==='direct')return arrivalRest(plan.recover,hand);
   if(time<plan.splitStart)return rest(plan.center,Math.PI,hand,'ready');
   if(time<plan.splitEnd)return rest(plan.center,Math.PI,hand,'split',time-plan.splitStart,true);
   if(plan.approach&&time<plan.approach.end)return sampleTravel(plan.approach,time,hand);
-  return rest(plan.approach?.to??plan.center,plan.approach?.toYaw??Math.PI,hand,'ready');
+  return plan.approach?arrivalRest(plan.approach,hand):rest(plan.center,Math.PI,hand,'ready');
 }
 
 export const MOVEMENT_DRILLS = [

@@ -328,11 +328,14 @@ export class OpponentRig {
         this.solveFoot('r', right, preserveBend);
       }
     }
-    if (sample.footTargets) {
+    if (sample.footTargets && (sample.footTargetWeight ?? 1) > 1e-7) {
+      const weight=sample.footTargetWeight??1;
+      const targets={left:left.clone().lerp(new THREE.Vector3(sample.footTargets.left.x,sample.footTargets.left.y,sample.footTargets.left.z),weight),
+        right:right.clone().lerp(new THREE.Vector3(sample.footTargets.right.x,sample.footTargets.right.y,sample.footTargets.right.z),weight)};
       // Lower the hips just enough that both authored stride anchors are reachable.
       // This avoids stretching the legs or allowing a planted ankle to slide.
       let hipDrop = 0;
-      for (const [side, target] of [['l', sample.footTargets.left], ['r', sample.footTargets.right]] as const) {
+      for (const [side, target] of [['l', targets.left], ['r', targets.right]] as const) {
         const hip = this.model.getObjectByName(`thigh_${side}`)!.getWorldPosition(new THREE.Vector3());
         const knee = this.model.getObjectByName(`calf_${side}`)!.getWorldPosition(new THREE.Vector3());
         const ankle = this.model.getObjectByName(`foot_${side}`)!.getWorldPosition(new THREE.Vector3());
@@ -346,8 +349,8 @@ export class OpponentRig {
         pelvis.position.copy(pelvis.parent!.worldToLocal(world));
         this.group.updateMatrixWorld(true);
       }
-      this.solveFoot('l', new THREE.Vector3(sample.footTargets.left.x, sample.footTargets.left.y, sample.footTargets.left.z));
-      this.solveFoot('r', new THREE.Vector3(sample.footTargets.right.x, sample.footTargets.right.y, sample.footTargets.right.z));
+      this.solveFoot('l', targets.left, weight < 1);
+      this.solveFoot('r', targets.right, weight < 1);
     }
     this.group.updateMatrixWorld(true);
   }

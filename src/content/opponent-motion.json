@@ -29,7 +29,11 @@
         0.39769434928894043
       ],
       "recovery": 1.733333,
-      "loop": false
+      "loop": false,
+      "preparedEntry": {
+        "time": 0.7289270415274801,
+        "blendSeconds": 0.48
+      }
     },
     "backhand": {
       "duration": 2.2,
@@ -40,7 +44,11 @@
         0.524282693862915
       ],
       "recovery": 1.916667,
-      "loop": false
+      "loop": false,
+      "preparedEntry": {
+        "time": 0.9,
+        "blendSeconds": 0.48
+      }
     },
     "serve": {
       "duration": 3.25,
@@ -68,7 +76,11 @@
         0.42865803837776184
       ],
       "recovery": 1.8,
-      "loop": false
+      "loop": false,
+      "preparedEntry": {
+        "time": 0.65,
+        "blendSeconds": 0.48
+      }
     },
     "backhand-slice": {
       "duration": 2.6,
@@ -79,7 +91,11 @@
         0.5729524493217468
       ],
       "recovery": 1.9,
-      "loop": false
+      "loop": false,
+      "preparedEntry": {
+        "time": 0.65,
+        "blendSeconds": 0.48
+      }
     },
     "run-forward": {
       "duration": 0.6,
@@ -156,7 +172,11 @@
         0.4645185172557831
       ],
       "recovery": 1.45,
-      "loop": false
+      "loop": false,
+      "preparedEntry": {
+        "time": 0.42,
+        "blendSeconds": 0.4
+      }
     },
     "backhand-volley": {
       "duration": 1.8,
@@ -167,7 +187,11 @@
         0.5491945147514343
       ],
       "recovery": 1.333333,
-      "loop": false
+      "loop": false,
+      "preparedEntry": {
+        "time": 0.4,
+        "blendSeconds": 0.4
+      }
     },
     "cross-front-left": {
       "duration": 0.8,

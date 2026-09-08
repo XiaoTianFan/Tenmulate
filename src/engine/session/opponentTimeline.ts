@@ -9,7 +9,7 @@ export const OPPONENT_MOTION = library;
 export type StrokeId = 'forehand' | 'backhand' | 'forehand-slice' | 'backhand-slice' | 'forehand-volley' | 'backhand-volley' | 'backhand-overhead' | 'serve' | 'serve-compact';
 export const isServeMotion = (clip: string): boolean => clip === 'serve' || clip === 'serve-compact';
 export type MotionId = keyof typeof library.clips;
-export type ClipMetadata = Readonly<{ duration: number; contact?: number; contactLocal?: readonly number[]; tossRelease?: number; tossLocal?: readonly number[]; recovery: number; loop: boolean }>;
+export type ClipMetadata = Readonly<{ duration: number; contact?: number; contactLocal?: readonly number[]; tossRelease?: number; tossLocal?: readonly number[]; recovery: number; loop: boolean; preparedEntry?: Readonly<{ time: number; blendSeconds: number }> }>;
 export const motionClip = (id: MotionId): ClipMetadata => library.clips[id];
 export const smoothStep = (value: number): number => { const x = Math.min(1, Math.max(0, value)); return x * x * (3 - 2 * x); };
 const mix = (a: number, b: number, t: number) => a + (b - a) * t;
@@ -18,11 +18,12 @@ export type MotionEvent = Readonly<{
   index: number; clip: StrokeId; contactTime: number; start: number; end: number;
   rate: number; hand: 'left' | 'right'; yaw: number; root: Vec3; source: Vec3;
   movementRate?: number;
+  entryTime?: number;
   home?: Vec3; recoveryPolicy?: 'home' | 'auto' | 'recover' | 'direct';
   tossEnabled?: boolean;
 }>;
 export type MotionRepetition = Readonly<{ index: number; startTime: number; shot: ShotDefinitionV1;
-  motionRate?: number; movementRate?: number; home?: Vec3; recoveryPolicy?: MotionEvent['recoveryPolicy'] }>;
+  motionRate?: number; movementRate?: number; home?: Vec3; recoveryPolicy?: MotionEvent['recoveryPolicy']; preparedApproach?: boolean }>;
 
 export const strokeForShot = (shot: ShotDefinitionV1, index: number): StrokeId => {
   if (shot.family === 'serve') return shot.serveRhythm === 'compact' ? 'serve-compact' : 'serve';
@@ -45,11 +46,21 @@ export const motionEvent = (repetition: MotionRepetition): MotionEvent => {
   const rate = repetition.motionRate ?? 1;
   const yaw = Math.atan2(shot.target.x - shot.source.x, shot.target.z - shot.source.z);
   const local = rotateMotionPoint(metadata.contactLocal!, yaw, shot.opponentHand);
-  return { index, clip, contactTime: startTime, start: startTime - metadata.contact! / rate,
+  const entryTime = repetition.preparedApproach ? metadata.preparedEntry?.time ?? 0 : 0;
+  return { index, clip, entryTime, contactTime: startTime, start: startTime - (metadata.contact! - entryTime) / rate,
     end: startTime + (metadata.duration - metadata.contact!) / rate, rate, yaw, hand: shot.opponentHand,
     root: { x: shot.source.x - local.x, y: 0, z: shot.source.z - local.z }, source: shot.source,
     movementRate: repetition.movementRate, home: repetition.home, recoveryPolicy: repetition.recoveryPolicy, tossEnabled: shot.family === 'serve' };
 };
+
+/** Select an entry only when the planned incoming leg actually travels. */
+export function withPreparedApproach<T extends MotionRepetition>(previous: MotionRepetition | null, next: T): T {
+  const event = motionEvent({ ...next, preparedApproach: false });
+  if (!motionClip(event.clip).preparedEntry || (!previous && !next.home)) return { ...next, preparedApproach: false };
+  const from = previous ? motionEvent(previous) : { ...event, root: next.home!, yaw: Math.PI, end: 0, recoveryPolicy: 'direct' as const };
+  const plan = planRecovery(from, event), leg = plan.kind === 'direct' ? plan.recover : plan.approach;
+  return { ...next, preparedApproach: !!leg && Math.hypot(leg.to.x - leg.from.x, leg.to.z - leg.from.z) > .05 };
+}
 
 export const minimumMotionGap = (previous: MotionRepetition, next: MotionRepetition): number => {
   const a = motionEvent(previous), b = motionEvent(next);
@@ -62,6 +73,7 @@ export type MotionSample = Readonly<{
   event: MotionEvent | null; verticalCorrection: number;
   movement?: Readonly<{stage:MovementStage;speed:number;acceleration?:number;distance:number;phase:number;heading:number}>;
   footTargets?: Readonly<{ left: Vec3; right: Vec3 }>;
+  footTargetWeight?: number;
   /** Local head counter-turn keeps the gaze toward play during lateral running. */
   lookYaw?: number;
   travelLean?: number;
@@ -73,7 +85,7 @@ export const sampleOpponentTimeline = (events: readonly MotionEvent[], time: num
   if (!events.length) return null;
   const event = events.find((candidate) => time >= candidate.start && time <= candidate.end);
   if (event) {
-    const clip = motionClip(event.clip), localTime = Math.max(0, Math.min(clip.duration, (time - event.start) * event.rate));
+    const clip = motionClip(event.clip), localTime = Math.max(0, Math.min(clip.duration, (event.entryTime ?? 0) + (time - event.start) * event.rate));
     const contactHeight = rotateMotionPoint(clip.contactLocal!, event.yaw, event.hand).y;
     const contactEnvelope = smoothStep(localTime / clip.contact!) * smoothStep((clip.duration - localTime) / (clip.duration - clip.contact!));
     const verticalCorrection = (event.source.y - contactHeight) * contactEnvelope;
