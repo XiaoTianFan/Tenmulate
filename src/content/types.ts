@@ -2,6 +2,7 @@ import type { SurfaceId } from '../domain/court';
 import type { CameraConfiguration } from '../engine/rendering/TennisScene';
 import type { SpinKind } from '../engine/trajectory/physics';
 import type { LandingZoneSize } from '../engine/trajectory/landingZone';
+import type { ReturnZone } from '../engine/session/returnZone';
 
 export type OpponentHand = 'left' | 'right';
 export type ServeRhythm = 'normal' | 'compact';
@@ -56,6 +57,7 @@ export type DrillDefinitionV1 = Readonly<{
   defaultRhythmPercent?: number;
   defaultMovementPercent?: number;
   defaultRepetitions: number;
+  returnZone?: ReturnZone;
 }>;
 
 export type DrillEventV1 = Readonly<{
@@ -71,4 +73,16 @@ export type DrillEventV1 = Readonly<{
   cue?: string;
   serveRhythm?: 'preset' | ServeRhythm;
   netClearanceM?: number;
+  label?: string;
+  camera?: CameraConfiguration;
+  stroke?: 'forehand' | 'backhand';
+  opponentHand?: OpponentHand;
+  spinRateRpm?: number;
+  bounceFactor?: number;
+  trajectoryMode?: 'natural' | 'exact';
+  rhythmPercent?: number;
+  movementPercent?: number;
+  intervalSeconds?: number;
 }>;
+
+export type SavedShotV1 = Readonly<{id:string;name:string;event:DrillEventV1}>;

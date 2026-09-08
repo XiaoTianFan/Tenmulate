@@ -17,7 +17,6 @@ import {
 import type { SessionLaunch } from '../app/types';
 import { practiceAudio } from '../engine/audio/AudioCueEngine';
 import { crossedCues, sessionCues } from '../engine/audio/sessionCues';
-import type { CameraMotion } from '../engine/rendering/TennisScene';
 import { compileSession } from '../engine/session/compileSession';
 import { useSessionPlayer } from '../hooks/useSessionPlayer';
 import { Modal } from './Modal';
@@ -41,7 +40,6 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
   const [highContrastBall, setHighContrastBall] = useState(false);
   const [showBallTrail, setShowBallTrail] = useState(false);
   const [hudHidden, setHudHidden] = useState(false);
-  const [resetToken, setResetToken] = useState(0);
   const audioRef = useRef(practiceAudio);
   const previousCueRef = useRef('');
   const audioTimeRef = useRef(0);
@@ -70,10 +68,6 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
   }, [audioLevels.contact, audioLevels.countdown, player.countdown, player.currentIndex, player.status, soundEnabled]);
 
   useEffect(() => audioRef.current?.setAmbience(soundEnabled ? audioLevels.ambience : 0), [audioLevels.ambience, soundEnabled]);
-
-  useEffect(() => {
-    setResetToken((value) => value + 1);
-  }, [player.currentIndex]);
 
   useEffect(() => {
     let frame = 0;
@@ -120,21 +114,6 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [player, toggleFullscreen]);
 
-  const cameraMotion = useMemo<CameraMotion | null>(() => {
-    if (!shot?.cameraMotion || reducedMotion || cameraMotionScale === 0) return null;
-    const from = { ...launch.camera, ...shot.cameraMotion.from };
-    const target = { ...launch.camera, ...shot.cameraMotion.to };
-    const to = {
-      eyeHeight: launch.camera.eyeHeight + (target.eyeHeight - launch.camera.eyeHeight) * cameraMotionScale,
-      behindBaseline: launch.camera.behindBaseline + (target.behindBaseline - launch.camera.behindBaseline) * cameraMotionScale,
-      lateral: launch.camera.lateral + (target.lateral - launch.camera.lateral) * cameraMotionScale,
-      yaw: launch.camera.yaw + (target.yaw - launch.camera.yaw) * cameraMotionScale,
-      pitch: launch.camera.pitch + (target.pitch - launch.camera.pitch) * cameraMotionScale,
-      fov: launch.camera.fov + (target.fov - launch.camera.fov) * cameraMotionScale,
-    };
-    return { from, to, duration: shot.cameraMotion.duration, delay: shot.cameraMotion.delay };
-  }, [cameraMotionScale, launch.camera, reducedMotion, shot]);
-
   if (!trajectory || !shot) return null;
   const playing = player.status === 'playing';
   const paused = player.status === 'paused';
@@ -143,7 +122,7 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
 
   return (
     <main className={hudHidden ? 'rehearsal-shell hud-hidden' : 'rehearsal-shell'} onMouseMove={() => { if (hudHidden) setHudHidden(false); }}>
-      <CourtViewport camera={launch.camera} trajectory={trajectory} surface={launch.surface} environment={launch.environment} quality={launch.quality} running={playing} resetToken={resetToken} showTrajectory={launch.trajectoryEnabled || showDiagnostics} playbackRate={playbackRate} loopTrajectory={false} cameraMotion={cameraMotion} highContrastBall={highContrastBall} showBallTrail={showBallTrail} onMetrics={onMetrics} onPointerActivity={() => { if (hudHidden) setHudHidden(false); }} session={session} sessionClock={player.clock} />
+      <CourtViewport camera={launch.camera} trajectory={trajectory} surface={launch.surface} environment={launch.environment} quality={launch.quality} running={playing} resetToken={0} showTrajectory={launch.trajectoryEnabled || showDiagnostics} playbackRate={playbackRate} loopTrajectory={false} cameraMotion={null} highContrastBall={highContrastBall} showBallTrail={showBallTrail} onMetrics={onMetrics} onPointerActivity={() => { if (hudHidden) setHudHidden(false); }} session={session} sessionClock={player.clock} />
       <header className="rehearsal-header">
         <strong>Tenmulate</strong>
         <span className="drill-title">{session.drill.title}</span>

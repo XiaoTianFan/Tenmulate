@@ -15,6 +15,7 @@ import { resolveVenueLighting } from './venueLighting';
 import { AudienceSystem, type AudienceState } from './AudienceSystem';
 import type { CompiledSession } from '../session/compileSession';
 import { motionEvent, sampleOpponentTimeline, type MotionEvent, type MotionSample } from '../session/opponentTimeline';
+import { sampleCameraTimeline } from '../session/cameraTimeline';
 import { planRecovery } from '../session/opponentMovement';
 import { ContinuousPracticePreview } from '../session/practicePreview';
 import { sessionFlights } from '../session/sessionFlights';
@@ -594,6 +595,7 @@ export class TennisScene {
       wind.x,
       wind.z,
     );
+    let opponentRoot: MotionSample['root'] | undefined;
     if (this.trajectory) {
       const duration = this.trajectory.samples.at(-1)?.time ?? 0;
       let events = this.motionEvents;
@@ -628,6 +630,7 @@ export class TennisScene {
         }
       }
       const motion = this.motionPreview ? this.motionPreview(motionTime) : sampleOpponentTimeline(events, motionTime);
+      opponentRoot = motion?.root;
       if (motion) {
         this.opponent.sampleMotion(motion);
         this.canvas.dataset.motionClip = motion.layers.find(layer => layer.weight > .5)?.clip ?? 'ready';
@@ -663,7 +666,10 @@ export class TennisScene {
       for (const ball of this.balls) ball.visible = false;
       this.ballTrail.visible = false;
     }
-    if (this.cameraMotion) {
+    if (this.sessionClock && this.session?.mode === 'drill') {
+      this.cameraConfiguration = sampleCameraTimeline(this.session.cameraTimeline, this.elapsed, opponentRoot);
+      this.applyCamera();
+    } else if (this.cameraMotion) {
       const delay = this.cameraMotion.delay ?? 0;
       const currentContact = this.session ? [...this.session.repetitions].reverse().find(repetition => repetition.startTime <= this.elapsed)?.startTime ?? 3 : 3;
       const raw = Math.min(1, Math.max(0, (this.elapsed - currentContact - delay) / Math.max(0.001, this.cameraMotion.duration)));

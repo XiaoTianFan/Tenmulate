@@ -1,6 +1,8 @@
 import { SHOT_BY_ID } from './bundled';
 import { OPPONENT_POSITION_LIMITS } from '../domain/court';
-import type { DrillDefinitionV1, DrillEventV1, SessionCategory } from './types';
+import type { DrillDefinitionV1, DrillEventV1, SavedShotV1, SessionCategory } from './types';
+import { SHOT_CAMERA_RANGES } from '../engine/session/cameraTimeline';
+import { RETURN_ZONE_RANGES } from '../engine/session/returnZone';
 
 export type ValidationResult = Readonly<{
   valid: boolean;
@@ -20,10 +22,11 @@ const categories: readonly SessionCategory[] = [
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
-const allowedDrillKeys = new Set(['schemaVersion', 'id', 'title', 'description', 'category', 'shotIds', 'events', 'defaultInterval', 'defaultRhythmPercent', 'defaultMovementPercent', 'defaultRepetitions']);
-const allowedEventKeys = new Set(['id', 'shotId', 'paceKmh', 'spin', 'target', 'landingZone', 'variationPercent', 'opponentPosition', 'cameraMotion', 'cue', 'serveRhythm', 'netClearanceM']);
+const allowedDrillKeys = new Set(['schemaVersion', 'id', 'title', 'description', 'category', 'shotIds', 'events', 'defaultInterval', 'defaultRhythmPercent', 'defaultMovementPercent', 'defaultRepetitions', 'returnZone']);
+const allowedEventKeys = new Set(['id', 'shotId', 'paceKmh', 'spin', 'target', 'landingZone', 'variationPercent', 'opponentPosition', 'cameraMotion', 'cue', 'serveRhythm', 'netClearanceM', 'label', 'camera', 'stroke', 'opponentHand', 'spinRateRpm', 'bounceFactor', 'trajectoryMode', 'rhythmPercent', 'movementPercent', 'intervalSeconds']);
 const allowedCameraMotionKeys = new Set(['from', 'to', 'duration', 'delay']);
 const allowedCameraKeys = new Set(['eyeHeight', 'behindBaseline', 'lateral', 'yaw', 'pitch', 'fov']);
+const inRange = (value: unknown, range: readonly [number,number]): boolean => typeof value === 'number' && Number.isFinite(value) && value >= range[0] && value <= range[1];
 
 const validCameraPartial = (value: unknown): boolean => {
   if (!isRecord(value) || Object.keys(value).some((key) => !allowedCameraKeys.has(key))) return false;
@@ -42,12 +45,24 @@ const validateEvent = (value: unknown, index: number, errors: string[]): value i
   if (unknownKeys.length) errors.push(`Event ${index + 1} contains unsupported fields: ${unknownKeys.join(', ')}.`);
   if (typeof value.id !== 'string' || !value.id.trim()) errors.push(`Event ${index + 1} needs an id.`);
   if (typeof value.shotId !== 'string' || !SHOT_BY_ID.has(value.shotId)) errors.push(`Event ${index + 1} references an unknown shot.`);
-  if (value.paceKmh !== undefined && (typeof value.paceKmh !== 'number' || value.paceKmh < 20 || value.paceKmh > 260)) errors.push(`Event ${index + 1} pace is outside 20–260 km/h.`);
+  if (value.label !== undefined && (typeof value.label !== 'string' || value.label.length > 60)) errors.push(`Event ${index + 1} label must be 60 characters or fewer.`);
+  for (const [key,range] of Object.entries({spinRateRpm:[0,6000],bounceFactor:[.6,1.4],rhythmPercent:[50,150],movementPercent:[50,150],intervalSeconds:[1,30]})) {
+    if (value[key] !== undefined && !inRange(value[key],range as [number,number])) errors.push(`Event ${index + 1} ${key} must be ${range[0]}–${range[1]}.`);
+  }
+  for (const [key,choices] of Object.entries({stroke:['forehand','backhand'],opponentHand:['left','right'],trajectoryMode:['natural','exact']})) {
+    if (value[key] !== undefined && !choices.includes(String(value[key]))) errors.push(`Event ${index + 1} ${key} is not supported.`);
+  }
+  if (value.camera !== undefined) {
+    const camera = value.camera;
+    if (!isRecord(camera) || Object.keys(camera).some(key => !allowedCameraKeys.has(key))
+      || !Object.entries(SHOT_CAMERA_RANGES).every(([key,range]) => inRange(camera[key],range))) errors.push(`Event ${index + 1} camera view is invalid.`);
+  }
+  if (value.paceKmh !== undefined && (!inRange(value.paceKmh,[20,260]))) errors.push(`Event ${index + 1} pace is outside 20–260 km/h.`);
   if (value.spin !== undefined && !['preset', 'flat', 'topspin', 'slice', 'kick', 'sidespin'].includes(String(value.spin))) errors.push(`Event ${index + 1} spin is not supported.`);
   if (value.serveRhythm !== undefined && !['preset', 'normal', 'compact'].includes(String(value.serveRhythm))) errors.push(`Event ${index + 1} serve rhythm is not supported.`);
-  if (value.netClearanceM !== undefined && (typeof value.netClearanceM !== 'number' || value.netClearanceM < 0.08 || value.netClearanceM > 1.8)) errors.push(`Event ${index + 1} net clearance is outside 0.08–1.8 m.`);
+  if (value.netClearanceM !== undefined && (!inRange(value.netClearanceM,[.08,1.8]))) errors.push(`Event ${index + 1} net clearance is outside 0.08–1.8 m.`);
   if (value.target !== undefined) {
-    if (!isRecord(value.target) || typeof value.target.x !== 'number' || typeof value.target.z !== 'number') errors.push(`Event ${index + 1} target is invalid.`);
+    if (!isRecord(value.target) || typeof value.target.x !== 'number' || !Number.isFinite(value.target.x) || typeof value.target.z !== 'number' || !Number.isFinite(value.target.z)) errors.push(`Event ${index + 1} target is invalid.`);
     else if (Math.abs(value.target.x) > 4.115 || value.target.z >= 0 || value.target.z < -11.885) errors.push(`Event ${index + 1} target is outside the near singles court.`);
   }
   const zone = value.landingZone;
@@ -60,7 +75,7 @@ const validateEvent = (value: unknown, index: number, errors: string[]): value i
   if (value.variationPercent !== undefined && (typeof value.variationPercent !== 'number' || !Number.isFinite(value.variationPercent)
     || value.variationPercent < 0 || value.variationPercent > 25)) errors.push(`Event ${index + 1} speed and spin variation must be 0–25%.`);
   if (value.opponentPosition !== undefined) {
-    if (!isRecord(value.opponentPosition) || typeof value.opponentPosition.x !== 'number' || typeof value.opponentPosition.z !== 'number') errors.push(`Event ${index + 1} opponent position is invalid.`);
+    if (!isRecord(value.opponentPosition) || typeof value.opponentPosition.x !== 'number' || !Number.isFinite(value.opponentPosition.x) || typeof value.opponentPosition.z !== 'number' || !Number.isFinite(value.opponentPosition.z)) errors.push(`Event ${index + 1} opponent position is invalid.`);
     else if (Math.abs(value.opponentPosition.x) > OPPONENT_POSITION_LIMITS.halfWidth || Math.abs(value.opponentPosition.z) > OPPONENT_POSITION_LIMITS.halfLength) errors.push(`Event ${index + 1} opponent position is outside the ITF competition runoff.`);
   }
   if (value.cameraMotion !== undefined && value.cameraMotion !== null) {
@@ -69,8 +84,8 @@ const validateEvent = (value: unknown, index: number, errors: string[]): value i
       || Object.keys(motion).some((key) => !allowedCameraMotionKeys.has(key))
       || !validCameraPartial(motion.to)
       || (motion.from !== undefined && !validCameraPartial(motion.from))
-      || typeof motion.duration !== 'number' || motion.duration < 0.2 || motion.duration > 10
-      || (motion.delay !== undefined && (typeof motion.delay !== 'number' || motion.delay < 0 || motion.delay > 10))) {
+      || !inRange(motion.duration,[.2,10])
+      || (motion.delay !== undefined && (!inRange(motion.delay,[0,10])))) {
       errors.push(`Event ${index + 1} camera motion is invalid.`);
     }
   }
@@ -104,10 +119,22 @@ export const validateDrill = (value: unknown): ValidationResult => {
   if (value.defaultRhythmPercent !== undefined && (typeof value.defaultRhythmPercent !== 'number' || !Number.isFinite(value.defaultRhythmPercent) || value.defaultRhythmPercent < 50 || value.defaultRhythmPercent > 150)) errors.push('defaultRhythmPercent must be between 50 and 150.');
   if (value.defaultMovementPercent !== undefined && (typeof value.defaultMovementPercent !== 'number' || !Number.isFinite(value.defaultMovementPercent) || value.defaultMovementPercent < 50 || value.defaultMovementPercent > 150)) errors.push('defaultMovementPercent must be between 50 and 150.');
   if (typeof value.defaultRepetitions !== 'number' || !Number.isInteger(value.defaultRepetitions) || value.defaultRepetitions < 1 || value.defaultRepetitions > 200) errors.push('defaultRepetitions must be an integer from 1 to 200.');
+  const returnZone = value.returnZone;
+  if (returnZone !== undefined && (!isRecord(returnZone) || Object.keys(returnZone).some(key => !(key in RETURN_ZONE_RANGES))
+    || !Object.entries(RETURN_ZONE_RANGES).every(([key,range]) => inRange(returnZone[key],range)))) errors.push('Return zone distance or dimensions are invalid.');
   const serialized = JSON.stringify(value);
   if (/https?:\/\//i.test(serialized)) errors.push('Remote URLs are not allowed in drill JSON.');
   if (Array.isArray(value.events) && value.events.length > 80) warnings.push('Large drills may be difficult to edit on smaller screens.');
   return { valid: errors.length === 0, errors, warnings };
+};
+
+export const isSavedShot = (value: unknown): value is SavedShotV1 => {
+  if (!isRecord(value) || Object.keys(value).some(key => !['id','name','event'].includes(key))
+    || typeof value.id !== 'string' || !/^[a-z0-9][a-z0-9-]{1,63}$/.test(value.id)
+    || typeof value.name !== 'string' || !value.name.trim() || value.name.length > 60 || /https?:\/\//i.test(value.name)) return false;
+  const errors: string[] = [];
+  validateEvent(value.event,0,errors);
+  return !errors.length && !/https?:\/\//i.test(JSON.stringify(value.event));
 };
 
 export const parseDrillJson = (source: string): DrillDefinitionV1 => {

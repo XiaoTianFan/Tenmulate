@@ -3,6 +3,7 @@ import type { ShotDefinitionV1 } from '../../content/types';
 import type { Vec3 } from '../../domain/vector';
 import { integrateTrajectory, netHeightAt, type ResolvedTrajectory, type ShotIntent } from '../trajectory/physics';
 import { reachableContacts, playerAt, type PlayerPath } from './playerCoverage';
+import { returnZonePoint, type ReturnZone } from './returnZone';
 
 export type RallyReturn = Readonly<{ trajectory: ResolvedTrajectory; contactTime: number;
   duration: number; contactErrorM: number; speedRatio: number }>;
@@ -52,14 +53,17 @@ function solveReturn(intent: ShotIntent, target: Vec3, duration: number, bounced
 /** Every accepted return starts on the incoming flight and arrives at the next
  * racket's exact scheduled contact (within the numerical solver tolerance). */
 export function planRallyReturn(incoming: ResolvedTrajectory, next: ShotDefinitionV1, player: PlayerPath,
-  minimumGap: number, preferredGap: number): RallyReturn | null {
+  minimumGap: number, preferredGap: number, zone?: ReturnZone, latestContactTime = Infinity): RallyReturn | null {
   if(next.family==='serve')return null;
-  const contacts=reachableContacts(incoming,player);
+  const contacts=reachableContacts(incoming,player,zone).filter(contact => contact.time <= latestContactTime);
   if(!contacts.length)return null;
   const target=next.source, mustBounce=!['volley','overhead'].includes(next.family);
   const preferred=incoming.resolved.launchSpeedKmh;
   // Bounded candidate set keeps compilation deterministic and interactive.
-  const distance=(s:typeof contacts[number])=>Math.hypot(s.position.x-playerAt(player,s.time).x,s.position.z-playerAt(player,s.time).z);
+  const distance=(s:typeof contacts[number])=>{
+    const origin=playerAt(player,s.time),center=zone?returnZonePoint(origin,0,zone.forward):origin;
+    return Math.hypot(s.position.x-center.x,s.position.z-center.z);
+  };
   const ranked=[...contacts].sort((a,b)=>distance(a)-distance(b));
   const candidates=[ranked[0]!,contacts[0]!,contacts[Math.floor(contacts.length/2)]!,contacts.at(-1)!];
   let best:RallyReturn|null=null,bestScore=Infinity;
