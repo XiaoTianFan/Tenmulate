@@ -11,6 +11,11 @@ This is the evidence ledger for the code-backed V1. “Implemented” means runn
 
 ## Current prepared stroke entry — 2026-09-08
 
+**Practice form follow-up (2026-09-08):** Removed the Zone center depth, Zone width
+and Zone depth sliders from Ball & rhythm. Practice uses the rendered court's
+move/resize controls for landing-zone configuration. The production build and
+live browser form inspection pass; the existing preview is refreshed.
+
 [ADR-0021](../decisions/0021-prepared-stroke-entry-after-travel.md) adds lab-authored
 completed unit-turn boundaries for both drives, slices and volleys. Incoming travel
 blends into and holds the prepared pose; gameplay starts the swing after the unit
