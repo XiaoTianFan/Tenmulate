@@ -4,6 +4,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Expand,
+  Minimize,
+  Eye,
   EyeOff,
   LogOut,
   Pause,
@@ -14,12 +16,14 @@ import {
   SkipForward,
   Volume2,
   VolumeX,
+  X,
 } from 'lucide-react';
 import type { SessionLaunch } from '../app/types';
 import { practiceAudio } from '../engine/audio/AudioCueEngine';
 import { crossedCues, sessionCues } from '../engine/audio/sessionCues';
 import { compileSession } from '../engine/session/compileSession';
 import { useSessionPlayer } from '../hooks/useSessionPlayer';
+import { useFullscreen } from '../hooks/useFullscreen';
 import { Modal } from './Modal';
 import { CourtViewport } from './SharedCourt';
 import { RETURN_SERVE_PLACEMENT_LABELS } from '../domain/returnPractice';
@@ -40,7 +44,12 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
   const [audioLevels, setAudioLevels] = useState({ countdown: 1, contact: 1, bounce: 0.7, footwork: 0.6, ambience: 0 });
   const [highContrastBall, setHighContrastBall] = useState(false);
   const [showBallTrail, setShowBallTrail] = useState(false);
-  const [hudHidden, setHudHidden] = useState(false);
+  const [autoHideUI, setAutoHideUI] = useState(true);
+  const [touchControls, setTouchControls] = useState(false);
+  const touchRevealClick = useRef(false);
+  const shellRef = useRef<HTMLElement>(null);
+  const fullscreen = useFullscreen(shellRef);
+  const toggleUI = useCallback(() => { setAutoHideUI(value => !value); setTouchControls(false); }, []);
   const audioRef = useRef(practiceAudio);
   const previousCueRef = useRef('');
   const audioTimeRef = useRef(0);
@@ -55,6 +64,20 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
   const shot = repetition?.shot;
   const timedCues = useMemo(() => sessionCues(session), [session]);
   const onMetrics = useCallback(() => undefined, []);
+
+  useEffect(() => {
+    const shell = shellRef.current;
+    const onPointerDown = (event: PointerEvent) => {
+      if (event.pointerType !== 'touch' || !(event.target instanceof Element)) return;
+      const inControls = !!event.target.closest('.rehearsal-chrome-zone, .coach-overlay');
+      // The first tap reveals the controls without activating the button underneath.
+      touchRevealClick.current = inControls && autoHideUI && !touchControls && !showDiagnostics;
+      setTouchControls(inControls);
+    };
+    // The shared canvas is a React portal; listen to its physical DOM ancestry.
+    shell?.addEventListener('pointerdown', onPointerDown, true);
+    return () => shell?.removeEventListener('pointerdown', onPointerDown, true);
+  }, [autoHideUI, touchControls, showDiagnostics]);
 
   useEffect(() => {
     return () => audioRef.current.setAmbience(0);
@@ -92,28 +115,34 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
     return () => document.removeEventListener('visibilitychange', onVisibility);
   }, [player]);
 
-  const toggleFullscreen = useCallback(async () => {
-    if (document.fullscreenElement) await document.exitFullscreen();
-    else await document.documentElement.requestFullscreen();
-  }, []);
-
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement) return;
+      const target = event.target instanceof HTMLElement ? event.target : null;
+      if (event.defaultPrevented || event.repeat || event.ctrlKey || event.metaKey || event.altKey
+        || target?.closest('input, select, textarea, [contenteditable="true"]')) return;
       if (event.code === 'Space') {
+        if (target?.closest('button, a, [role="button"]')) return;
         event.preventDefault();
         if (player.status === 'paused') player.play(); else player.pause();
       }
       if (event.key.toLowerCase() === 'r') player.restart();
-      if (event.key.toLowerCase() === 'f') void toggleFullscreen();
-      if (event.key.toLowerCase() === 'h') setHudHidden((value) => !value);
-      if (event.key === 'Escape') player.pause();
+      if (event.key.toLowerCase() === 'f') { event.preventDefault(); void fullscreen.toggle(); }
+      if (event.key.toLowerCase() === 'h') {
+        if (target?.closest('.rehearsal-chrome-zone')) target.blur();
+        toggleUI();
+      }
+      if (event.key === 'Escape') {
+        setShowDiagnostics(false);
+        setTouchControls(false);
+        player.pause();
+        if (document.fullscreenElement === shellRef.current) void fullscreen.toggle();
+      }
       if (event.key === 'ArrowLeft') player.previous();
       if (event.key === 'ArrowRight') player.next();
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [player, toggleFullscreen]);
+  }, [player, fullscreen.toggle, toggleUI]);
 
   if (!trajectory || !shot) return null;
   const playing = player.status === 'playing';
@@ -122,32 +151,32 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
   const resolvedSpeed = Math.round(Math.hypot(trajectory.launchVelocity.x, trajectory.launchVelocity.y, trajectory.launchVelocity.z) * 3.6);
 
   return (
-    <main className={hudHidden ? 'rehearsal-shell hud-hidden' : 'rehearsal-shell'} onMouseMove={() => { if (hudHidden) setHudHidden(false); }}>
-      <CourtViewport camera={launch.camera} trajectory={trajectory} surface={launch.surface} environment={launch.environment} quality={launch.quality} running={playing} resetToken={0} showTrajectory={launch.trajectoryEnabled || showDiagnostics} playbackRate={playbackRate} loopTrajectory={false} cameraMotion={null} followSessionCamera highContrastBall={highContrastBall} showBallTrail={showBallTrail} onMetrics={onMetrics} onPointerActivity={() => { if (hudHidden) setHudHidden(false); }} session={session} sessionClock={player.clock} />
-      <header className="rehearsal-header">
+    <main ref={shellRef} className={`rehearsal-shell${autoHideUI ? ' auto-hide-ui' : ''}${touchControls || showDiagnostics ? ' controls-revealed' : ''}`}
+      onClickCapture={event => {
+        if (!touchRevealClick.current) return;
+        touchRevealClick.current = false;
+        event.preventDefault();
+        event.stopPropagation();
+      }}>
+      <CourtViewport camera={launch.camera} trajectory={trajectory} surface={launch.surface} environment={launch.environment} quality={launch.quality} running={playing} resetToken={0} showTrajectory={launch.trajectoryEnabled || showDiagnostics} playbackRate={playbackRate} loopTrajectory={false} cameraMotion={null} followSessionCamera highContrastBall={highContrastBall} showBallTrail={showBallTrail} onMetrics={onMetrics} session={session} sessionClock={player.clock} />
+      <div className="rehearsal-header-zone rehearsal-chrome-zone">
+      <header className="rehearsal-header rehearsal-chrome-content">
         <strong>Tenmulate</strong>
         <span className="drill-title">{session.drill.title}</span>
         <span className="rep-status">Set {player.currentSet} of {player.setCount} · Rep {repetitionNumber} of {session.repetitions.length}</span>
         <div>
-          <button type="button" onClick={() => setShowDiagnostics((value) => !value)}><Settings size={18} /> Settings</button>
-          <button type="button" onClick={() => setHudHidden(true)}><EyeOff size={18} /> Hide UI</button>
-          <button type="button" onClick={() => void toggleFullscreen()}><Expand size={18} /> Full screen</button>
+          <button type="button" aria-label="Settings" aria-expanded={showDiagnostics} onClick={() => setShowDiagnostics((value) => !value)}><Settings size={18} /> Settings</button>
+          <button type="button" aria-label={autoHideUI ? 'Keep controls visible' : 'Auto-hide controls'} title={autoHideUI ? 'Show UI (H)' : 'Hide UI (H)'} aria-pressed={!autoHideUI} onClick={toggleUI}>{autoHideUI ? <Eye size={18} /> : <EyeOff size={18} />} {autoHideUI ? 'Show UI' : 'Hide UI'}</button>
+          <button type="button" aria-label={fullscreen.active ? 'Exit full screen' : 'Full screen'} aria-pressed={fullscreen.active} onClick={() => void fullscreen.toggle()}>{fullscreen.active ? <Minimize size={18} /> : <Expand size={18} />} {fullscreen.active ? 'Exit full screen' : 'Full screen'}</button>
           <button type="button" onClick={onExit}><LogOut size={18} /> Exit</button>
         </div>
       </header>
+      </div>
 
       {player.countdown ? <div className="countdown" aria-live="assertive"><strong>{player.countdown}</strong><span>Ready position</span></div> : null}
       {player.status === 'resting' ? <div className="countdown rest-countdown" aria-live="polite"><strong>{player.restRemaining}</strong><span>Rest · next set follows</span></div> : null}
-      {paused ? <div className="paused-label" aria-live="polite">Paused</div> : null}
-
-      <aside className="rehearsal-mode-panel">
-        <span className={launch.trajectoryEnabled ? 'active' : ''}>Trajectory {launch.trajectoryEnabled ? 'on' : 'off'}</span>
-        <small>{repetition?.timing ? `Interval ${repetition.timing.actual.toFixed(2)} s · ` : ''}Stroke {Math.round((repetition?.motionRate??1)*100)}% · Movement {Math.round((repetition?.movementRate??1)*100)}%</small>
-        {session.mode === 'drill' ? <small>{repetition?.returnStatus === 'linked' ? 'Rally return' : repetition?.returnStatus === 'infeasible' || repetition?.returnStatus === 'unreachable' ? 'Next shot begins a new feed' : 'New point'}</small> : null}
-        {repetition?.timing?.limited ? <small>Requested {repetition.timing.requested.toFixed(2)} s. This transition needs more time.</small> : repetition?.returnStatus==='rest' ? <small>A scheduled set rest follows this shot.</small> : null}
-      </aside>
-
-      <div className="rehearsal-transport" aria-label="Playback controls">
+      <div className="rehearsal-transport-zone rehearsal-chrome-zone">
+      <div className="rehearsal-transport rehearsal-chrome-content" role="group" aria-label="Playback controls">
         <button type="button" aria-label="Previous repetition" onClick={player.previous}><SkipBack size={22} /></button>
         <button className="primary-transport" type="button" aria-label={paused ? 'Resume' : 'Pause'} onClick={paused ? player.play : player.pause}>{paused ? <Play size={24} fill="currentColor" /> : <Pause size={24} fill="currentColor" />}</button>
         <button type="button" aria-label="Restart set" onClick={player.restart}><RotateCcw size={22} /></button>
@@ -159,19 +188,29 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
         </div>
         <div className="session-progress"><span style={{ width: `${player.progress * 100}%` }} /></div>
       </div>
+      </div>
 
-      <aside className="shot-readout">
-        <strong>{resolvedSpeed} <small>km/h</small></strong>
-        <span>{shot.spin[0]?.toUpperCase()}{shot.spin.slice(1)}</span>
-        <span>{repetition?.returnServePlacement
+      <aside className="rehearsal-metadata" aria-label="Shot metadata">
+        <div className="metadata-shot"><strong>{resolvedSpeed} <small>km/h</small></strong>
+          <span>{shot.spin[0]?.toUpperCase()}{shot.spin.slice(1)} · {shot.family[0]?.toUpperCase()}{shot.family.slice(1)}</span>
+          <button type="button" aria-label={soundEnabled ? 'Mute cues' : 'Unmute cues'} title={soundEnabled ? 'Mute cues' : 'Unmute cues'} onClick={() => setSoundEnabled((value) => !value)}>{soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}</button>
+        </div>
+        <div className="metadata-placement"><span>{shot.opponentHand === 'left' ? 'Left' : 'Right'} arm{shot.stroke ? ` · ${shot.stroke}` : ''}</span><span>{repetition?.returnServePlacement
           ? `${RETURN_SERVE_PLACEMENT_LABELS[repetition.returnServePlacement]} serve · ${shot.depth}${shot.serveRhythm ? ` · ${shot.serveRhythm}` : ''}`
-          : `${shot.direction} · ${shot.depth}${shot.serveRhythm ? ` · ${shot.serveRhythm}` : ''}`}</span>
-        <button type="button" aria-label={soundEnabled ? 'Mute cues' : 'Unmute cues'} onClick={() => setSoundEnabled((value) => !value)}>{soundEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}</button>
+          : `${shot.direction} · ${shot.depth}${shot.serveRhythm ? ` · ${shot.serveRhythm}` : ''}`}</span></div>
+        <div className="metadata-rhythm"><span>Trajectory {launch.trajectoryEnabled || showDiagnostics ? 'on' : 'off'}</span>
+          {repetition?.timing ? <span title="Shot interval">{repetition.timing.actual.toFixed(2)} s</span> : null}
+          <span>Stroke {Math.round((repetition?.motionRate??1)*100)}%</span><span>Move {Math.round((repetition?.movementRate??1)*100)}%</span></div>
+        {paused ? <span className="metadata-state" role="status">Paused</span> : null}
+        {session.mode === 'drill' ? <span className="metadata-note">{repetition?.returnStatus === 'linked' ? 'Rally return' : repetition?.returnStatus === 'infeasible' || repetition?.returnStatus === 'unreachable' ? 'Next shot begins a new feed' : 'New point'}</span> : null}
+        {repetition?.timing?.limited ? <span className="metadata-note">Requested {repetition.timing.requested.toFixed(2)} s; this transition needs more time.</span> : repetition?.returnStatus==='rest' ? <span className="metadata-note">A set rest follows this shot.</span> : null}
       </aside>
+
+      {fullscreen.error ? <div className="fullscreen-message" role="alert"><span>{fullscreen.error}</span><button type="button" aria-label="Dismiss fullscreen message" onClick={fullscreen.clearError}><X size={16} /></button></div> : null}
 
       {showDiagnostics ? (
         <aside className="coach-overlay">
-          <h2>Session settings</h2>
+          <div className="coach-heading"><h2>Session settings</h2><button type="button" aria-label="Close settings" onClick={() => setShowDiagnostics(false)}><X size={18} /></button></div>
           <details className="editor-section" open><summary>Perspective</summary><BallFocusControls /></details>
           <label className="compact-range"><span>Camera motion (restarts set)</span><input aria-label="Camera motion intensity" type="range" min="0" max="1" step="0.25" value={cameraMotionScale} onChange={(event) => setCameraMotionScale(Number(event.target.value))} /><output>{Math.round(cameraMotionScale * 100)}%</output></label>
           <label className="compact-range"><span>Countdown</span><input aria-label="Countdown volume" type="range" min="0" max="1" step="0.1" value={audioLevels.countdown} onChange={(event) => setAudioLevels((current) => ({ ...current, countdown: Number(event.target.value) }))} /><output>{Math.round(audioLevels.countdown * 100)}%</output></label>

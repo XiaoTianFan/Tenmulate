@@ -11,6 +11,16 @@ The system should optimize for perceptual credibility and testability, not for g
 
 ## 2. Proposed stack
 
+**Gameplay chrome (2026-09-08):** `RehearsalScreen` defaults to auto-hide. Persistent
+header/transport hit areas reveal both surfaces through CSS hover and visible
+keyboard focus, without pointer-move state updates. Touch capture follows the
+physical DOM because the shared renderer is a React portal; an initial reveal tap
+does not activate hidden controls. Shot metadata remains at bottom-right.
+`useFullscreen` owns native fullscreen for the gameplay container, synchronizes
+`fullscreenchange`, prevents concurrent requests, reports failures and releases
+fullscreen on session exit. The stable canvas stays inside the fullscreen target.
+See the [verification receipt](development/gameplay-hud-2026-09-08.md).
+
 **Measured renderer costs (2026-09-08):** [ADR-0031](decisions/0031-measured-renderer-cost-and-preview-preparation.md)
 adds opt-in CPU stage and asynchronous GPU timing with actual adapter/buffer
 metadata. Unlit fixture lights are excluded from shader generation and the physical

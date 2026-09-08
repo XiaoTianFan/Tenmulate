@@ -9,6 +9,22 @@
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
+## Gameplay controls and compact metadata — 2026-09-08
+
+Practice and drill playback now start with the header and transport hidden.
+Hovering either control area reveals both; keyboard focus and touch have equivalent
+access. Shot, arm, timing, trajectory and sound information share one compact panel
+at bottom-right. Fullscreen targets the gameplay container, tracks native state,
+exits with Escape/session exit, and reports rejected requests.
+
+Desktop and touch layouts (1660, 1024, 390 and 320 CSS-pixel widths), gameplay
+interactions, **355 tests / 37 files**, production build and motion/cache guard
+pass. A regular Edge window expands to 1707×1067 CSS pixels and restores its
+previous dimensions without replacing the renderer. Automation focus emulation
+can suppress native window expansion; see the [verification receipt](gameplay-hud-2026-09-08.md).
+Local implementation and browser verification are complete; owner acceptance and
+public deployment are separate.
+
 ## Complete short running steps after owner correction — 2026-09-08
 
 The owner rejected the short-jog appearance below despite correct clip selection.
