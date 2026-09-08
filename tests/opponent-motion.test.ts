@@ -26,7 +26,7 @@ afterEach(() => vi.restoreAllMocks());
 describe('local motion asset and shared contact clock', () => {
   it('preserves real racket contacts after IK at both rhythm bounds and for both hands',async()=>{
     const rig=await loadRig();
-    for(const hand of ['right','left'] as const)for(const rate of [.85,1,1.2])for(const clip of ['forehand','backhand','forehand-slice','backhand-slice','forehand-volley','backhand-volley','serve','serve-compact'] as const){
+    for(const hand of ['right','left'] as const)for(const rate of [.5,.85,1,1.2,1.5])for(const clip of ['forehand','backhand','forehand-slice','backhand-slice','forehand-volley','backhand-volley','serve','serve-compact'] as const){
       const event=motionEvent({...repetition(clip,0,2,12.8,hand),motionRate:rate});
       for(const t of [event.start,event.contactTime,event.end]){
         const pose=sampleOpponentTimeline([event],t)!;rig.sampleMotion(pose);
@@ -430,7 +430,7 @@ describe('local motion asset and shared contact clock', () => {
     const samples=[];
     for(let time=events[0]!.end+.01;time<events[1]!.start;time+=1/60){
       const pose=sampleOpponentTimeline(events,time)!;
-      if(pose.layers.some(l=>l.clip==='run-forward'&&l.weight>.999))samples.push({time,pose});
+      if(pose.layers.some(l=>l.clip==='run-forward'&&l.weight>.5))samples.push({time,pose});
     }
     expect(samples.length).toBeGreaterThan(25);
     const middle=samples.filter(s=>Math.abs(Math.atan2(Math.sin(s.pose.yaw-s.pose.movement!.heading),Math.cos(s.pose.yaw-s.pose.movement!.heading)))<.1).sort((a,b)=>b.pose.movement!.speed-a.pose.movement!.speed)[0]!;

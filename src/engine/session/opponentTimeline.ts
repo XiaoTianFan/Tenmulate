@@ -17,11 +17,12 @@ const mix = (a: number, b: number, t: number) => a + (b - a) * t;
 export type MotionEvent = Readonly<{
   index: number; clip: StrokeId; contactTime: number; start: number; end: number;
   rate: number; hand: 'left' | 'right'; yaw: number; root: Vec3; source: Vec3;
+  movementRate?: number;
   home?: Vec3; recoveryPolicy?: 'home' | 'auto' | 'recover' | 'direct';
   tossEnabled?: boolean;
 }>;
 export type MotionRepetition = Readonly<{ index: number; startTime: number; shot: ShotDefinitionV1;
-  motionRate?: number; home?: Vec3; recoveryPolicy?: MotionEvent['recoveryPolicy'] }>;
+  motionRate?: number; movementRate?: number; home?: Vec3; recoveryPolicy?: MotionEvent['recoveryPolicy'] }>;
 
 export const strokeForShot = (shot: ShotDefinitionV1, index: number): StrokeId => {
   if (shot.family === 'serve') return shot.serveRhythm === 'compact' ? 'serve-compact' : 'serve';
@@ -47,7 +48,7 @@ export const motionEvent = (repetition: MotionRepetition): MotionEvent => {
   return { index, clip, contactTime: startTime, start: startTime - metadata.contact! / rate,
     end: startTime + (metadata.duration - metadata.contact!) / rate, rate, yaw, hand: shot.opponentHand,
     root: { x: shot.source.x - local.x, y: 0, z: shot.source.z - local.z }, source: shot.source,
-    home: repetition.home, recoveryPolicy: repetition.recoveryPolicy, tossEnabled: shot.family === 'serve' };
+    movementRate: repetition.movementRate, home: repetition.home, recoveryPolicy: repetition.recoveryPolicy, tossEnabled: shot.family === 'serve' };
 };
 
 export const minimumMotionGap = (previous: MotionRepetition, next: MotionRepetition): number => {
@@ -59,10 +60,11 @@ export type MotionSample = Readonly<{
   root: Vec3; yaw: number; hand: 'left' | 'right';
   layers: readonly Readonly<{ clip: MotionId; time: number; weight: number }>[];
   event: MotionEvent | null; verticalCorrection: number;
-  movement?: Readonly<{stage:MovementStage;speed:number;distance:number;phase:number;heading:number}>;
+  movement?: Readonly<{stage:MovementStage;speed:number;acceleration?:number;distance:number;phase:number;heading:number}>;
   footTargets?: Readonly<{ left: Vec3; right: Vec3 }>;
   /** Local head counter-turn keeps the gaze toward play during lateral running. */
   lookYaw?: number;
+  travelLean?: number;
   toss: Vec3 | null;
 }>;
 

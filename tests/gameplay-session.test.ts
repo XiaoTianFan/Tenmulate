@@ -18,7 +18,7 @@ describe('mode-aware gameplay planning', () => {
     const events=session.repetitions.map(motionEvent);
     for(let i=0;i<events.length-1;i++){
       const plan=planRecovery(events[i]!,events[i+1]!);
-      expect(plan.kind).toBe('recovery');expect(plan.center).toEqual({x:2,y:0,z:9.45});
+      expect(plan.kind).toBe('recovery');expect(plan.center).toEqual({x:2,y:0,z:9});
       expect(plan.end).toBeCloseTo(events[i+1]!.start,6);
     }
     let previous=sampleOpponentTimeline(events,0)!;
@@ -30,11 +30,11 @@ describe('mode-aware gameplay planning', () => {
     expect(previous.root).toEqual(events[0]!.home);
     expect(session.repetitions.every(r=>!r.rallyReturn)).toBe(true);
   });
-  it('chooses recovery at low rhythm and direct movement for fast wide drills',()=>{
+  it('chooses recovery with a long interval and direct movement with a short interval',()=>{
     const drill={...DRILLS[0]!,events:[{id:'a',shotId:'fh-cross-deep',opponentPosition:{x:3.7,z:12.8}},
       {id:'b',shotId:'bh-cross-deep',opponentPosition:{x:-3.7,z:12.8}}]};
-    const slow=compileSession(drill,{...settings,rhythmPercent:60});
-    const fast=compileSession(drill,{...settings,rhythmPercent:150});
+    const slow=compileSession(drill,{...settings,rhythmPercent:100,shotIntervalSeconds:10});
+    const fast=compileSession(drill,{...settings,rhythmPercent:100,shotIntervalSeconds:3});
     expect(slow.repetitions[0]!.recoveryPolicy).toBe('recover');
     expect(fast.repetitions[0]!.recoveryPolicy).toBe('direct');
     expect(fast.repetitions[1]!.startTime).toBeLessThan(slow.repetitions[1]!.startTime);

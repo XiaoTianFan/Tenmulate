@@ -51,8 +51,9 @@ export type DrillDefinitionV1 = Readonly<{
   shotIds: readonly string[];
   events?: readonly DrillEventV1[];
   defaultInterval: number;
-  /** Legacy seconds remain readable; new authored drills use this percentage. */
+  /** Uniform stroke rhythm, independent of defaultInterval. */
   defaultRhythmPercent?: number;
+  defaultMovementPercent?: number;
   defaultRepetitions: number;
 }>;
 

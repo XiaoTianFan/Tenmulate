@@ -283,6 +283,16 @@ export class OpponentRig {
       }
     }
     this.group.updateMatrixWorld(true);
+    if (sample.travelLean && sample.movement) {
+      // Push-off leans into travel; braking brings the torso back. This is a
+      // movement-only overlay, before foot IK, never a stroke-clock multiplier.
+      const pelvis = this.model.getObjectByName('pelvis')!;
+      const heading = sample.movement.heading;
+      const axis = new THREE.Vector3(Math.cos(heading), 0, -Math.sin(heading))
+        .applyQuaternion(pelvis.parent!.getWorldQuaternion(new THREE.Quaternion()).invert());
+      pelvis.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(axis, sample.travelLean));
+      this.group.updateMatrixWorld(true);
+    }
     if (sample.lookYaw) {
       // Split the counter-turn over the neck and head, respecting the mirrored rig.
       const turn = sample.lookYaw * (sample.hand === 'left' ? -1 : 1);

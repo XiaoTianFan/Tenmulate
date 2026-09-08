@@ -173,9 +173,9 @@ describe('session compiler', () => {
 
     expect(leftSession.repetitions.map((entry) => entry.returnServePlacement)).toEqual([...RETURN_SERVE_PATTERN, ...RETURN_SERVE_PATTERN]);
     expect(leftSession.repetitions.map((entry) => entry.shot.target.x)).toEqual([0.28, 2.25, 3.895, 0.28, 2.25, 3.895]);
-    expect(leftSession.repetitions.every((entry) => entry.shot.source.x < 0 && entry.shot.source.z > COURT.halfLength)).toBe(true);
+    expect(leftSession.repetitions.every((entry) => entry.shot.source.x < 0 && motionEvent(entry).root.z > COURT.halfLength)).toBe(true);
     expect(rightSession.repetitions.map((entry) => entry.shot.target.x)).toEqual([-0.28, -2.25, -3.895]);
-    expect(rightSession.repetitions.every((entry) => entry.shot.source.x > 0 && entry.shot.source.z > COURT.halfLength)).toBe(true);
+    expect(rightSession.repetitions.every((entry) => entry.shot.source.x > 0 && motionEvent(entry).root.z > COURT.halfLength)).toBe(true);
   });
 
   it('compiles overhead practice as a high lob to the selected landing depth', () => {
