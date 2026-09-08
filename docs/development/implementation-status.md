@@ -9,7 +9,13 @@
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
-## Current landing zones and preview — 2026-09-08
+## Current direct landing-zone interaction — 2026-09-08
+
+Implementation `b90f791` applies [ADR-0019](../decisions/0019-direct-landing-zone-manipulation.md): center/axis arrows are replaced with hover and left-drag on the entire rendered zone. Free court-plane translation preserves the grab offset; a drag beginning outside the zone rotates the camera. Pointer capture keeps the two gestures separate, with touch and camera-relative keyboard access. Narrow preview hints and status text occupy separate rows.
+
+Verification: **281 tests in 27 files**, production/PWA build and the active motion/cache guard pass. Actual browser checks cover diagonal drags, boundary-crossing gesture ownership, clicks, right-button behavior, keyboard/reload persistence, all four practice presets, saved editor zones and mobile touch. The [direct-drag receipt](landing-zone-direct-drag-2026-09-08.md) records the evidence. Local implementation remains distinct from owner acceptance and deployment.
+
+## Earlier landing zones and preview — 2026-09-08
 
 Implementation `97783ed` adds [ADR-0018](../decisions/0018-uniform-landing-zones-and-continuous-preview.md): uniform landing zones across all practice families and drill events, 3D court X/Z arrows, editable zone dimensions, independently seeded parameter variation, and an indefinite setup stream of fresh feeds. Finite launched sessions retain their chosen counts/rests. Natural fitting can slow short half-volleys beyond the earlier ±15% neighborhood while preserving the sampled target; resolved values and infeasible requests remain visible.
 

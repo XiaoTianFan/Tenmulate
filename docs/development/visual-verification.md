@@ -3,6 +3,10 @@
 - **Purpose:** Record concept-to-browser inspection after every implementation stage
 - **Reference viewport:** 1920 × 1080 unless stated otherwise
 
+## Direct landing-zone dragging — 2026-09-08
+
+The [direct-drag receipt](landing-zone-direct-drag-2026-09-08.md) supersedes the arrow interaction below. The area highlights on hover and accepts off-center left drags in both court coordinates. Camera and zone gestures retain their initial ownership across boundary crossings. Practice presets, keyboard access, persistence, saved editor placement and mobile touch pass in production Chrome. Final checks at 1440×1000, 886×883 and 390×844 verify visible geometry without center/arrow handles, no horizontal overflow and no hint/status overlap. The owner's in-app tab is refreshed; owner acceptance and physical-device qualification remain separate.
+
 ## Scene landing zones and continuous preview — 2026-09-08
 
 The [current zone receipt](landing-zone-verification-2026-09-08.md) supersedes the CSS first-bounce handles in the next historical entry. Production Chrome at 1440×1000 and 390×844 shows Three.js zone geometry, red X/blue Z arrows and a white actual-bounce ring. Baseline/oblique drags and keyboard movement preserve the unused coordinate and camera. Raised editor framing keeps edge zones visible; saved dimensions and parameter variation survive persistence. No horizontal overflow or application errors were observed. A 55.41-second development-browser run crossed two fresh-batch boundaries despite a one-repetition set and 120-second rest setting. The user's existing in-app production tab was refreshed and the new controls verified.
