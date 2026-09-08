@@ -3,6 +3,10 @@
 - **Purpose:** Record concept-to-browser inspection after every implementation stage
 - **Reference viewport:** 1920 × 1080 unless stated otherwise
 
+## Scene landing zones and continuous preview — 2026-09-08
+
+The [current zone receipt](landing-zone-verification-2026-09-08.md) supersedes the CSS first-bounce handles in the next historical entry. Production Chrome at 1440×1000 and 390×844 shows Three.js zone geometry, red X/blue Z arrows and a white actual-bounce ring. Baseline/oblique drags and keyboard movement preserve the unused coordinate and camera. Raised editor framing keeps edge zones visible; saved dimensions and parameter variation survive persistence. No horizontal overflow or application errors were observed. A 55.41-second development-browser run crossed two fresh-batch boundaries despite a one-repetition set and 120-second rest setting. The user's existing in-app production tab was refreshed and the new controls verified.
+
 ## Independent practice controls and first-bounce editing — 2026-09-08
 
 Production preview at `http://127.0.0.1:5173/` was checked in Chrome at 1440×1000,

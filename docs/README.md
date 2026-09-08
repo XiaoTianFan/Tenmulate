@@ -71,6 +71,8 @@ This folder is the project record for product discovery, design, architecture, a
 
 The [motion integration receipt](development/motion-main-integration-2026-09-07.md) records the current branch/main and live-gameplay verification. Revision counts in historical ledgers are scoped to their original commits.
 
+Current practice/landing behavior: [ADR-0018](decisions/0018-uniform-landing-zones-and-continuous-preview.md), with [scene and distribution verification](development/landing-zone-verification-2026-09-08.md). This supersedes fixed target points and CSS landing handles while retaining the independent clocks from ADR-0017.
+
 ## Change discipline
 
 [ADR-0012](decisions/0012-local-opponent-motion-pipeline.md) accepts local opponent motion production in the sibling motion-analysis laboratory, replacing online mocap services.

@@ -2,7 +2,7 @@
 
 - **Status:** Draft, with V1 boundary accepted in ADR-0002
 - **Working title:** Tenmulate
-- **Last updated:** 2026-08-30
+- **Last updated:** 2026-09-08
 - **Target release:** Public-free V1 tennis visualization product
 
 ## 1. Product summary
@@ -105,6 +105,15 @@ No single TV/projector, viewing distance, room, or GPU defines the product. Refe
 - Opponent rackets are reusable rigid props attached to named left/right hand sockets; they are not fused into the base character mesh.
 - The regular Rally origin defaults to 1.0 m behind the far baseline. Free opponent placement covers the full international-competition floor envelope: 6.40 m behind each baseline and 3.66 m outside each doubles sideline.
 - The Quick Practice Volley rail preset is receiver-oriented: it moves the user camera to the net position while retaining a regular behind-baseline opponent and incoming Groundstroke feed. The explicit Volley shot type remains available when the user intentionally wants the opponent to strike a volley.
+
+### Landing zones and setup preview — 2026-09-08
+
+- Every practice pattern and drill event uses a rectangular zone with uniform area sampling, editable width/depth and seeded speed/spin variation. The zone is bounded to the receiving singles court or diagonal service box before sampling.
+- Translation controls are rendered 3D geometry aligned to court X/Z, with pointer capture and keyboard access. The scene shows the zone and the displayed ball's actual first bounce.
+- Natural fitting adjusts launch parameters to reach the sampled landing and reports resolved values or infeasibility. It must not bias the distribution by selecting a replacement target.
+- Quick Practice setup continues indefinitely with fresh feeds, without planned-set rests or a repeated countdown. Launched sessions retain selected repetitions and work/rest blocks.
+
+[ADR-0018](decisions/0018-uniform-landing-zones-and-continuous-preview.md) and the [verification receipt](development/landing-zone-verification-2026-09-08.md) define the implemented contract and its evidence.
 
 ### Drills, editor, and feedback
 
