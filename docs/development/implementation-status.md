@@ -9,6 +9,20 @@
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
+## Interval-first motion and continuous arrival — 2026-09-08
+
+[ADR-0029](../decisions/0029-interval-first-motion.md) searches stroke/movement
+preferences across 50–300% to satisfy the primary shot interval. The reproduced
+150%/150% practice setup now fits 3.00 s at about 164% stroke / 207% movement.
+Prepared source time advances during braking and arrival coincides with stroke
+entry; the fixed prepared dwell is removed. All motion assets remain unchanged.
+Resolved values and infeasible intervals appear in Practice, Editor and playback.
+
+Verification: **324 tests / 33 files**, expanded-rate actual-rig checks, all 16
+bundled drill samples, normal-speed rendered motion, production desktop/mobile UI,
+build and active motion/cache guard pass. See the
+[receipt](interval-first-motion-2026-09-08.md) for timing, exact scope and local artifacts.
+
 ## Stable net weave across perspectives — 2026-09-08
 
 [ADR-0028](../decisions/0028-filtered-net-weave.md) replaces the displayed net cords

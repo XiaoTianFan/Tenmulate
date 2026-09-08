@@ -219,7 +219,7 @@ export function DrillEditorScreen({ route, initialDrill, onRoute, onSave, onTest
           <div className="timeline" aria-label="Deterministic drill timeline">
             <div className="timeline-toolbar">
               <strong>{drill.title}</strong>
-              <span>{drill.defaultRhythmPercent ?? rhythmFromLegacyInterval(drill.defaultInterval)}% rhythm</span>
+              <span>{drill.defaultInterval.toFixed(1)} s default interval</span>
               <span className={validation.valid ? 'validation valid' : 'validation invalid'}><CheckCircle2 size={14} /> {validation.valid ? 'Valid' : `${validation.errors.length} issues`}</span>
             </div>
             <div className="timeline-body">
@@ -251,8 +251,8 @@ export function DrillEditorScreen({ route, initialDrill, onRoute, onSave, onTest
             <label className="stack-field"><span>Drill title</span><input value={drill.title} maxLength={100} onChange={e=>updateDrill({title:e.target.value})}/></label>
             <label className="stack-field"><span>Description</span><textarea value={drill.description} maxLength={400} rows={3} onChange={e=>updateDrill({description:e.target.value})}/></label>
             <EditorNumber label="Default shot interval (s)" value={drill.defaultInterval} min={1} max={30} step={.1} onChange={value=>updateDrill({defaultInterval:value??3.5})}/>
-            <EditorNumber label="Default movement pace (%)" value={drill.defaultMovementPercent??100} min={50} max={150} step={5} onChange={value=>updateDrill({defaultMovementPercent:value??100})}/>
-            <EditorNumber label="Default stroke rhythm (%)" value={drill.defaultRhythmPercent??rhythmFromLegacyInterval(drill.defaultInterval)} min={50} max={150} step={5} onChange={value=>updateDrill({defaultRhythmPercent:value??100})}/>
+            <EditorNumber label="Default movement pace (%)" value={drill.defaultMovementPercent??100} min={50} max={300} step={5} onChange={value=>updateDrill({defaultMovementPercent:value??100})}/>
+            <EditorNumber label="Default stroke rhythm (%)" value={drill.defaultRhythmPercent??rhythmFromLegacyInterval(drill.defaultInterval)} min={50} max={300} step={5} onChange={value=>updateDrill({defaultRhythmPercent:value??100})}/>
           </details>
           <details className="editor-section" open><summary><i className="return-swatch"/>Your return space</summary>
             <EditorNumber label="Forward distance (m)" value={returnZone.forward} min={RETURN_ZONE_RANGES.forward[0]} max={RETURN_ZONE_RANGES.forward[1]} step={.1} onChange={value=>updateDrill({returnZone:{...returnZone,forward:value??DEFAULT_RETURN_ZONE.forward}})}/>
@@ -264,7 +264,7 @@ export function DrillEditorScreen({ route, initialDrill, onRoute, onSave, onTest
           </details>
           <div className="inspector-divider"><span>Selected event</span><div><button type="button" onClick={duplicate} aria-label="Duplicate event"><Copy size={15} /></button><button type="button" onClick={remove} disabled={events.length === 1} aria-label="Delete event"><Trash2 size={15} /></button></div></div>
           {selected && sourceShot ? <>
-            <DrillShotControls event={selected} shot={sourceShot} drill={drill} camera={previewCamera} onChange={updateEvent} onCameraChange={commitCamera} onPosition={()=>setPositionDraft(selected.opponentPosition??{x:sourceShot.source.x,z:sourceShot.source.z})}/>
+            <DrillShotControls event={selected} shot={sourceShot} drill={drill} camera={previewCamera} resolved={previewSession.repetitions[0]!} onChange={updateEvent} onCameraChange={commitCamera} onPosition={()=>setPositionDraft(selected.opponentPosition??{x:sourceShot.source.x,z:sourceShot.source.z})}/>
             <small className={`trajectory-resolution${trajectory.solution?.status==='unreachable'?' warning':''}`} role="status">{trajectory.solution?.status==='unreachable'?'Sample outside this shot’s reach. Adjust pace, spin or landing zone.':`Resolved ${trajectory.resolved.launchSpeedKmh.toFixed(1)} km/h · ${Math.round(trajectory.resolved.spinRateRpm)} rpm`}</small>
             <small className="return-space-status" role="status">{previewSession.repetitions[0]!.reachability.reachable?'This sample reaches your return space.':'This sample misses your return space. Adjust the shot view or landing zone.'}</small>
             <button className="secondary-button full-width save-shot-button" type="button" disabled={!validation.valid} onClick={()=>setShotDraft({id:'',name:selected.label??sourceShot.label})}><Save size={16}/> Save shot preset</button>

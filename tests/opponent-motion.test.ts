@@ -8,6 +8,7 @@ import { SHOTS, DRILLS } from '../src/content/bundled';
 import { OpponentRig } from '../src/engine/rendering/OpponentRig';
 import { OPPONENT_ASSET } from '../src/domain/opponent';
 import { compileSession } from '../src/engine/session/compileSession';
+import { solveShotInterval } from '../src/engine/session/shotTiming';
 import { compilePracticePreview, ContinuousPracticePreview } from '../src/engine/session/practicePreview';
 import { PRACTICE_SHOT_PROFILES } from '../src/engine/trajectory/practiceProfiles';
 import { motionEvent, minimumMotionGap, sampleOpponentTimeline, strokeForShot, OPPONENT_MOTION, MAX_OPPONENT_SPEED, type MotionRepetition, type StrokeId } from '../src/engine/session/opponentTimeline';
@@ -50,7 +51,7 @@ describe('local motion asset and shared contact clock', () => {
   });
   it('preserves real racket contacts after IK at both rhythm bounds and for both hands',async()=>{
     const rig=await loadRig();
-    for(const hand of ['right','left'] as const)for(const rate of [.5,.85,1,1.2,1.5])for(const clip of ['forehand','backhand','forehand-slice','backhand-slice','forehand-volley','backhand-volley','serve','serve-compact','backhand-overhead'] as const){
+    for(const hand of ['right','left'] as const)for(const rate of [.5,.85,1,1.2,1.5,2.25,3])for(const clip of ['forehand','backhand','forehand-slice','backhand-slice','forehand-volley','backhand-volley','serve','serve-compact','backhand-overhead'] as const){
       const event=motionEvent({...repetition(clip,0,2,12.8,hand),motionRate:rate});
       for(const t of [event.start,event.contactTime,event.end]){
         const pose=sampleOpponentTimeline([event],t)!;rig.sampleMotion(pose);
@@ -265,7 +266,14 @@ describe('local motion asset and shared contact clock', () => {
   });
   it('moves laterally and in depth without root teleportation or exceeding the travel speed', async () => {
     const a = repetition('forehand'), b = repetition('backhand', 1, -3, 8), c = repetition('serve', 2, 2, 13);
-    const events = [a, b, c].map(motionEvent), rig = await loadRig();
+    // Raw clip timestamps do not reserve travel. Resolve the same preferences
+    // as gameplay instead of relying on a hidden playback-only speed increase.
+    const scheduled=[a,b,c];
+    for(let i=1;i<scheduled.length;i++) {
+      const solved=solveShotInterval(scheduled[i-1]!,scheduled[i]!,8);
+      scheduled[i-1]=solved.previous;scheduled[i]={...solved.next,startTime:solved.previous.startTime+solved.gap};
+    }
+    const events = scheduled.map(motionEvent), rig = await loadRig();
     let previous = sampleOpponentTimeline(events, 0)!;
     const clips = new Set<string>();
     for (let t = 1 / 120; t < events[2]!.end; t += 1 / 120) {
@@ -450,7 +458,8 @@ describe('local motion asset and shared contact clock', () => {
     rig.dispose();
   });
   it.each([[3.5,12.5,-3.5,12.5],[-3.5,12.5,3.5,12.5],[0,13,0,6.5],[0,6.5,0,13],[-3.5,13,3.5,6.5]])('runs a full route %j with large strides, travel-facing shoulders and stable seeks',async(ax,az,bx,bz)=>{
-    const events=[motionEvent(repetition('forehand',0,ax,az)),motionEvent(repetition('forehand',1,bx,bz))],rig=await loadRig();
+    const solved=solveShotInterval({...repetition('forehand',0,ax,az),movementRate:1.5},repetition('forehand',1,bx,bz),8);
+    const events=[motionEvent(solved.previous),motionEvent({...solved.next,startTime:solved.previous.startTime+solved.gap})],rig=await loadRig();
     // Each recovery/approach leg has its own heading, rather than cutting directly across court.
     const samples=[];
     for(let time=events[0]!.end+.01;time<events[1]!.start;time+=1/60){

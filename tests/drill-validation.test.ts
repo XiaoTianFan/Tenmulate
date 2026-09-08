@@ -9,7 +9,8 @@ describe('versioned drill documents', () => {
   it('round-trips rhythm and rejects non-finite or out-of-range percentages',()=>{
     const drill={...DRILLS[0]!,defaultRhythmPercent:125};
     expect(parseDrillJson(JSON.stringify(drill)).defaultRhythmPercent).toBe(125);
-    for(const value of [0,151,NaN,Infinity,'100'])expect(validateDrill({...drill,defaultRhythmPercent:value}).valid).toBe(false);
+    for(const value of [50,150,225,300])expect(validateDrill({...drill,defaultRhythmPercent:value,defaultMovementPercent:value}).valid).toBe(true);
+    for(const value of [0,301,NaN,Infinity,'100'])expect(validateDrill({...drill,defaultRhythmPercent:value}).valid).toBe(false);
     const {defaultRhythmPercent:_rhythm,...legacy}=drill;
     expect(validateDrill(legacy).valid).toBe(true);
   });

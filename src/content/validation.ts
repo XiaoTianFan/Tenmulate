@@ -46,7 +46,7 @@ const validateEvent = (value: unknown, index: number, errors: string[]): value i
   if (typeof value.id !== 'string' || !value.id.trim()) errors.push(`Event ${index + 1} needs an id.`);
   if (typeof value.shotId !== 'string' || !SHOT_BY_ID.has(value.shotId)) errors.push(`Event ${index + 1} references an unknown shot.`);
   if (value.label !== undefined && (typeof value.label !== 'string' || value.label.length > 60)) errors.push(`Event ${index + 1} label must be 60 characters or fewer.`);
-  for (const [key,range] of Object.entries({spinRateRpm:[0,6000],bounceFactor:[.6,1.4],rhythmPercent:[50,150],movementPercent:[50,150],intervalSeconds:[1,30]})) {
+  for (const [key,range] of Object.entries({spinRateRpm:[0,6000],bounceFactor:[.6,1.4],rhythmPercent:[50,300],movementPercent:[50,300],intervalSeconds:[1,30]})) {
     if (value[key] !== undefined && !inRange(value[key],range as [number,number])) errors.push(`Event ${index + 1} ${key} must be ${range[0]}–${range[1]}.`);
   }
   for (const [key,choices] of Object.entries({stroke:['forehand','backhand'],opponentHand:['left','right'],trajectoryMode:['natural','exact']})) {
@@ -116,8 +116,8 @@ export const validateDrill = (value: unknown): ValidationResult => {
     }
   }
   if (typeof value.defaultInterval !== 'number' || !Number.isFinite(value.defaultInterval) || value.defaultInterval < 1 || value.defaultInterval > 30) errors.push('defaultInterval must be between 1 and 30 seconds.');
-  if (value.defaultRhythmPercent !== undefined && (typeof value.defaultRhythmPercent !== 'number' || !Number.isFinite(value.defaultRhythmPercent) || value.defaultRhythmPercent < 50 || value.defaultRhythmPercent > 150)) errors.push('defaultRhythmPercent must be between 50 and 150.');
-  if (value.defaultMovementPercent !== undefined && (typeof value.defaultMovementPercent !== 'number' || !Number.isFinite(value.defaultMovementPercent) || value.defaultMovementPercent < 50 || value.defaultMovementPercent > 150)) errors.push('defaultMovementPercent must be between 50 and 150.');
+  if (value.defaultRhythmPercent !== undefined && (typeof value.defaultRhythmPercent !== 'number' || !Number.isFinite(value.defaultRhythmPercent) || value.defaultRhythmPercent < 50 || value.defaultRhythmPercent > 300)) errors.push('defaultRhythmPercent must be between 50 and 300.');
+  if (value.defaultMovementPercent !== undefined && (typeof value.defaultMovementPercent !== 'number' || !Number.isFinite(value.defaultMovementPercent) || value.defaultMovementPercent < 50 || value.defaultMovementPercent > 300)) errors.push('defaultMovementPercent must be between 50 and 300.');
   if (typeof value.defaultRepetitions !== 'number' || !Number.isInteger(value.defaultRepetitions) || value.defaultRepetitions < 1 || value.defaultRepetitions > 200) errors.push('defaultRepetitions must be an integer from 1 to 200.');
   const returnZone = value.returnZone;
   if (returnZone !== undefined && (!isRecord(returnZone) || Object.keys(returnZone).some(key => !(key in RETURN_ZONE_RANGES))

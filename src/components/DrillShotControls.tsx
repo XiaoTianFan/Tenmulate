@@ -9,6 +9,7 @@ import { COURT } from '../domain/court';
 import { SHOT_CAMERA_RANGES } from '../engine/session/cameraTimeline';
 import { defaultSpinRateRpm, type SpinKind } from '../engine/trajectory/physics';
 import { rhythmFromLegacyInterval } from '../engine/session/rhythm';
+import type { CompiledRepetition } from '../engine/session/compileSession';
 
 export function EditorNumber({label,value,fallback,min,max,step=1,onChange}: {
   label:string;value:number|undefined;fallback?:number;min:number;max:number;step?:number;onChange:(value:number|undefined)=>void;
@@ -18,8 +19,9 @@ export function EditorNumber({label,value,fallback,min,max,step=1,onChange}: {
     onChange={event=>onChange(event.target.value === '' ? undefined : Number(event.target.value))} /></label>;
 }
 
-export function DrillShotControls({event,shot,drill,camera,onChange,onCameraChange,onPosition}: {
+export function DrillShotControls({event,shot,drill,camera,resolved,onChange,onCameraChange,onPosition}: {
   event:DrillEventV1;shot:ShotDefinitionV1;drill:DrillDefinitionV1;camera:CameraConfiguration;
+  resolved:CompiledRepetition;
   onChange:(patch:Partial<DrillEventV1>)=>void;onCameraChange:(camera:CameraConfiguration)=>void;onPosition:()=>void;
 }) {
   const spin=event.spin && event.spin!=='preset' ? event.spin : shot.spin;
@@ -36,7 +38,6 @@ export function DrillShotControls({event,shot,drill,camera,onChange,onCameraChan
         <label className="stack-field"><span>Playing hand</span><select aria-label="Playing hand" value={event.opponentHand??shot.opponentHand} onChange={e=>onChange({opponentHand:e.target.value as 'left'|'right'})}><option value="right">Right</option><option value="left">Left</option></select></label>
         {shot.family !== 'serve' ? <label className="stack-field"><span>Stroke side</span><select aria-label="Stroke side" value={event.stroke??shot.stroke??''} onChange={e=>onChange({stroke:e.target.value as 'forehand'|'backhand'||undefined})}><option value="">Shot default</option><option value="forehand">Forehand</option><option value="backhand">Backhand</option></select></label> : null}
       </div>
-      <EditorNumber label="Shot movement pace (%)" value={event.movementPercent} fallback={drill.defaultMovementPercent??100} min={50} max={150} step={5} onChange={movementPercent=>onChange({movementPercent})}/>
     </details>
     <details className="editor-section" open><summary>Perspective</summary>
       <BallFocusControls />
@@ -60,7 +61,9 @@ export function DrillShotControls({event,shot,drill,camera,onChange,onCameraChan
         <EditorNumber label="Bounce factor" value={event.bounceFactor} fallback={1} min={.6} max={1.4} step={.05} onChange={bounceFactor=>onChange({bounceFactor})}/>
       </div>
       <EditorNumber label="Shot interval (s)" value={event.intervalSeconds} fallback={drill.defaultInterval} min={1} max={30} step={.1} onChange={intervalSeconds=>onChange({intervalSeconds})}/>
-      <EditorNumber label="Shot stroke rhythm (%)" value={event.rhythmPercent} fallback={drill.defaultRhythmPercent??rhythmFromLegacyInterval(drill.defaultInterval)} min={50} max={150} step={5} onChange={rhythmPercent=>onChange({rhythmPercent})}/>
+      <EditorNumber label="Shot stroke rhythm (%)" value={event.rhythmPercent} fallback={drill.defaultRhythmPercent??rhythmFromLegacyInterval(drill.defaultInterval)} min={50} max={300} step={5} onChange={rhythmPercent=>onChange({rhythmPercent})}/>
+      <EditorNumber label="Shot movement pace (%)" value={event.movementPercent} fallback={drill.defaultMovementPercent??100} min={50} max={300} step={5} onChange={movementPercent=>onChange({movementPercent})}/>
+      <small role="status">Resolved {Math.round((resolved.motionRate??1)*100)}% stroke · {Math.round((resolved.movementRate??1)*100)}% movement.{resolved.timing ? ` ${resolved.timing.limited?'Shortest feasible interval: ':''}${resolved.timing.actual.toFixed(2)} s${resolved.timing.limited?'.':' between shots.'}` : ''}</small>
       {shot.family==='serve'?<label className="stack-field"><span>Serve rhythm</span><select aria-label="Serve rhythm" value={event.serveRhythm??'preset'} onChange={e=>onChange({serveRhythm:e.target.value as 'preset'|'normal'|'compact'})}><option value="preset">Shot default</option><option value="normal">Normal · high toss</option><option value="compact">Compact · quick toss</option></select></label>:null}
       <label className="stack-field"><span>Preparation cue</span><input maxLength={60} value={event.cue??''} placeholder={shot.cue} onChange={e=>onChange({cue:e.target.value||undefined})}/></label>
     </details>

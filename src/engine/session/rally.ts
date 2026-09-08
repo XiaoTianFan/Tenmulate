@@ -53,7 +53,7 @@ function solveReturn(intent: ShotIntent, target: Vec3, duration: number, bounced
 /** Every accepted return starts on the incoming flight and arrives at the next
  * racket's exact scheduled contact (within the numerical solver tolerance). */
 export function planRallyReturn(incoming: ResolvedTrajectory, next: ShotDefinitionV1, player: PlayerPath,
-  minimumGap: number, preferredGap: number, zone?: ReturnZone, latestContactTime = Infinity): RallyReturn | null {
+  minimumGap: number, preferredGap: number, zone?: ReturnZone, latestContactTime = Infinity, maximumGap = Infinity): RallyReturn | null {
   if(next.family==='serve')return null;
   const contacts=reachableContacts(incoming,player,zone).filter(contact => contact.time <= latestContactTime);
   if(!contacts.length)return null;
@@ -73,7 +73,7 @@ export function planRallyReturn(incoming: ResolvedTrajectory, next: ShotDefiniti
     const desired=Math.max(minimum,preferredGap-contact.time);
     const durations=[desired,Math.max(minimum,travel),minimum,Math.max(minimum,travel*1.3)];
     for(const duration of [...new Set(durations.map(t=>Math.ceil(t*240)/240))]) {
-      if(duration>4.8||contact.time+duration<minimumGap-1e-7)continue;
+      if(duration>4.8||contact.time+duration<minimumGap-1e-7||contact.time+duration>maximumGap+1e-7)continue;
       const intent:ShotIntent={source:contact.position,target:{x:target.x,z:target.z},launchSpeedKmh:preferred,
         spin:mustBounce?'topspin':'flat',spinRateRpm:mustBounce?900:0,family:mustBounce?'groundstroke':'volley',
         surface:incoming.intent.surface,windVelocity:incoming.intent.windVelocity,receiverZ:target.z};

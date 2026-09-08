@@ -1,6 +1,7 @@
 import type { DrillDefinitionV1 } from '../../content/types';
 import { compileSession, type CompiledRepetition, type CompiledSession, type SessionSettings } from './compileSession';
-import { minimumMotionGap, motionEvent, type MotionEvent } from './opponentTimeline';
+import { motionEvent, type MotionEvent } from './opponentTimeline';
+import { solveShotInterval } from './shotTiming';
 import { sessionFlights, type SessionFlight } from './sessionFlights';
 
 /** Preview batches ignore planned set/rest counts. Six feeds cover alternating
@@ -36,10 +37,15 @@ export class ContinuousPracticePreview {
     });
     const last = previous.repetitions.at(-1)!, first = next.repetitions[0]!;
     const requested = this.initial.settings.shotIntervalSeconds!;
-    const gap = Math.max(requested, minimumMotionGap(last, { ...first, startTime: last.startTime + requested }));
+    const solved=solveShotInterval(last,first,requested),gap=solved.gap;
+    // This boundary is compiled at the beginning of the current batch, before
+    // its last stroke plays. Raising rates shrinks occupied stroke windows.
+    this.current={...previous,repetitions:previous.repetitions.map(rep=>rep===last?{...solved.previous,
+      timing:{requested,actual:gap,limited:solved.limited}}:rep)};
     const offset = last.startTime + gap - first.startTime;
     return { ...next, duration: next.duration + offset,
-      repetitions: next.repetitions.map(rep => ({ ...rep, startTime: rep.startTime + offset })) };
+      repetitions: next.repetitions.map(rep => ({ ...(rep===first?{...rep,motionRate:solved.next.motionRate,movementRate:solved.next.movementRate,
+        preparedApproach:solved.next.preparedApproach}:rep), startTime: rep.startTime + offset })) };
   }
 
   private updateEvents(): void {

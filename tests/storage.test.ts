@@ -43,7 +43,7 @@ describe('local application data', () => {
     localStorage.setItem('tenmulate.appData.v1',JSON.stringify({schemaVersion:1,preferences:{...legacy,rhythmPercent:125}}));
     expect(loadAppData().preferences.rhythmPercent).toBe(125);
     localStorage.setItem('tenmulate.appData.v1',JSON.stringify({schemaVersion:1,preferences:{...legacy,rhythmPercent:900}}));
-    expect(loadAppData().preferences.rhythmPercent).toBe(150);
+    expect(loadAppData().preferences.rhythmPercent).toBe(300);
   });
 
   it('uses the reference Rally ball settings for a clean application', () => {

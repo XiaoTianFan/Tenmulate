@@ -43,12 +43,13 @@ describe('recovery-centered practice and independent clocks',()=>{
     const serve=compileSession(DRILLS[0]!,{...settings,practiceShotType:'serve',opponentHand});
     for(const event of serve.repetitions.map(motionEvent))expect(event.root.x).toBeCloseTo(0,5);
   });
-  it('keeps stroke rate independent of interval and accelerates travel to meet a tight gap',()=>{
+  it('keeps ball physics independent while fitting stroke and travel to a tight interval',()=>{
     const slow=compileSession(DRILLS[0]!,{...settings,rhythmPercent:70,movementPercent:50,shotIntervalSeconds:12});
     const fast=compileSession(DRILLS[0]!,{...settings,rhythmPercent:70,movementPercent:50,shotIntervalSeconds:4});
     const plan=(session:ReturnType<typeof compileSession>)=>planRecovery(motionEvent(session.repetitions[0]!),motionEvent(session.repetitions[1]!));
     const slowPlan=plan(slow),fastPlan=plan(fast);
-    expect(fast.repetitions[0]!.motionRate).toBe(slow.repetitions[0]!.motionRate);
+    expect(fast.repetitions[0]!.motionRate).toBeGreaterThan(slow.repetitions[0]!.motionRate!);
+    expect(fast.repetitions[1]!.startTime-fast.repetitions[0]!.startTime).toBeCloseTo(4,6);
     expect(fast.repetitions[0]!.trajectory).toEqual(slow.repetitions[0]!.trajectory);
     expect(fastPlan.recover.end-fastPlan.recover.start).toBeLessThan(slowPlan.recover.end-slowPlan.recover.start);
     const quickStroke=compileSession(DRILLS[0]!,{...settings,rhythmPercent:150,shotIntervalSeconds:12});

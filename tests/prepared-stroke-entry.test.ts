@@ -21,19 +21,26 @@ describe('prepared stroke entries after travel',()=>{
  it.each(clips)('%s stays turned through arrival and preserves the hit in both hands',async clip=>{
   const rig=await loadRig();
   const point=(name:string)=>rig.group.getObjectByName(name)!.getWorldPosition(new T.Vector3());
-  for(const hand of ['right','left'] as const)for(const rate of [.5,1,1.5]){
+  for(const hand of ['right','left'] as const)for(const rate of [.5,1,1.5,2.25,3]){
    const repetition=rep(clip,hand,rate),event=motionEvent(repetition),entry=motionClip(clip).preparedEntry!;
    expect(entry).toBeDefined();expect(event.contactTime-event.start).toBeCloseTo((motionClip(clip).contact!-entry.time)/rate,8);
    const coil=()=>{const line=point('upperarm_r').sub(point('upperarm_l')).applyAxisAngle(new T.Vector3(0,1,0),-event.yaw);line.x*=hand==='left'?-1:1;return Math.abs(Math.atan2(line.z,-line.x));};
    for(const offset of [-.15,-.05,0,.015]){
-    const sample=sampleOpponentTimeline([event],event.start+offset)!;rig.sampleMotion(sample);
-    expect(coil(),`${clip} ${hand} at ${offset}`).toBeGreaterThan(.65);
-    expect(sample.layers.some(l=>l.clip===clip&&l.time>=entry.time&&l.weight>.99)).toBe(true);
+    const sample=sampleOpponentTimeline([event],event.start+offset/rate)!;rig.sampleMotion(sample);
+    if(offset>=-.05)expect(coil(),`${clip} ${hand} at ${offset}`).toBeGreaterThan(.65);
+    const layer=sample.layers.find(l=>l.clip===clip)!;
+    expect(layer.time).toBeCloseTo(entry.time+offset,7);
+    expect(layer.weight).toBeGreaterThan(0);
    }
    rig.sampleMotion(sampleOpponentTimeline([event],event.start-1e-5)!);const before=['pelvis','hand_l','hand_r','foot_l','foot_r'].map(point);
    rig.sampleMotion(sampleOpponentTimeline([event],event.start+1e-5)!);before.forEach((p,i)=>expect(p.distanceTo(point(['pelvis','hand_l','hand_r','foot_l','foot_r'][i]!))).toBeLessThan(.001));
    const hit=sampleOpponentTimeline([event],event.contactTime)!;rig.sampleMotion(hit);const contact=rig.getContactPosition()!.clone();
    expect(contact.distanceTo(new T.Vector3(event.source.x,event.source.y,event.source.z))).toBeLessThan(.002);
+   // The rejected arrival held this exact racket pose for .18 seconds. Measure
+   // body-relative racket travel to exclude root translation as a false pass.
+   const racket=(offset:number)=>{const sample=sampleOpponentTimeline([event],event.start+offset/rate)!;rig.sampleMotion(sample);
+    return rig.getContactPosition()!.clone().sub(new T.Vector3(sample.root.x,sample.root.y,sample.root.z)).applyAxisAngle(new T.Vector3(0,1,0),-sample.yaw);};
+   expect(racket(-.08).distanceTo(racket(-.04)),`${clip} moving preparation`).toBeGreaterThan(.001);
    rig.sampleMotion(sampleOpponentTimeline([event],event.start-.2)!);rig.sampleMotion(hit);expect(rig.getContactPosition()!.distanceTo(contact)).toBeLessThan(1e-7);
    // The former full-ready entry reproduces and rejects the reported net-facing reset.
    const legacy=motionEvent({...repetition,preparedApproach:false});rig.sampleMotion(sampleOpponentTimeline([legacy],legacy.start)!);expect(coil()).toBeLessThan(.2);

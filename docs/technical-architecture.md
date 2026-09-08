@@ -11,6 +11,15 @@ The system should optimize for perceptual credibility and testability, not for g
 
 ## 2. Proposed stack
 
+**Interval-first motion (2026-09-08):** [ADR-0029](decisions/0029-interval-first-motion.md)
+makes requested contact interval primary. A bounded search resolves stroke and
+movement preferences (50–300%) before extending an infeasible interval. The compiler
+and repeating preview share it; no hidden playback-only speed increase remains.
+Preparation advances during braking and arrives exactly at stroke entry. Racket
+anchors, uniform source clocks, independent ball physics and camera travel bounds
+remain. Current UI reports resolved rates/intervals; see the
+[verification receipt](development/interval-first-motion-2026-09-08.md).
+
 **Filtered net (2026-09-08):** [ADR-0028](decisions/0028-filtered-net-weave.md)
 replaces the displayed weave in both authored venue variants with one surface
 whose shader integrates thread coverage across the pixel footprint. Source bounds,
@@ -194,7 +203,7 @@ Resolved shots are checked into source as versioned JSON. Runtime playback does 
 ## 7. Drill timeline
 
 **Current runtime (2026-09-08):** [ADR-0022](decisions/0022-continuous-drill-camera-and-reusable-shots.md)
-uses `CompiledSession.cameraTimeline` and planner `gameplay-rhythm-v5`. The compiler
+uses `CompiledSession.cameraTimeline`; ADR-0029 advances the planner to `gameplay-rhythm-v6`. The compiler
 reserves camera travel, gaze fades and next-stroke preparation in the same absolute
 schedule as opponent recovery and physics-solved returns. `TennisScene` samples the
 camera on the session clock, independently of React's HUD repetition updates.

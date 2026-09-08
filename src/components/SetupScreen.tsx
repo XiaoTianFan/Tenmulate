@@ -207,9 +207,11 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
     serveRhythm, landingZone, landingDepthM, aimDirectionDeg, opponentPosition, returnPatternActive, returnReceiverSide, windVelocity]);
   const deferredSettings = useDeferredValue(sessionSettings);
   const previewSession = useMemo(() => compilePracticePreview(drill,deferredSettings),[drill,deferredSettings]);
-  const trajectory = (previewRepetition?.session === previewSession ? previewRepetition.repetition : previewSession.repetitions[0])!.trajectory;
+  const resolvedPreview = (previewRepetition?.session === previewSession ? previewRepetition.repetition : previewSession.repetitions[0])!;
+  const trajectory = resolvedPreview.trajectory;
   const bounce = trajectory.events.find(event => event.type === 'bounce');
-  const previewGap = previewSession.repetitions[1] ? previewSession.repetitions[1].startTime - previewSession.repetitions[0]!.startTime : 0;
+  const previewGap = resolvedPreview.timing?.actual ?? (previewSession.repetitions[1] ? previewSession.repetitions[1].startTime - previewSession.repetitions[0]!.startTime : 0);
+  const resolvedStroke=Math.round((resolvedPreview.motionRate??1)*100),resolvedMovement=Math.round((resolvedPreview.movementRate??1)*100);
   const onPreviewIndex = useCallback((index: number, repetition: CompiledRepetition) => {
     setReturnPreviewIndex(index); setPreviewRepetition({ session: previewSession, repetition });
   }, [previewSession]);
@@ -485,7 +487,7 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
         <section className="preview-column" aria-label="Live court preview">
           <div className="setup-court-view" data-camera-eye-height={eyeHeight.toFixed(3)}>
             <CourtViewport camera={camera} trajectory={trajectory} surface={surface} environment={environment} quality={quality} running resetToken={resetToken} showTrajectory={trajectoryEnabled} loopTrajectory session={previewSession} onSessionIndex={onPreviewIndex} onLandingZoneChange={changeLandingZone} onCameraFovChange={updateCameraFov} onCameraLookChange={updateCameraLook} onMetrics={onMetrics} />
-            <div className="court-metadata" aria-live="polite">{metrics ? `${metrics.renderer} · ${metrics.fps} fps · ${metrics.pixelRatio.toFixed(2)}× ${metrics.quality}` : 'Starting renderer'} · Stroke {rhythmPercent}%{previewGap ? ` · About ${previewGap.toFixed(1)} s between shots` : ''}</div>
+            <div className="court-metadata" aria-live="polite">{metrics ? `${metrics.renderer} · ${metrics.fps} fps · ${metrics.pixelRatio.toFixed(2)}× ${metrics.quality}` : 'Starting renderer'} · Stroke {resolvedStroke}%{previewGap ? ` · ${previewGap.toFixed(2)} s between shots` : ''}</div>
           </div>
           <div className="preset-toolbar">
             <div className="preset-group" aria-label="Camera position presets">
@@ -516,9 +518,9 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
             <label className="select-field"><span>Trajectory style</span><select aria-label="Trajectory style" value={trajectoryMode} onChange={event=>setTrajectoryMode(event.target.value as 'natural'|'exact')}><option value="natural">Natural target</option><option value="exact">Exact sampled speed & spin</option></select></label>
             <small className={`trajectory-resolution${trajectory.solution?.status==='unreachable'?' warning':''}`} role="status">{trajectory.solution?.status==='unreachable'?'Sample outside this shot’s reach. Adjust speed, spin or zone.':`Resolved ${trajectory.resolved.launchSpeedKmh.toFixed(1)} km/h · ${Math.round(trajectory.resolved.spinRateRpm)} rpm.`} {trajectoryMode==='natural'?'Zone fitting may adjust speed up to 50% and spin up to 20%.':'Each sampled speed and spin stays fixed; some landings may be out of reach.'}</small>
             <RangeField label="Shot interval" value={interval} min={1} max={30} step={0.1} unit="s" onChange={setInterval} />
-            <RangeField label="Stroke rhythm" value={rhythmPercent} min={50} max={150} step={5} unit="%" onChange={setRhythmPercent} />
-            <RangeField label="Movement pace" value={movementPercent} min={50} max={150} step={5} unit="%" onChange={setMovementPercent} />
-            <small>Movement speeds up when needed. {previewGap&&previewGap>interval+.02?`Effective interval: ${previewGap.toFixed(1)} s to complete the stroke and travel.`:'Stroke rhythm and ball speed stay independent.'}</small>
+            <RangeField label="Stroke rhythm" value={rhythmPercent} min={50} max={300} step={5} unit="%" onChange={setRhythmPercent} />
+            <RangeField label="Movement pace" value={movementPercent} min={50} max={300} step={5} unit="%" onChange={setMovementPercent} />
+            <small>Resolved {resolvedStroke}% stroke · {resolvedMovement}% movement. {resolvedPreview.timing?.limited?`Shortest feasible interval: ${previewGap.toFixed(2)} s.`:`${previewGap.toFixed(2)} s between shots.`}</small>
           </SetupSection>
           <SetupSection title="Ball arrival" subtitle="Surface response and perceived height"><RangeField label="Bounce height" value={bounceFactor} min={0.6} max={1.4} step={0.05} unit="×" onChange={setBounceFactor} /></SetupSection>
           <SetupSection title="Practice set" subtitle="Repetitions and recovery"><RangeField label="Repetitions" value={repetitions} min={1} max={50} step={1} unit="" onChange={setRepetitions} /><RangeField label="Timing variation" value={timingVariation} min={0} max={30} step={1} unit="%" onChange={setTimingVariation} /><RangeField label="Work block" value={workBlockSize} min={1} max={20} step={1} unit="reps" onChange={setWorkBlockSize} /><RangeField label="Rest" value={restSeconds} min={0} max={120} step={5} unit="s" onChange={setRestSeconds} /></SetupSection>

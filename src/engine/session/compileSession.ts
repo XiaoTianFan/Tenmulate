@@ -10,6 +10,7 @@ import { createSeededRandom } from '../random/seeded';
 import { minimumMotionGap, motionEvent, motionClip, rotateMotionPoint, strokeForShot, withPreparedApproach } from './opponentTimeline';
 import type { MotionRepetition } from './opponentTimeline';
 import { motionRateForRhythm, normalizeRhythm, normalizeShotInterval, rhythmFromLegacyInterval } from './rhythm';
+import { solveShotInterval } from './shotTiming';
 import { assessReachability, cameraPlayerPosition, type Reachability } from './playerCoverage';
 import type { CameraConfiguration } from '../rendering/TennisScene';
 import { cameraTravelSeconds, DEFAULT_DRILL_CAMERA, interpolateCamera, type CameraTimeline, type CameraTransition } from './cameraTimeline';
@@ -34,7 +35,7 @@ import {
 
 export type SessionSettings = Readonly<{
   repetitions: number;
-  /** Contact-to-contact interval, independent of the stroke source clock. */
+  /** Primary contact-to-contact interval; rhythm and movement are preferences. */
   interval?: number;
   rhythmPercent?: number;
   shotIntervalSeconds?: number;
@@ -72,6 +73,7 @@ export type CompiledRepetition = MotionRepetition & Readonly<{
   startTime: number;
   camera: CameraConfiguration;
   intervalSeconds: number;
+  timing?: Readonly<{requested:number;actual:number;limited:boolean}>;
   returnServePlacement?: ReturnServePlacement;
   reachability: Reachability;
   rallyReturn?: RallyReturn;
@@ -81,7 +83,7 @@ export type CompiledRepetition = MotionRepetition & Readonly<{
 export type CompiledSession = Readonly<{
   previewLoop?: true;
   solverVersion: 'ball-v6-spin-target';
-  plannerVersion: 'gameplay-rhythm-v5';
+  plannerVersion: 'gameplay-rhythm-v6';
   contentVersion: '2026.09.08';
   drill: DrillDefinitionV1;
   settings: SessionSettings;
@@ -260,14 +262,30 @@ export const compileSession = (
     repetitions[0] = { ...first, startTime: Math.max(3, planRecovery(initial,event).requiredDuration + event.contactTime-event.start) };
   }
   for (let index = 1; index < repetitions.length; index += 1) {
-    const previous = repetitions[index - 1]!;
+    let previous = repetitions[index - 1]!;
     const rest = index % workBlockSize === 0 && restSeconds > 0;
-    const schedulingPrevious = rest && mode === 'drill' ? { ...previous, recoveryPolicy: 'recover' as const } : previous;
+    let schedulingPrevious = rest && mode === 'drill' ? { ...previous, recoveryPolicy: 'recover' as const } : previous;
     const variation = 1 + (timingRandom()*2-1)*Math.min(.5,Math.max(0,settings.timingVariationPercent/100));
     const requestedGap = previous.intervalSeconds*variation;
     // Entry selection must see the requested contact clock. The draft's common
     // initial time would incorrectly force a direct route for later repetitions.
-    const next = withPreparedApproach(schedulingPrevious, { ...repetitions[index]!, startTime: previous.startTime+requestedGap });
+    const draft = withPreparedApproach(schedulingPrevious, { ...repetitions[index]!, startTime: previous.startTime+requestedGap });
+    const cameraRequirement = (a:CompiledRepetition,b:CompiledRepetition) => {
+      const travel=mode==='drill'?cameraTravelSeconds(a.camera,b.camera,b.movementRate):0;
+      const release=a.reachability.contact?.time??a.trajectory.samples.at(-1)!.time;
+      const event=motionEvent(b);
+      return travel>0?release+travel+event.contactTime-event.start:0;
+    };
+    // Rests are intentional pauses. Otherwise search rates before relaxing the
+    // requested interval; speed/trajectory fitting stays outside this search.
+    const solved=rest?null:solveShotInterval(schedulingPrevious,draft,requestedGap,cameraRequirement);
+    const next=solved?.next??draft;
+    if(solved) {
+      if(solved.previous.motionRate!==previous.motionRate||solved.previous.movementRate!==previous.movementRate
+        ||next.motionRate!==draft.motionRate||next.movementRate!==draft.movementRate)motionTimingAdjusted=true;
+      previous={...previous,motionRate:solved.previous.motionRate,movementRate:solved.previous.movementRate};
+      schedulingPrevious=previous;
+    }
     const proposed = next;
     const required = minimumMotionGap(schedulingPrevious, proposed);
     const cameraTravel = mode === 'drill' ? cameraTravelSeconds(previous.camera, next.camera, next.movementRate) : 0;
@@ -276,7 +294,7 @@ export const compileSession = (
     let gap = Math.max(requestedGap, required, cameraTravel > 0 ? release + cameraTravel + lead : 0);
     if (mode === 'drill' && !rest && next.shot.family !== 'serve' && previous.reachability.reachable) {
       const rally = planRallyReturn(previous.trajectory,next.shot,{...cameraPlayerPosition(previous.camera),yaw:previous.camera.yaw},gap,gap,returnZone,
-        cameraTravel > 0 ? gap-cameraTravel-lead : Infinity);
+        cameraTravel > 0 ? gap-cameraTravel-lead : Infinity, gap+1/240);
       repetitions[index-1] = { ...previous, rallyReturn: rally ?? undefined, returnStatus: rally ? 'linked' : 'infeasible' };
       if(rally)gap=rally.contactTime+rally.duration;
     } else if (mode === 'drill') {
@@ -291,7 +309,9 @@ export const compileSession = (
     // Lock the chosen route before playback; a longer solved return must not
     // silently switch direct travel back to a full recovery detour.
     const route=planRecovery(motionEvent(schedulingPrevious),motionEvent(proposed));
-    repetitions[index-1]={...repetitions[index-1]!,recoveryPolicy:mode==='quick-practice'?'home':!rest&&route.kind==='direct'?'direct':'recover'};
+    repetitions[index-1]={...repetitions[index-1]!,motionRate:previous.motionRate,movementRate:previous.movementRate,
+      timing:{requested:requestedGap,actual:gap,limited:!rest&&gap>requestedGap+1/240+1e-7},
+      recoveryPolicy:mode==='quick-practice'?'home':!rest&&route.kind==='direct'?'direct':'recover'};
     repetitions[index] = { ...next, startTime: previous.startTime+gap };
     if (cameraTravel > 0) {
       const departure = previous.startTime + (repetitions[index-1]!.rallyReturn?.contactTime ?? release);
@@ -305,7 +325,7 @@ export const compileSession = (
 
   return {
     solverVersion: 'ball-v6-spin-target',
-    plannerVersion: 'gameplay-rhythm-v5',
+    plannerVersion: 'gameplay-rhythm-v6',
     contentVersion: '2026.09.08',
     drill,
     settings: { ...settings, rhythmPercent, shotIntervalSeconds: interval, movementPercent:movementRate*100, mode },

@@ -90,15 +90,20 @@ Run `npm test` and `npm run build`; the build also verifies the selected motion 
 
 Use **Return → Opponent → Serve rhythm** to choose Normal or Compact.
 Groundstroke/slice/volley/overhead selection uses the same mannequin and movement controller.
-**Stroke rhythm** (50–150%) controls stroke playback independently of shot interval, movement pace and ball speed.
+**Shot interval** is primary. **Stroke rhythm** and **Movement pace** (50–300%)
+are preferences: a bounded search adjusts them to fit the interval and displays
+the resolved rates. If motion or camera travel cannot fit, the required longer
+interval is shown. Ball speed remains independent. See
+[interval-first motion timing](docs/development/interval-first-motion-2026-09-08.md).
 Quick Practice returns to its selected home; drills recover or move directly as
 space and time permit, with physical return flights for valid rally links.
-Quick Practice uses a body recovery center, separate stroke rhythm, shot interval and movement pace, and draggable first-bounce direction/depth handles. Natural targets avoid the high-angle branch and show any bounded speed/spin adjustment. See [current practice refinement](docs/development/practice-refinement-2026-09-08.md).
+Quick Practice uses a body recovery center and directly movable/resizable landing
+zones. Natural targets avoid the high-angle branch and show bounded speed/spin adjustments.
 The sibling MotionLab provides phase and movement review at ports 4184/4185; see
 the [motion runbook](docs/development/local-motion-pipeline.md).
 
-Moving opponents now arrive in the prepared groundstroke/slice/volley pose and
-continue into the swing without resetting to ready or repeating the unit turn.
+Moving opponents advance preparation during braking and continue straight into
+the swing at arrival, without a frozen prepared-pose dwell or repeated unit turn.
 MotionLab exposes **Unit Turn Complete** and **From prepared pose** for review.
 See the [prepared-entry verification](docs/development/prepared-stroke-entry-2026-09-08.md).
 Venue review remains `/venue-review.html?venue=clay-sunset-arena&camera=corner`.

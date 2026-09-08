@@ -2,8 +2,8 @@ import library from '../../content/opponent-motion.json';
 import type { Vec3 } from '../../domain/vector';
 import type { MotionEvent, MotionId, MotionSample } from './opponentTimeline';
 
-export const MAX_OPPONENT_SPEED = 4.8;
-export const MAX_TRAVEL_ACCELERATION = 6.5;
+export const MAX_OPPONENT_SPEED = 7.2;
+export const MAX_TRAVEL_ACCELERATION = 12;
 export const SPLIT_SECONDS = .6;
 const clamp = (x:number) => Math.max(0,Math.min(1,x));
 const ease = (x:number) => { x=clamp(x);return x*x*(3-2*x); };
@@ -15,9 +15,9 @@ export type MovementStage = 'recover'|'split'|'approach'|'ready'|'drill';
 export type TravelLeg = Readonly<{from:Vec3;to:Vec3;start:number;end:number;fromYaw:number;toYaw:number;stage:MovementStage;crossover?:boolean;clip?:MotionId;arrival?:MotionEvent}>;
 export type RecoveryPlan = Readonly<{kind:'recovery'|'direct';center:Vec3;recover:TravelLeg;approach:TravelLeg|null;splitStart:number;splitEnd:number;end:number;requiredDuration:number}>;
 const entrySpec = (event?: MotionEvent) => event?.entryTime ? (library.clips[event.clip] as {preparedEntry?:{time:number;blendSeconds:number}}).preparedEntry : undefined;
-const entryCorrection = (event: MotionEvent) => {
+const entryCorrection = (event: MotionEvent, localTime=event.entryTime??0) => {
   const clip=library.clips[event.clip];
-  return (event.source.y-clip.contactLocal[1]*library.scale-library.floorOffset)*ease((event.entryTime??0)/clip.contact);
+  return (event.source.y-clip.contactLocal[1]*library.scale-library.floorOffset)*ease(localTime/clip.contact);
 };
 
 /** Integrate a speed profile with separate push-off, cruise and braking phases.
@@ -33,7 +33,7 @@ export function travelCurve(u:number): {progress:number;velocity:number;accelera
 }
 export function travelDuration(from:Vec3,to:Vec3,pace=MAX_OPPONENT_SPEED,acceleration=MAX_TRAVEL_ACCELERATION):number {
   const d=distance(from,to);
-  return d<.015?0:Math.max(.6,d/(.7*pace),Math.sqrt(Math.PI*d/(1.4*.26*acceleration)));
+  return d<.015?0:Math.max(.3,d/(.7*pace),Math.sqrt(Math.PI*d/(1.4*.26*acceleration)));
 }
 export function recoveryCenter(event:MotionEvent):Vec3 {
   if(event.home)return event.home;
@@ -44,38 +44,36 @@ export function recoveryCenter(event:MotionEvent):Vec3 {
 export function planRecovery(previous:MotionEvent,next?:MotionEvent):RecoveryPlan {
   const center=recoveryCenter(previous);
   const availableTime=next?next.start-previous.end:Infinity;
-  const preferred=Math.min(1.5,Math.max(.5,previous.movementRate??1));
+  const rate=Math.min(3,Math.max(.5,previous.movementRate??1));
+  const splitSeconds=SPLIT_SECONDS/rate;
   const arrival=entrySpec(next)?next:undefined;
   const legTime=(from:Vec3,to:Vec3,rate:number,fromYaw:number,toYaw:number)=>{
     const turn=Math.abs(Math.atan2(Math.sin(toYaw-fromYaw),Math.cos(toYaw-fromYaw)));
-    return Math.max(travelDuration(from,to,Math.min(MAX_OPPONENT_SPEED,3.2*rate),Math.min(MAX_TRAVEL_ACCELERATION,4.4*rate)),turn>1e-4?Math.max(.18,turn/2):0);
+    return Math.max(travelDuration(from,to,Math.min(MAX_OPPONENT_SPEED,3.2*rate),Math.min(MAX_TRAVEL_ACCELERATION,4.4*rate)),turn>1e-4?Math.max(.18/rate,turn/(2*Math.min(2,rate))):0);
   };
   const serveApproach=next&&previous.clip.startsWith('serve')&&previous.tossEnabled!==false&&next.root.z<previous.root.z-3;
   const approachDuration=(from:Vec3,rate:number,fromYaw:number)=>next?Math.max(legTime(from,next.root,rate,fromYaw,next.yaw),(entrySpec(next)?.blendSeconds??0)/next.rate):0;
-  const fullAt=(rate:number)=>legTime(previous.root,center,rate,previous.yaw,Math.PI)+SPLIT_SECONDS+approachDuration(center,rate,Math.PI)+.18;
-  const direct=!!next&&(previous.recoveryPolicy==='direct'||previous.recoveryPolicy==='auto'&&(serveApproach||availableTime+1e-7<fullAt(1.5)));
-  const requiredAt=(rate:number)=>direct&&next?approachDuration(previous.root,rate,previous.yaw)+.18:fullAt(rate);
-  // Interval pressure can accelerate travel, independently of the stroke clock.
-  let rate=preferred;
-  if(requiredAt(rate)>availableTime){let lo=rate,hi=1.5;for(let i=0;i<18;i++){const mid=(lo+hi)/2;if(requiredAt(mid)>availableTime)lo=mid;else hi=mid;}rate=hi;}
+  const fullAt=(rate:number)=>legTime(previous.root,center,rate,previous.yaw,Math.PI)+splitSeconds+approachDuration(center,rate,Math.PI);
+  const direct=!!next&&(previous.recoveryPolicy==='direct'||previous.recoveryPolicy==='auto'&&(serveApproach||availableTime+1e-7<fullAt(rate)));
   const recoverTime=legTime(previous.root,center,rate,previous.yaw,Math.PI);
   const approachTime=approachDuration(center,rate,Math.PI);
-  const requiredDuration=recoverTime+SPLIT_SECONDS+approachTime+.18;
+  const requiredDuration=recoverTime+splitSeconds+approachTime;
   const start=previous.end,available=next?next.start-start:requiredDuration;
   if(direct&&next){
-    const travel=approachDuration(previous.root,rate,previous.yaw),required=travel+.18;
-    // Move immediately after the finish, then wait at the next preparation point.
-    const leg:TravelLeg={from:previous.root,to:next.root,start,end:start+travel,fromYaw:previous.yaw,toYaw:next.yaw,stage:'approach',arrival};
-    return {kind:'direct',center:next.root,recover:leg,approach:null,splitStart:start+travel,splitEnd:start+travel,
-      end:start+Math.max(required,available),requiredDuration:required};
+    const travel=approachDuration(previous.root,rate,previous.yaw),end=start+Math.max(travel,available);
+    // Arrive exactly as the stroke starts. Serve-and-volley departs immediately;
+    // other direct routes can wait in ready before the final approach.
+    const leg:TravelLeg={from:previous.root,to:next.root,start:serveApproach?start:end-travel,end,fromYaw:previous.yaw,toYaw:next.yaw,stage:'approach',arrival};
+    return {kind:'direct',center:next.root,recover:leg,approach:null,splitStart:end,splitEnd:end,
+      end,requiredDuration:travel};
   }
   // Compilation must reserve this full duration before assigning contact times.
   // The planner never shortens travel to fit an infeasible input schedule.
   const end=start+Math.max(requiredDuration,available);
-  const splitEnd=next?end-approachTime-.18:start+recoverTime+SPLIT_SECONDS;
+  const splitEnd=next?end-approachTime:start+recoverTime+splitSeconds;
   return {kind:'recovery',center,requiredDuration,end,
     recover:{from:previous.root,to:center,start,end:start+recoverTime,fromYaw:previous.yaw,toYaw:Math.PI,stage:'recover',crossover:Math.abs(previous.root.x-center.x)>1.4},
-    splitStart:splitEnd-SPLIT_SECONDS,splitEnd,
+    splitStart:splitEnd-splitSeconds,splitEnd,
     approach:next?{from:center,to:next.root,start:splitEnd,end:splitEnd+approachTime,fromYaw:Math.PI,toYaw:next.yaw,stage:'approach',arrival}:null};
 }
 
@@ -100,8 +98,9 @@ export function sampleTravel(leg:TravelLeg,time:number,hand:'left'|'right'):Moti
     // A route can become a turn in place after scheduling. Still finish its
     // reserved preparation instead of snapping from ready at the boundary.
     const event=leg.arrival;
-    return event?{...sample,verticalCorrection:entryCorrection(event)*progress,layers:[
-      {clip:'ready',time:0,weight:1-progress},{clip:event.clip,time:event.entryTime!,weight:progress}]}:sample;
+    const localTime=event?Math.max(0,event.entryTime!-(leg.end-time)*event.rate):0;
+    return event?{...sample,verticalCorrection:entryCorrection(event,localTime)*progress,layers:[
+      {clip:'ready',time:0,weight:1-progress},{clip:event.clip,time:localTime,weight:progress}]}:sample;
   }
   const u=clamp((time-leg.start)/duration),curve=travelCurve(u),progress=curve.progress,covered=d*progress;
   const speed=curve.velocity*d/duration,acceleration=curve.acceleration*d/(duration*duration),root=point(leg.from,leg.to,progress);
@@ -186,9 +185,10 @@ export function sampleTravel(leg:TravelLeg,time:number,hand:'left'|'right'):Moti
   }
   const arrival=leg.arrival,prepareSeconds=arrival?(entrySpec(arrival)?.blendSeconds??.48)/arrival.rate:0;
   const preparedWeight=arrival?ease((prepareSeconds-remaining)/prepareSeconds):0;
+  const preparationTime=arrival?Math.max(0,arrival.entryTime!-Math.max(0,remaining)*arrival.rate):0;
   const layers:MotionSample['layers']=arrival?[...baseLayers.map(layer=>({...layer,weight:layer.weight*(1-preparedWeight)})),
-    {clip:arrival.clip,time:arrival.entryTime!,weight:preparedWeight}]:baseLayers;
-  return {root,yaw,hand,event:null,verticalCorrection:arrival?entryCorrection(arrival)*preparedWeight:0,toss:null,layers,
+    {clip:arrival.clip,time:preparationTime,weight:preparedWeight}]:baseLayers;
+  return {root,yaw,hand,event:null,verticalCorrection:arrival?entryCorrection(arrival,preparationTime)*preparedWeight:0,toss:null,layers,
     movement:{stage:leg.stage,speed,acceleration,distance:covered,phase,heading},
     travelLean:travelTurn?Math.max(-.2,Math.min(.2,Math.atan2(acceleration,9.81)*.35+speed/MAX_OPPONENT_SPEED*.055))*blend*(1-crossWeight)*(1-preparedWeight):0,
     lookYaw:travelTurn?Math.max(-1,Math.min(1,Math.atan2(Math.sin(leg.toYaw-yaw),Math.cos(leg.toYaw-yaw))))*blend*(1-preparedWeight):0,
@@ -196,10 +196,11 @@ export function sampleTravel(leg:TravelLeg,time:number,hand:'left'|'right'):Moti
 }
 
 export function sampleRecovery(plan:RecoveryPlan,time:number,hand:'left'|'right'):MotionSample {
+  if(time<plan.recover.start)return rest(plan.recover.from,plan.recover.fromYaw,hand,'ready');
   if(time<plan.recover.end)return sampleTravel(plan.recover,time,hand);
   if(plan.kind==='direct')return arrivalRest(plan.recover,hand);
   if(time<plan.splitStart)return rest(plan.center,Math.PI,hand,'ready');
-  if(time<plan.splitEnd)return rest(plan.center,Math.PI,hand,'split',time-plan.splitStart,true);
+  if(time<plan.splitEnd)return rest(plan.center,Math.PI,hand,'split',(time-plan.splitStart)*SPLIT_SECONDS/(plan.splitEnd-plan.splitStart),true);
   if(plan.approach&&time<plan.approach.end)return sampleTravel(plan.approach,time,hand);
   return plan.approach?arrivalRest(plan.approach,hand):rest(plan.center,Math.PI,hand,'ready');
 }

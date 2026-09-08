@@ -142,9 +142,9 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
 
       <aside className="rehearsal-mode-panel">
         <span className={launch.trajectoryEnabled ? 'active' : ''}>Trajectory {launch.trajectoryEnabled ? 'on' : 'off'}</span>
-        <small>Stroke {session.rhythmPercent}% · Interval {session.settings.shotIntervalSeconds?.toFixed(1)} s · Seed {session.settings.seed}</small>
+        <small>{repetition?.timing ? `Interval ${repetition.timing.actual.toFixed(2)} s · ` : ''}Stroke {Math.round((repetition?.motionRate??1)*100)}% · Movement {Math.round((repetition?.movementRate??1)*100)}%</small>
         {session.mode === 'drill' ? <small>{repetition?.returnStatus === 'linked' ? 'Rally return' : repetition?.returnStatus === 'infeasible' || repetition?.returnStatus === 'unreachable' ? 'Next shot begins a new feed' : 'New point'}</small> : null}
-        {session.motionTimingAdjusted ? <small>Some intervals include extra time for movement or set rests.</small> : null}
+        {repetition?.timing?.limited ? <small>Requested {repetition.timing.requested.toFixed(2)} s. This transition needs more time.</small> : repetition?.returnStatus==='rest' ? <small>A scheduled set rest follows this shot.</small> : null}
       </aside>
 
       <div className="rehearsal-transport" aria-label="Playback controls">

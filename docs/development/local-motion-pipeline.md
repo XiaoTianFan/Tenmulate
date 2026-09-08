@@ -47,11 +47,13 @@ All **25 clips** share calibrated boundaries and the same rig. The overhead addi
 
 [ADR-0021](../decisions/0021-prepared-stroke-entry-after-travel.md) adds lab-authored
 `unitTurnComplete`/`preparedEntry` boundaries for both drives, slices and volleys.
-Incoming travel blends into this pose while braking and holds it through arrival.
+Under [ADR-0029](../decisions/0029-interval-first-motion.md), incoming travel advances
+the source preparation clock while braking and ends exactly at stroke entry.
+Spare time is spent ready before approach, with no static prepared-pose dwell.
 The stroke starts after the completed unit turn, with no ready-pose reset. Foot IK
 fades into the baked stance; contact alignment uses the same height envelope on
 both sides of entry. The shared compiler/planner reserves this transition before
-assigning contact times (`gameplay-rhythm-v4`). Standalone strokes without incoming
+assigning contact times (`gameplay-rhythm-v6`). Standalone strokes without incoming
 travel, serves and overhead proxies retain full preparation. The GLB is byte-identical
 to the preceding bundle; only phase/entry metadata changes. See the
 [prepared-entry verification](prepared-stroke-entry-2026-09-08.md).
@@ -64,7 +66,17 @@ Ready, split and movement share a two-hand belly/chest carry and forward athleti
 
 [ADR-0015](../decisions/0015-mode-aware-gameplay-rhythm.md) and [ADR-0016](../decisions/0016-bounded-rally-arcs-and-drill-pace.md) replace mandatory recovery with a shared mode-aware planner. Quick Practice uses the selected point as the body recovery center and returns there after every shot. The body moves 0.7–0.9 m to the selected stroke side; contact follows its racket anchor and the desired landing stays fixed. Serve roots remain at the service start. Drills recover toward baseline center 1.5 m behind the line with a small shot-side bias when time allows. Fast drills travel directly; serve-and-volley approaches the net directly. Short net sequences keep recovery near the net. Full recovery reserves a split-step, approach and preparation; short rests cannot override its movement budget. Final shots recover, and the initial practice approach starts at home.
 
-[ADR-0017](../decisions/0017-independent-practice-clocks-and-natural-targets.md) separates stroke rhythm (50–150%, direct 0.5–1.5 source-clock scaling), requested shot interval (1–30 s), and preferred movement pace (50–150%). The planner accelerates travel under interval pressure, then extends infeasible gaps. Long gaps contain ready time; a rally link cannot shorten the requested interval. Travel integrates separate push-off, cruise and braking phases with zero endpoint velocity and acceleration, bounded to 4.8 m/s and 6.5 m/s². Walk/run selection follows route distance and peak speed, with continuous gait blending. Acceleration lean acts through the torso, preserving pelvis and fixed-length foot IK. Slides/crossovers retain their authored poses. Near-zero-distance legs reserve a smooth in-place turn. These numerical envelopes are product calibrations.
+[ADR-0029](../decisions/0029-interval-first-motion.md) makes the requested shot
+interval (1–30 s) primary. Stroke rhythm and movement pace (50–300%) are secondary
+preferences. A bounded parameter search resolves rates before extending infeasible
+gaps; resolved stroke clocks remain uniformly scaled and independent of ball speed.
+Long gaps contain ready time. Return links must fit within one physics tick of the
+scheduled interval. Travel retains push-off, cruise and braking with zero endpoint
+velocity/acceleration, bounded to 7.2 m/s and 12 m/s². At preferred 100%, the movement
+limits remain 3.2 m/s and 4.4 m/s² before fitting. Walk/run selection follows distance
+and peak speed, with continuous gait blending. Torso acceleration lean preserves
+pelvis and fixed-length foot IK. Slides/crossovers retain their authored poses;
+near-zero-distance legs reserve a smooth turn. These envelopes are product calibrations.
 
 Setup, editor preview and rehearsal consume compiled sessions. The quick-practice camera stays at the chosen position. Drill receiver coverage follows the rendered scripted camera, including its intensity setting; changing that intensity restarts and recompiles the set. The coverage model and its explicit 12% screen allowance are documented in [player coverage](../research/player-coverage.md). Quick Practice records reachability without altering the incoming ball. Drills link accepted returns through the physical solver, with distinct outgoing/return handoffs and matching contact/bounce audio. A return must arrive within 2.5 cm of the next racket contact and keep launch speed within 0.65–1.35 of the incoming launch. Ordinary return arcs are capped at 6 m, volley feeds at 4.5 m, and overhead lob feeds at 10 m. Natural target mode follows the low-angle range branch and may adjust speed by ±15% and spin by ±20%; resolved values and unreachable targets are reported. Exact mode retains requested speed/spin. Failed links, rest boundaries and new serves start a new feed.
 

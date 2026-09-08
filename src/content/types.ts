@@ -53,7 +53,7 @@ export type DrillDefinitionV1 = Readonly<{
   shotIds: readonly string[];
   events?: readonly DrillEventV1[];
   defaultInterval: number;
-  /** Uniform stroke rhythm, independent of defaultInterval. */
+  /** Preferred uniform stroke rhythm; the interval solver may raise it to fit. */
   defaultRhythmPercent?: number;
   defaultMovementPercent?: number;
   defaultRepetitions: number;
