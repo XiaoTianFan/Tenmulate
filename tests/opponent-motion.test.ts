@@ -27,7 +27,7 @@ describe('local motion asset and shared contact clock', () => {
   it('uses a separate compact clip with a lower toss, without changing ball pace', () => {
     const base=SHOTS.find(s=>s.family==='serve')!;
     const drill={...DRILLS[0]!,events:undefined,shotIds:[base.id]};
-    const settings={repetitions:2,interval:5,variationPercent:0,timingVariationPercent:0,launchSpeedKmh:110,surface:'hard',seed:'serve-rhythms',spin:'preset',opponentHand:'right',workBlockSize:2,restSeconds:0} as const;
+    const settings={repetitions:2,rhythmPercent:100,variationPercent:0,timingVariationPercent:0,launchSpeedKmh:110,surface:'hard',seed:'serve-rhythms',spin:'preset',opponentHand:'right',workBlockSize:2,restSeconds:0} as const;
     const sessions=(['normal','compact'] as const).map(serveRhythm=>compileSession(drill,{...settings,serveRhythm}));
     const [normal,compact]=sessions.map(s=>motionEvent(s.repetitions[0]!));
     expect(normal!.clip).toBe('serve');expect(compact!.clip).toBe('serve-compact');
@@ -278,7 +278,7 @@ describe('local motion asset and shared contact clock', () => {
     const rig=await loadRig();
     for(const hand of ['right','left'] as const){
       // Keep the route away from the nudge/walk boundary as reach varies by model.
-      const events=[motionEvent(repetition('forehand',0,0,12.5,hand)),motionEvent(repetition('forehand',1,0,11.4,hand))];
+      const events=[motionEvent({...repetition('forehand',0,0,12.5,hand),home:{x:0,y:0,z:12.1}}),motionEvent(repetition('forehand',1,0,11.4,hand))];
       let walks=0,blends=0;
       for(let t=events[0]!.end+.01;t<events[1]!.start;t+=1/60){
         const pose=sampleOpponentTimeline(events,t)!;

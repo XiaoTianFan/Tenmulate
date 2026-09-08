@@ -7,6 +7,10 @@ import type { ResolvedTrajectory } from '../trajectory/physics';
 import { resolveTrajectory, type SpinKind } from '../trajectory/physics';
 import { createSeededRandom } from '../random/seeded';
 import { minimumMotionGap, motionEvent } from './opponentTimeline';
+import type { MotionRepetition } from './opponentTimeline';
+import { motionRateForRhythm, normalizeRhythm, rhythmFromLegacyInterval } from './rhythm';
+import { assessReachability, cameraPlayerPosition, type Reachability } from './playerCoverage';
+import { planRallyReturn, type RallyReturn } from './rally';
 import type { Vec3 } from '../../domain/vector';
 import {
   RETURN_SERVE_PATTERN,
@@ -25,7 +29,11 @@ import {
 
 export type SessionSettings = Readonly<{
   repetitions: number;
-  interval: number;
+  /** Legacy import input only. New controls use rhythmPercent. */
+  interval?: number;
+  rhythmPercent?: number;
+  mode?: 'quick-practice' | 'drill';
+  camera?: Readonly<{ lateral: number; behindBaseline: number }>;
   variationPercent: number;
   timingVariationPercent: number;
   launchSpeedKmh: number;
@@ -46,12 +54,15 @@ export type SessionSettings = Readonly<{
   windVelocity?: Vec3;
 }>;
 
-export type CompiledRepetition = Readonly<{
+export type CompiledRepetition = MotionRepetition & Readonly<{
   index: number;
   shot: ShotDefinitionV1;
   trajectory: ResolvedTrajectory;
   startTime: number;
   returnServePlacement?: ReturnServePlacement;
+  reachability: Reachability;
+  rallyReturn?: RallyReturn;
+  returnStatus: 'quick-practice' | 'end' | 'rest' | 'new-serve' | 'unreachable' | 'infeasible' | 'linked';
 }>;
 
 export type CompiledSession = Readonly<{
@@ -63,6 +74,8 @@ export type CompiledSession = Readonly<{
   restPeriods: readonly Readonly<{ afterIndex: number; startTime: number; endTime: number }>[];
   duration: number;
   motionTimingAdjusted: boolean;
+  rhythmPercent: number;
+  mode: 'quick-practice' | 'drill';
 }>;
 
 export const compileSession = (
@@ -78,7 +91,15 @@ export const compileSession = (
   const sourceEvents = drill.events?.length
     ? drill.events
     : drill.shotIds.map((shotId, index) => ({ id: `${drill.id}-${index}`, shotId }));
-  let startTime = 3;
+  const startTime = 3;
+  const mode = settings.mode ?? (settings.practiceShotType ? 'quick-practice' : 'drill');
+  const rhythmPercent = normalizeRhythm(settings.rhythmPercent ?? drill.defaultRhythmPercent
+    ?? rhythmFromLegacyInterval(settings.interval ?? drill.defaultInterval));
+  const motionRate = motionRateForRhythm(rhythmPercent);
+  const playerPosition = cameraPlayerPosition(settings.camera);
+  const quickOrigin = settings.opponentPosition ?? (settings.practiceShotType
+    ? PRACTICE_SHOT_PROFILES[settings.practiceShotType].opponentPosition
+    : SHOT_BY_ID.get(sourceEvents[0]!.shotId)!.source);
 
   for (let index = 0; index < settings.repetitions; index += 1) {
     const sourceEvent = sourceEvents[index % sourceEvents.length];
@@ -105,11 +126,11 @@ export const compileSession = (
     ) + speedJitter);
     const source = {
       ...sourceShot.source,
-      x: sourceEvent && 'opponentPosition' in sourceEvent && sourceEvent.opponentPosition
+      x: mode === 'quick-practice' ? quickOrigin.x : sourceEvent && 'opponentPosition' in sourceEvent && sourceEvent.opponentPosition
         ? sourceEvent.opponentPosition.x
         : settings.opponentPosition?.x ?? sourceShot.source.x,
       y: practiceProfile?.contactHeight ?? sourceShot.source.y,
-      z: sourceEvent && 'opponentPosition' in sourceEvent && sourceEvent.opponentPosition
+      z: mode === 'quick-practice' ? quickOrigin.z : sourceEvent && 'opponentPosition' in sourceEvent && sourceEvent.opponentPosition
         ? sourceEvent.opponentPosition.z
         : settings.opponentPosition?.z ?? sourceShot.source.z,
     };
@@ -152,60 +173,78 @@ export const compileSession = (
         ? sourceEvent.netClearanceM
         : practiceProfile?.minimumNetClearanceM ?? sourceShot.netClearanceM,
     };
+    const trajectory = resolveTrajectory({
+      ...shot, launchSpeedKmh,
+      spinRateRpm: settings.practiceShotType ? spinRateForPracticeShot(settings.practiceShotType, selectedSpin, settings.spinRateRpm) : undefined,
+      minimumNetClearanceM: shot.netClearanceM, shotType: settings.practiceShotType,
+      aimDirectionDeg: returnServePlacement ? undefined : settings.aimDirectionDeg,
+      windVelocity: settings.windVelocity, bounceFactor: settings.bounceFactor,
+    });
     repetitions.push({
       index,
       shot,
-      trajectory: resolveTrajectory({
-        ...shot,
-        launchSpeedKmh,
-        spinRateRpm: settings.practiceShotType
-          ? spinRateForPracticeShot(settings.practiceShotType, selectedSpin, settings.spinRateRpm)
-          : undefined,
-        minimumNetClearanceM: shot.netClearanceM,
-        shotType: settings.practiceShotType,
-        aimDirectionDeg: returnServePlacement ? undefined : settings.aimDirectionDeg,
-        windVelocity: settings.windVelocity,
-        bounceFactor: settings.bounceFactor,
-      }),
+      trajectory,
       startTime,
       returnServePlacement,
+      motionRate, recoveryPolicy: mode === 'quick-practice' ? 'home' : 'auto',
+      home: mode === 'quick-practice' ? { x: quickOrigin.x, y: 0, z: quickOrigin.z + .45 } : undefined,
+      reachability: assessReachability(trajectory, playerPosition),
+      returnStatus: mode === 'quick-practice' ? 'quick-practice' : 'end',
     });
-    const timingVariation = Math.min(0.5, Math.max(0, settings.timingVariationPercent / 100));
-    const gap = Math.max(0.5, settings.interval * (1 + (timingRandom() * 2 - 1) * timingVariation));
-    startTime += gap;
-    const blockEnds = (index + 1) % workBlockSize === 0 && index < settings.repetitions - 1;
-    if (blockEnds) {
-      restPeriods.push({ afterIndex: index, startTime, endTime: startTime + restSeconds });
-      startTime += restSeconds;
-    }
   }
 
-  // Contact times remain the only launch authority. Add enough time for a complete
-  // stroke and reachable travel instead of overlapping clips or teleporting the body.
-  const originalStarts = repetitions.map(repetition => repetition.startTime);
+  let motionTimingAdjusted = false;
+  // The initial home approach also has to finish before preparation starts.
+  const first = repetitions[0];
+  if (first?.home) {
+    const event = motionEvent(first);
+    const initial = { ...event, root: first.home, yaw: Math.PI, end: 0, recoveryPolicy: 'direct' as const };
+    repetitions[0] = { ...first, startTime: Math.max(3, planRecovery(initial,event).requiredDuration + event.contactTime-event.start) };
+  }
   for (let index = 1; index < repetitions.length; index += 1) {
     const previous = repetitions[index - 1]!, next = repetitions[index]!;
-    const authoredGap = originalStarts[index]! - originalStarts[index - 1]!;
-    const contactTime = previous.startTime + Math.max(authoredGap, minimumMotionGap(previous, next));
-    repetitions[index] = { ...next, startTime: contactTime };
-  }
-  const shiftAt = (index: number) => repetitions[index]!.startTime - originalStarts[index]!;
-  for (const rest of restPeriods) {
-    const shift = shiftAt(rest.afterIndex);
-    rest.startTime += shift; rest.endTime += shift;
+    const full = minimumMotionGap({ ...previous, motionRate: 1, recoveryPolicy: 'recover' }, { ...next, motionRate: 1 });
+    const receiverTime = previous.reachability.contact?.time ?? previous.trajectory.events.find(e=>e.type==='receiver-plane')?.time ?? 2;
+    const flightBaseline = mode === 'drill' ? receiverTime + Math.hypot(next.shot.source.x-playerPosition.x,next.shot.source.z-playerPosition.z)/(previous.trajectory.resolved.launchSpeedKmh/3.6)*1.5 : receiverTime+.35;
+    const baseline = Math.max(full, flightBaseline);
+    const variation = 1 + (timingRandom()*2-1)*Math.min(.5,Math.max(0,settings.timingVariationPercent/100));
+    const requestedGap = baseline/(rhythmPercent/100)*variation;
+    const proposed = { ...next, startTime: previous.startTime+requestedGap };
+    const required = minimumMotionGap(previous, proposed);
+    let gap = Math.max(requestedGap, required);
+    const rest = index % workBlockSize === 0 && restSeconds > 0;
+    if (mode === 'drill' && !rest && next.shot.family !== 'serve' && previous.reachability.reachable) {
+      const rally = planRallyReturn(previous.trajectory,next.shot,playerPosition,required,gap);
+      repetitions[index-1] = { ...previous, rallyReturn: rally ?? undefined, returnStatus: rally ? 'linked' : 'infeasible' };
+      if(rally)gap=rally.contactTime+rally.duration;
+    } else if (mode === 'drill') {
+      repetitions[index-1] = { ...previous, returnStatus: rest ? 'rest' : next.shot.family==='serve' ? 'new-serve' : 'unreachable' };
+    }
+    if (rest) {
+      const restStart=previous.startTime+Math.max(previous.trajectory.samples.at(-1)!.time,motionEvent(previous).end-previous.startTime);
+      const restEnd=restStart+restSeconds;
+      restPeriods.push({afterIndex:index-1,startTime:restStart,endTime:restEnd});
+      gap=Math.max(gap,restEnd-previous.startTime+motionEvent(next).contactTime-motionEvent(next).start);
+    }
+    // Lock the chosen route before playback; a longer solved return must not
+    // silently switch direct travel back to a full recovery detour.
+    const route=planRecovery(motionEvent(previous),motionEvent(proposed));
+    repetitions[index-1]={...repetitions[index-1]!,recoveryPolicy:mode==='quick-practice'?'home':!rest&&route.kind==='direct'?'direct':'recover'};
+    repetitions[index] = { ...next, startTime: previous.startTime+gap };
+    if(Math.abs(gap-requestedGap)>.001)motionTimingAdjusted=true;
   }
   const last = repetitions.at(-1);
-  const duration = last ? Math.max(startTime + shiftAt(last.index), planRecovery(motionEvent(last)).end + .15,
+  const duration = last ? Math.max(planRecovery(motionEvent(last)).end + .15,
     last.startTime + (last.trajectory.samples.at(-1)?.time ?? 0)) : startTime;
 
   return {
     solverVersion: 'ball-v6-spin-target',
     contentVersion: '2026.08.29',
     drill,
-    settings,
+    settings: { ...settings, rhythmPercent, mode },
     repetitions,
     restPeriods,
     duration,
-    motionTimingAdjusted: repetitions.some((rep, index) => Math.abs(rep.startTime - originalStarts[index]!) > .001),
+    motionTimingAdjusted, rhythmPercent, mode,
   };
 };

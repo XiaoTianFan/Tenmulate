@@ -58,7 +58,7 @@ export type FlightSample = Readonly<{
 }>;
 
 export type TrajectoryEvent = Readonly<{
-  type: 'net-crossing' | 'bounce' | 'receiver-plane';
+  type: 'net-crossing' | 'bounce' | 'second-bounce' | 'receiver-plane';
   time: number;
   position: Vec3;
   speedKmh: number;
@@ -464,6 +464,11 @@ const targetAdjustedVelocity = (intent: ShotIntent): Vec3 => {
 
 export const resolveTrajectory = (intent: ShotIntent): ResolvedTrajectory => {
   const launchVelocity = targetAdjustedVelocity(intent);
+  return integrateTrajectory(intent, launchVelocity);
+};
+
+/** Forward integration also serves inverse rally authoring in either direction. */
+export const integrateTrajectory = (intent: ShotIntent, launchVelocity: Vec3, stopTime = MAX_SIMULATION_SECONDS): ResolvedTrajectory => {
   const surface = SURFACE_PROFILES[intent.surface];
   const initialSpin = spinVector(intent, launchVelocity);
   let spin = initialSpin;
@@ -480,9 +485,12 @@ export const resolveTrajectory = (intent: ShotIntent): ResolvedTrajectory => {
   let grounded = false;
   let apexHeight = position.y;
   let previousZ = position.z;
+  let bounceCount = 0;
+  const direction = Math.sign(launchVelocity.z) || -1;
 
-  for (let index = 1; index <= MAX_SIMULATION_SECONDS / FIXED_STEP; index += 1) {
-    const time = index * FIXED_STEP;
+  for (let index = 1; index <= Math.ceil(stopTime / FIXED_STEP); index += 1) {
+    const time = Math.min(index * FIXED_STEP, stopTime);
+    const dt = time - (index - 1) * FIXED_STEP;
     if (grounded) {
       const rollingRetention = Math.exp(-surface.rollingResistance * FIXED_STEP);
       velocity = vec3(velocity.x * rollingRetention, 0, velocity.z * rollingRetention);
@@ -492,18 +500,19 @@ export const resolveTrajectory = (intent: ShotIntent): ResolvedTrajectory => {
         position.z + velocity.z * FIXED_STEP,
       );
     } else {
-      velocity = add(velocity, scale(acceleration(velocity, spin, intent.windVelocity), FIXED_STEP));
-      position = add(position, scale(velocity, FIXED_STEP));
-      spin = decaySpin(spin, magnitude(velocity) * FIXED_STEP);
+      velocity = add(velocity, scale(acceleration(velocity, spin, intent.windVelocity), dt));
+      position = add(position, scale(velocity, dt));
+      spin = decaySpin(spin, magnitude(velocity) * dt);
     }
     apexHeight = Math.max(apexHeight, position.y);
 
-    if (previousZ > 0 && position.z <= 0) {
+    if (previousZ * direction < 0 && position.z * direction >= 0) {
       events.push({ type: 'net-crossing', time, position, speedKmh: magnitude(velocity) * 3.6 });
     }
 
     if (!grounded && position.y <= COURT.ballRadius && velocity.y < 0) {
       const firstGroundContact = !bounced;
+      bounceCount += 1;
       const preBounceSpeed = magnitude(velocity) * 3.6;
       position = vec3(position.x, COURT.ballRadius, position.z);
       const normalImpactSpeed = -velocity.y;
@@ -538,6 +547,8 @@ export const resolveTrajectory = (intent: ShotIntent): ResolvedTrajectory => {
       if (firstGroundContact) {
         firstBounceTime = time;
         events.push({ type: 'bounce', time, position, speedKmh: preBounceSpeed, postSpeedKmh: magnitude(velocity) * 3.6 });
+      } else if (bounceCount === 2) {
+        events.push({ type: 'second-bounce', time, position, speedKmh: preBounceSpeed });
       }
       if (reboundSpeed < 0.65) {
         grounded = true;
@@ -545,14 +556,14 @@ export const resolveTrajectory = (intent: ShotIntent): ResolvedTrajectory => {
       }
     }
 
-    if (!receiverRecorded && bounced && previousZ > receiverZ && position.z <= receiverZ) {
+    if (!receiverRecorded && bounced && (previousZ - receiverZ) * direction < 0 && (position.z - receiverZ) * direction >= 0) {
       events.push({ type: 'receiver-plane', time, position, speedKmh: magnitude(velocity) * 3.6 });
       receiverRecorded = true;
     }
 
     const completedPostBounceWindow = firstBounceTime !== null
       && time >= firstBounceTime + POST_BOUNCE_SIMULATION_SECONDS;
-    if (index % 4 === 0 || completedPostBounceWindow) {
+    if (index % 4 === 0 || completedPostBounceWindow || time === stopTime) {
       samples.push({ time, position, velocity, bounced });
     }
     previousZ = position.z;

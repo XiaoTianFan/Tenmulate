@@ -13,7 +13,7 @@ const distance = (a:Vec3,b:Vec3) => Math.hypot(a.x-b.x,a.z-b.z);
 const yawMix = (a:number,b:number,t:number) => a+Math.atan2(Math.sin(b-a),Math.cos(b-a))*t;
 export type MovementStage = 'recover'|'split'|'approach'|'ready'|'drill';
 export type TravelLeg = Readonly<{from:Vec3;to:Vec3;start:number;end:number;fromYaw:number;toYaw:number;stage:MovementStage;crossover?:boolean;clip?:MotionId}>;
-export type RecoveryPlan = Readonly<{center:Vec3;recover:TravelLeg;approach:TravelLeg|null;splitStart:number;splitEnd:number;end:number;requiredDuration:number}>;
+export type RecoveryPlan = Readonly<{kind:'recovery'|'direct';center:Vec3;recover:TravelLeg;approach:TravelLeg|null;splitStart:number;splitEnd:number;end:number;requiredDuration:number}>;
 
 /** One route/time authority for compilation, playback, and review. Smoothstep's
  * peak speed and acceleration are bounded explicitly, including short routes. */
@@ -22,19 +22,30 @@ export function travelDuration(from:Vec3,to:Vec3,pace=MAX_OPPONENT_SPEED):number
   return d<.015?0:Math.max(.6,1.5*d/pace,Math.sqrt(6*d/MAX_TRAVEL_ACCELERATION));
 }
 export function recoveryCenter(event:MotionEvent):Vec3 {
+  if(event.home)return event.home;
   const baseline=event.root.z>=11.5;
-  return {x:(event.hand==='right'?.55:-.55),y:0,z:baseline?Math.max(12.6,Math.min(13.3,event.root.z)):Math.max(3.2,event.root.z)};
+  const side=Math.abs(event.source.x)>.4?Math.sign(event.source.x):(event.hand==='right'?1:-1);
+  return {x:side*.55,y:0,z:baseline?13.385:Math.max(3.2,event.root.z)};
 }
 export function planRecovery(previous:MotionEvent,next?:MotionEvent):RecoveryPlan {
   const center=recoveryCenter(previous),recoverTime=travelDuration(previous.root,center);
   const approachTime=next?travelDuration(center,next.root):0;
   const requiredDuration=recoverTime+SPLIT_SECONDS+approachTime+.18;
   const start=previous.end,available=next?next.start-start:requiredDuration;
+  const serveAndVolley=next&&previous.clip.startsWith('serve')&&next.root.z<previous.root.z-3;
+  const direct=next&&(previous.recoveryPolicy==='direct'||previous.recoveryPolicy==='auto'&&(serveAndVolley||available+1e-7<requiredDuration));
+  if(direct&&next){
+    const travel=travelDuration(previous.root,next.root),required=travel+.18;
+    // Move immediately after the finish, then wait at the next preparation point.
+    const leg:TravelLeg={from:previous.root,to:next.root,start,end:start+travel,fromYaw:previous.yaw,toYaw:next.yaw,stage:'approach'};
+    return {kind:'direct',center:next.root,recover:leg,approach:null,splitStart:start+travel,splitEnd:start+travel,
+      end:start+Math.max(required,available),requiredDuration:required};
+  }
   // Compilation must reserve this full duration before assigning contact times.
   // The planner never shortens travel to fit an infeasible input schedule.
   const end=start+Math.max(requiredDuration,available);
   const splitEnd=next?end-approachTime-.18:start+recoverTime+SPLIT_SECONDS;
-  return {center,requiredDuration,end,
+  return {kind:'recovery',center,requiredDuration,end,
     recover:{from:previous.root,to:center,start,end:start+recoverTime,fromYaw:previous.yaw,toYaw:Math.PI,stage:'recover',crossover:Math.abs(previous.root.x-center.x)>1.4},
     splitStart:splitEnd-SPLIT_SECONDS,splitEnd,
     approach:next?{from:center,to:next.root,start:splitEnd,end:splitEnd+approachTime,fromYaw:Math.PI,toYaw:next.yaw,stage:'approach'}:null};
@@ -136,6 +147,7 @@ export function sampleTravel(leg:TravelLeg,time:number,hand:'left'|'right'):Moti
 
 export function sampleRecovery(plan:RecoveryPlan,time:number,hand:'left'|'right'):MotionSample {
   if(time<plan.recover.end)return sampleTravel(plan.recover,time,hand);
+  if(plan.kind==='direct')return rest(plan.recover.to,plan.recover.toYaw,hand,'ready');
   if(time<plan.splitStart)return rest(plan.center,Math.PI,hand,'ready');
   if(time<plan.splitEnd)return rest(plan.center,Math.PI,hand,'split',time-plan.splitStart,true);
   if(plan.approach&&time<plan.approach.end)return sampleTravel(plan.approach,time,hand);

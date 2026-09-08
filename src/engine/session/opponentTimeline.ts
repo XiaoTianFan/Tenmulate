@@ -17,8 +17,10 @@ const mix = (a: number, b: number, t: number) => a + (b - a) * t;
 export type MotionEvent = Readonly<{
   index: number; clip: StrokeId; contactTime: number; start: number; end: number;
   rate: number; hand: 'left' | 'right'; yaw: number; root: Vec3; source: Vec3;
+  home?: Vec3; recoveryPolicy?: 'home' | 'auto' | 'recover' | 'direct';
 }>;
-export type MotionRepetition = Readonly<{ index: number; startTime: number; shot: ShotDefinitionV1 }>;
+export type MotionRepetition = Readonly<{ index: number; startTime: number; shot: ShotDefinitionV1;
+  motionRate?: number; home?: Vec3; recoveryPolicy?: MotionEvent['recoveryPolicy'] }>;
 
 export const strokeForShot = (shot: ShotDefinitionV1, index: number): StrokeId => {
   if (shot.family === 'serve') return shot.serveRhythm === 'compact' ? 'serve-compact' : 'serve';
@@ -36,14 +38,15 @@ export const rotateMotionPoint = (point: readonly number[], yaw: number, hand: '
 
 export const motionEvent = (repetition: MotionRepetition): MotionEvent => {
   const { shot, index, startTime } = repetition, clip = strokeForShot(shot, index), metadata = motionClip(clip);
-  // Each service rhythm is authored in seconds. Ball pace is independent, and
-  // the compact clip must not receive the former additional 1.25x speed-up.
-  const rate = 1;
+  // Uniform source-clock scaling preserves all phase ratios and contact anchors.
+  // Compact remains its own clip; it receives no additional hidden multiplier.
+  const rate = repetition.motionRate ?? 1;
   const yaw = Math.atan2(shot.target.x - shot.source.x, shot.target.z - shot.source.z);
   const local = rotateMotionPoint(metadata.contactLocal!, yaw, shot.opponentHand);
   return { index, clip, contactTime: startTime, start: startTime - metadata.contact! / rate,
     end: startTime + (metadata.duration - metadata.contact!) / rate, rate, yaw, hand: shot.opponentHand,
-    root: { x: shot.source.x - local.x, y: 0, z: shot.source.z - local.z }, source: shot.source };
+    root: { x: shot.source.x - local.x, y: 0, z: shot.source.z - local.z }, source: shot.source,
+    home: repetition.home, recoveryPolicy: repetition.recoveryPolicy };
 };
 
 export const minimumMotionGap = (previous: MotionRepetition, next: MotionRepetition): number => {
@@ -88,6 +91,10 @@ export const sampleOpponentTimeline = (events: readonly MotionEvent[], time: num
   const anchor = next ?? previous!;
   if (!next && previous) return sampleRecovery(planRecovery(previous),time,previous.hand);
   if (!previous) {
+    if (next?.home) {
+      const initial = { ...next, root: next.home, yaw: Math.PI, end: 0, recoveryPolicy: 'direct' as const };
+      return sampleRecovery(planRecovery(initial, next), time, next.hand);
+    }
     // A split-step ends in the identical ready pose immediately before the next preparation.
     const splitStart = (next?.start ?? Infinity) - .6;
     return { root: anchor.root, yaw: anchor.yaw, hand: anchor.hand, event: null, verticalCorrection: 0, toss: null,
