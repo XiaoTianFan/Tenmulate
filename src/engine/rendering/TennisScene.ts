@@ -26,6 +26,7 @@ import type { CompiledRepetition } from '../session/compileSession';
 import { LandingZoneControl } from './LandingZoneControl';
 import { landingZoneLimits, type LandingZone } from '../trajectory/landingZone';
 import { SHOTS } from '../../content/bundled';
+import { RendererProfiler } from './RendererProfiler';
 
 export type CameraConfiguration = Readonly<{
   eyeHeight: number;
@@ -112,6 +113,7 @@ export const trajectoryPlaybackTimes = (
 
 export class TennisScene {
   private readonly renderer: THREE.WebGLRenderer;
+  private readonly profiler: RendererProfiler | null;
   private readonly scene = new THREE.Scene();
   private readonly returnZoneOverlay = new ReturnZoneOverlay();
   private readonly camera = new THREE.PerspectiveCamera(54, 16 / 9, 0.05, 350);
@@ -189,7 +191,7 @@ export class TennisScene {
   constructor(
     private readonly canvas: HTMLCanvasElement,
     private readonly onMetrics?: (metrics: SceneMetrics) => void,
-    options: Readonly<{ quality?: QualityMode; environment?: EnvironmentConfiguration }> = {},
+    options: Readonly<{ quality?: QualityMode; environment?: EnvironmentConfiguration; profile?: boolean }> = {},
   ) {
     this.canvas.dataset.sceneInstance = crypto.randomUUID();
     this.canvas.dataset.sceneActive = 'true';
@@ -205,6 +207,8 @@ export class TennisScene {
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer.setPixelRatio(this.adaptivePixelRatio);
+    this.profiler = (options.profile ?? new URLSearchParams(window.location.search).get('profileRenderer') === '1')
+      ? new RendererProfiler(this.renderer.getContext() as WebGL2RenderingContext) : null;
 
     this.scene.background = new THREE.Color(0x8fc5eb);
     this.scene.fog = new THREE.Fog(0x8fc5eb, 47, 105);
@@ -465,6 +469,7 @@ export class TennisScene {
   }
 
   setEnvironment(configuration: EnvironmentConfiguration): void {
+    this.profiler?.reset();
     this.environmentConfiguration = configuration;
     this.canvas.dataset.venue = configuration.venue;
     this.canvas.dataset.timeOfDay = String(configuration.timeOfDay);
@@ -620,6 +625,7 @@ export class TennisScene {
 
   /** Keep GPU resources resident while a route without a court is displayed. */
   setActive(active: boolean): void {
+    this.profiler?.reset();
     if (this.active === active) return;
     this.active = active;
     this.canvas.dataset.sceneActive = String(active);
@@ -634,6 +640,7 @@ export class TennisScene {
   }
 
   private readonly animate = (now: number): void => {
+    this.profiler?.beginFrame(now, document.visibilityState === 'visible');
     const delta = Math.min(0.05, Math.max(0, (now - this.lastFrame) / 1000));
     this.lastFrame = now;
     if (this.sessionClock) this.elapsed = this.sessionClock.current;
@@ -649,6 +656,7 @@ export class TennisScene {
       wind.x,
       wind.z,
     );
+    this.profiler?.mark('environment');
     let opponentRoot: MotionSample['root'] | undefined;
     if (this.trajectory) {
       const duration = this.trajectory.samples.at(-1)?.time ?? 0;
@@ -683,6 +691,7 @@ export class TennisScene {
           if (age >= 0 && age <= duration) visibleFlights.push({ trajectory: this.trajectory, time: age });
         }
       }
+      this.profiler?.mark('session');
       const motion = this.motionPreview ? this.motionPreview(motionTime) : sampleOpponentTimeline(events, motionTime);
       opponentRoot = motion?.root;
       if (motion) {
@@ -694,6 +703,7 @@ export class TennisScene {
         if (motion.event && contact && Math.abs(motionTime - motion.event.contactTime) < 1 / 60) this.canvas.dataset.contactError = contact.distanceTo(new THREE.Vector3(motion.event.source.x, motion.event.source.y, motion.event.source.z)).toFixed(5);
         else delete this.canvas.dataset.contactError;
       }
+      this.profiler?.mark('opponent');
       this.ensureBallCount(Math.max(1, visibleFlights.length + (motion?.toss ? 1 : 0)));
       for (let index = 0; index < this.balls.length; index += 1) {
         const ball = this.balls[index]!;
@@ -722,6 +732,7 @@ export class TennisScene {
       for (const ball of this.balls) ball.visible = false;
       this.ballTrail.visible = false;
     }
+    this.profiler?.mark('balls');
     if (this.sessionCameraEnabled && this.sessionClock && this.session?.mode === 'drill') {
       const camera = sampleCameraTimeline(this.session.cameraTimeline, this.elapsed, opponentRoot);
       if(camera!==this.cameraConfiguration){this.cameraConfiguration=camera;this.applyCamera();}
@@ -745,10 +756,15 @@ export class TennisScene {
     this.audience.update(this.elapsed);
     this.landingZoneControl.update();
     this.updateBallHighlight();
+    this.profiler?.mark('presentation');
+    this.profiler?.beginGpu();
     this.renderer.render(this.scene, this.camera);
+    this.profiler?.endGpu();
+    this.profiler?.mark('renderSubmit');
     this.metricFrames += 1;
     const metricElapsed = now - this.metricStartedAt;
     if (metricElapsed >= 1000) {
+      if (this.profiler) this.canvas.dataset.rendererProfile = JSON.stringify(this.getRendererProfile());
       this.canvas.dataset.landingZone=JSON.stringify(this.lineTrajectory?.intent.landingZone??null);
       this.canvas.dataset.landingTarget=JSON.stringify(this.lineTrajectory?.intent.target??null);
       this.canvas.dataset.landingZoneScreen=JSON.stringify(this.landingZoneControl.screenPoints());
@@ -783,18 +799,38 @@ export class TennisScene {
       this.metricFrames = 0;
       this.metricStartedAt = now;
     }
+    this.profiler?.endFrame();
   };
+
+  /** Opt in with ?profileRenderer=1. No timers or adapter queries otherwise. */
+  getRendererProfile() {
+    if (!this.profiler) return null;
+    return {
+      ...this.profiler.snapshot(), visible: document.visibilityState === 'visible',
+      buffer: { width: this.canvas.width, height: this.canvas.height, pixels: this.canvas.width * this.canvas.height },
+      css: { width: this.canvas.clientWidth, height: this.canvas.clientHeight },
+      pixelRatio: this.renderer.getPixelRatio(), quality: this.qualityMode,
+      venue: this.environmentConfiguration.venue, variant: this.activeAuthoredArena?.variant,
+      audience: this.audience.state, shadowMapSize: this.sun.shadow.mapSize.x,
+      drawCalls: this.renderer.info.render.calls, triangles: this.renderer.info.render.triangles,
+      geometries: this.renderer.info.memory.geometries, textures: this.renderer.info.memory.textures,
+    };
+  }
+
+  resetRendererProfile(): void { this.profiler?.reset(); }
 
   private resize(): void {
     if (!this.active || !this.canvas.clientWidth || !this.canvas.clientHeight) return;
     const width = Math.max(1, this.canvas.clientWidth);
     const height = Math.max(1, this.canvas.clientHeight);
+    this.profiler?.reset();
     this.renderer.setSize(width, height, false);
     this.camera.aspect = width / height;
     this.applyCamera();
   }
 
   dispose(): void {
+    this.profiler?.dispose();
     this.resizeObserver.disconnect();
     this.renderer.setAnimationLoop(null);
     for (const arena of Object.values(this.authoredArenas)) arena.dispose();

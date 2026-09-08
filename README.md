@@ -30,6 +30,10 @@ The net uses filtered thread coverage in both Quality and Performance modes, so
 wide views and zoom changes retain the weave. Authored sag, tape and posts remain.
 See the [net rendering decision](docs/decisions/0028-filtered-net-weave.md).
 
+Renderer diagnostics are available with `?profileRenderer=1`, including the actual
+GPU, drawing-buffer size, CPU stages and asynchronous GPU time. See the
+[performance investigation](docs/development/renderer-performance-2026-09-08.md).
+
 ## Implemented direction
 
 - React, TypeScript, and Vite for the application shell.
