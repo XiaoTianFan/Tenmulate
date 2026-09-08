@@ -1,3 +1,4 @@
+import { LandingTargetControls } from './LandingTargetControls';
 import { useEffect, useEffectEvent, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { cameraFovAfterWheel, cameraLookAfterDrag, type CameraLook } from '../domain/camera';
 import type { SurfaceId } from '../domain/court';
@@ -28,6 +29,8 @@ type SceneViewportProps = Readonly<{
   highContrastBall?: boolean;
   showBallTrail?: boolean;
   onAimChange?: (directionDeg: number) => void;
+  landingTarget?:Readonly<{x:number;z:number}>;
+  onLandingChange?: (point:Readonly<{x:number;z:number}>)=>void;
   onCameraFovChange?: (fov: number) => void;
   onCameraLookChange?: (look: CameraLook) => void;
   onMetrics: (metrics: SceneMetrics) => void;
@@ -68,6 +71,8 @@ export function SceneViewport({
   highContrastBall = false,
   showBallTrail = false,
   onAimChange,
+  onLandingChange,
+  landingTarget,
   onCameraFovChange,
   onCameraLookChange,
   onMetrics,
@@ -183,7 +188,7 @@ export function SceneViewport({
   const interactionHint = [
     onCameraLookChange ? 'Left-drag to look' : null,
     onCameraFovChange ? 'Wheel to zoom' : null,
-    onAimChange ? 'Right-drag to aim' : null,
+    onLandingChange ? 'Hover bounce to aim' : onAimChange ? 'Right-drag to aim' : null,
     showTrajectory ? 'Hover trajectory for data' : null,
   ].filter(Boolean).join(' · ') || null;
 
@@ -229,6 +234,7 @@ export function SceneViewport({
         onPointerCancel={onAimChange || onCameraLookChange ? finishPointer : undefined}
         onPointerLeave={() => { if (!pointerDrag.current) setTrajectoryTooltip(null); }}
       />
+      {showTrajectory && onLandingChange ? <LandingTargetControls sceneRef={sceneRef} trajectory={trajectory} target={landingTarget} onChange={onLandingChange} /> : null}
       {error ? <div className="renderer-error" role="alert"><strong>3D renderer unavailable</strong><span>{error}</span><small>WebGL 2 and hardware acceleration are required. Setup and local drills remain available.</small></div> : null}
       {!error && venueStatus.status !== 'ready' ? <div className="renderer-error" role={venueStatus.status === 'error' ? 'alert' : 'status'}><strong>{venueStatus.status === 'error' ? 'Venue unavailable' : 'Loading Blender venue…'}</strong><span>{venueStatus.message ?? (venueStatus.totalBytes ? `${Math.round(venueStatus.loadedBytes / venueStatus.totalBytes * 100)}%` : 'Preparing the selected scene')}</span>{venueStatus.status === 'error' ? <button onClick={() => sceneRef.current?.retryVenue()}>Retry venue</button> : null}</div> : null}
       {audienceError ? <div className="scene-audience-error" role="alert">{audienceError} <button onClick={() => sceneRef.current?.retryVenue()}>Retry audience</button></div> : null}
@@ -245,7 +251,7 @@ export function SceneViewport({
           </span>
           <dl>
             <div><dt>Launch</dt><dd>{tooltipTrajectory.resolved.launchSpeedKmh.toFixed(1)} km/h</dd></div>
-            <div><dt>Spin</dt><dd>{Math.round(trajectory.resolved.spinRateRpm)} rpm</dd></div>
+            <div><dt>Spin</dt><dd>{Math.round(tooltipTrajectory.resolved.spinRateRpm)} rpm</dd></div>
             <div><dt>Angle</dt><dd>{tooltipTrajectory.resolved.launchAngleDeg.toFixed(1)}°</dd></div>
             <div><dt>Apex</dt><dd>{tooltipTrajectory.apexHeight.toFixed(2)} m</dd></div>
             <div><dt>Net</dt><dd>{net ? `${(net.position.y - netHeightAt(net.position.x)).toFixed(2)} m clear` : 'No crossing'}</dd></div>

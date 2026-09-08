@@ -2,7 +2,7 @@
 
 Tenmulate is a browser-based, first-person tennis visualization tool. It places a player at a calibrated on-court point of view and plays configurable incoming ball trajectories for shadow swinging, return preparation, and tactical mental rehearsal.
 
-The repository contains the active V1 implementation: a deterministic Three.js court/ball simulation, complete starter shot library, rehearsal player, local drill editor, independently customizable camera-position and perspective presets, validated JSON exchange, and offline-capable app shell. All six built-in court environments use Blender-authored assets with Quality/Performance variants. A 1.88 m CC0 articulated mannequin runs the 24-clip tennis library, including normal and compact pinpoint serves, in actual gameplay. The ball machine remains the opponent load-failure fallback.
+The repository contains the active V1 implementation: a deterministic Three.js court/ball simulation, complete starter shot library, rehearsal player, local drill editor, independently customizable camera-position and perspective presets, validated JSON exchange, and offline-capable app shell. All six built-in court environments use Blender-authored assets with Quality/Performance variants. A 1.88 m CC0 articulated mannequin runs the 25-clip tennis library, including normal/compact serves and a distinct backhand overhead, in actual gameplay. The ball machine remains the opponent load-failure fallback.
 
 ## Implemented direction
 
@@ -26,7 +26,7 @@ The renderer and simulation decision is accepted for V1. Production 3D assets, d
 | [Cloud world-generation research](docs/research/world-generation-and-scene-reconstruction-2026.md) | Historical Aholo/Marble/splat evaluation; rejected for production by ADR-0005 |
 | [Mocap-to-web character pipeline](docs/research/mocap-to-web-character-pipeline.md) | Mesh/rig/skin/animation definitions, retargeting, tennis cleanup, formats, and rights gate |
 | [Articulated player](docs/assets/quaternius-articulated-mannequin.md) | Active CC0 model, source/binder and preserved rig contract |
-| [Current motion pipeline](docs/development/local-motion-pipeline.md) | 24 clips, reference authoring, normal/compact serves, recovery and gameplay integration |
+| [Current motion pipeline](docs/development/local-motion-pipeline.md) | 25 clips, reference authoring, normal/compact serves, recovery and gameplay integration |
 | [Court environment concepts](docs/concepts/court-environment-concepts-2026-08.md) | Bird's-eye and player-level boards for owner art-direction review |
 | [Scene-generation prompt kit](docs/concepts/scene-generation-prompt-kit.md) | Four reusable perspective prefixes, including a 360-degree panorama, and six standalone court/environment prompts |
 | [Opponent character 01](docs/concepts/opponent-character-01.md) | First fictional right-handed male design sheet and detachable-racket production guidance |
@@ -64,10 +64,10 @@ Run `npm test` and `npm run build`; the build also verifies the selected motion 
 
 Use **Return → Opponent → Serve rhythm** to choose Normal or Compact.
 Groundstroke/slice/volley/overhead selection uses the same mannequin and movement controller.
-**Rhythm** (50–150%) controls repetition pacing independently of ball speed.
+**Stroke rhythm** (50–150%) controls stroke playback independently of shot interval, movement pace and ball speed.
 Quick Practice returns to its selected home; drills recover or move directly as
 space and time permit, with physical return flights for valid rally links.
-See [gameplay rhythm integration](docs/development/gameplay-rhythm-integration-2026-09-08.md).
+Quick Practice uses a body recovery center, separate stroke rhythm, shot interval and movement pace, and draggable first-bounce direction/depth handles. Natural targets avoid the high-angle branch and show any bounded speed/spin adjustment. See [current practice refinement](docs/development/practice-refinement-2026-09-08.md).
 The sibling MotionLab provides phase and movement review at ports 4184/4185; see
 the [motion runbook](docs/development/local-motion-pipeline.md).
 Venue review remains `/venue-review.html?venue=clay-sunset-arena&camera=corner`.

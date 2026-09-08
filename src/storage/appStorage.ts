@@ -5,7 +5,7 @@ import { validateDrill } from '../content/validation';
 import { AD_SERVE_OPPONENT_POSITION, COURT, DEFAULT_RALLY_OPPONENT_POSITION, DEUCE_SERVE_OPPONENT_POSITION, clampOpponentPosition, type SurfaceId } from '../domain/court';
 import { DEFAULT_ENVIRONMENT, normalizeEnvironmentConfiguration, type EnvironmentConfiguration } from '../domain/environment';
 import type { SpinKind } from '../engine/trajectory/physics';
-import { normalizeRhythm, rhythmFromLegacyInterval } from '../engine/session/rhythm';
+import { normalizeRhythm, normalizeShotInterval, rhythmFromLegacyInterval } from '../engine/session/rhythm';
 import { PRACTICE_SHOT_PROFILES, isPracticeShotType, spinForPracticeShot, spinRateForPracticeShot, type PracticeShotType } from '../engine/trajectory/practiceProfiles';
 
 const STORAGE_KEY = 'tenmulate.appData.v1';
@@ -49,6 +49,10 @@ export type PracticePreferencesV1 = Readonly<{
   launchSpeedKmh: number;
   interval: number;
   rhythmPercent: number;
+  movementPercent: number;
+  practiceStroke: 'forehand' | 'backhand' | 'alternate';
+  trajectoryMode: 'natural' | 'exact';
+  returnTargetMode: 'pattern' | 'custom';
   repetitions: number;
   variation: number;
   timingVariation: number;
@@ -73,7 +77,7 @@ export type PracticePreferencesV1 = Readonly<{
 }>;
 
 export const DEFAULT_PREFERENCES: PracticePreferencesV1 = {
-  sessionCategory: 'Quick Rally', trajectoryEnabled: true, launchSpeedKmh: 70, interval: 3.5, rhythmPercent: 100, repetitions: 12, variation: 8, timingVariation: 0,
+  sessionCategory: 'Quick Rally', trajectoryEnabled: true, launchSpeedKmh: 70, interval: 5, rhythmPercent: 100, movementPercent: 100, practiceStroke: 'alternate', trajectoryMode: 'natural', returnTargetMode: 'pattern', repetitions: 12, variation: 8, timingVariation: 0,
   workBlockSize: 4, restSeconds: 20, surface: 'hard', shotType: 'groundstroke', spin: 'topspin', spinRateRpm: 1103, bounceFactor: 1,
   opponentHand: 'right', serveRhythm: 'preset', landingDepthM: 8.5,
   aimDirectionDeg: 0, opponentPosition: DEFAULT_RALLY_OPPONENT_POSITION,
@@ -183,6 +187,11 @@ export const loadAppData = (): AppDataV1 => {
             : DEFAULT_PREFERENCES.trajectoryEnabled,
       surface: savedSurface,
       rhythmPercent: normalizeRhythm(candidate.rhythmPercent ?? rhythmFromLegacyInterval(candidate.interval)),
+      interval: normalizeShotInterval(candidate.interval),
+      movementPercent: normalizeRhythm(candidate.movementPercent),
+      practiceStroke: candidate.practiceStroke === 'forehand' || candidate.practiceStroke === 'backhand' ? candidate.practiceStroke : 'alternate',
+      trajectoryMode: candidate.trajectoryMode === 'exact' ? 'exact' : 'natural',
+      returnTargetMode: candidate.returnTargetMode === 'custom' ? 'custom' : 'pattern',
       shotType,
       spin,
       spinRateRpm: spinRateForPracticeShot(shotType, spin, candidate.spinRateRpm),

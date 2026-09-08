@@ -7,4 +7,4 @@ export const rhythmFromLegacyInterval = (interval: unknown, baseline = 3.5): num
     ? normalizeRhythm(100 * baseline / interval) : 100;
 export const motionRateForRhythm = (percent: number): number => normalizeRhythm(percent) / 100;
 export const normalizeShotInterval = (value: unknown, fallback = 5): number =>
-  typeof value === 'number' && Number.isFinite(value) ? Math.min(20,Math.max(1,value)) : fallback;
+  typeof value === 'number' && Number.isFinite(value) ? Math.min(30,Math.max(1,value)) : fallback;

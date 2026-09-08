@@ -444,6 +444,21 @@ export class TennisScene {
 
   getDisplayedTrajectory(): ResolvedTrajectory | null { return this.lineTrajectory; }
 
+  projectCourtPoint(point: Readonly<{x:number;y?:number;z:number}>): {x:number;y:number} | null {
+    const p=new THREE.Vector3(point.x,point.y??COURT.ballRadius,point.z).project(this.camera);
+    if(p.z < -1 || p.z > 1 || Math.abs(p.x)>1 || Math.abs(p.y)>1)return null;
+    return {x:(p.x*.5+.5)*this.canvas.clientWidth,y:(-.5*p.y+.5)*this.canvas.clientHeight};
+  }
+
+  courtPointFromClientPoint(clientX:number,clientY:number): {x:number;z:number} | null {
+    const bounds=this.canvas.getBoundingClientRect();
+    if(!bounds.width||!bounds.height)return null;
+    this.aimPointer.set((clientX-bounds.left)/bounds.width*2-1,1-(clientY-bounds.top)/bounds.height*2);
+    this.aimRaycaster.setFromCamera(this.aimPointer,this.camera);
+    const point=this.aimRaycaster.ray.intersectPlane(this.courtPlane,this.courtIntersection);
+    return point && Math.abs(point.x)<100 && Math.abs(point.z)<100 ? {x:point.x,z:point.z}:null;
+  }
+
   trajectorySampleFromClientPoint(clientX: number, clientY: number, thresholdPx = 11): FlightSample | null {
     const trajectory = this.lineTrajectory;
     if (!trajectory || !this.trajectoryLine.visible) return null;

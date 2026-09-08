@@ -3,6 +3,40 @@
 - **Purpose:** Record concept-to-browser inspection after every implementation stage
 - **Reference viewport:** 1920 × 1080 unless stated otherwise
 
+## Independent practice controls and first-bounce editing — 2026-09-08
+
+Production preview at `http://127.0.0.1:5173/` was checked in Chrome at 1440×1000,
+767×898 and 390×844. Actual gameplay loaded the 25-clip bundle and authored venue.
+The active [refinement receipt](practice-refinement-2026-09-08.md) supersedes the
+coupled-clock UI described in the next historical entry.
+
+- First-bounce hover exposes visible yellow direction/depth arrows on dark
+  backgrounds. Drag, click and keyboard interaction preserve the other target
+  coordinate and leave camera position/look unchanged. Return editing selects a
+  custom legal service-box target; reload preserves it and the pattern can be restored.
+- Groundstroke/volley/overhead side selection changes the loaded motion. Both-hand
+  backhand overhead was inspected in setup and actual rehearsal. Forehand overhead
+  remains the documented no-toss serve proxy.
+- Practice 150%/12 s/60%, drill 70%/14 s/150%, and saved editor 145%/13 s/135%
+  demonstrate independent stroke, interval and movement inputs. Editor preview
+  retains drill-authored positions. A full production browser flow verified saves,
+  playback and responsive layout with no application errors or horizontal overflow.
+- MotionLab front/side preparation, contact and follow-through were inspected.
+  Actual gameplay walk/run push, cruise and brake poses were reviewed for both
+  hands, including normal-speed playback and 63-joint post-IK checks.
+- The supplied 70 km/h / 1,103 rpm screenshots motivated the trajectory fix.
+  The low-angle branch and natural adjustment remove the prior branch jumps;
+  the heading sweep and infeasible request are covered by physics tests.
+
+Evidence lives under
+`C:/Users/20378/.codex/visualizations/2026/09/08/01a07e7c-7199-7900-ab83-f0437137320b/`:
+`return-hover-handles.png`, `production-overhead-right.png`,
+`production-practice-overhead.png`, `production-editor-independent-clocks.png`,
+`production-mobile-390.png` and `motion-run-right-{push,cruise,brake}.png`, with JSON
+receipts named in the refinement record. A Chrome shader precision warning is
+recorded separately from application errors. Owner technique and device acceptance
+remain separate from this implementation review.
+
 ## Gameplay rhythm integration — 2026-09-08
 
 The goal's visible comparison was: fixed-home practice, direct fast drill travel,

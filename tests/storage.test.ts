@@ -33,7 +33,8 @@ describe('local application data', () => {
       spin: 'topspin',
       spinRateRpm: 1103,
       landingDepthM: 8.5,
-      interval: 3.5,
+      interval: 5,
+      movementPercent:100,practiceStroke:'alternate',trajectoryMode:'natural',
     });
   });
 
@@ -43,7 +44,7 @@ describe('local application data', () => {
       customDrills: [{ ...DRILLS[0]!, id: 'saved-drill', category: 'Custom' as const }],
       cameraPositionPresets: [{ id: 'position-one', name: 'Projector', position: { eyeHeight: 1.7, behindBaseline: 2, lateral: 0 } }],
       perspectivePresets: [{ id: 'perspective-one', name: 'Projector POV', perspective: { yaw: 0, pitch: -1.7, fov: 66 } }],
-      preferences: { ...DEFAULT_PREFERENCES, launchSpeedKmh: 96, spinRateRpm: 2400, quality: 'performance' as const },
+      preferences: { ...DEFAULT_PREFERENCES, interval:9.2,rhythmPercent:70,movementPercent:135,practiceStroke:'backhand' as const,trajectoryMode:'exact' as const, launchSpeedKmh: 96, spinRateRpm: 2400, quality: 'performance' as const },
     };
     saveAppData(data);
     expect(loadAppData()).toEqual(data);

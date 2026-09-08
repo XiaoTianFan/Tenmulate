@@ -378,3 +378,20 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }
+
+/* First-bounce coordinate controls: large pointer targets, small visible center. */
+.landing-controls { position:absolute; width:0; height:0; z-index:5; pointer-events:none; }
+.landing-controls button { position:absolute; display:grid; place-items:center; color:#f3e819; border:0; padding:0; background:transparent; pointer-events:auto; touch-action:none; }
+.landing-center { left:-22px; top:-22px; width:44px; height:44px; cursor:pointer; }
+.landing-center span { width:12px; height:12px; border:2px solid #f3e819; border-radius:50%; box-shadow:0 0 0 3px #08151bac; }
+.landing-axis { opacity:0; visibility:hidden; transition:opacity .12s; filter:drop-shadow(0 1px 2px #000); }
+.landing-controls .landing-axis { background:#10222bd9; border:1px solid #f3e819; border-radius:8px; }
+.landing-controls.expanded .landing-axis, .landing-controls:focus-within .landing-axis { opacity:1; visibility:visible; }
+.landing-axis.direction { left:16px; top:-22px; width:62px; height:44px; cursor:ew-resize; }
+.landing-axis.depth { left:-22px; top:-78px; width:44px; height:62px; cursor:ns-resize; }
+.landing-controls .landing-axis:hover, .landing-controls .landing-axis.active { color:white; background:#10222b; }
+.landing-controls button:focus-visible { outline:2px solid white; outline-offset:2px; }
+.landing-controls-label { display:none; position:absolute; left:22px; top:28px; padding:4px 8px; background:#08151bea; border-radius:4px; color:white; font-size:11px; white-space:nowrap; }
+.landing-controls.expanded .landing-controls-label { display:block; }
+.trajectory-resolution { display:block; font-size:11px; line-height:1.5; color:#b7c4c9; padding:4px 0; }
+.trajectory-resolution.warning { color:#f5c980; }

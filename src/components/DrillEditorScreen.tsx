@@ -86,7 +86,7 @@ export function DrillEditorScreen({ route, initialDrill, onRoute, onSave, onTest
     const base = sourceShot ?? SHOTS[0]!;
     const event = { ...selected, id: selected?.id ?? 'preview', shotId: base.id, paceKmh: selected?.paceKmh ?? base.paceKmh };
     return compileSession({ ...drill, events: [event], shotIds: [base.id] }, {
-      repetitions: 2, mode: 'quick-practice', rhythmPercent: drill.defaultRhythmPercent ?? rhythmFromLegacyInterval(drill.defaultInterval),
+      repetitions: 2, mode: 'drill', shotIntervalSeconds:drill.defaultInterval, movementPercent:drill.defaultMovementPercent??100, trajectoryMode:'natural', rhythmPercent: drill.defaultRhythmPercent ?? rhythmFromLegacyInterval(drill.defaultInterval),
       variationPercent: 0, timingVariationPercent: 0, launchSpeedKmh: event.paceKmh, surface: base.surface,
       seed: 'editor-preview', spin: 'preset', opponentHand: base.opponentHand, workBlockSize: 2, restSeconds: 0,
       serveRhythm: 'preset', opponentPosition: event.opponentPosition ?? base.source, camera: DEFAULT_CAMERA,
@@ -231,7 +231,9 @@ export function DrillEditorScreen({ route, initialDrill, onRoute, onSave, onTest
           </div>
           <label className="stack-field"><span>Drill title</span><input value={drill.title} maxLength={100} onChange={(event) => updateDrill({ title: event.target.value })} /></label>
           <label className="stack-field"><span>Description</span><textarea value={drill.description} maxLength={400} rows={3} onChange={(event) => updateDrill({ description: event.target.value })} /></label>
-          <label className="stack-field"><span>Rhythm (%)</span><input type="number" min="50" max="150" step="5" value={drill.defaultRhythmPercent ?? rhythmFromLegacyInterval(drill.defaultInterval)} onChange={(event) => updateDrill({ defaultRhythmPercent: Number(event.target.value) })} /></label>
+          <label className="stack-field"><span>Shot interval (s)</span><input aria-label="Editor shot interval" type="number" min="1" max="30" step="0.1" value={drill.defaultInterval} onChange={event=>updateDrill({defaultInterval:Number(event.target.value)})}/></label>
+          <label className="stack-field"><span>Movement pace (%)</span><input aria-label="Editor movement pace" type="number" min="50" max="150" step="5" value={drill.defaultMovementPercent??100} onChange={event=>updateDrill({defaultMovementPercent:Number(event.target.value)})}/></label>
+          <label className="stack-field"><span>Stroke rhythm (%)</span><input type="number" min="50" max="150" step="5" value={drill.defaultRhythmPercent ?? rhythmFromLegacyInterval(drill.defaultInterval)} onChange={(event) => updateDrill({ defaultRhythmPercent: Number(event.target.value) })} /></label>
           <div className="inspector-divider"><span>Selected event</span><div><button type="button" onClick={duplicate} aria-label="Duplicate event"><Copy size={15} /></button><button type="button" onClick={remove} disabled={events.length === 1} aria-label="Delete event"><Trash2 size={15} /></button></div></div>
           {selected && sourceShot ? (
             <>

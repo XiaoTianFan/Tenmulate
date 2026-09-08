@@ -14,7 +14,7 @@ type DrillLibraryScreenProps = Readonly<{
   route: AppRoute;
   customDrills: readonly DrillDefinitionV1[];
   onRoute: (route: AppRoute) => void;
-  onRun: (drill: DrillDefinitionV1, rhythmPercent: number) => void;
+  onRun: (drill: DrillDefinitionV1, rhythmPercent: number, interval: number, movementPercent: number) => void;
   onEdit: (drill: DrillDefinitionV1) => void;
   onSave: (drill: DrillDefinitionV1) => void;
   onDelete: (id: string) => void;
@@ -24,6 +24,8 @@ export function DrillLibraryScreen({ route, customDrills, onRoute, onRun, onEdit
   const allDrills = [...DRILLS, ...customDrills];
   const [selectedId, setSelectedId] = useState(allDrills[0]?.id ?? '');
   const [rhythmOverride, setRhythmOverride] = useState<number | null>(null);
+  const [intervalOverride,setIntervalOverride]=useState<number|null>(null);
+  const [movementOverride,setMovementOverride]=useState<number|null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const selected = allDrills.find((drill) => drill.id === selectedId) ?? allDrills[0];
@@ -59,7 +61,7 @@ export function DrillLibraryScreen({ route, customDrills, onRoute, onRun, onEdit
         <section className="drill-table" aria-label="Available drills">
           <header><span>Drill</span><span>Family</span><span>Events</span><span>Rhythm</span></header>
           {allDrills.map((drill) => (
-            <button key={drill.id} type="button" className={drill.id === selected?.id ? 'drill-table-row selected' : 'drill-table-row'} onClick={() => { setSelectedId(drill.id); setRhythmOverride(null); }}>
+            <button key={drill.id} type="button" className={drill.id === selected?.id ? 'drill-table-row selected' : 'drill-table-row'} onClick={() => { setSelectedId(drill.id); setRhythmOverride(null); setIntervalOverride(null); setMovementOverride(null); }}>
               <span><strong>{drill.title}</strong><small>{drill.description}</small></span>
               <span>{drill.category}</span>
               <span>{drill.events?.length ?? drill.shotIds.length}</span>
@@ -80,8 +82,10 @@ export function DrillLibraryScreen({ route, customDrills, onRoute, onRun, onEdit
               <div><dt>Rhythm</dt><dd>{rhythmOverride ?? selected.defaultRhythmPercent ?? rhythmFromLegacyInterval(selected.defaultInterval)}%</dd></div>
               <div><dt>Storage</dt><dd>{isCustom ? 'This browser' : 'App bundle'}</dd></div>
             </dl>
-            <label className="stack-field"><span>Rhythm (%)</span><input aria-label="Drill rhythm" type="range" min="50" max="150" step="5" value={rhythmOverride ?? selected.defaultRhythmPercent ?? rhythmFromLegacyInterval(selected.defaultInterval)} onChange={event => setRhythmOverride(Number(event.target.value))} /></label>
-            <button className="primary-button" type="button" onClick={() => onRun(selected, rhythmOverride ?? selected.defaultRhythmPercent ?? rhythmFromLegacyInterval(selected.defaultInterval))}><Play size={17} /> Run drill</button>
+            <label className="stack-field"><span>Stroke rhythm (%)</span><input aria-label="Drill rhythm" type="range" min="50" max="150" step="5" value={rhythmOverride ?? selected.defaultRhythmPercent ?? rhythmFromLegacyInterval(selected.defaultInterval)} onChange={event => setRhythmOverride(Number(event.target.value))} /></label>
+            <label className="stack-field"><span>Shot interval (s)</span><input aria-label="Drill shot interval" type="number" min="1" max="30" step="0.1" value={intervalOverride??selected.defaultInterval} onChange={event=>setIntervalOverride(Number(event.target.value))}/></label>
+            <label className="stack-field"><span>Movement pace (%)</span><input aria-label="Drill movement pace" type="range" min="50" max="150" step="5" value={movementOverride??selected.defaultMovementPercent??100} onChange={event=>setMovementOverride(Number(event.target.value))}/></label>
+            <button className="primary-button" type="button" onClick={() => onRun(selected, rhythmOverride ?? selected.defaultRhythmPercent ?? rhythmFromLegacyInterval(selected.defaultInterval), intervalOverride??selected.defaultInterval, movementOverride??selected.defaultMovementPercent??100)}><Play size={17} /> Run drill</button>
             <button className="secondary-button full-width" type="button" onClick={() => onEdit(isCustom ? selected : createEditableCopy(selected))}>{isCustom ? <PencilLine size={16} /> : <Copy size={16} />} {isCustom ? 'Edit drill' : 'Make editable copy'}</button>
             <button className="text-action centered" type="button" onClick={() => downloadDrill(selected)}><Download size={15} /> Export JSON</button>
             {isCustom ? <button className="danger-action" type="button" onClick={() => { onDelete(selected.id); setSelectedId(DRILLS[0]!.id); }}><Trash2 size={15} /> Delete local drill</button> : null}

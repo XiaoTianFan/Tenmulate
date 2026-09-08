@@ -13,10 +13,10 @@ export const DEFAULT_CAMERA = Object.freeze({
   fov: 70,
 });
 
-export const createDefaultLaunch = (drill: DrillDefinitionV1, rhythmPercent = drill.defaultRhythmPercent ?? rhythmFromLegacyInterval(drill.defaultInterval)): SessionLaunch => ({
+export const createDefaultLaunch = (drill: DrillDefinitionV1, rhythmPercent = drill.defaultRhythmPercent ?? rhythmFromLegacyInterval(drill.defaultInterval), interval = drill.defaultInterval, movementPercent = drill.defaultMovementPercent ?? 100): SessionLaunch => ({
   session: compileSession(drill, {
     repetitions: drill.defaultRepetitions,
-    rhythmPercent, mode: 'drill', camera: DEFAULT_CAMERA,
+    rhythmPercent, shotIntervalSeconds: interval, movementPercent, trajectoryMode: 'natural', mode: 'drill', camera: DEFAULT_CAMERA,
     variationPercent: 0,
     timingVariationPercent: 0,
     launchSpeedKmh: 78,

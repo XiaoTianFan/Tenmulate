@@ -480,7 +480,13 @@ const targetAdjustedVelocity = (intent: ShotIntent): Vec3 => {
  * target remains an intention: an infeasible request is never labelled matched. */
 export const resolveTrajectory = (intent: ShotIntent): ResolvedTrajectory => {
   if (intent.trajectoryMode !== 'natural') {
-    return integrateTrajectory(intent, targetAdjustedVelocity(intent));
+    const exactIntent = intent.trajectoryMode==='exact' ? {...intent,aimDirectionDeg:intent.aimDirectionDeg??aimDirectionToCourtPoint(intent.source,intent.target)} : intent;
+    const result=integrateTrajectory(intent, targetAdjustedVelocity(exactIntent));
+    if(intent.trajectoryMode!=='exact')return result;
+    const bounce=result.events.find(e=>e.type==='bounce'),net=result.events.find(e=>e.type==='net-crossing');
+    const error=bounce?Math.hypot(bounce.position.x-intent.target.x,bounce.position.z-intent.target.z):50;
+    const legal=net&&bounce&&net.time<bounce.time&&net.position.y>=netHeightAt(net.position.x)+(intent.minimumNetClearanceM??.08)-.015;
+    return {...result,solution:{mode:'exact',status:legal&&error<=.18?'matched':'unreachable',targetErrorM:error}};
   }
   const type = trajectoryShotType(intent);
   const baseSpin = intent.spinRateRpm ?? defaultSpinRateRpm(intent);

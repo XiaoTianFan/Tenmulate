@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Activity, Eye, Gauge, MapPin, Plus, RotateCcw, Target, Trophy, UserRound } from 'lucide-react';
 import { DRILL_BY_CATEGORY } from '../content/bundled';
 import type { SessionCategory } from '../content/types';
@@ -8,8 +8,8 @@ import { SCENE_DEFINITIONS, VENUE_LABELS, isOutdoorVenue, windVelocityFromEnviro
 import { RETURN_SERVE_PATTERN, RETURN_SERVE_PLACEMENT_LABELS, returnReceiverSideForCameraPreset, returnServerPosition, type ReturnReceiverSide } from '../domain/returnPractice';
 import type { CameraConfiguration, QualityMode, SceneMetrics } from '../engine/rendering/TennisScene';
 import { compileSession } from '../engine/session/compileSession';
-import { type SpinKind } from '../engine/trajectory/physics';
-import { PRACTICE_SHOT_PROFILES, spinForPracticeShot, spinRateForPracticeShot, spinRateProfileForPracticeShot, type PracticeShotType } from '../engine/trajectory/practiceProfiles';
+import { aimDirectionToCourtPoint, type SpinKind } from '../engine/trajectory/physics';
+import { PRACTICE_SHOT_PROFILES, legalServeTarget, practiceLandingTarget, spinForPracticeShot, spinRateForPracticeShot, spinRateProfileForPracticeShot, type PracticeShotType } from '../engine/trajectory/practiceProfiles';
 import { practiceAudio } from '../engine/audio/AudioCueEngine';
 import type { SessionLaunch } from '../app/types';
 import { DEFAULT_CAMERA_POSITION_PRESETS, DEFAULT_PERSPECTIVE_PRESETS, type CameraPositionPresetV1, type PerspectivePresetV1, type PracticePreferencesV1 } from '../storage/appStorage';
@@ -107,6 +107,11 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
   const [trajectoryEnabled, setTrajectoryEnabled] = useState(initialPreferences.trajectoryEnabled ?? false);
   const [launchSpeedKmh, setLaunchSpeedKmh] = useState(initialPreferences.launchSpeedKmh);
   const [rhythmPercent, setRhythmPercent] = useState(initialPreferences.rhythmPercent);
+  const [interval, setInterval] = useState(initialPreferences.interval);
+  const [movementPercent, setMovementPercent] = useState(initialPreferences.movementPercent);
+  const [practiceStroke, setPracticeStroke] = useState(initialPreferences.practiceStroke);
+  const [trajectoryMode, setTrajectoryMode] = useState(initialPreferences.trajectoryMode);
+  const [returnTargetMode, setReturnTargetMode] = useState(initialPreferences.returnTargetMode);
   const [repetitions, setRepetitions] = useState(initialPreferences.repetitions);
   const [variation, setVariation] = useState(initialPreferences.variation);
   const [timingVariation, setTimingVariation] = useState(initialPreferences.timingVariation);
@@ -182,27 +187,29 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
   const windVelocity = useMemo(() => windVelocityFromEnvironment(environment), [environment]);
   const shotProfile = PRACTICE_SHOT_PROFILES[shotType];
   const spinRateProfile = spinRateProfileForPracticeShot(shotType, spin);
-  const returnPatternActive = practicePreset === 'return' && shotType === 'serve';
+  const returnPatternActive = practicePreset === 'return' && shotType === 'serve' && returnTargetMode === 'pattern';
   const returnServePlacement = RETURN_SERVE_PATTERN[returnPreviewIndex % RETURN_SERVE_PATTERN.length]!;
   const camera = useMemo<CameraConfiguration>(() => ({ eyeHeight, behindBaseline, lateral, yaw, pitch, fov }), [behindBaseline, eyeHeight, fov, lateral, pitch, yaw]);
-  const previewSession = useMemo(() => compileSession(drill, {
-    repetitions, rhythmPercent, mode: 'quick-practice', camera: { lateral, behindBaseline },
+  const sessionSettings = useMemo(() => ({
+    repetitions, rhythmPercent, shotIntervalSeconds: interval, movementPercent, practiceStroke, trajectoryMode, mode: 'quick-practice' as const, camera: { lateral, behindBaseline },
     variationPercent: variation, timingVariationPercent: timingVariation, launchSpeedKmh, surface, seed,
     spin, spinRateRpm, practiceShotType: shotType, bounceFactor, opponentHand, workBlockSize, restSeconds,
     serveRhythm, landingDepthM, aimDirectionDeg, opponentPosition,
     returnReceiverSide: returnPatternActive ? returnReceiverSide : undefined, windVelocity,
-  }), [drill, repetitions, rhythmPercent, lateral, behindBaseline, variation, timingVariation, launchSpeedKmh,
+  }), [repetitions, interval, movementPercent, practiceStroke, trajectoryMode, rhythmPercent, lateral, behindBaseline, variation, timingVariation, launchSpeedKmh,
     surface, seed, spin, spinRateRpm, shotType, bounceFactor, opponentHand, workBlockSize, restSeconds,
     serveRhythm, landingDepthM, aimDirectionDeg, opponentPosition, returnPatternActive, returnReceiverSide, windVelocity]);
+  const deferredSettings = useDeferredValue(sessionSettings);
+  const previewSession = useMemo(() => compileSession(drill,deferredSettings),[drill,deferredSettings]);
   const trajectory = (previewSession.repetitions[returnPreviewIndex] ?? previewSession.repetitions[0])!.trajectory;
   const bounce = trajectory.events.find(event => event.type === 'bounce');
   const previewGap = previewSession.repetitions[1] ? previewSession.repetitions[1].startTime - previewSession.repetitions[0]!.startTime : 0;
   const onPreviewIndex = useCallback((index: number) => setReturnPreviewIndex(index), []);
 
   useEffect(() => {
-    const timeout = window.setTimeout(() => onPreferencesChange({ sessionCategory, trajectoryEnabled, launchSpeedKmh, interval: initialPreferences.interval, rhythmPercent, repetitions, variation, timingVariation, workBlockSize, restSeconds, surface, shotType, spin, spinRateRpm, bounceFactor, opponentHand, serveRhythm, landingDepthM, aimDirectionDeg, opponentPosition, camera, environment, quality, screenWidthCm, screenHeightCm, viewDistanceCm }), 180);
+    const timeout = window.setTimeout(() => onPreferencesChange({ sessionCategory, trajectoryEnabled, launchSpeedKmh, interval, rhythmPercent, movementPercent, practiceStroke, trajectoryMode, returnTargetMode, repetitions, variation, timingVariation, workBlockSize, restSeconds, surface, shotType, spin, spinRateRpm, bounceFactor, opponentHand, serveRhythm, landingDepthM, aimDirectionDeg, opponentPosition, camera, environment, quality, screenWidthCm, screenHeightCm, viewDistanceCm }), 180);
     return () => window.clearTimeout(timeout);
-  }, [aimDirectionDeg, bounceFactor, camera, environment, initialPreferences.interval, rhythmPercent, landingDepthM, launchSpeedKmh, onPreferencesChange, opponentHand, opponentPosition, quality, repetitions, restSeconds, screenHeightCm, screenWidthCm, serveRhythm, sessionCategory, shotType, spin, spinRateRpm, surface, timingVariation, trajectoryEnabled, variation, viewDistanceCm, workBlockSize]);
+  }, [aimDirectionDeg, bounceFactor, camera, environment, interval, movementPercent, practiceStroke, trajectoryMode, returnTargetMode, rhythmPercent, landingDepthM, launchSpeedKmh, onPreferencesChange, opponentHand, opponentPosition, quality, repetitions, restSeconds, screenHeightCm, screenWidthCm, serveRhythm, sessionCategory, shotType, spin, spinRateRpm, surface, timingVariation, trajectoryEnabled, variation, viewDistanceCm, workBlockSize]);
 
   useEffect(() => {
     let frame = 0;
@@ -350,6 +357,7 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
     changeShotType(preset.shotType);
     if (preset.returnReceiverSide) {
       setReturnReceiverSide(preset.returnReceiverSide);
+      setReturnTargetMode('pattern');
       setReturnPreviewIndex(0);
       setOpponentPosition(returnServerPosition(preset.returnReceiverSide));
     } else {
@@ -360,6 +368,20 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
     if (nextDrill) { setRhythmPercent(100); setRepetitions(nextDrill.defaultRepetitions); }
   };
 
+  const changeLanding = (point:Readonly<{x:number;z:number}>) => {
+    const range=shotProfile.landingDepthRangeM;
+    const z=-Math.min(range.max,Math.max(range.min,-point.z));
+    const requested={x:Math.min(7,Math.max(-7,point.x)),z};
+    const target=shotType==='serve'?legalServeTarget(opponentPosition,aimDirectionToCourtPoint(opponentPosition,requested),-z):requested;
+    if(returnPatternActive)setReturnTargetMode('custom');
+    setLandingDepthM(-target.z);
+    setAimDirectionDeg(aimDirectionToCourtPoint(opponentPosition,target));
+  };
+  const changeRecoveryCenter = (point:CourtPoint) => {
+    const target=practiceLandingTarget(opponentPosition,aimDirectionDeg,landingDepthM);
+    setOpponentPosition(point);
+    setAimDirectionDeg(aimDirectionToCourtPoint(point,target));
+  };
   const resetView = () => {
     if (cameraPositionPresets[0]) applyCameraPosition(cameraPositionPresets[0]);
     if (perspectivePresets[0]) applyPerspective(perspectivePresets[0]);
@@ -393,7 +415,7 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
   };
 
   const launch = () => onStart({
-    session: previewSession,
+    session: deferredSettings === sessionSettings ? previewSession : compileSession(drill,sessionSettings),
     trajectoryEnabled,
     camera,
     environment,
@@ -442,8 +464,8 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
 
         <section className="preview-column" aria-label="Live court preview">
           <div className="setup-court-view" data-camera-eye-height={eyeHeight.toFixed(3)}>
-            <SceneViewport camera={camera} trajectory={trajectory} surface={surface} environment={environment} quality={quality} running resetToken={resetToken} showTrajectory={trajectoryEnabled} loopTrajectory session={previewSession} onSessionIndex={onPreviewIndex} onAimChange={returnPatternActive ? undefined : setAimDirectionDeg} onCameraFovChange={updateCameraFov} onCameraLookChange={updateCameraLook} onMetrics={onMetrics} />
-            <div className="court-metadata" aria-live="polite">{metrics ? `${metrics.renderer} · ${metrics.fps} fps · ${metrics.pixelRatio.toFixed(2)}× ${metrics.quality}` : 'Starting renderer'} · Rhythm {rhythmPercent}%{previewGap ? ` · About ${previewGap.toFixed(1)} s between shots` : ''}</div>
+            <SceneViewport camera={camera} trajectory={trajectory} surface={surface} environment={environment} quality={quality} running resetToken={resetToken} showTrajectory={trajectoryEnabled} loopTrajectory session={previewSession} onSessionIndex={onPreviewIndex} onLandingChange={changeLanding} landingTarget={returnPatternActive ? trajectory.intent.target : shotType==='serve'?legalServeTarget(opponentPosition,aimDirectionDeg,landingDepthM):practiceLandingTarget(opponentPosition,aimDirectionDeg,landingDepthM)} onCameraFovChange={updateCameraFov} onCameraLookChange={updateCameraLook} onMetrics={onMetrics} />
+            <div className="court-metadata" aria-live="polite">{metrics ? `${metrics.renderer} · ${metrics.fps} fps · ${metrics.pixelRatio.toFixed(2)}× ${metrics.quality}` : 'Starting renderer'} · Stroke {rhythmPercent}%{previewGap ? ` · About ${previewGap.toFixed(1)} s between shots` : ''}</div>
           </div>
           <div className="preset-toolbar">
             <div className="preset-group" aria-label="Camera position presets">
@@ -465,15 +487,22 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
           <SetupSection title="Ball & rhythm" subtitle="Flight, speed, timing" open>
             <label className="toggle-field"><span>Trajectory</span><button type="button" role="switch" aria-checked={trajectoryEnabled} className={trajectoryEnabled ? 'toggle active' : 'toggle'} onClick={() => setTrajectoryEnabled((value) => !value)}><span /></button><small>{trajectoryEnabled ? 'On' : 'Off'}</small></label>
             <label className="select-field"><span>Shot type</span><select aria-label="Shot type" value={shotType} onChange={(event) => changeShotType(event.target.value as PracticeShotType)}><option value="groundstroke">Groundstroke</option><option value="serve">Serve</option><option value="volley">Volley</option><option value="lob">Lob</option><option value="overhead">Overhead</option></select></label>
+            {shotType!=='serve'?<label className="select-field"><span>Stroke side</span><select aria-label="Stroke side" value={practiceStroke} onChange={event=>setPracticeStroke(event.target.value as 'forehand'|'backhand'|'alternate')}><option value="alternate">Alternate sides</option><option value="forehand">Forehand</option><option value="backhand">Backhand</option></select></label>:null}
             <RangeField label="Launch speed" value={launchSpeedKmh} min={shotProfile.launchSpeedRangeKmh.min} max={shotProfile.launchSpeedRangeKmh.max} step={1} unit="km/h" onChange={setLaunchSpeedKmh} />
             <label className="select-field"><span>Spin type</span><select aria-label="Spin type" value={spin} disabled={shotType === 'volley'} onChange={(event) => changeSpin(event.target.value)}>{shotProfile.spins.map((option) => <option key={option} value={option}>{practiceSpinLabel(shotType, option)}</option>)}</select></label>
             {shotType !== 'volley' ? <RangeField label="Spin rate" value={spinRateRpm} min={spinRateProfile.minRpm} max={spinRateProfile.maxRpm} step={1} unit="rpm" onChange={setSpinRateRpm} /> : null}
-            <RangeField label="Landing depth" value={landingDepthM} min={shotProfile.landingDepthRangeM.min} max={shotProfile.landingDepthRangeM.max} step={0.1} unit="m" onChange={setLandingDepthM} />
-            <RangeField label="Rhythm" value={rhythmPercent} min={50} max={150} step={5} unit="%" onChange={setRhythmPercent} /><small>100% is the natural movement rhythm. Faster settings keep travel within reach.</small>
+            {practicePreset==='return' && shotType==='serve' ? <label className="select-field"><span>Serve placement</span><select aria-label="Serve placement" value={returnTargetMode} onChange={event=>{if(event.target.value==='custom')changeLanding(trajectory.intent.target);else setReturnTargetMode('pattern');}}><option value="pattern">T → Body → Wide</option><option value="custom">Custom target</option></select></label> : null}
+            <RangeField label="Landing depth" value={landingDepthM} min={shotProfile.landingDepthRangeM.min} max={shotProfile.landingDepthRangeM.max} step={0.1} unit="m" onChange={depth => changeLanding({...practiceLandingTarget(opponentPosition,aimDirectionDeg,landingDepthM),z:-depth})} />
+            <label className="select-field"><span>Trajectory style</span><select aria-label="Trajectory style" value={trajectoryMode} onChange={event=>setTrajectoryMode(event.target.value as 'natural'|'exact')}><option value="natural">Natural target</option><option value="exact">Exact speed & spin</option></select></label>
+            <small className={`trajectory-resolution${trajectory.solution?.status==='unreachable'?' warning':''}`} role="status">{trajectory.solution?.status==='unreachable'?'Target outside this shot’s reach. Adjust speed, spin or depth.':trajectory.solution?.status==='adjusted'?`Resolved ${trajectory.resolved.launchSpeedKmh.toFixed(1)} km/h · ${Math.round(trajectory.resolved.spinRateRpm)} rpm to keep a natural arc.`:trajectoryMode==='natural'?'Natural target allows up to 15% speed and 20% spin adjustment.':'Speed and spin stay fixed; some targets may be out of reach.'}</small>
+            <RangeField label="Shot interval" value={interval} min={1} max={30} step={0.1} unit="s" onChange={setInterval} />
+            <RangeField label="Stroke rhythm" value={rhythmPercent} min={50} max={150} step={5} unit="%" onChange={setRhythmPercent} />
+            <RangeField label="Movement pace" value={movementPercent} min={50} max={150} step={5} unit="%" onChange={setMovementPercent} />
+            <small>Movement speeds up when needed. {previewGap&&previewGap>interval+.02?`Effective interval: ${previewGap.toFixed(1)} s to complete the stroke and travel.`:'Stroke rhythm and ball speed stay independent.'}</small>
           </SetupSection>
           <SetupSection title="Ball arrival" subtitle="Surface response and perceived height"><RangeField label="Bounce height" value={bounceFactor} min={0.6} max={1.4} step={0.05} unit="×" onChange={setBounceFactor} /></SetupSection>
           <SetupSection title="Practice set" subtitle="Repetitions and recovery"><RangeField label="Repetitions" value={repetitions} min={1} max={50} step={1} unit="" onChange={setRepetitions} /><RangeField label="Shot variation" value={variation} min={0} max={25} step={1} unit="%" onChange={setVariation} /><RangeField label="Timing variation" value={timingVariation} min={0} max={30} step={1} unit="%" onChange={setTimingVariation} /><RangeField label="Work block" value={workBlockSize} min={1} max={20} step={1} unit="reps" onChange={setWorkBlockSize} /><RangeField label="Rest" value={restSeconds} min={0} max={120} step={5} unit="s" onChange={setRestSeconds} /></SetupSection>
-          <SetupSection title="Opponent" subtitle="Position and delivery" open><button type="button" className="configuration-action" onClick={() => setDialog('opponent')}><UserRound size={16} /><span>Position opponent</span><small>{opponentPosition.x.toFixed(1)}, {opponentPosition.z.toFixed(1)} m</small></button><label className="select-field"><span>Hand</span><select value={opponentHand} onChange={(event) => setOpponentHand(event.target.value as 'left' | 'right')}><option value="right">Right-handed</option><option value="left">Left-handed</option></select></label>{shotType === 'serve' ? <label className="select-field"><span>Serve rhythm</span><select value={serveRhythm} onChange={(event) => setServeRhythm(event.target.value as 'preset' | 'normal' | 'compact')}><option value="preset">Drill preset</option><option value="normal">Normal · high toss</option><option value="compact">Compact · quick toss</option></select></label> : null}</SetupSection>
+          <SetupSection title="Opponent" subtitle="Position and delivery" open><button type="button" className="configuration-action" onClick={() => setDialog('opponent')}><UserRound size={16} /><span>{shotType==='serve'?'Serving position':'Recovery center'}</span><small>{opponentPosition.x.toFixed(1)}, {opponentPosition.z.toFixed(1)} m</small></button><label className="select-field"><span>Hand</span><select value={opponentHand} onChange={(event) => setOpponentHand(event.target.value as 'left' | 'right')}><option value="right">Right-handed</option><option value="left">Left-handed</option></select></label>{shotType === 'serve' ? <label className="select-field"><span>Serve rhythm</span><select value={serveRhythm} onChange={(event) => setServeRhythm(event.target.value as 'preset' | 'normal' | 'compact')}><option value="preset">Drill preset</option><option value="normal">Normal · high toss</option><option value="compact">Compact · quick toss</option></select></label> : null}</SetupSection>
           <SetupSection title="Venue" subtitle="Court, light, weather">
             <label className="select-field"><span>Venue</span><select value={venue} onChange={(event) => changeVenue(event.target.value as VenueId)}>{(Object.entries(VENUE_LABELS) as [VenueId, string][]).map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
             <label className="select-field"><span>Audience</span><select value={audience} onChange={event => setAudience(event.target.value as AudienceOccupancy)}><option value="empty">Empty</option><option value="half">Half seated</option><option value="full">Fully seated</option></select></label>
@@ -494,9 +523,9 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
         </aside>
       </section>
       {dialog === 'safety' ? <Modal title="Make room to swing" actions={<><button className="secondary-button" type="button" onClick={() => setDialog(null)}>Cancel</button><button className="primary-button inline" type="button" disabled={!safetyChecked} onClick={() => { localStorage.setItem('tenmulate.safetyAcknowledged', 'true'); setDialog(null); launch(); }}>Continue</button></>}><p>Move furniture, people, pets, and breakable objects beyond your full racket-and-arm reach. Tenmulate does not measure your room.</p><label className="check-row"><input type="checkbox" checked={safetyChecked} onChange={(event) => setSafetyChecked(event.target.checked)} /> I have cleared a safe practice area.</label></Modal> : null}
-      {dialog === 'opponent' ? <Modal title="Opponent position" onClose={() => setDialog(null)} actions={<button className="primary-button inline" type="button" onClick={() => setDialog(null)}>Done</button>}><p>Drag through the full ITF international-competition floor envelope: 3.66 m beyond each doubles sideline and 6.40 m behind each baseline.</p><div className="court-preset-list">{OPPONENT_POSITION_PRESETS.map((preset) => <button type="button" key={preset.name} onClick={() => setOpponentPosition(preset.point)}>{preset.name}</button>)}</div><CourtPlan opponent={opponentPosition} landing={bounce?.position ?? null} onOpponentChange={setOpponentPosition} /><p className="calculation">Opponent floor position: {opponentPosition.x.toFixed(2)}, {opponentPosition.z.toFixed(2)} m</p></Modal> : null}
+      {dialog === 'opponent' ? <Modal title="Opponent position" onClose={() => setDialog(null)} actions={<button className="primary-button inline" type="button" onClick={() => setDialog(null)}>Done</button>}><p>Drag through the full ITF international-competition floor envelope: 3.66 m beyond each doubles sideline and 6.40 m behind each baseline.</p><div className="court-preset-list">{OPPONENT_POSITION_PRESETS.map((preset) => <button type="button" key={preset.name} onClick={() => changeRecoveryCenter(preset.point)}>{preset.name}</button>)}</div><CourtPlan opponent={opponentPosition} landing={bounce?.position ?? null} onOpponentChange={changeRecoveryCenter} /><p className="calculation">Opponent floor position: {opponentPosition.x.toFixed(2)}, {opponentPosition.z.toFixed(2)} m</p></Modal> : null}
       {dialog === 'display' ? <Modal title="Physical display view" onClose={() => setDialog(null)} actions={<button className="primary-button inline" type="button" onClick={applyPhysicalFov}>Apply calculated FOV</button>}><p>Enter the visible screen width and height plus your eye-to-screen distance. This calculates physical horizontal and vertical FOV without changing court geometry.</p><label className="dialog-field"><span>Screen width</span><input type="number" min="30" max="1000" value={screenWidthCm} onChange={(event) => setScreenWidthCm(Number(event.target.value))} /><small>cm</small></label><label className="dialog-field"><span>Screen height</span><input type="number" min="20" max="1000" value={screenHeightCm} onChange={(event) => setScreenHeightCm(Number(event.target.value))} /><small>cm</small></label><label className="dialog-field"><span>Viewing distance</span><input type="number" min="30" max="1500" value={viewDistanceCm} onChange={(event) => setViewDistanceCm(Number(event.target.value))} /><small>cm</small></label><p className="calculation">Calculated FOV: {Math.round((2 * Math.atan(screenWidthCm / (2 * viewDistanceCm)) * 180) / Math.PI)}° horizontal · {Math.round((2 * Math.atan(screenHeightCm / (2 * viewDistanceCm)) * 180) / Math.PI)}° vertical</p></Modal> : null}
-      {dialog === 'help' ? <Modal title="Practice controls" onClose={() => setDialog(null)}><dl className="shortcut-list"><div><dt>WASD</dt><dd>Move freely around the court during setup</dd></div><div><dt>Ctrl+W/S</dt><dd>Raise or lower camera height after enabling Protect Ctrl+W/S</dd></div><div><dt>PgUp/PgDn</dt><dd>Raise or lower camera height without entering protected controls</dd></div><div><dt>Protected controls</dt><dd>Uses fullscreen keyboard access so the browser sends Ctrl+W/S to the court; hold Escape to leave</dd></div><div><dt>Shift</dt><dd>Move faster while held</dd></div><div><dt>Left drag</dt><dd>Turn and pitch the FPV camera through the full 360° range</dd></div><div><dt>Wheel</dt><dd>Zoom the FPV camera by changing its field of view</dd></div><div><dt>Right drag</dt><dd>Aim the opponent’s shot directly on the FPV court</dd></div><div><dt>Preset click</dt><dd>Right-click a bottom preset to update it</dd></div><div><dt>Space</dt><dd>Pause or resume practice</dd></div></dl></Modal> : null}
+      {dialog === 'help' ? <Modal title="Practice controls" onClose={() => setDialog(null)}><dl className="shortcut-list"><div><dt>WASD</dt><dd>Move freely around the court during setup</dd></div><div><dt>Ctrl+W/S</dt><dd>Raise or lower camera height after enabling Protect Ctrl+W/S</dd></div><div><dt>PgUp/PgDn</dt><dd>Raise or lower camera height without entering protected controls</dd></div><div><dt>Protected controls</dt><dd>Uses fullscreen keyboard access so the browser sends Ctrl+W/S to the court; hold Escape to leave</dd></div><div><dt>Shift</dt><dd>Move faster while held</dd></div><div><dt>Left drag</dt><dd>Turn and pitch the FPV camera through the full 360° range</dd></div><div><dt>Wheel</dt><dd>Zoom the FPV camera by changing its field of view</dd></div><div><dt>Landing arrows</dt><dd>Hover or tap the first bounce. Drag the horizontal arrow to aim and the vertical arrow to change depth. Focus an arrow and use arrow keys for small adjustments.</dd></div><div><dt>Preset click</dt><dd>Right-click a bottom preset to update it</dd></div><div><dt>Space</dt><dd>Pause or resume practice</dd></div></dl></Modal> : null}
       {dialog === 'new-position' || dialog === 'new-perspective' ? <Modal title={dialog === 'new-position' ? 'New camera position' : 'New perspective'} onClose={() => setDialog(null)} actions={<><button className="secondary-button" type="button" onClick={() => setDialog(null)}>Cancel</button><button className="primary-button inline" type="button" onClick={createPreset}>Create preset</button></>}><label className="stack-field"><span>Preset name</span><input autoFocus maxLength={40} value={presetName} onChange={(event) => setPresetName(event.target.value)} /></label></Modal> : null}
     </main>
   );
