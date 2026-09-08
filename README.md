@@ -12,6 +12,13 @@ parks it without rendering. Setup previews stream fresh feeds continuously;
 launched sets honor their chosen repetitions and rests. See the
 [shared-court verification receipt](docs/development/shared-court-and-zone-resize-2026-09-08.md).
 
+**Cast** opens iOS Screen Mirroring instructions and an optional local court capture
+preview. Capture keeps the same canvas/video/audio tracks across setup and practice,
+with up to 720p at 30 fps. Direct AirPlay of that live capture is unavailable in
+iOS Safari; connecting to an existing receiver still requires Control Center.
+The app cannot verify that connection. See the
+[capture contract and remaining transport gate](docs/decisions/0034-persistent-court-capture.md).
+
 The drill editor can save complete shot presets and copy them into new sequences.
 Each shot stores its opponent, camera, ball and timing settings. Configure your
 return-space distance, width and depth in meters; **View return space** shows its

@@ -1,4 +1,5 @@
 import { CircleHelp, Monitor } from 'lucide-react';
+import { CastingButton } from './CastingButton';
 
 export type AppRoute = 'practice' | 'drills' | 'editor';
 
@@ -19,8 +20,9 @@ export function AppHeader({ route, onRoute, onDisplay, onHelp }: AppHeaderProps)
         <button className={route === 'editor' ? 'nav-item active' : 'nav-item'} type="button" onClick={() => onRoute('editor')}>Editor</button>
       </nav>
       <div className="header-actions">
-        <button className="icon-text-button" type="button" onClick={onDisplay}><Monitor size={18} /> Display</button>
-        <button className="icon-text-button" type="button" onClick={onHelp}><CircleHelp size={18} /> Help</button>
+        <CastingButton />
+        <button className="icon-text-button" type="button" aria-label="Display" onClick={onDisplay}><Monitor size={18} /> Display</button>
+        <button className="icon-text-button" type="button" aria-label="Help" onClick={onHelp}><CircleHelp size={18} /> Help</button>
       </div>
     </header>
   );

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { capturePixelRatio } from '../capture/CourtCapture';
 import { cameraRotationRadians } from '../../domain/camera';
 import { COURT, type SurfaceId } from '../../domain/court';
 import { DEFAULT_ENVIRONMENT, SCENE_DEFINITIONS, isOutdoorVenue, windVelocityFromEnvironment, type EnvironmentConfiguration } from '../../domain/environment';
@@ -501,7 +502,6 @@ export class TennisScene {
       : mode === 'quality'
         ? Math.min(window.devicePixelRatio, 1.75)
         : Math.min(window.devicePixelRatio, 1.5);
-    this.renderer.setPixelRatio(this.adaptivePixelRatio);
     const shadowSize = Math.min(this.renderer.capabilities.maxTextureSize, mode === 'quality' ? 4096 : 2048);
     if (this.sun.shadow.mapSize.x !== shadowSize) {
       this.sun.shadow.map?.dispose();
@@ -799,7 +799,6 @@ export class TennisScene {
         }
         if (this.slowMetricWindows >= 3 && this.adaptivePixelRatio > 0.8) {
           this.adaptivePixelRatio = Math.max(0.8, this.adaptivePixelRatio - 0.2);
-          this.renderer.setPixelRatio(this.adaptivePixelRatio);
           this.resize();
           this.slowMetricWindows = 0;
         }
@@ -828,11 +827,21 @@ export class TennisScene {
 
   resetRendererProfile(): void { this.profiler?.reset(); }
 
+  private captureActive = false;
+
+  setCaptureActive(active: boolean): void {
+    if (this.captureActive === active) return;
+    this.captureActive = active;
+    this.resize();
+  }
+
   private resize(): void {
     if (!this.active || !this.canvas.clientWidth || !this.canvas.clientHeight) return;
     const width = Math.max(1, this.canvas.clientWidth);
     const height = Math.max(1, this.canvas.clientHeight);
     this.profiler?.reset();
+    const pixelRatio = capturePixelRatio(width, height, this.adaptivePixelRatio, this.captureActive);
+    if (this.renderer.getPixelRatio() !== pixelRatio) this.renderer.setPixelRatio(pixelRatio);
     this.renderer.setSize(width, height, false);
     this.camera.aspect = width / height;
     this.applyCamera();

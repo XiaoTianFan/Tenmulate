@@ -7,6 +7,13 @@
 
 ## Owner requirements
 
+Implementation follow-up, 2026-09-09: local persistent canvas/audio capture is now
+implemented under [ADR-0034](../decisions/0034-persistent-court-capture.md). Source
+inspection confirms that WebKit's live MediaStream player inherits disabled
+wireless playback; attaching the captured stream to a video element is not an
+AirPlay transport. The new native Screen Mirroring guide is explicitly a fallback.
+The website-initiated, existing-receiver requirement remains unmet.
+
 - The sender is the Tenmulate website. The visitor needs no repository, developer environment or locally installed sender/helper.
 - No Lebo desktop client, other desktop casting application, native mobile sender, browser extension or native wrapper is part of the solution.
 - Use existing casting receivers, including the owner's Lebo/Sony and Qiyiguo services. Requiring the user to open a Tenmulate receiver webpage or install a custom receiver does not satisfy the requirement.

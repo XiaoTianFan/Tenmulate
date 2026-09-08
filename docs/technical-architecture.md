@@ -3,6 +3,13 @@
 - **Status:** Proposed
 - **Last updated:** 2026-09-08
 
+**Persistent court capture (2026-09-09):** [ADR-0034](decisions/0034-persistent-court-capture.md)
+adds a route-independent capture controller to the existing shared canvas. Capture
+uses a 30 fps ceiling and a 720p drawing-buffer budget, with an optional tap of
+practice audio. Setup, Quick Practice, editor and drill playback retain the same
+source and tracks. Local capture and the manual iOS Screen Mirroring guide are
+implemented; direct website-to-existing-receiver transport remains blocked.
+
 ## 1. Architectural objective
 
 Build a deterministic tennis rehearsal engine whose ball, opponent, camera, and cues share one timeline while keeping the browser UI, render backend, and future tracking system replaceable.

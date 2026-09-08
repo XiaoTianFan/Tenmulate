@@ -26,6 +26,7 @@ import { useSessionPlayer } from '../hooks/useSessionPlayer';
 import { useFullscreen } from '../hooks/useFullscreen';
 import { Modal } from './Modal';
 import { CourtViewport } from './SharedCourt';
+import { CastingButton } from './CastingButton';
 import { RETURN_SERVE_PLACEMENT_LABELS } from '../domain/returnPractice';
 
 type RehearsalScreenProps = Readonly<{
@@ -165,6 +166,7 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
         <span className="drill-title">{session.drill.title}</span>
         <span className="rep-status">Set {player.currentSet} of {player.setCount} · Rep {repetitionNumber} of {session.repetitions.length}</span>
         <div>
+          <CastingButton />
           <button type="button" aria-label="Settings" aria-expanded={showDiagnostics} onClick={() => setShowDiagnostics((value) => !value)}><Settings size={18} /> Settings</button>
           <button type="button" aria-label={autoHideUI ? 'Keep controls visible' : 'Auto-hide controls'} title={autoHideUI ? 'Show UI (H)' : 'Hide UI (H)'} aria-pressed={!autoHideUI} onClick={toggleUI}>{autoHideUI ? <Eye size={18} /> : <EyeOff size={18} />} {autoHideUI ? 'Show UI' : 'Hide UI'}</button>
           <button type="button" aria-label={fullscreen.active ? 'Exit full screen' : 'Full screen'} aria-pressed={fullscreen.active} onClick={() => void fullscreen.toggle()}>{fullscreen.active ? <Minimize size={18} /> : <Expand size={18} />} {fullscreen.active ? 'Exit full screen' : 'Full screen'}</button>

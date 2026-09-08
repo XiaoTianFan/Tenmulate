@@ -1,13 +1,32 @@
 # V1 implementation status
 
 - **Status:** Active
-- **Last updated:** 2026-09-08
+- **Last updated:** 2026-09-09
 - **Current implementation:** Six Blender-authored venues by default, twelve Quality/Performance GLBs, and optional Empty/Half/Full instanced 2D audiences. Procedural venue presentation and the opt-in gate are removed. Existing outdoor Quality geometry, darker grass and denser nets are preserved.
 - **Previous venue integration:** Source/assets `25e363b`, runtime `18141c5` and verification `d1a916a` were fast-forwarded into `main`, preserving separately committed local-motion work `b2a082e`. All twelve local feature tips were included at this integration checkpoint; see the [branch audit](feature-branch-integration-2026-09-05.md). No remote push or deployment.
 
 **Motion/model integration checkpoint (2026-09-07):** Local `main` includes all 17 motion/model feature commits plus delivery/documentation reconciliation through `a9ba202`: all 24 clips, the 1.88 m articulated model, recovery planning, crossovers and both serve rhythms. No local feature tip remains unmerged. The 237-test suite, production build, active-asset/cache guard, both-hand gameplay/crossover checks and actual production-browser practice review pass. The [current motion contract](local-motion-pipeline.md) replaces competing “latest” descriptions below; the [integration receipt](motion-main-integration-2026-09-07.md) records the exact merge, evidence and remaining owner/device gates. Older stage counts and asset hashes below are historical evidence, not active selectors. No public deployment occurred.
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
+
+## Persistent court capture — 2026-09-09
+
+The Cast panel exposes optional local canvas/audio capture and a separately labeled
+iOS Control Center Screen Mirroring guide. One canvas, renderer and capture stream
+survive Quick Practice setup/playback, drill editing/playback and library parking.
+Capture has a 30 fps ceiling and a 720p source budget; it uses no microphone,
+screenshot loop, duplicate 3D rendering or media upload. The preview is muted and
+exists only while the panel is open. Track failure and renderer interruption are
+reported, with explicit restart and deterministic cleanup.
+
+**Partial delivery against the casting request:** Safari does not expose direct
+AirPlay of the live canvas MediaStream. The app cannot initiate or verify native
+Screen Mirroring, and the manual guide does not meet the website-initiated receiver
+requirement. No actual iOS/TV session or performance acceptance is claimed. See
+[ADR-0034](../decisions/0034-persistent-court-capture.md) for source evidence and
+the ownership/transport contract. Initial validation: 13 focused capture lifecycle
+and resolution tests plus TypeScript compilation pass; browser and final build
+verification are recorded separately when completed.
 
 ## Serve rhythm placement and choices — 2026-09-08
 

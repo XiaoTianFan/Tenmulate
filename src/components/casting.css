@@ -1,0 +1,27 @@
+.casting-dialog { width: min(640px, calc(100vw - 24px)); max-height: calc(100dvh - 32px); padding: 0; border: 1px solid #344752; border-radius: 12px; color: #edf3f6; background: #101b22; box-sizing: border-box; }
+.casting-dialog::backdrop { background: rgb(0 0 0 / 72%); }
+.casting-dialog > header { position: sticky; top: 0; z-index: 1; background: #101b22; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 20px; border-bottom: 1px solid #344752; }
+.casting-dialog h2 { margin: 0; font-size: 20px; }
+.casting-dialog h3 { margin: 0 0 8px; font-size: 16px; }
+.casting-body { padding: 18px 20px; font-size: 14px; line-height: 1.55; }
+.casting-body section + section { margin-top: 20px; padding-top: 20px; border-top: 1px solid #344752; }
+.casting-body p { margin: 8px 0; }
+.casting-body ol { padding-left: 22px; }
+.casting-body li + li { margin-top: 6px; }
+.casting-note { color: #afc1cc; font-size: 13px; }
+.casting-preview { display: block; width: 100%; max-height: 260px; margin-top: 12px; background: #000; object-fit: contain; }
+.casting-status { margin: 14px 0; padding: 10px 12px; border: 1px solid #425f70; border-radius: 6px; }
+.casting-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-top: 16px; }
+.casting-actions label { display: flex; gap: 8px; align-items: center; }
+.casting-dialog button { min-height: 40px; border: 1px solid #496373; border-radius: 6px; padding: 8px 12px; background: #1b3444; color: #edf3f6; cursor: pointer; font: inherit; }
+.casting-dialog button:disabled { opacity: .5; cursor: default; }
+.casting-dialog :focus-visible { outline: 2px solid #67c4f2; outline-offset: 3px; }
+@media (max-width: 650px) {
+  .header-actions { padding-inline: 6px; gap: 0; }
+  .header-actions .icon-text-button { width: 40px; justify-content: center; padding-inline: 0; font-size: 0; }
+  .header-actions .icon-text-button svg { flex-shrink: 0; }
+  .casting-body { padding: 14px; }
+  .rehearsal-shell .rehearsal-header { grid-template-columns: minmax(0, 1fr) auto; gap: 0; }
+  .rehearsal-shell .rehearsal-header > strong { overflow: hidden; font-size: 14px; padding-inline: 6px; }
+  .rehearsal-shell .rehearsal-header > div button { width: 40px; }
+}

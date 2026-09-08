@@ -2,11 +2,38 @@ export type CueSound = 'countdown' | 'contact' | 'bounce' | 'footwork' | 'comple
 
 export class AudioCueEngine {
   private context: AudioContext | null = null;
+  private output: GainNode | null = null;
   private ambience: { oscillator: OscillatorNode; gain: GainNode } | null = null;
 
   unlock(): void {
-    if (!this.context) this.context = new AudioContext();
-    void this.context.resume();
+    this.ensureContext();
+    void this.context!.resume().catch(() => undefined);
+  }
+
+  private ensureContext(): AudioContext {
+    if (!this.context) {
+      this.context = new AudioContext();
+      this.output = this.context.createGain();
+      this.output.connect(this.context.destination);
+    }
+    return this.context;
+  }
+
+  /** A tap of practice audio only. No microphone, extra synthesis or route ownership. */
+  async capture() {
+    const context = this.ensureContext();
+    await context.resume();
+    if (context.state !== 'running') throw new Error('Practice audio is suspended');
+    const output = this.output!;
+    const destination = context.createMediaStreamDestination();
+    output.connect(destination);
+    let released = false;
+    return { stream: destination.stream, release: () => {
+      if (released) return;
+      released = true;
+      output.disconnect(destination);
+      destination.stream.getTracks().forEach(track => track.stop());
+    } };
   }
 
   play(sound: CueSound, volume: number): void {
@@ -25,7 +52,7 @@ export class AudioCueEngine {
     oscillator.type = sound === 'bounce' || sound === 'footwork' ? 'triangle' : 'sine';
     gain.gain.setValueAtTime(Math.min(0.12, volume * 0.12), now);
     gain.gain.exponentialRampToValueAtTime(0.0001, now + (sound === 'complete' ? 0.32 : 0.12));
-    oscillator.connect(gain).connect(this.context.destination);
+    oscillator.connect(gain).connect(this.output!);
     oscillator.start(now);
     oscillator.stop(now + (sound === 'complete' ? 0.34 : 0.14));
   }
@@ -38,7 +65,7 @@ export class AudioCueEngine {
       oscillator.type = 'sine';
       oscillator.frequency.setValueAtTime(74, this.context.currentTime);
       gain.gain.setValueAtTime(0.0001, this.context.currentTime);
-      oscillator.connect(gain).connect(this.context.destination);
+      oscillator.connect(gain).connect(this.output!);
       oscillator.start();
       this.ambience = { oscillator, gain };
     }
@@ -50,6 +77,7 @@ export class AudioCueEngine {
     this.ambience = null;
     void this.context?.close();
     this.context = null;
+    this.output = null;
   }
 }
 

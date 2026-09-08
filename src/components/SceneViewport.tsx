@@ -18,6 +18,8 @@ import { DEFAULT_BALL_FOCUS, type BallFocusSettings } from '../engine/rendering/
 export type SceneViewportProps = Readonly<{
   active?: boolean;
   viewKey?: object;
+  onCaptureSource?: (canvas: HTMLCanvasElement | null) => void;
+  captureActive?: boolean;
   camera: CameraConfiguration;
   trajectory: ResolvedTrajectory;
   surface: SurfaceId;
@@ -66,6 +68,8 @@ type TrajectoryTooltipState = Readonly<{
 export function SceneViewport({
   active = true,
   viewKey,
+  onCaptureSource,
+  captureActive = false,
   camera,
   trajectory,
   surface,
@@ -103,6 +107,7 @@ export function SceneViewport({
   const [venueStatus, setVenueStatus] = useState<SceneMetrics['venueAsset']>({ status: 'loading', loadedBytes: 0, totalBytes: 0 });
   const [audienceError, setAudienceError] = useState<string | null>(null);
   const initialSceneOptions = useRef({ quality, environment });
+  const captureSource = useRef(onCaptureSource);
   const zoomCommitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => {
     if(zoomCommitTimer.current)clearTimeout(zoomCommitTimer.current);
@@ -140,16 +145,20 @@ export function SceneViewport({
         setAudienceError(metrics.audience.status === 'error' ? metrics.audience.message ?? 'Audience unavailable' : null);
       }, initialSceneOptions.current);
       sceneRef.current = scene;
+      captureSource.current?.(canvas);
       setError(null);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'The 3D renderer could not start.');
       return;
     }
     return () => {
+      captureSource.current?.(null);
       scene.dispose();
       sceneRef.current = null;
     };
   }, []);
+
+  useEffect(() => { sceneRef.current?.setCaptureActive(captureActive); }, [captureActive]);
 
   useEffect(() => {
     sceneRef.current?.landingZoneControl.end(false);
