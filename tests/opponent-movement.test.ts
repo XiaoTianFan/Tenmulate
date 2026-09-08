@@ -5,6 +5,19 @@ import { planRecovery, recoveryCenter, sampleTravel, sampleMovementDrill, MOVEME
 
 const rep=(x:number,index=0,hand:'left'|'right'='right',z=12.8)=>({index,startTime:3+index*10,shot:{...SHOTS[0]!,family:'groundstroke' as const,stroke:(x>0?'forehand':'backhand') as 'forehand'|'backhand',opponentHand:hand,source:{x,y:1.1,z},target:{x:0,z:-9}}});
 describe('court recovery and distance-driven footwork',()=>{
+  it('reserves an in-place turn when a stroke finishes at its recovery center',()=>{
+    const event=motionEvent(rep(0));
+    const center={x:event.root.x+.005,y:0,z:event.root.z};
+    const plan=planRecovery({...event,home:center,yaw:Math.PI-.3});
+    expect(plan.recover.end-plan.recover.start).toBeCloseTo(.18,8);
+    const start=sampleTravel(plan.recover,plan.recover.start,'right');
+    const middle=sampleTravel(plan.recover,(plan.recover.start+plan.recover.end)/2,'right');
+    const end=sampleTravel(plan.recover,plan.recover.end,'right');
+    expect(start.yaw).toBeCloseTo(Math.PI-.3,8);
+    expect(middle.yaw).toBeCloseTo(Math.PI-.15,8);
+    expect(end.yaw).toBeCloseTo(Math.PI,8);
+    expect(start.root).toEqual(event.root);expect(end.root).toEqual(center);
+  });
   it.each(['right','left'] as const)('recovers wide shots, splits at center and launches to same or opposite side (%s)',hand=>{
     for(const nextX of [3.5,-3.5]){
       const a=rep(hand==='right'?3.5:-3.5,0,hand),b=rep(nextX,1,hand);

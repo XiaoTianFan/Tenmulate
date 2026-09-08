@@ -11,9 +11,9 @@ import { compileSession } from '../src/engine/session/compileSession';
 import { motionEvent, minimumMotionGap, sampleOpponentTimeline, strokeForShot, OPPONENT_MOTION, MAX_OPPONENT_SPEED, type MotionRepetition, type StrokeId } from '../src/engine/session/opponentTimeline';
 
 const repetition = (clip: StrokeId, index = 0, x = 0, z = 12.5, hand: 'left' | 'right' = 'right'): MotionRepetition => ({
-  index, startTime: 3 + index * 8, shot: { ...SHOTS[0]!, family: clip.startsWith('serve') ? 'serve' : clip.endsWith('-volley') ? 'volley' : 'groundstroke',
+  index, startTime: 3 + index * 8, shot: { ...SHOTS[0]!, family: clip.startsWith('serve') ? 'serve' : clip.endsWith('-volley') ? 'volley' : clip==='backhand-overhead'?'overhead':'groundstroke',
     stroke: clip.startsWith('serve') ? undefined : clip.startsWith('backhand') ? 'backhand' : 'forehand', spin: clip.endsWith('slice') ? 'slice' : 'topspin', opponentHand: hand, serveRhythm: clip === 'serve-compact' ? 'compact' : 'normal',
-    source: { x, y: clip.startsWith('serve') ? 2.75 : clip.endsWith('-volley') ? 1.32 : 1.1, z }, target: { x: 1.7, z: -9 } },
+    source: { x, y: clip.startsWith('serve') ? 2.75 : clip.endsWith('-volley') ? 1.32 : clip==='backhand-overhead'?OPPONENT_MOTION.clips['backhand-overhead'].contactLocal[1]*OPPONENT_MOTION.scale+OPPONENT_MOTION.floorOffset:1.1, z }, target: { x: 1.7, z: -9 } },
 });
 const bytes = await readFile(new URL(`../public${OPPONENT_MOTION.url}`, import.meta.url));
 const loadRig = async () => {
@@ -26,7 +26,7 @@ afterEach(() => vi.restoreAllMocks());
 describe('local motion asset and shared contact clock', () => {
   it('preserves real racket contacts after IK at both rhythm bounds and for both hands',async()=>{
     const rig=await loadRig();
-    for(const hand of ['right','left'] as const)for(const rate of [.5,.85,1,1.2,1.5])for(const clip of ['forehand','backhand','forehand-slice','backhand-slice','forehand-volley','backhand-volley','serve','serve-compact'] as const){
+    for(const hand of ['right','left'] as const)for(const rate of [.5,.85,1,1.2,1.5])for(const clip of ['forehand','backhand','forehand-slice','backhand-slice','forehand-volley','backhand-volley','serve','serve-compact','backhand-overhead'] as const){
       const event=motionEvent({...repetition(clip,0,2,12.8,hand),motionRate:rate});
       for(const t of [event.start,event.contactTime,event.end]){
         const pose=sampleOpponentTimeline([event],t)!;rig.sampleMotion(pose);
@@ -58,7 +58,8 @@ describe('local motion asset and shared contact clock', () => {
       let top=0;for(let t=event.start;t<event.contactTime;t+=1/240)top=Math.max(top,sampleOpponentTimeline([event],t)!.toss?.y??0);return top;
     };
     expect(apex(compact!)).toBeLessThan(apex(normal!)-.25);
-    expect(strokeForShot({...base,family:'overhead',serveRhythm:'compact'},0)).toBe('serve');
+    expect(strokeForShot({...base,family:'overhead',stroke:'forehand',serveRhythm:'compact'},0)).toBe('serve');
+    expect(strokeForShot({...base,family:'overhead',stroke:'backhand'},0)).toBe('backhand-overhead');
   });
   it.each([4,5,6,7])('crossover drill %i turns the hips without squatting in either hand', async index => {
     const rig=await loadRig();

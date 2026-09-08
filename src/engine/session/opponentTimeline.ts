@@ -6,7 +6,7 @@ import type { ShotDefinitionV1 } from '../../content/types';
 import type { Vec3 } from '../../domain/vector';
 
 export const OPPONENT_MOTION = library;
-export type StrokeId = 'forehand' | 'backhand' | 'forehand-slice' | 'backhand-slice' | 'forehand-volley' | 'backhand-volley' | 'serve' | 'serve-compact';
+export type StrokeId = 'forehand' | 'backhand' | 'forehand-slice' | 'backhand-slice' | 'forehand-volley' | 'backhand-volley' | 'backhand-overhead' | 'serve' | 'serve-compact';
 export const isServeMotion = (clip: string): boolean => clip === 'serve' || clip === 'serve-compact';
 export type MotionId = keyof typeof library.clips;
 export type ClipMetadata = Readonly<{ duration: number; contact?: number; contactLocal?: readonly number[]; tossRelease?: number; tossLocal?: readonly number[]; recovery: number; loop: boolean }>;
@@ -26,9 +26,9 @@ export type MotionRepetition = Readonly<{ index: number; startTime: number; shot
 
 export const strokeForShot = (shot: ShotDefinitionV1, index: number): StrokeId => {
   if (shot.family === 'serve') return shot.serveRhythm === 'compact' ? 'serve-compact' : 'serve';
-  if (shot.family === 'overhead') return 'serve';
   const relativeSide = shot.source.x * (shot.opponentHand === 'left' ? -1 : 1);
   const side = shot.stroke ?? (shot.backhandStyle ? 'backhand' : Math.abs(relativeSide) > 0.4 ? relativeSide < 0 ? 'backhand' : 'forehand' : index % 2 ? 'backhand' : 'forehand');
+  if (shot.family === 'overhead') return side === 'backhand' ? 'backhand-overhead' : 'serve';
   if (shot.family === 'volley') return `${side}-volley`;
   return shot.spin === 'slice' ? `${side}-slice` : side;
 };

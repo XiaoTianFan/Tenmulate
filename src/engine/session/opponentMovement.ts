@@ -40,20 +40,23 @@ export function planRecovery(previous:MotionEvent,next?:MotionEvent):RecoveryPla
   const center=recoveryCenter(previous);
   const availableTime=next?next.start-previous.end:Infinity;
   const preferred=Math.min(1.5,Math.max(.5,previous.movementRate??1));
-  const legTime=(from:Vec3,to:Vec3,rate:number)=>travelDuration(from,to,Math.min(MAX_OPPONENT_SPEED,3.2*rate),Math.min(MAX_TRAVEL_ACCELERATION,4.4*rate));
-  const serveApproach=next&&previous.clip.startsWith('serve')&&next.root.z<previous.root.z-3;
-  const fullAt=(rate:number)=>legTime(previous.root,center,rate)+SPLIT_SECONDS+(next?legTime(center,next.root,rate):0)+.18;
+  const legTime=(from:Vec3,to:Vec3,rate:number,fromYaw:number,toYaw:number)=>{
+    const turn=Math.abs(Math.atan2(Math.sin(toYaw-fromYaw),Math.cos(toYaw-fromYaw)));
+    return Math.max(travelDuration(from,to,Math.min(MAX_OPPONENT_SPEED,3.2*rate),Math.min(MAX_TRAVEL_ACCELERATION,4.4*rate)),turn>1e-4?Math.max(.18,turn/2):0);
+  };
+  const serveApproach=next&&previous.clip.startsWith('serve')&&previous.tossEnabled!==false&&next.root.z<previous.root.z-3;
+  const fullAt=(rate:number)=>legTime(previous.root,center,rate,previous.yaw,Math.PI)+SPLIT_SECONDS+(next?legTime(center,next.root,rate,Math.PI,next.yaw):0)+.18;
   const direct=!!next&&(previous.recoveryPolicy==='direct'||previous.recoveryPolicy==='auto'&&(serveApproach||availableTime+1e-7<fullAt(1.5)));
-  const requiredAt=(rate:number)=>direct&&next?legTime(previous.root,next.root,rate)+.18:fullAt(rate);
+  const requiredAt=(rate:number)=>direct&&next?legTime(previous.root,next.root,rate,previous.yaw,next.yaw)+.18:fullAt(rate);
   // Interval pressure can accelerate travel, independently of the stroke clock.
   let rate=preferred;
   if(requiredAt(rate)>availableTime){let lo=rate,hi=1.5;for(let i=0;i<18;i++){const mid=(lo+hi)/2;if(requiredAt(mid)>availableTime)lo=mid;else hi=mid;}rate=hi;}
-  const recoverTime=legTime(previous.root,center,rate);
-  const approachTime=next?legTime(center,next.root,rate):0;
+  const recoverTime=legTime(previous.root,center,rate,previous.yaw,Math.PI);
+  const approachTime=next?legTime(center,next.root,rate,Math.PI,next.yaw):0;
   const requiredDuration=recoverTime+SPLIT_SECONDS+approachTime+.18;
   const start=previous.end,available=next?next.start-start:requiredDuration;
   if(direct&&next){
-    const travel=legTime(previous.root,next.root,rate),required=travel+.18;
+    const travel=legTime(previous.root,next.root,rate,previous.yaw,next.yaw),required=travel+.18;
     // Move immediately after the finish, then wait at the next preparation point.
     const leg:TravelLeg={from:previous.root,to:next.root,start,end:start+travel,fromYaw:previous.yaw,toYaw:next.yaw,stage:'approach'};
     return {kind:'direct',center:next.root,recover:leg,approach:null,splitStart:start+travel,splitEnd:start+travel,
@@ -78,7 +81,8 @@ function rest(root:Vec3,yaw:number,hand:'left'|'right',stage:MovementStage,time=
  * Plant positions are derived from route distance, never previous frame state. */
 export function sampleTravel(leg:TravelLeg,time:number,hand:'left'|'right'):MotionSample {
   const d=distance(leg.from,leg.to),duration=leg.end-leg.start;
-  if(d<.015||duration<=0)return rest(leg.to,leg.toYaw,hand,leg.stage);
+  if(duration<=0)return rest(leg.to,leg.toYaw,hand,leg.stage);
+  if(d<.015){const progress=ease((time-leg.start)/duration);return rest(point(leg.from,leg.to,progress),yawMix(leg.fromYaw,leg.toYaw,progress),hand,leg.stage);}
   const u=clamp((time-leg.start)/duration),curve=travelCurve(u),progress=curve.progress,covered=d*progress;
   const speed=curve.velocity*d/duration,acceleration=curve.acceleration*d/(duration*duration),root=point(leg.from,leg.to,progress);
   const heading=Math.atan2(leg.to.x-leg.from.x,leg.to.z-leg.from.z);
@@ -162,7 +166,7 @@ export function sampleTravel(leg:TravelLeg,time:number,hand:'left'|'right'):Moti
   }
   return {root,yaw,hand,event:null,verticalCorrection:0,toss:null,layers,
     movement:{stage:leg.stage,speed,acceleration,distance:covered,phase,heading},
-    travelLean:Math.max(-.2,Math.min(.2,Math.atan2(acceleration,9.81)*.35+speed/MAX_OPPONENT_SPEED*.055))*blend,
+    travelLean:travelTurn?Math.max(-.2,Math.min(.2,Math.atan2(acceleration,9.81)*.35+speed/MAX_OPPONENT_SPEED*.055))*blend*(1-crossWeight):0,
     lookYaw:travelTurn?Math.max(-1,Math.min(1,Math.atan2(Math.sin(leg.toYaw-yaw),Math.cos(leg.toYaw-yaw))))*blend:0,
     ...(footTargets?{footTargets}:{})};
 }

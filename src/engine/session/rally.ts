@@ -68,7 +68,7 @@ export function planRallyReturn(incoming: ResolvedTrajectory, next: ShotDefiniti
     const minimum=Math.max(.45,minimumGap-contact.time);
     const desired=Math.max(minimum,preferredGap-contact.time);
     const durations=[desired,Math.max(minimum,travel),minimum,Math.max(minimum,travel*1.3)];
-    for(const duration of [...new Set(durations.map(t=>Math.round(t*240)/240))]) {
+    for(const duration of [...new Set(durations.map(t=>Math.ceil(t*240)/240))]) {
       if(duration>4.8||contact.time+duration<minimumGap-1e-7)continue;
       const intent:ShotIntent={source:contact.position,target:{x:target.x,z:target.z},launchSpeedKmh:preferred,
         spin:mustBounce?'topspin':'flat',spinRateRpm:mustBounce?900:0,family:mustBounce?'groundstroke':'volley',

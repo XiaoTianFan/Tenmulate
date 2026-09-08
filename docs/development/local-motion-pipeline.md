@@ -19,20 +19,21 @@ Production is **visual reference-led authoring**, constrained joint fitting and 
 
 The 1.88 m CC0 Quaternius articulated mannequin has a faceless head, smooth limb panels and dark joints on the established 65-bone tennis armature. The old semi-realistic body is a retained skeleton/provenance source, not the displayed player. The runtime loads a single GLB containing the bound model, rigid racket and all animations.
 
-Active bundle: `tennis-local-v1.f313ece32de3.glb`, **2,993,676 bytes**.
-SHA-256: `f313ece32de3db2f70f3e45ec07a947774c7552a3533fb85bf5c39d74c356e45`.
+Active bundle: `tennis-local-v1.64f3bc37161d.glb`, **3,198,012 bytes**.
+SHA-256: `64f3bc37161dfc2fcf536e80a6e39465792bdc6a822dd26493d04d2ab2bd3eaf`.
 
 | Group | Clips |
 | --- | --- |
 | Shared stance | `ready`, `split-step` |
 | Groundstrokes | `forehand`, `backhand`, `forehand-slice`, `backhand-slice` |
 | Volleys | `forehand-volley`, `backhand-volley` |
+| Overhead | `backhand-overhead` (generic authored technique) |
 | Serves | `serve`, `serve-compact` |
 | Gait and adjustment | `run-forward`, `walk-forward`, `move-left`, `move-right`, `move-forward`, `move-backward` |
 | Crossover | `cross-front-left`, `cross-front-right`, `cross-back-left`, `cross-back-right` |
 | Other movement | `jump`, `slide-left`, `slide-right`, `slide-forward` |
 
-All **24 clips** share calibrated boundaries and the same rig. The compact addition preserves the prior 23 clip layouts, timestamps and metadata; 22 have identical decoded values, while the forehand has a maximum float difference of **1.7881393e-7** within the existing 2e-7 preservation tolerance. It is inaccurate to call every track bit-identical.
+All **25 clips** share calibrated boundaries and the same rig. The overhead addition retains all prior 24 clip layouts, exact timestamps and metadata. Twenty-three have identical decoded values; the forehand differs by at most **2.3841858e-7**, two float32 ULPs at unit magnitude. See the lab overhead preservation receipt; this is not a claim of binary identity.
 
 ## Stroke and movement behavior
 
@@ -40,13 +41,13 @@ Forehand preparation and lag follow the rear UCLA take's rhythm/height rather th
 
 Ready, split and movement share a two-hand belly/chest carry and forward athletic lean. Running uses rear heel recovery with distance-driven cadence. Crossovers rotate and translate the pelvis and use mirrored anatomical leading-foot selection, avoiding the former deep squat from unreachable foot targets.
 
-`strokeForShot` resolves serve rhythm, then overhead's normal-serve proxy, stroke side and volley family before spin. Slices select their own clips. **Half-volley, overhead and one-handed-backhand labels still use core-motion proxies**; they are not newly captured dedicated techniques.
+`strokeForShot` resolves serve rhythm, then stroke side and family before spin. Backhand overhead uses its distinct generic authored one-handed clip at its natural contact height (about 2.26 m). Forehand overhead retains the normal-serve proxy without a self-toss. Half-volley and one-handed-backhand labels still use core-motion proxies. Slices select their own clips.
 
-[ADR-0015](../decisions/0015-mode-aware-gameplay-rhythm.md) and [ADR-0016](../decisions/0016-bounded-rally-arcs-and-drill-pace.md) replace mandatory recovery with a shared mode-aware planner. Quick Practice nudges around a fixed selected home and returns there after every shot. Drills recover toward baseline center 1.5 m behind the line with a small shot-side bias when time allows. Fast drills travel directly; serve-and-volley approaches the net directly. Short net sequences keep recovery near the net. Full recovery reserves a split-step, approach and preparation; short rests cannot override its movement budget. Final shots recover, and the initial practice approach starts at home.
+[ADR-0015](../decisions/0015-mode-aware-gameplay-rhythm.md) and [ADR-0016](../decisions/0016-bounded-rally-arcs-and-drill-pace.md) replace mandatory recovery with a shared mode-aware planner. Quick Practice uses the selected point as the body recovery center and returns there after every shot. The body moves 0.7–0.9 m to the selected stroke side; contact follows its racket anchor and the desired landing stays fixed. Serve roots remain at the service start. Drills recover toward baseline center 1.5 m behind the line with a small shot-side bias when time allows. Fast drills travel directly; serve-and-volley approaches the net directly. Short net sequences keep recovery near the net. Full recovery reserves a split-step, approach and preparation; short rests cannot override its movement budget. Final shots recover, and the initial practice approach starts at home.
 
-Rhythm is a 50–150% control. Its natural baseline accounts for the two stroke phases, bounded court travel and the ball's travel time. Drills use the minimum direct route for this baseline and take the recovery detour only when it fits; Quick Practice always budgets the home route. Uniform motion scaling stays within 0.85–1.2; longer gaps contain ready time. A requested rhythm that cannot fit the route is extended. World travel remains bounded to 4.8 m/s and 6.5 m/s², authored limits rather than athlete measurements. Routes of at least 1.65 m run; 0.65–1.65 m walk; shorter routes adjust. The complete gait library and foot correction remain active.
+[ADR-0017](../decisions/0017-independent-practice-clocks-and-natural-targets.md) separates stroke rhythm (50–150%, direct 0.5–1.5 source-clock scaling), requested shot interval (1–30 s), and preferred movement pace (50–150%). The planner accelerates travel under interval pressure, then extends infeasible gaps. Long gaps contain ready time; a rally link cannot shorten the requested interval. Travel integrates separate push-off, cruise and braking phases with zero endpoint velocity and acceleration, bounded to 4.8 m/s and 6.5 m/s². Walk/run selection follows route distance and peak speed, with continuous gait blending. Acceleration lean acts through the torso, preserving pelvis and fixed-length foot IK. Slides/crossovers retain their authored poses. Near-zero-distance legs reserve a smooth in-place turn. These numerical envelopes are product calibrations.
 
-Setup, editor preview and rehearsal consume compiled sessions. The quick-practice camera stays at the chosen position. Drill receiver coverage follows the rendered scripted camera, including its intensity setting; changing that intensity restarts and recompiles the set. The coverage model and its explicit 12% screen allowance are documented in [player coverage](../research/player-coverage.md). Quick Practice records reachability without altering the incoming ball. Drills link accepted returns through the physical solver, with distinct outgoing/return handoffs and matching contact/bounce audio. A return must arrive within 2.5 cm of the next racket contact and keep launch speed within 0.65–1.35 of the incoming launch. Ordinary return arcs are capped at 6 m, volley feeds at 4.5 m, and overhead lob feeds at 10 m. Compiled drills preserve the selected outgoing launch speed instead of letting the legacy target solver increase it. Failed links, rest boundaries and new serves start a new feed.
+Setup, editor preview and rehearsal consume compiled sessions. The quick-practice camera stays at the chosen position. Drill receiver coverage follows the rendered scripted camera, including its intensity setting; changing that intensity restarts and recompiles the set. The coverage model and its explicit 12% screen allowance are documented in [player coverage](../research/player-coverage.md). Quick Practice records reachability without altering the incoming ball. Drills link accepted returns through the physical solver, with distinct outgoing/return handoffs and matching contact/bounce audio. A return must arrive within 2.5 cm of the next racket contact and keep launch speed within 0.65–1.35 of the incoming launch. Ordinary return arcs are capped at 6 m, volley feeds at 4.5 m, and overhead lob feeds at 10 m. Natural target mode follows the low-angle range branch and may adjust speed by ±15% and spin by ±20%; resolved values and unreachable targets are reported. Exact mode retains requested speed/spin. Failed links, rest boundaries and new serves start a new feed.
 
 The return solver searches a bounded set of candidate interception times and flight durations. A failed solve means no valid link was found, not a proof that every possible human return is impossible. The model is a virtual-camera coverage heuristic, not body tracking.
 
@@ -72,7 +73,7 @@ From the lab:
 1. `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/setup.ps1`; install frontend dependencies with `npm ci`.
 2. Verify local sources in `config/sources.json` and phase/view authority in `config/references.json`.
 3. `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build.ps1 -Publish` builds previews, solves, bakes, checks export/choreography/anatomy, publishes and validates the actual consumer.
-4. Run the relevant preservation check when refining an existing library. Compact preservation uses `node scripts/check_compact_preservation.mjs` and its retained baseline.
+4. Run the relevant preservation check when refining an existing library. The latest overhead addition uses `node scripts/check_overhead_preservation.mjs` and `work/practice-refinement-baseline`; historical compact preservation uses its own retained baseline.
 5. In this frontend run `npm run check:motion`, `npm test`, `npm run build`.
 
 Publication rejects failed/stale/partial reports. The consumer check independently verifies model/library hashes, metadata, clips and calibration. The production build also checks that its service worker precaches **only the selected opponent GLB**. Older bundles remain on disk for evidence and rollback; changing an asset pointer alone is not a safe rollback because metadata/calibration must agree.
@@ -91,6 +92,6 @@ The normal/compact comparison is `?sequence=serves` on the gameplay review URL. 
 
 Blender bakes at 120 Hz. The lab checks exported and interpolated poses at 240 Hz: 63 articulated joints, fixed lengths, grips, signed racket face, clearance proxies, contact, stance, continuity and clip closure. Both-hand gameplay repeats checks after real blending/IK, including 38 movement sweeps and crossover support checks. These are animation plausibility gates, not clinical certification or complete mesh-collision testing.
 
-Visual review must include normal-speed playback, frame stepping and representative front/rear/side/gameplay views. Independent reference takes align by named phase; missing views and secondary performers stay labeled. The compact replay is explicitly the same camera. The overhead quick-practice option uses the existing serve-motion proxy without a self-toss; it is not a newly authored overhead technique. Tests do not replace the owner's technique review.
+Visual review must include normal-speed playback, frame stepping and representative front/rear/side/gameplay views. Independent reference takes align by named phase; missing views and secondary performers stay labeled. The compact replay is explicitly the same camera. Backhand overhead is a generic authored addition with no captured-performer claim; forehand overhead retains its serve proxy without a self-toss. Tests do not replace the owner's technique review.
 
 Public hosting, public provenance review, target-device performance and final owner technique acceptance remain separate release gates. See the integration receipt for the current verification run; historical revision test counts are not current suite totals.

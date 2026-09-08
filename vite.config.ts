@@ -27,7 +27,7 @@ export default defineConfig({
       workbox: {
         // Keep the active 120 Hz library offline; retained review bundles are
         // evidence, not additional downloads required to start practice.
-        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         globPatterns: ['**/*.{js,css,html,svg,png,glb,json,txt}'],
         globIgnores: ['assets/venues/**', 'assets/audience/**'],
         manifestTransforms: [async (entries) => ({

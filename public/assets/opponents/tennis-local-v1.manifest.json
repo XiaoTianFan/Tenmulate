@@ -4,7 +4,7 @@
   "fps": 120,
   "blenderVersion": "5.2.1 LTS",
   "carrierSha256": "2bb334ab39970c8b1eae2a3cfb793513c3cf07b7b61bc0c88fff1b736cd0d850",
-  "recipeSha256": "63c1aff3dfbcd286d4736bfa45017f470965d6e7484f70e9e9b6aebed40d9964",
+  "recipeSha256": "929fc8d177543ba7ea326a8090a3dd4c7c5569592e60fde89da7270a5e686f6b",
   "visualReferenceConfigSha256": "8828ca6897290b793a4aa9786debf826b66cfd46e5653c98971c30a1478c0caa",
   "authoringMode": "visual-reference-led bounded joint-space authoring; extracted poses are not production inputs",
   "carrierLicense": "Quaternius Universal Animation Library segmented mannequin and Universal Base Characters tennis skeleton; CC0. See frontend LICENSE.quaternius-mannequin.txt.",
@@ -12470,10 +12470,37 @@
         1.577741026878357,
         0.643799901008606
       ]
+    },
+    "backhand-overhead": {
+      "duration": 2.8,
+      "loop": false,
+      "hand": "right",
+      "grip": "continental",
+      "recovery": 1.95,
+      "playbackRate": [
+        0.75,
+        1.25
+      ],
+      "provenance": "Authored backhand overhead technique for gameplay; no captured performer or source clock attribution.",
+      "phases": {
+        "ready": 0,
+        "unitTurn": 0.35,
+        "load": 0.9,
+        "contact": 1.2,
+        "finish": 1.6,
+        "recovery": 2.8
+      },
+      "contact": 1.2,
+      "contactLocal": [
+        0.3039935231208801,
+        2.239285945892334,
+        0.4830543100833893
+      ],
+      "strikingFaceSign": 1
     }
   },
-  "assetSha256": "f313ece32de3db2f70f3e45ec07a947774c7552a3533fb85bf5c39d74c356e45",
-  "bytes": 2993676,
+  "assetSha256": "64f3bc37161dfc2fcf536e80a6e39465792bdc6a822dd26493d04d2ab2bd3eaf",
+  "bytes": 3198012,
   "bindHeightMeters": 1.876899687432556,
   "displayScale": 1.0016518264605205,
   "bindMinY": -0.016621360618849113

@@ -265,7 +265,7 @@ export class OpponentRig {
       action.enabled = true; action.paused = true; action.weight = layer.weight; action.time = layer.time;
     }
     this.mixer.update(0);
-    this.bakedCorrections = ['pelvis', 'thigh_l', 'calf_l', 'foot_l', 'thigh_r', 'calf_r', 'foot_r', 'lowerarm_l', 'lowerarm_r', 'neck_01', 'Head'].map(name => {
+    this.bakedCorrections = ['pelvis', 'spine_01', 'thigh_l', 'calf_l', 'foot_l', 'thigh_r', 'calf_r', 'foot_r', 'lowerarm_l', 'lowerarm_r', 'neck_01', 'Head'].map(name => {
       const bone = this.model!.getObjectByName(name)!;
       return { bone, position: bone.position.clone(), quaternion: bone.quaternion.clone() };
     });
@@ -284,9 +284,9 @@ export class OpponentRig {
     }
     this.group.updateMatrixWorld(true);
     if (sample.travelLean && sample.movement) {
-      // Push-off leans into travel; braking brings the torso back. This is a
-      // movement-only overlay, before foot IK, never a stroke-clock multiplier.
-      const pelvis = this.model.getObjectByName('pelvis')!;
+      // Push-off and braking tilt the torso while retaining the gait's pelvis
+      // and planted-leg geometry. Stroke samples never receive this overlay.
+      const pelvis = this.model.getObjectByName('spine_01')!;
       const heading = sample.movement.heading;
       const axis = new THREE.Vector3(Math.cos(heading), 0, -Math.sin(heading))
         .applyQuaternion(pelvis.parent!.getWorldQuaternion(new THREE.Quaternion()).invert());

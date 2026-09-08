@@ -160,7 +160,7 @@ export const compileSession = (
       ...sourceShot,
       family: settings.practiceShotType ?? sourceShot.family,
       source,
-      stroke: mode === 'quick-practice' && settings.practiceShotType !== 'serve'
+      stroke: mode === 'quick-practice' && settings.practiceShotType && settings.practiceShotType !== 'serve'
         ? settings.practiceStroke === 'alternate' || !settings.practiceStroke ? index % 2 ? 'backhand' : 'forehand' : settings.practiceStroke
         : sourceShot.stroke,
       target,
@@ -185,7 +185,7 @@ export const compileSession = (
         : practiceProfile?.minimumNetClearanceM ?? sourceShot.netClearanceM,
     };
     if (mode === 'quick-practice') {
-      const clip = motionClip(strokeForShot(shot,index));
+      const clipId = strokeForShot(shot,index), clip = motionClip(clipId);
       const side = (shot.stroke === 'backhand' ? -1 : 1) * (settings.opponentHand === 'left' ? -1 : 1);
       // The selected point is the body recovery center, not the ball emitter.
       const step = shot.family === 'serve' ? 0 : .7 + (index % 3) * .1;
@@ -193,7 +193,7 @@ export const compileSession = (
       let yaw = Math.atan2(target.x-root.x,target.z-root.z);
       for(let iteration=0;iteration<8;iteration++){
         const offset=rotateMotionPoint(clip.contactLocal!,yaw,settings.opponentHand);
-        source={x:root.x+offset.x,y:source.y,z:root.z+offset.z};
+        source={x:root.x+offset.x,y:clipId==='backhand-overhead'?offset.y:source.y,z:root.z+offset.z};
         yaw=Math.atan2(target.x-source.x,target.z-source.z);
       }
       shot={...shot,source};
@@ -236,7 +236,7 @@ export const compileSession = (
     const required = minimumMotionGap(schedulingPrevious, proposed);
     let gap = Math.max(requestedGap, required);
     if (mode === 'drill' && !rest && next.shot.family !== 'serve' && previous.reachability.reachable) {
-      const rally = planRallyReturn(previous.trajectory,next.shot,cameraCoveragePath(settings.camera,previous.shot.cameraMotion,settings.cameraMotionScale),required,gap);
+      const rally = planRallyReturn(previous.trajectory,next.shot,cameraCoveragePath(settings.camera,previous.shot.cameraMotion,settings.cameraMotionScale),gap,gap);
       repetitions[index-1] = { ...previous, rallyReturn: rally ?? undefined, returnStatus: rally ? 'linked' : 'infeasible' };
       if(rally)gap=rally.contactTime+rally.duration;
     } else if (mode === 'drill') {

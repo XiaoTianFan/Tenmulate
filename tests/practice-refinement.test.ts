@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { resolveTrajectory } from '../src/engine/trajectory/physics';
-import { practiceLandingTarget } from '../src/engine/trajectory/practiceProfiles';
+import { practiceLandingTarget, PRACTICE_SHOT_PROFILES } from '../src/engine/trajectory/practiceProfiles';
 import { DRILLS } from '../src/content/bundled';
 import { compileSession, type SessionSettings } from '../src/engine/session/compileSession';
 import { motionEvent, sampleOpponentTimeline } from '../src/engine/session/opponentTimeline';
@@ -13,6 +13,20 @@ const settings: SessionSettings = {repetitions:3,mode:'quick-practice',practiceS
   opponentHand:'right',serveRhythm:'normal',workBlockSize:50,restSeconds:0};
 
 describe('recovery-centered practice and independent clocks',()=>{
+  it('keeps actual first bounces on the fixed target with either stroke side and hand',()=>{
+    for(const opponentHand of ['right','left'] as const)for(const practiceShotType of ['groundstroke','volley','overhead'] as const){
+      const profile=PRACTICE_SHOT_PROFILES[practiceShotType];
+      const session=compileSession(DRILLS[0]!,{...settings,practiceShotType,opponentHand,
+        opponentPosition:profile.opponentPosition,launchSpeedKmh:profile.defaultLaunchSpeedKmh,
+        spin:profile.defaultSpin,spinRateRpm:profile.spinRates[profile.defaultSpin]?.defaultRpm,
+        landingDepthM:profile.defaultLandingDepthM});
+      for(const rep of session.repetitions){
+        const bounce=rep.trajectory.events.find(e=>e.type==='bounce')!.position;
+        expect(Math.hypot(bounce.x-rep.shot.target.x,bounce.z-rep.shot.target.z)).toBeLessThan(.18);
+      }
+      if(practiceShotType==='overhead')expect(motionEvent(session.repetitions[1]!).clip).toBe('backhand-overhead');
+    }
+  });
   it.each(['right','left'] as const)('steps the body to each side, moving contact while retaining the landing target (%s)',opponentHand=>{
     for(const practiceShotType of ['groundstroke','volley','overhead'] as const){
       const session=compileSession(DRILLS[0]!,{...settings,practiceShotType,opponentHand});
