@@ -1,8 +1,8 @@
 import { normalizeLandingZone, type LandingZoneSize } from '../engine/trajectory/landingZone';
 import type { CameraConfiguration } from '../engine/rendering/TennisScene';
 import type { QualityMode } from '../engine/rendering/TennisScene';
-import type { DrillDefinitionV1 } from '../content/types';
-import { validateDrill } from '../content/validation';
+import type { DrillDefinitionV1, SavedShotV1 } from '../content/types';
+import { isSavedShot, validateDrill } from '../content/validation';
 import { AD_SERVE_OPPONENT_POSITION, COURT, DEFAULT_RALLY_OPPONENT_POSITION, DEUCE_SERVE_OPPONENT_POSITION, clampOpponentPosition, type SurfaceId } from '../domain/court';
 import { DEFAULT_ENVIRONMENT, normalizeEnvironmentConfiguration, type EnvironmentConfiguration } from '../domain/environment';
 import type { SpinKind } from '../engine/trajectory/physics';
@@ -39,6 +39,7 @@ export const DEFAULT_PERSPECTIVE_PRESETS: readonly PerspectivePresetV1[] = [
 export type AppDataV1 = Readonly<{
   schemaVersion: 1;
   customDrills: readonly DrillDefinitionV1[];
+  savedShots: readonly SavedShotV1[];
   cameraPositionPresets: readonly CameraPositionPresetV1[];
   perspectivePresets: readonly PerspectivePresetV1[];
   preferences: PracticePreferencesV1;
@@ -91,6 +92,7 @@ export const DEFAULT_PREFERENCES: PracticePreferencesV1 = {
 export const DEFAULT_APP_DATA: AppDataV1 = {
   schemaVersion: 1,
   customDrills: [],
+  savedShots: [],
   cameraPositionPresets: DEFAULT_CAMERA_POSITION_PRESETS,
   perspectivePresets: DEFAULT_PERSPECTIVE_PRESETS,
   preferences: DEFAULT_PREFERENCES,
@@ -216,7 +218,8 @@ export const loadAppData = (): AppDataV1 => {
       camera,
       environment,
     } as PracticePreferencesV1;
-    return { schemaVersion: 1, customDrills, cameraPositionPresets, perspectivePresets, preferences };
+    const savedShots = Array.isArray(parsed.savedShots) ? parsed.savedShots.filter(isSavedShot) : [];
+    return { schemaVersion: 1, customDrills, savedShots, cameraPositionPresets, perspectivePresets, preferences };
   } catch {
     return DEFAULT_APP_DATA;
   }

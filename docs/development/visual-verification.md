@@ -3,6 +3,17 @@
 - **Purpose:** Record concept-to-browser inspection after every implementation stage
 - **Reference viewport:** 1920 × 1080 unless stated otherwise
 
+## Drill camera, return space and reusable shots — 2026-09-08
+
+The [camera/editor receipt](drill-camera-and-editor-2026-09-08.md) records the 1600 ×
+1000 production editor, 390 px phone layout and actual player-camera transition
+frames. The blue return footprint is distinct from the yellow landing zone and
+fully visible in the overview. Camera drags perform no session updates while held
+and one on release. Complete shot presets survive reload and remain independent
+after insertion. A 23-second production recording contains 1,646 rendered view
+samples; maximum adjacent movement is 4.16 cm and peak travel is 2.49 m/s in that
+sequence. This bounded recording is not target-device thermal qualification.
+
 ## Prepared stroke entry after movement — 2026-09-08
 
 The [prepared-entry receipt](prepared-stroke-entry-2026-09-08.md) records six lab

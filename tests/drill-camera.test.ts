@@ -78,6 +78,17 @@ describe('continuous drill camera and return space',()=>{
       }
     }
   });
+  it('keeps opponent tracking continuous when an authored view faces across the yaw wrap',()=>{
+    for(const yaw of [-179,179,170,-170]){
+      const from={...base,lateral:-2,yaw},to={...base,lateral:2,yaw},end=cameraTravelSeconds(from,to),timeline={initial:from,transitions:[{start:0,end,from,to}]};
+      let previous=sampleCameraTimeline(timeline,0,{x:-3,y:0,z:12});
+      for(let time=1/240;time<end;time+=1/240){
+        const pose=sampleCameraTimeline(timeline,time,{x:-3+time/end*6,y:0,z:12});
+        expect(Math.abs(wrapCameraAngle(pose.yaw-previous.yaw))).toBeLessThan(5);
+        previous=pose;
+      }
+    }
+  });
   it('round-trips complete shot settings and rejects malformed return zones and camera views',()=>{
     const event={...drill.events[0]!,label:'My shot',stroke:'backhand' as const,opponentHand:'left' as const,spinRateRpm:1400,bounceFactor:.8,trajectoryMode:'exact' as const,rhythmPercent:125,movementPercent:75,intervalSeconds:6};
     const custom={...drill,events:[event],shotIds:[event.shotId],returnZone:{forward:2,width:4,depth:1}};

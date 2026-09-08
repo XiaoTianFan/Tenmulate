@@ -122,7 +122,7 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
 
   return (
     <main className={hudHidden ? 'rehearsal-shell hud-hidden' : 'rehearsal-shell'} onMouseMove={() => { if (hudHidden) setHudHidden(false); }}>
-      <CourtViewport camera={launch.camera} trajectory={trajectory} surface={launch.surface} environment={launch.environment} quality={launch.quality} running={playing} resetToken={0} showTrajectory={launch.trajectoryEnabled || showDiagnostics} playbackRate={playbackRate} loopTrajectory={false} cameraMotion={null} highContrastBall={highContrastBall} showBallTrail={showBallTrail} onMetrics={onMetrics} onPointerActivity={() => { if (hudHidden) setHudHidden(false); }} session={session} sessionClock={player.clock} />
+      <CourtViewport camera={launch.camera} trajectory={trajectory} surface={launch.surface} environment={launch.environment} quality={launch.quality} running={playing} resetToken={0} showTrajectory={launch.trajectoryEnabled || showDiagnostics} playbackRate={playbackRate} loopTrajectory={false} cameraMotion={null} followSessionCamera highContrastBall={highContrastBall} showBallTrail={showBallTrail} onMetrics={onMetrics} onPointerActivity={() => { if (hudHidden) setHudHidden(false); }} session={session} sessionClock={player.clock} />
       <header className="rehearsal-header">
         <strong>Tenmulate</strong>
         <span className="drill-title">{session.drill.title}</span>

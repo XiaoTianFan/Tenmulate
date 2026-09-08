@@ -73,9 +73,12 @@ function AppRoutes({ appData }: { appData: ReturnType<typeof useAppData> }) {
         key={editorDrill.id}
         route={route}
         initialDrill={editorDrill}
+        savedShots={appData.data.savedShots}
+        onSaveShot={appData.saveShot}
+        onDeleteShot={appData.deleteShot}
         onRoute={setRoute}
         onSave={(drill) => { appData.saveDrill(drill); setEditorDrill(drill); }}
-        onTest={(drill) => setLaunch(drillLaunch(drill))}
+        onTest={(drill) => { setEditorDrill(drill); setLaunch(drillLaunch(drill)); }}
       />
     </Suspense>;
   }

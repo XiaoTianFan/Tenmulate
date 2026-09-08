@@ -16,6 +16,8 @@ import { AudienceSystem, type AudienceState } from './AudienceSystem';
 import type { CompiledSession } from '../session/compileSession';
 import { motionEvent, sampleOpponentTimeline, type MotionEvent, type MotionSample } from '../session/opponentTimeline';
 import { sampleCameraTimeline } from '../session/cameraTimeline';
+import { ReturnZoneOverlay } from './ReturnZoneOverlay';
+import type { ReturnZone } from '../session/returnZone';
 import { planRecovery } from '../session/opponentMovement';
 import { ContinuousPracticePreview } from '../session/practicePreview';
 import { sessionFlights } from '../session/sessionFlights';
@@ -110,6 +112,7 @@ export const trajectoryPlaybackTimes = (
 export class TennisScene {
   private readonly renderer: THREE.WebGLRenderer;
   private readonly scene = new THREE.Scene();
+  private readonly returnZoneOverlay = new ReturnZoneOverlay();
   private readonly camera = new THREE.PerspectiveCamera(54, 16 / 9, 0.05, 350);
   private readonly ball: THREE.Mesh;
   private readonly balls: THREE.Mesh[] = [];
@@ -157,6 +160,7 @@ export class TennisScene {
   private trajectoryInterval: number | null = null;
   private showBallTrail = false;
   private cameraMotion: CameraMotion | null = null;
+  private sessionCameraEnabled = false;
   private lastFrame = performance.now();
   private metricStartedAt = performance.now();
   private metricFrames = 0;
@@ -265,6 +269,7 @@ export class TennisScene {
     this.ballTrail.visible = false;
     this.scene.add(this.ballTrail);
 
+    this.scene.add(this.returnZoneOverlay.group);
     this.setCamera(this.cameraConfiguration);
     this.setQualityMode(options.quality ?? 'auto');
     this.setEnvironment(options.environment ?? DEFAULT_ENVIRONMENT);
@@ -320,6 +325,10 @@ export class TennisScene {
 
   setLandingZoneInteraction(onChange: ((zone: LandingZone) => void) | null): void {
     this.landingZoneControl.configure(onChange);
+  }
+
+  setReturnZonePreview(zone: ReturnZone | null, camera: CameraConfiguration): void {
+    this.returnZoneOverlay.update(zone,camera);
   }
 
   setTrajectoryVisible(visible: boolean): void {
@@ -479,6 +488,9 @@ export class TennisScene {
     if(p.z < -1 || p.z > 1 || Math.abs(p.x)>1 || Math.abs(p.y)>1)return null;
     return {x:(p.x*.5+.5)*this.canvas.clientWidth,y:(-.5*p.y+.5)*this.canvas.clientHeight};
   }
+
+  /** Playback opts in; editors and MotionLab keep their inspection camera. */
+  setSessionCameraEnabled(enabled: boolean): void { this.sessionCameraEnabled = enabled; }
 
   courtPointFromClientPoint(clientX:number,clientY:number): {x:number;z:number} | null {
     const bounds=this.canvas.getBoundingClientRect();
@@ -666,9 +678,9 @@ export class TennisScene {
       for (const ball of this.balls) ball.visible = false;
       this.ballTrail.visible = false;
     }
-    if (this.sessionClock && this.session?.mode === 'drill') {
-      this.cameraConfiguration = sampleCameraTimeline(this.session.cameraTimeline, this.elapsed, opponentRoot);
-      this.applyCamera();
+    if (this.sessionCameraEnabled && this.sessionClock && this.session?.mode === 'drill') {
+      const camera = sampleCameraTimeline(this.session.cameraTimeline, this.elapsed, opponentRoot);
+      if(camera!==this.cameraConfiguration){this.cameraConfiguration=camera;this.applyCamera();}
     } else if (this.cameraMotion) {
       const delay = this.cameraMotion.delay ?? 0;
       const currentContact = this.session ? [...this.session.repetitions].reverse().find(repetition => repetition.startTime <= this.elapsed)?.startTime ?? 3 : 3;

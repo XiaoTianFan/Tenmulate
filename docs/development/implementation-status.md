@@ -9,7 +9,25 @@
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
-## Current prepared stroke entry — 2026-09-08
+## Continuous drill camera and reusable shots — 2026-09-08
+
+[ADR-0022](../decisions/0022-continuous-drill-camera-and-reusable-shots.md) replaces
+per-shot camera resets with one clock-driven timeline. Shot views stay fixed through
+the incoming flight; movement tracks the opponent with bounded acceleration/braking
+and smooth gaze transitions. A camera-relative return rectangle constrains actual
+return contacts. Editor controls cover complete shot configuration and local reusable
+snapshots; a blue footprint shows return distance/size. Camera gestures commit once,
+Test drill preserves unsaved work, and the phone timeline scrolls within the page.
+
+Verification: **309 tests / 30 files**, production build and `check:motion` pass.
+Actual rendering matches the camera plan at 336 sampled points across all 16 bundled
+drills and a custom sequence. Production-browser authoring, reload persistence,
+snapshot independence, one-canvas navigation, gesture commits and 390 px layout pass.
+The [camera/editor receipt](drill-camera-and-editor-2026-09-08.md) records bounded
+movement measurements and fixes found during review. Local preview refreshed;
+owner/device acceptance and public deployment remain separate.
+
+## Earlier prepared stroke entry — 2026-09-08
 
 **Practice form follow-up (2026-09-08):** Removed the Zone center depth, Zone width
 and Zone depth sliders from Ball & rhythm. Practice uses the rendered court's

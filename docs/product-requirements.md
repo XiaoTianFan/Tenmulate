@@ -123,6 +123,9 @@ No single TV/projector, viewing distance, room, or GPU defines the product. Refe
 - Single-shot repeat, ordered sequences, seeded bounded randomization, exact replay, slow motion, pause/resume/restart, repetition count, interval, and work/rest blocks.
 - Strategic combinations including the requested cross-court/down-the-line pattern and serve-and-volley sequences with first volley, second volley, lob, and overhead repositioning.
 - A local timeline editor with opponent, ball, camera, cue, and rest tracks, constrained to validated content primitives.
+- Reusable local shot snapshots with independent opponent position/hand/stroke, camera position/direction/FOV, landing zone, launch speed, spin/rpm, variation, bounce, trajectory fitting, interval and movement/stroke rhythm. Copying or later updating a preset must not mutate existing drill events.
+- Per-drill return-space distance, width and depth in camera-relative meters, with a rendered footprint. Automatic returns originate on the incoming ball inside that space; unreachable or infeasible returns start a new feed.
+- A continuous player-camera timeline: hold the authored shot view, track the moving opponent between shots, and reserve realistic acceleration/braking and gaze-transition time before the next stroke. No automatic shot-boundary reset; deterministic seeking and reduced motion remain supported. Test drill preserves unsaved editor work. [ADR-0022](decisions/0022-continuous-drill-camera-and-reusable-shots.md) defines this contract.
 - JSON drill export/import with schema versioning and pre-play validation.
 - A direct trajectory-line on/off control; no separate mode label for the same visual choice.
 - A trajectory-hover tooltip rendered over the court for launch speed, spin rate, solved angle, apex, actual net clearance, landing/error, pre/post-bounce speed, and receiver-plane arrival; calculated metadata does not occupy the setup panel.

@@ -1,6 +1,9 @@
 import { COURT } from '../domain/court';
 import type { DrillDefinitionV1, ShotDefinitionV1 } from './types';
 
+/** Retain the drill library's baseline pace calibration across editor and playback. */
+export const drillShotPace = (shot: Pick<ShotDefinitionV1,'paceKmh'>, baseline=78): number => baseline+(shot.paceKmh-78)*.35;
+
 const ground = (
   id: string,
   label: string,

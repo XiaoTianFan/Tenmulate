@@ -177,6 +177,24 @@ Resolved shots are checked into source as versioned JSON. Runtime playback does 
 
 ## 7. Drill timeline
 
+**Current runtime (2026-09-08):** [ADR-0022](decisions/0022-continuous-drill-camera-and-reusable-shots.md)
+uses `CompiledSession.cameraTimeline` and planner `gameplay-rhythm-v5`. The compiler
+reserves camera travel, gaze fades and next-stroke preparation in the same absolute
+schedule as opponent recovery and physics-solved returns. `TennisScene` samples the
+camera on the session clock, independently of React's HUD repetition updates.
+Rehearsal opts into this camera; Editor and MotionLab retain manual inspection views.
+Quintic travel bounds peak speed/acceleration and fixes angular branches through
+opponent-tracking fades, including authored views near the yaw wrap.
+
+`DrillDefinitionV1.returnZone` supplies forward distance, width and depth in meters.
+`playerCoverage` and `rally` use the same camera-relative rectangle, legal height
+range and incoming contact samples. The shot view stays fixed until that contact;
+return planning also reserves time to reach the next camera pose. The editor draws
+the footprint with reusable geometry. `SavedShotV1` snapshots resolved event defaults
+in local app data; insertion deep-copies the event with a new id. Optional schema-v1
+fields retain compatibility with older drill imports. The [verification receipt](development/drill-camera-and-editor-2026-09-08.md)
+records current evidence; the outline below is the original conceptual model.
+
 One declarative timeline coordinates all domains:
 
 ```ts

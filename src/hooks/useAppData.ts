@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { DrillDefinitionV1 } from '../content/types';
+import type { DrillDefinitionV1, SavedShotV1 } from '../content/types';
 import { DEFAULT_APP_DATA, loadAppData, saveAppData, type AppDataV1, type CameraPositionPresetV1, type PerspectivePresetV1, type PracticePreferencesV1 } from '../storage/appStorage';
 
 export const useAppData = () => {
@@ -8,6 +8,8 @@ export const useAppData = () => {
 
   const saveDrill = useCallback((drill: DrillDefinitionV1) => setData((current) => ({ ...current, customDrills: [...current.customDrills.filter((item) => item.id !== drill.id), drill] })), []);
   const deleteDrill = useCallback((id: string) => setData((current) => ({ ...current, customDrills: current.customDrills.filter((item) => item.id !== id) })), []);
+  const saveShot = useCallback((shot: SavedShotV1) => setData(current => ({...current,savedShots:[...current.savedShots.filter(item=>item.id!==shot.id),structuredClone(shot)]})),[]);
+  const deleteShot = useCallback((id: string) => setData(current => ({...current,savedShots:current.savedShots.filter(item=>item.id!==id)})),[]);
   const saveCameraPositionPreset = useCallback((preset: CameraPositionPresetV1) => setData((current) => ({
     ...current,
     cameraPositionPresets: current.cameraPositionPresets.some((item) => item.id === preset.id)
@@ -24,6 +26,6 @@ export const useAppData = () => {
 
   return {
     data,
-    saveDrill, deleteDrill, saveCameraPositionPreset, savePerspectivePreset, savePreferences,
+    saveDrill, deleteDrill, saveShot, deleteShot, saveCameraPositionPreset, savePerspectivePreset, savePreferences,
   };
 };

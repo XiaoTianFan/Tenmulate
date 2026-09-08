@@ -12,6 +12,13 @@ parks it without rendering. Setup previews stream fresh feeds continuously;
 launched sets honor their chosen repetitions and rests. See the
 [shared-court verification receipt](docs/development/shared-court-and-zone-resize-2026-09-08.md).
 
+The drill editor can save complete shot presets and copy them into new sequences.
+Each shot stores its opponent, camera, ball and timing settings. Configure your
+return-space distance, width and depth in meters; **View return space** shows its
+blue footprint beside the yellow landing zone. Playback holds each shot's view,
+then follows the opponent while accelerating and braking into the next position.
+See the [drill camera and editor receipt](docs/development/drill-camera-and-editor-2026-09-08.md).
+
 ## Implemented direction
 
 - React, TypeScript, and Vite for the application shell.

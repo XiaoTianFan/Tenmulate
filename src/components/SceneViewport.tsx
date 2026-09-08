@@ -12,6 +12,7 @@ import {
 import { netHeightAt, type FlightSample, type ResolvedTrajectory } from '../engine/trajectory/physics';
 import type { CompiledRepetition, CompiledSession } from '../engine/session/compileSession';
 import type { LandingZone } from '../engine/trajectory/landingZone';
+import type { ReturnZone } from '../engine/session/returnZone';
 
 export type SceneViewportProps = Readonly<{
   active?: boolean;
@@ -28,12 +29,15 @@ export type SceneViewportProps = Readonly<{
   loopTrajectory?: boolean;
   trajectoryInterval?: number | null;
   cameraMotion?: CameraMotion | null;
+  followSessionCamera?: boolean;
   highContrastBall?: boolean;
   showBallTrail?: boolean;
   onAimChange?: (directionDeg: number) => void;
   onLandingZoneChange?: (zone: LandingZone) => void;
   onCameraFovChange?: (fov: number) => void;
   onCameraLookChange?: (look: CameraLook) => void;
+  onCameraViewCommit?: (camera: CameraConfiguration) => void;
+  returnZonePreview?: Readonly<{zone:ReturnZone;camera:CameraConfiguration}>;
   onMetrics: (metrics: SceneMetrics) => void;
   onPointerActivity?: () => void;
   session?: CompiledSession;
@@ -72,12 +76,15 @@ export function SceneViewport({
   loopTrajectory = true,
   trajectoryInterval = null,
   cameraMotion = null,
+  followSessionCamera = false,
   highContrastBall = false,
   showBallTrail = false,
   onAimChange,
   onLandingZoneChange,
   onCameraFovChange,
   onCameraLookChange,
+  onCameraViewCommit,
+  returnZonePreview,
   onMetrics,
   onPointerActivity,
   session,
@@ -93,6 +100,10 @@ export function SceneViewport({
   const [venueStatus, setVenueStatus] = useState<SceneMetrics['venueAsset']>({ status: 'loading', loadedBytes: 0, totalBytes: 0 });
   const [audienceError, setAudienceError] = useState<string | null>(null);
   const initialSceneOptions = useRef({ quality, environment });
+  const zoomCommitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if(zoomCommitTimer.current)clearTimeout(zoomCommitTimer.current);
+  },[viewKey,resetToken]);
   const [trajectoryTooltip, setTrajectoryTooltip] = useState<TrajectoryTooltipState | null>(null);
 
   const zoomFromWheel = useEffectEvent((event: WheelEvent) => {
@@ -101,7 +112,10 @@ export function SceneViewport({
     const deltaPixels = event.deltaY * (event.deltaMode === 1
       ? 16
       : event.deltaMode === 2 ? (event.currentTarget as HTMLCanvasElement).clientHeight : 1);
-    onCameraFovChange(cameraFovAfterWheel(camera.fov, deltaPixels));
+    const fov = cameraFovAfterWheel(camera.fov, deltaPixels);
+    onCameraFovChange(fov);
+    if(zoomCommitTimer.current)clearTimeout(zoomCommitTimer.current);
+    if(onCameraViewCommit)zoomCommitTimer.current=setTimeout(()=>onCameraViewCommit({...camera,fov}),180);
   });
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -109,7 +123,7 @@ export function SceneViewport({
     // React delegates wheel events passively. Custom zoom must cancel scrolling.
     const listener = (event: WheelEvent) => zoomFromWheel(event);
     canvas.addEventListener('wheel', listener, { passive: false });
-    return () => canvas.removeEventListener('wheel', listener);
+    return () => { canvas.removeEventListener('wheel', listener); if(zoomCommitTimer.current)clearTimeout(zoomCommitTimer.current); };
   }, []);
 
   useEffect(() => {
@@ -149,6 +163,7 @@ export function SceneViewport({
   }, [active]);
 
   useEffect(() => sceneRef.current?.setCamera(camera), [camera]);
+  useEffect(() => sceneRef.current?.setReturnZonePreview(returnZonePreview?.zone ?? null,returnZonePreview?.camera ?? camera),[returnZonePreview,camera]);
   useEffect(() => sceneRef.current?.setSession(session ?? null, sessionClock ?? null, onSessionIndex), [session, sessionClock, onSessionIndex]);
   useEffect(() => sceneRef.current?.setTrajectory(trajectory), [trajectory]);
   useEffect(() => sceneRef.current?.setLandingZoneInteraction(
@@ -163,6 +178,7 @@ export function SceneViewport({
   useEffect(() => sceneRef.current?.setLoopTrajectory(loopTrajectory), [loopTrajectory]);
   useEffect(() => sceneRef.current?.setTrajectoryInterval(trajectoryInterval), [trajectoryInterval]);
   useEffect(() => sceneRef.current?.setCameraMotion(cameraMotion), [cameraMotion]);
+  useEffect(() => sceneRef.current?.setSessionCameraEnabled(followSessionCamera), [followSessionCamera]);
   useEffect(() => sceneRef.current?.setBallPresentation(highContrastBall, showBallTrail), [highContrastBall, showBallTrail]);
 
   const updateAimFromPointer = (event: ReactPointerEvent<HTMLCanvasElement>) => {
@@ -212,6 +228,7 @@ export function SceneViewport({
   const finishPointer = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     if (pointerDrag.current?.pointerId !== event.pointerId) return;
     if (pointerDrag.current.mode === 'landing') sceneRef.current?.landingZoneControl.end(event.type === 'pointerup');
+    if (pointerDrag.current.mode === 'look' && event.type === 'pointerup') onCameraViewCommit?.({...camera,...pointerDrag.current.look});
     pointerDrag.current = null;
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
     if (event.type === 'pointerup' && event.pointerType !== 'touch') sceneRef.current?.landingZoneControl.hover(event.clientX, event.clientY);

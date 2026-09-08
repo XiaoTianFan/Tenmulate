@@ -236,10 +236,10 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .full-width { width: 100%; margin-top: 9px; }
 .danger-action { width: 100%; display: flex; align-items: center; justify-content: center; gap: 7px; margin-top: 6px; padding: 9px; border: 0; background: transparent; color: #ef8179; font-size: 12px; cursor: pointer; }
 
-.editor-shell { grid-template-rows: 58px minmax(0, 1fr); }
-.editor-workspace { min-height: 0; display: grid; grid-template-columns: 280px minmax(620px, 1fr) 330px; }
+.editor-shell { grid-template-columns: minmax(0, 1fr); grid-template-rows: 58px minmax(0, 1fr); }
+.editor-workspace { min-width: 0; min-height: 0; display: grid; grid-template-columns: 280px minmax(620px, 1fr) 330px; }
 .event-library, .event-inspector { min-height: 0; background: linear-gradient(180deg, #0b1115, #080d10); }
-.event-library { display: grid; grid-template-rows: 62px 48px minmax(0, 1fr); border-right: 1px solid var(--divider); }
+.event-library { display: grid; grid-template-rows: 62px 48px auto minmax(0, 1fr); border-right: 1px solid var(--divider); }
 .event-library header { display: flex; align-items: center; padding: 0 18px; border-bottom: 1px solid var(--divider); }
 .event-library header h1 { margin: 0; font-size: 17px; }
 .event-library header button { margin-left: auto; display: grid; place-items: center; width: 32px; height: 32px; border: 1px solid var(--divider); border-radius: 5px; background: #0d171d; color: var(--accent); cursor: pointer; }
@@ -249,15 +249,15 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .event-row strong { overflow: hidden; color: #d6dee1; font-size: 12px; font-weight: 520; text-overflow: ellipsis; white-space: nowrap; }
 .event-row > span { font-size: 10px; font-variant-numeric: tabular-nums; }
 .event-row.selected { background: var(--selected); box-shadow: inset 3px 0 var(--accent); }
-.editor-stage { min-width: 0; min-height: 0; display: grid; grid-template-rows: minmax(300px, 1fr) 310px; }
+.editor-stage { min-width: 0; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(300px, 1fr) 310px; }
 .editor-scene { position: relative; min-height: 0; }
 .editor-scene > .scene-viewport-slot { position: absolute; inset: 0; }
 .editor-scene-label { position: absolute; left: 18px; top: 18px; display: grid; gap: 4px; padding: 9px 12px; border: 1px solid rgb(255 255 255 / 18%); border-radius: 6px; background: rgb(5 12 17 / 80%); backdrop-filter: blur(8px); }
 .editor-scene-label span { color: var(--accent); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; }
 .editor-scene-label strong { font-size: 12px; }
-.timeline { min-height: 0; border-top: 1px solid var(--divider); background: #080d10; }
+.timeline { min-width: 0; min-height: 0; overflow: hidden; border-top: 1px solid var(--divider); background: #080d10; }
 .timeline-toolbar { height: 42px; display: flex; align-items: center; gap: 18px; padding: 0 16px; border-bottom: 1px solid var(--divider); font-size: 11px; }
-.timeline-toolbar > strong { font-size: 13px; }
+.timeline-toolbar > strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
 .timeline-toolbar > span:nth-of-type(1) { color: var(--muted); font-variant-numeric: tabular-nums; }
 .validation { margin-left: auto; display: flex; align-items: center; gap: 5px; }
 .validation.valid { color: var(--valid); }
@@ -388,3 +388,28 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 /* Trajectory fit feedback. */
 .trajectory-resolution { display:block; font-size:11px; line-height:1.5; color:#b7c4c9; padding:4px 0; }
 .trajectory-resolution.warning { color:#f5c980; }
+
+/* Drill authoring: the return footprint and shot view belong to the same court. */
+.editor-section { border-bottom: 1px solid var(--divider); padding: 12px 0; min-width: 0; }
+.editor-section summary { cursor: pointer; color: var(--text); font-size: 13px; font-weight: 600; }
+.editor-section small, .return-space-status { display: block; margin-top: 12px; color: var(--muted); font-size: 11px; line-height: 1.5; }
+.shot-controls, .return-space-status, .save-shot-button { grid-column: 1 / -1; }
+.save-shot-button { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 16px; }
+.saved-shot-count { margin: 3px 14px 12px; color: var(--muted); font-size: 11px; line-height: 1.5; }
+.return-swatch, .landing-swatch { display: inline-block; width: 9px; height: 9px; margin-right: 5px; border: 1px solid #65cfff; background: #2387b94d; }
+.landing-swatch { border-color: var(--accent); background: #e8e00035; margin-left: 10px; }
+.editor-view-tools { position: absolute; top: 18px; right: 18px; display: grid; justify-items: end; gap: 8px; }
+.editor-view-tools button { border: 1px solid #5c818f; border-radius: 5px; padding: 9px 12px; background: #07151ee6; color: #e0f1f6; cursor: pointer; }
+.editor-view-tools > span { background: #07151ee6; padding: 5px 7px; border-radius: 3px; color: #d4e3e9; font-size: 10px; }
+.editor-section .court-preset-list { margin-top: 12px; }
+@media (max-width: 1270px) and (min-width: 901px) {
+  .shot-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 0 18px; }
+  .shot-controls > .stack-field { grid-column: 1 / -1; }
+  .shot-controls > .editor-section:last-child { grid-column: 1 / -1; }
+}
+@media (max-width: 600px) {
+  .editor-scene-label { max-width: calc(100% - 155px); left: 10px; top: 10px; }
+  .editor-scene-label strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .editor-view-tools { right: 10px; top: 10px; }
+  .editor-view-tools button { font-size: 11px; padding: 8px; }
+}

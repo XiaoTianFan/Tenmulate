@@ -1,6 +1,6 @@
 import { planRecovery } from './opponentMovement';
 import type { DrillDefinitionV1, DrillEventV1, ShotDefinitionV1 } from '../../content/types';
-import { SHOT_BY_ID } from '../../content/bundled';
+import { SHOT_BY_ID, drillShotPace } from '../../content/bundled';
 import type { SurfaceId } from '../../domain/court';
 import type { OpponentHand, ServeRhythm } from '../../content/types';
 import type { ResolvedTrajectory } from '../trajectory/physics';
@@ -145,7 +145,7 @@ export const compileSession = (
         ? sourceEvent.paceKmh
         : practiceProfile
           ? settings.launchSpeedKmh
-          : settings.launchSpeedKmh + (sourceShot.paceKmh - 78) * 0.35
+          : drillShotPace(sourceShot,settings.launchSpeedKmh)
     ), variation, practiceProfile?.launchSpeedRangeKmh.min ?? 25, practiceProfile?.launchSpeedRangeKmh.max ?? 260, speedRandom);
     let source = {
       ...sourceShot.source,

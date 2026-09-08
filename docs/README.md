@@ -75,6 +75,9 @@ Current practice/landing behavior: [ADR-0018](decisions/0018-uniform-landing-zon
 
 ## Change discipline
 
+Current drill camera and reusable-shot authoring: [ADR-0022](decisions/0022-continuous-drill-camera-and-reusable-shots.md)
+and [camera/editor verification](development/drill-camera-and-editor-2026-09-08.md).
+
 Current move-to-hit sequencing: [ADR-0021](decisions/0021-prepared-stroke-entry-after-travel.md)
 and [prepared-entry verification](development/prepared-stroke-entry-2026-09-08.md).
 
