@@ -9,6 +9,17 @@
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
+## Speed and cadence based movement — 2026-09-08
+
+[ADR-0032](../decisions/0032-speed-and-cadence-locomotion.md) removes short-distance
+running exclusion and solves gait, stride and native clip rates together. Quick
+0.7–0.9 m moves now jog at about 0.75× source speed instead of walking at 1.48–1.68×.
+Pose and foot correction share a stable distance phase. Approaches now use the
+incoming shot's movement rate. The 2.5 s Rally fixture preserves every interval.
+**354 tests / 37 files**, actual-rig checks, all 16 bundled drills, rendered
+comparisons, production build and motion/cache guard pass. Both local browser
+previews are refreshed. See the [receipt](movement-selection-2026-09-08.md).
+
 ## Renderer profiling and rally stalls — 2026-09-08
 
 [ADR-0031](../decisions/0031-measured-renderer-cost-and-preview-preparation.md) adds
