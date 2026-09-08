@@ -10,8 +10,6 @@ import { DynamicSkySystem } from './DynamicSkySystem';
 import { WeatherSystem } from './WeatherSystem';
 import { updateSceneMaterialEnvironment, type SceneMaterialBundle } from './sceneMaterials';
 import { BALL_PRESENTATION } from './presentationMaterials';
-import { BallFocusPass } from './BallFocusPass';
-import { advanceFocusDistance } from './lensFocus';
 import { DEFAULT_BALL_FOCUS, ballFocusWeight, normalizeBallFocus, type BallFocusSettings } from './ballFocus';
 import { AUTHORED_VENUES, isAuthoredVenue, VenueAssetManager, type AuthoredVenueId, type VenueAssetState } from './VenueAssetManager';
 import { resolveVenueLighting } from './venueLighting';
@@ -121,9 +119,6 @@ export class TennisScene {
   private readonly balls: THREE.Mesh[] = [];
   private readonly ballMaterial: THREE.MeshStandardMaterial;
   private ballFocus = DEFAULT_BALL_FOCUS;
-  private ballFocusPass: BallFocusPass | null = null;
-  private focusStrength = 0;
-  private focusDistance = 16;
   private highContrastBall = false;
   private readonly focusPoint = new THREE.Vector3();
   private readonly focusProjection = new THREE.Matrix4();
@@ -363,15 +358,10 @@ export class TennisScene {
   setBallFocus(settings: BallFocusSettings): void {
     this.ballFocus = normalizeBallFocus(settings);
     this.canvas.dataset.ballFocus = String(this.ballFocus.enabled);
-    this.canvas.dataset.ballFocusMaxBlur = String(this.ballFocus.maxBlurPx);
-    if (!this.ballFocus.enabled) {
-      this.ballFocusPass?.dispose(); this.ballFocusPass = null; this.focusStrength = 0;
-    }
   }
 
-  private renderBallFocus(delta: number): void {
+  private updateBallHighlight(): void {
     let target = 0;
-    let focusDistance = this.focusDistance;
     this.camera.updateMatrixWorld();
     if (this.ballFocus.enabled) this.focusFrustum.setFromProjectionMatrix(
       this.focusProjection.multiplyMatrices(this.camera.projectionMatrix, this.camera.matrixWorldInverse));
@@ -386,7 +376,6 @@ export class TennisScene {
           this.focusPoint.copy(ball.position).applyMatrix4(this.camera.matrixWorldInverse);
           const forward = -this.focusPoint.z;
           weight = ballFocusWeight(ball.position.z, ball.userData.focusSourceZ, this.camera.position.z, forward);
-          if (weight > target) focusDistance = Math.max(.1, forward);
         }
       }
       target = Math.max(target, weight);
@@ -396,13 +385,7 @@ export class TennisScene {
       material.emissive.setHex(presentation.emissive).lerp(this.focusEmission, weight);
       material.emissiveIntensity = presentation.emissiveIntensity + weight * .55;
     }
-    this.focusDistance = this.focusStrength === 0 ? focusDistance : advanceFocusDistance(this.focusDistance, focusDistance, delta);
-    this.focusStrength = target;
-    this.canvas.dataset.ballFocusStrength = this.focusStrength.toFixed(4);
-    this.canvas.dataset.ballFocusDistance = this.focusDistance.toFixed(3);
-    if (this.focusStrength === 0) { this.renderer.render(this.scene, this.camera); return; }
-    this.ballFocusPass ??= new BallFocusPass();
-    this.ballFocusPass.render(this.renderer, this.scene, this.camera, this.balls, this.focusStrength, this.ballFocus.maxBlurPx, this.focusDistance);
+    this.canvas.dataset.ballFocusStrength = target.toFixed(4);
   }
 
   setPlaybackRate(rate: number): void {
@@ -761,7 +744,8 @@ export class TennisScene {
     }
     this.audience.update(this.elapsed);
     this.landingZoneControl.update();
-    this.renderBallFocus(delta);
+    this.updateBallHighlight();
+    this.renderer.render(this.scene, this.camera);
     this.metricFrames += 1;
     const metricElapsed = now - this.metricStartedAt;
     if (metricElapsed >= 1000) {
@@ -811,7 +795,6 @@ export class TennisScene {
   }
 
   dispose(): void {
-    this.ballFocusPass?.dispose();
     this.resizeObserver.disconnect();
     this.renderer.setAnimationLoop(null);
     for (const arena of Object.values(this.authoredArenas)) arena.dispose();

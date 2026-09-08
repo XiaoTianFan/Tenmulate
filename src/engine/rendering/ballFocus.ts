@@ -1,14 +1,10 @@
-export type BallFocusSettings = Readonly<{ enabled: boolean; maxBlurPx: number }>;
-export const DEFAULT_BALL_FOCUS: BallFocusSettings = Object.freeze({ enabled: false, maxBlurPx: 1.5 });
-export const MAX_BALL_FOCUS_BLUR_PX = 5;
+// Retain the stored ballFocus key so existing highlight choices survive blur removal.
+export type BallFocusSettings = Readonly<{ enabled: boolean }>;
+export const DEFAULT_BALL_FOCUS: BallFocusSettings = Object.freeze({ enabled: false });
 
 export function normalizeBallFocus(value: unknown): BallFocusSettings {
   const data = typeof value === 'object' && value !== null ? value as Record<string, unknown> : {};
-  return {
-    enabled: data.enabled === true,
-    maxBlurPx: typeof data.maxBlurPx === 'number' && Number.isFinite(data.maxBlurPx)
-      ? Math.max(0, Math.min(MAX_BALL_FOCUS_BLUR_PX, data.maxBlurPx)) : DEFAULT_BALL_FOCUS.maxBlurPx,
-  };
+  return { enabled: data.enabled === true };
 }
 
 const EXPONENTIAL_RANGE = Math.expm1(4);

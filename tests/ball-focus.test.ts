@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { ballFocusWeight, DEFAULT_BALL_FOCUS, normalizeBallFocus } from '../src/engine/rendering/ballFocus';
 
-describe('net-to-camera ball focus', () => {
-  it('defaults off at 1.5 px, preserves fine adjustments and clamps old/imported ceilings', () => {
-    expect(DEFAULT_BALL_FOCUS).toEqual({ enabled: false, maxBlurPx: 1.5 });
+describe('approaching ball highlight', () => {
+  it('defaults off and discards legacy blur settings while preserving the toggle', () => {
+    expect(DEFAULT_BALL_FOCUS).toEqual({ enabled: false });
     for (const value of [undefined, null, [], { enabled: 'true', maxBlurPx: NaN }]) expect(normalizeBallFocus(value)).toEqual(DEFAULT_BALL_FOCUS);
-    expect(normalizeBallFocus({ enabled: true, maxBlurPx: Infinity })).toEqual({ enabled: true, maxBlurPx: 1.5 });
-    for (const maxBlurPx of [0, .1, 1.5, 2.3, 3, 5]) expect(normalizeBallFocus({ enabled: true, maxBlurPx }).maxBlurPx).toBe(maxBlurPx);
-    expect(normalizeBallFocus({ enabled: true, maxBlurPx: 6 }).maxBlurPx).toBe(5);
-    expect(normalizeBallFocus({ enabled: true, maxBlurPx: -2 }).maxBlurPx).toBe(0);
+    for (const maxBlurPx of [0, 1.5, 5, 6, NaN, Infinity]) {
+      expect(normalizeBallFocus({ enabled: true, maxBlurPx })).toEqual({ enabled: true });
+      expect(normalizeBallFocus({ enabled: false, maxBlurPx })).toEqual({ enabled: false });
+    }
   });
 
   it('begins strictly after the net, even for cameras near the service line', () => {

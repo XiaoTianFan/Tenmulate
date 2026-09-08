@@ -19,15 +19,12 @@ blue footprint beside the yellow landing zone. Playback holds each shot's view,
 then follows the opponent while accelerating and braking into the next position.
 See the [drill camera and editor receipt](docs/development/drill-camera-and-editor-2026-09-08.md).
 
-**Perspective → Ball focus** keeps approaching balls on a separate sharp layer.
-Lens blur varies with each surface's distance from the ball's focus plane; nearby
-and distant surfaces soften while that plane stays clear. Set **Maximum blur** directly
-under the toggle (0–5 px in 0.1 px steps; default 1.5). Blur begins after an incoming
-ball crosses the net, rises exponentially toward the camera, and clears immediately
-when the ball leaves the visible frame. This viewing preference stays shared across Practice,
-drill editing and playback, and starts off. See the
-[focus-curve verification receipt](docs/development/net-focus-curve-2026-09-08.md)
-and [frame-exit refinement](docs/decisions/0026-frame-exit-focus-cutoff.md).
+**Perspective → Ball highlight** makes the incoming ball lighter and more luminous
+as it approaches. It changes only the ball's material; trajectory lines and landing
+zones retain their normal appearance. The scene renders directly with no focus blur
+or postprocessing. The optional toggle stays shared across Practice, drill editing
+and playback, and preserves existing on/off choices. See the
+[ball-only highlight decision and verification](docs/decisions/0027-ball-only-highlight.md).
 
 ## Implemented direction
 

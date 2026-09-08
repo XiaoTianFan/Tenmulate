@@ -9,7 +9,22 @@
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
-## Frame-exit focus cutoff — 2026-09-08
+## Ball-only highlight; scene blur removed — 2026-09-08
+
+[ADR-0027](../decisions/0027-ball-only-highlight.md) removes the lens compositor,
+blur shaders/render targets, focal-distance smoothing and Maximum blur control.
+Perspective now has one **Ball highlight** toggle, preserving its saved on/off state.
+Only ball material color/emission changes; all frames use direct scene rendering.
+
+Verification: **315 tests / 31 files**, production/PWA build and active motion/cache
+guard pass. Six rendered comparisons across approach distances and both contrast
+modes changed only ball pixels. Trajectory, landing zone, trail and scene materials
+were unchanged; enabled/disabled draw calls and texture counts matched. Production
+Practice, Editor and drill playback checks passed for migration, persistence,
+keyboard operation, mobile layout and stable scene/session identity. Earlier blur
+entries below are historical. The user's local preview is refreshed.
+
+## Frame-exit focus cutoff — 2026-09-08 (superseded blur renderer)
 
 [ADR-0026](../decisions/0026-frame-exit-focus-cutoff.md) moves blur removal to the
 first frame where the ball's rendered bounds leave the picture. Partially visible

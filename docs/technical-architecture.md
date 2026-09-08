@@ -11,22 +11,14 @@ The system should optimize for perceptual credibility and testability, not for g
 
 ## 2. Proposed stack
 
-**Optional ball focus (2026-09-08):** [ADR-0024](decisions/0024-depth-of-field-and-sharp-ball-layer.md)
-replaces ADR-0023's uniform blur/mask with a separate full-resolution sharp ball
-color layer and depth-dependent lens blur. A camera-forward focus plane follows
-the prominent ball. Half-resolution disk gathering separates foreground and far
-defocus while preserving the focal plane. The direct render path remains active when disabled
-or fully out of range. Perspective exposes the shared toggle and bounded maximum
-blur without changing session identity, camera authoring or deterministic timing.
-[ADR-0025](decisions/0025-net-to-camera-focus-envelope.md) replaces the distance fade
-with a net-to-camera exponential envelope. [ADR-0026](decisions/0026-frame-exit-focus-cutoff.md)
-moves the cutoff earlier to the first frame where the ball's rendered bounds leave
-the camera frustum, accounting for camera motion, FOV, resize and ball scale.
-The control now spans 0–5 px in 0.1 px steps, default 1.5 px. Source-side gating
-excludes tosses and outgoing returns; the envelope reads current world/camera
-positions without storing attack/release history. See the
-[renderer receipt](development/lens-focus-2026-09-08.md) and
-[curve receipt](development/net-focus-curve-2026-09-08.md).
+**Optional ball highlight (2026-09-08):** [ADR-0027](decisions/0027-ball-only-highlight.md)
+removes all ball-focus postprocessing. Each frame changes only active ball materials'
+color/emission, then renders the scene directly. Trajectory, trail and landing-zone
+materials are independent and receive no highlight. The existing after-net approach
+curve and visible-frame gating supply highlight strength without changing gameplay
+timing. Perspective exposes one shared **Ball highlight** toggle. The persisted
+`ballFocus.enabled` key retains compatibility; obsolete blur values are discarded.
+Earlier lens ADRs and receipts are historical records, not active rendering paths.
 
 **Shared court and editing contract (2026-09-08):** [ADR-0020](decisions/0020-shared-court-and-transactional-zone-editing.md) moves renderer ownership to `SharedCourtProvider`. Route `CourtViewport` slots reuse the same portal, canvas, scene, WebGL context and unchanged assets. Parking or document hiding suspends rendering without disposal. `LandingZoneControl` previews translation and anchored edge/corner resizing using reusable scene geometry; it publishes one rectangle on release and restores the model on cancellation. Session identity guards prevent callback changes from rebuilding the preview. Editor edits become one undo entry, and practice preferences flush when leaving the page. The shipped corner/volley position presets carry a far-baseline `lookAt` target while retaining the selected FOV. The [verification receipt](development/shared-court-and-zone-resize-2026-09-08.md) records measured interaction latency and resource reuse.
 
