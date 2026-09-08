@@ -1,19 +1,28 @@
-# LAN casting and browser mirroring feasibility
+# Website-initiated casting to existing receivers
 
 - **Date:** 2026-09-08
-- **Status:** Research and proposed validation sequence; no casting implementation or accepted architecture decision.
+- **Status:** Research revised after owner clarification; no qualifying end-to-end implementation verified.
 - **Question:** Can Tenmulate offer built-in casting from iOS, macOS, Windows and Android to `乐播投屏（SONY XR-75X95J）` and `奇异果TV`?
-- **Scope:** Live court/page presentation, existing receiver compatibility, browser APIs, LAN transport and current application fit. No receiver pairing, playback, installation or network configuration was performed.
+- **Scope:** A user opens the Tenmulate website, triggers casting there, and selects an existing TV/projector receiver. No receiver pairing, playback, installation or network configuration was performed.
+
+## Owner requirements
+
+- The sender is the Tenmulate website. The visitor needs no repository, developer environment or locally installed sender/helper.
+- No Lebo desktop client, other desktop casting application, native mobile sender, browser extension or native wrapper is part of the solution.
+- Use existing casting receivers, including the owner's Lebo/Sony and Qiyiguo services. Requiring the user to open a Tenmulate receiver webpage or install a custom receiver does not satisfy the requirement.
+- The cast action belongs inside Tenmulate. Ordinary browser/device permission and receiver selection dialogs are compatible with that interaction; instructions to independently start system mirroring are only a fallback and do not fulfill the in-page trigger requirement.
+- Preserve the original LAN transport objective. Website access alone does not establish that cloud media relaying is acceptable. A product-hosted backend would avoid a sender installation, but any media relay outside the LAN would change that transport property.
+- The desired sender coverage is iOS, macOS, Windows and Android. Individual protocol/browser results must be reported separately.
 
 ## Answer
 
-Yes, Tenmulate can support a useful casting experience. There is no single ordinary-web API that mirrors its entire page to every AirPlay, DLNA, Google Cast and proprietary receiver across those platforms. A product can present one entry point while using different transports underneath it.
+Under the clarified requirements, a universal cross-platform live-page Cast button to these existing receivers is **not yet established as feasible by the available evidence**. Capturing Tenmulate's court is possible; the unresolved part is a browser-accessible transport and receiver-control contract. There is no single ordinary-web API providing arbitrary AirPlay, DLNA, Google Cast and vendor-protocol mirroring.
 
-The immediate route is to run Tenmulate on an actual iPhone/iPad and use system **Screen Mirroring**. The owner confirms that both named receivers appear in Control Center and in video-app casting menus. This is strong evidence for an AirPlay mirroring path on this installation, but it is not a completed connection or gameplay test. Apple documents mirroring the device screen, including its running applications, to compatible receivers. A browser page cannot use the Safari video AirPlay button as a general command to start system screen mirroring. [Apple mirroring instructions](https://support.apple.com/en-us/102661), [Safari media controls](https://developer.apple.com/documentation/webkitjs/adding_an_airplay_button_to_your_safari_media_controls).
+The owner confirms both receivers appear in iOS Control Center and video-app casting menus. System **Screen Mirroring** could present the running app without a sender installation, but Safari's media AirPlay API is not a command to open system mirroring for an arbitrary WebGL page. That route remains a manual fallback, not the core product mechanism. [Apple mirroring instructions](https://support.apple.com/en-us/102661), [Safari media controls](https://developer.apple.com/documentation/webkitjs/adding_an_airplay_button_to_your_safari_media_controls).
 
-There is also a relevant vendor route: **Lebo advertises both a web casting service and Web SDK integration**. It should be evaluated before writing a custom AirPlay sender. Public announcements establish that these products were offered; they do not establish a current downloadable SDK contract, local-only operation, arbitrary WebGL capture or compatibility with this installed TV build. [Lebo web service announcement, 2023-01-17](https://www.lebo.cn/news/AboutNewsContent?id=1130), [Web SDK integration announcement, 2023-06-28](https://www.lebo.cn/news/AboutNewsContent?id=1316).
+An **embedded browser SDK for the installed receivers** remains a candidate, not an available integration dependency. Lebo announced Web SDK integration in 2023, but its current public SDK catalogue contains native packages and no Web sender package. This absence does not prove that a private/commercial Web SDK does not exist. It does mean the announcement cannot substantiate a ready-to-build cross-platform mirroring feature. [Web SDK announcement](https://www.lebo.cn/news/AboutNewsContent?id=1316), [current catalogue source](https://lebotob.hpplay.cn/web/sdkListObj.js).
 
-For a transport we control, a **Tenmulate receiver page/app** can receive a canvas stream over WebRTC, or render the drill itself from synchronized session data. These are feasible architectures requiring development and actual TV validation; the two existing receiver names do not imply that they can run either one.
+Browser-native media casting can provide genuine in-page initiation on compatible systems, but Tenmulate would first have to supply media that the receiver can play. A live canvas is not automatically such a media source. Google Cast is a separate compatible-receiver route; neither named receiver has been verified as a Google Cast target.
 
 ## 1. What the receiver evidence proves
 
@@ -28,66 +37,69 @@ The live GET was `http://192.168.0.28:49152/description.xml`, returned HTTP 200,
 
 AirPlay, DLNA, Google Cast and Miracast are different receiver paths. In particular, appearance in an iPhone picker does not establish Google Cast compatibility. Do not infer the China-market television's active Google Cast or Miracast services from another region's model specifications. A name can also identify one software service on a TV rather than a separate physical display.
 
-The premise that Windows cannot mirror its desktop is too broad. Google documents whole-screen and tab casting from Windows to Google Cast receivers. Lebo lists Windows and Mac senders, and Deskreen is a computer-to-browser screen-sharing project. Their receiver requirements differ. [Chrome casting](https://support.google.com/chromecast/answer/3228332?hl=en), [Lebo downloads/platforms](https://www.lebo.cn/), [Deskreen project](https://github.com/pavlobu/deskreen).
+Native desktop mirroring products and computer-to-custom-browser screen sharing are excluded from this product design, regardless of their independent usefulness.
 
 ## 2. Capture, transport and receiver are separate
 
 ```mermaid
 flowchart LR
-    A[Tenmulate on iPhone or Mac] --> B[System AirPlay mirroring]
-    B --> C[Existing compatible TV receiver]
-    D[Tenmulate canvas] --> E[WebRTC video stream]
-    E --> F[Tenmulate receiver page or app]
-    G[Tenmulate controller] --> H[Session and control messages]
-    H --> I[Tenmulate renderer on TV]
+    A[Tenmulate website: Cast button] --> B[Prepare live court output]
+    B --> C[Browser or embedded SDK transport]
+    C --> D[Existing compatible receiver]
+    D --> E[TV or projector]
+    F[Unresolved: supported transport and media format] -.-> C
 ```
 
 **Whole-page capture:** `getDisplayMedia()` lets a supporting desktop browser capture a user-selected tab, window or display. It requires a secure context and an explicit user gesture/permission flow. It produces a `MediaStream`; it does not select an AirPlay/DLNA TV. The live MDN compatibility data lists Safari iOS and Chrome Android as unsupported, while desktop Chrome, Edge, Firefox and Safari have support. [API contract](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getDisplayMedia), [compatibility source checked on research date](https://github.com/mdn/browser-compat-data/blob/main/api/MediaDevices.json).
 
 **Court-only capture:** `canvas.captureStream()` captures the WebGL canvas and is a much better cross-platform primitive for this app. Current compatibility data includes Safari/iOS and Chrome/Android. It captures the canvas's pixels, not surrounding React controls, and provides a video track rather than the Web Audio cues. Those need a separate audio track or receiver-side scheduling. Origin-clean assets, encoding load, WebGL capture correctness and mobile lifecycle still need testing. [Canvas API](https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/captureStream), [canvas compatibility source](https://github.com/mdn/browser-compat-data/blob/main/api/HTMLCanvasElement.json).
 
-**Transport:** WebRTC can carry that stream to another cooperating browser/app. It needs signaling to exchange session descriptions and ICE candidates. A short pairing code/QR can identify the session; it does not replace signaling. LAN media can be direct, but a cloud signaling service or TURN relay would introduce external dependencies. Strictly local operation requires local app delivery/signaling, reachable peers and verification of the selected network path. [WebRTC peer connections](https://webrtc.org/getting-started/peer-connections).
+**Transport:** WebRTC needs a cooperating endpoint and signaling. The existing receiver's AirPlay/DLNA discovery does not establish either. A generic canvas-to-WebRTC implementation followed by a custom receiver page would violate the clarified scope. WebRTC becomes relevant only if an existing receiver/vendor exposes a compatible supported ingestion path. [WebRTC peer connections](https://webrtc.org/getting-started/peer-connections).
 
 **Existing TV playback:** Safari's `webkitShowPlaybackTargetPicker()` and the Remote Playback API are media-element interfaces. They are not general React/WebGL page mirroring APIs. Putting a canvas `MediaStream` into a `<video>` does not establish that an AirPlay/DLNA target can consume it; that exact route needs proof, not an assumption. A blob URL is not a LAN media-server URL. [Apple media-element interface](https://developer.apple.com/documentation/webkitjs/htmlmediaelement), [W3C Remote Playback](https://www.w3.org/TR/remote-playback/).
+
+Apple's media-format guidance explains that its AirPlay media route needs a transferable URL and demonstrates providing an HLS alternative for a JavaScript-managed video source. A possible no-install sender architecture is canvas capture → product-hosted live media service → playable HLS URL → Safari AirPlay picker → existing receiver. That is a backend-assisted media-streaming proposal, not proof of direct LAN mirroring. It introduces encoding, hosting, buffering and receiver-compatibility work; a cloud media service changes the original LAN-only property, and a user-installed local media server is excluded. [Apple WWDC media-format guidance](https://developer.apple.com/videos/play/wwdc2023/10122/).
+
+The Presentation API does support a page-initiated selection dialog for **compatible** displays and presentation URLs. It does not implement every receiver protocol or prove that these two AirPlay/DLNA receivers can present the URL. [W3C Presentation API](https://www.w3.org/TR/presentation-api/).
 
 Ordinary web pages also lack unrestricted native UDP/TCP access for implementing arbitrary receiver discovery and protocols. Chrome's Direct Sockets capability is scoped to Isolated Web Apps, which changes packaging and does not solve an ordinary cross-platform Safari website. [Chrome Direct Sockets](https://developer.chrome.com/docs/iwa/direct-sockets?hl=en).
 
 ## 3. Options for the requested devices
 
-| Route | Senders | Existing receiver fit | What Tenmulate could build |
+| Route | Sender-only website requirement | Existing receiver fit | Qualification |
 | --- | --- | --- | --- |
-| System AirPlay mirroring | iOS/iPadOS and macOS | Promising given owner discovery; test each receiver and OS | Clean landscape presentation, hideable controls, supported wake-lock/fullscreen behavior, concise system instructions |
-| Chrome's built-in tab casting | Desktop Windows/macOS/Linux/ChromeOS | Requires a Google Cast target; unconfirmed here | A presentation view and browser instructions |
-| Google Cast SDK | Supported web senders plus separate native Android/iOS SDKs | Requires Google Cast receiver compatibility | A Cast sender and custom receiver for live application behavior |
-| Lebo web service / vendor SDK | Web offering plus native platform products; exact SDK matrix unresolved | Most relevant vendor candidate for installed Lebo; Qiyiguo requires separate proof | First evaluate service; integrate only an available supported SDK contract |
-| Canvas stream over WebRTC | Candidate across the requested browser platforms | Requires our receiver page/app; does not directly attach to existing AirPlay/DLNA names | Pairing, signaling, stream sender, decoder UI and transport state |
-| TV renders Tenmulate; phone/computer controls it | Controller can be any supported browser | Requires compatible TV browser/app with adequate WebGL 2 performance | Receiver mode and synchronized session/control protocol |
-| Encode live video and send a DLNA media URL | Usually needs a local bridge/media server | Lebo's DLNA service is verified; codec/live support is not | Encoder, URL server and protocol adapter; poorly suited as the first live-practice route |
+| In-page AirPlay media picker on iOS/macOS Safari | Yes for compatible media playback | AirPlay discovery reported; actual media playback untested | Does not automatically mirror the live canvas; playable-source pipeline unresolved |
+| Google Cast Web Sender | Yes on supported browsers; iOS Chrome excluded | Google Cast service not established for either target | Limited compatible-target route; not coverage for both named receivers |
+| Embedded Lebo Web SDK | Would qualify if it actually runs in an ordinary browser without a native bridge | Relevant to Lebo; Qiyiguo requires separate proof | Public announcement exists; current usable Web package and live LAN transport contract not established |
+| Native iOS/macOS mirroring or Chrome browser-menu casting | No sender installation | Protocol-dependent | Manual fallback; does not meet the in-page initiation requirement |
+| Generic WebRTC receiver page or TV-side Tenmulate renderer | Sender could be a website | Requires a different receiver experience | Excluded by owner |
+| Native apps, wrappers, extensions or local sender/media bridge | Requires more than website access | Depends on implementation | Excluded by owner |
 
 Apple documents Mac screen/window sharing through AirPlay. Google distinguishes browser casting from an integrated sender/receiver app, and explicitly excludes iOS Chrome from Web Sender support. A Cast button therefore cannot serve as the sole cross-platform solution. [Mac AirPlay](https://support.apple.com/en-gb/guide/mac-help/mchld7e543a0/mac), [Google Web Sender requirements](https://developers.google.com/cast/docs/web_sender), [Cast architecture](https://developers.google.com/cast/docs/overview).
 
-If a native wrapper is later chosen, iOS ReplayKit and Android MediaProjection are capture building blocks, not universal TV transports. They would still need a compatible vendor or custom receiver path. [ReplayKit](https://developer.apple.com/documentation/replaykit), [Android media projection](https://developer.android.com/media/grow/media-projection).
+Native iOS/Android SDK coverage must not be presented as Safari/Chrome website coverage. Similarly, a TV-side Tenmulate application or manually opened receiver webpage is not an eligible substitute for the existing receiver.
 
 “An emulated page” has two possible meanings. Running the Tenmulate simulation in Safari on a real iPhone can use that phone's system AirPlay. Selecting an iPhone viewport/user agent in a Windows browser does not add iOS's native AirPlay services.
 
-### Lebo deserves a bounded trial
+### Lebo: investigate an embedded Web contract, not its desktop client
 
-The official announcement directs computer browsers to [lebo.top](https://www.lebo.top/) and describes using the TV's numeric casting code without installing a PC client. It also advertises sending a webpage URL into a cloud-powered presentation space. Sending a URL is different from mirroring an already-running local browser session: the remote loader may not reach a private LAN URL, and it will not inherit Tenmulate's browser storage or current drill.
+The official [web service announcement](https://www.lebo.cn/news/AboutNewsContent?id=1130) is evidence of a vendor browser product. Redirecting users away from Tenmulate to operate that product does not establish an embedded Tenmulate mechanism. It also advertises URL-based cloud presentation: a remote loader would not inherit Tenmulate's browser storage or active drill. A product demonstration is insufficient to infer an embeddable live mirroring API.
 
-The January 2023 announcement named TV version 8.13.20 or later for its new features. This is historical vendor guidance, not a verified current minimum for the installed TV. The June 2023 announcement explicitly describes Web SDK integration. The current developer landing page advertises sender/receiver SDKs, DLNA and lelink. [Web service announcement](https://www.lebo.cn/news/AboutNewsContent?id=1130), [Web integration announcement](https://www.lebo.cn/news/AboutNewsContent?id=1316), [developer platform](https://cloud.lebo.cn/).
+At 23:26 China time, the [current developer site's](https://cloud.lebo.cn/) directly referenced [SDK catalogue](https://lebotob.hpplay.cn/web/sdkListObj.js) listed Android and iOS push/mirroring SDKs, a HarmonyOS entry under mirroring, and an Android receiver SDK. It contained no Web sender entry. The listed native package dates range through 2026-08-11. See the [catalogue receipt](lan-casting-sdk-catalogue-2026-09-08.json). This is narrower, more current evidence than the [June 2023 Web integration announcement](https://www.lebo.cn/news/AboutNewsContent?id=1316); it does not exclude a separately distributed partner product.
 
 Before treating this as an implementation dependency, establish:
 
 - Whether the currently offered Web SDK accepts a live canvas/tab stream, or only URLs/files and presentation-space content.
+- Whether it can execute within Tenmulate's origin without a native companion, extension, receiver replacement or redirection to a separate sender product.
 - Which browser/OS and installed receiver versions support that specific mode, including Qiyiguo if claimed.
 - Whether media stays on the LAN, and whether authentication, discovery or ongoing operation requires internet access.
 - Available frame rate, resolution, audio, reconnection behavior, licensing, branding, account and fee requirements.
 
 The research fetch found the official web service, but live UI inspection timed out in the available browser tool. No sign-in, casting code, capture permission or playback was attempted. Consequently the service is a vendor-documented candidate, not an operationally verified result. No current SDK artifact or entitlement was established, and no vendor was contacted.
 
-### DLNA is a fallback for video, not the preferred live court path
+### DLNA does not by itself provide the missing website transport
 
-DLNA discovery is useful evidence, but sending a live page through it means creating a compatible media stream and serving it to the TV. The open-source `dlna-cast` project implements FFmpeg capture, HLS and an HTTP server, and reports latency of five seconds or more for its path. This is an implementation-specific warning, not a universal lower bound for DLNA or all HLS. It is a better candidate for exported drill videos than responsive live adjustments. [dlna-cast implementation](https://github.com/link89/dlna-cast).
+DLNA discovery is useful evidence, but sending a live page through it means creating a compatible media stream and serving it to the TV, plus discovering and controlling the receiver. A locally installed FFmpeg/HTTP/UPnP bridge is outside scope. The presence of an HTTP device-description endpoint does not establish cross-origin control access or supply a browser-native DLNA casting API. Browser local-network permissions alone do not create the missing protocol implementation.
 
 ## 4. Fit with the current Tenmulate code
 
@@ -101,17 +113,19 @@ Code was inspected with local `main` at `4526370`. Concurrent rehearsal/fullscre
 - [SharedCourt](../../src/components/SharedCourt.tsx) owns the shared court presentation. [compileSession](../../src/engine/session/compileSession.ts) and the [architecture](../technical-architecture.md) provide useful boundaries for a receiver mode. Existing local storage is not shared between devices.
 - No current `RTCPeerConnection`, casting SDK, `captureStream`, `getDisplayMedia`, WebSocket transport or wake-lock implementation was found in `src`.
 
-For the first UX stage, a proposed **Show on TV** entry could prepare a clean court view and display platform-specific steps. It must not report a native AirPlay session as connected based merely on an instruction being shown; browser-visible native mirroring status is not a reliable general contract.
+The intended **Cast** entry must initiate an actual supported adapter, expose receiver selection/connection state, and stop the session. It must not report success from merely showing native-mirroring instructions. Feature detection must distinguish capture availability from transport and receiver compatibility.
 
-For a WebRTC stage, capture the existing canvas, deliberately include or exclude the HUD, add an audio bus, and expose real pairing/connection/stop states. Do not globally remove hidden-page suspension on the assumption that it solves mobile background execution. Test the active sender lifecycle and handle interruption explicitly.
+Once a qualifying transport exists, the frontend can prepare canvas output, add the cue audio bus, manage connection state, and preserve the active sender lifecycle. Do not globally remove hidden-page suspension on the assumption that it solves mobile background execution. Capture/encoding must not change ball pace, source motion clocks, contact alignment or the recovery planner.
 
-For a TV-rendered stage, preload matching assets and versioned session data; use the TV's session clock as playback authority while the phone/computer sends commands. If simultaneous source playback is required, add explicit clock synchronization and reconciliation. Include pause, seek, rate changes, restart, disconnect and resume semantics. Preserve the shared recovery planner, contact alignment, source motion clocks and independent ball pace. This avoids transmitting every rendered frame, but shifts the rendering workload to the receiver and still needs performance proof.
+No custom receiver renderer or distributed playback architecture is recommended under this scope. A web-initiated media route may still require a product backend; such a proposal must state explicitly whether media leaves the LAN rather than equating no installation with local transport.
 
 ## 5. Recommendation and next evidence
 
-1. **Validate native iOS mirroring first on both named targets.** Open the real app on a real phone/iPad through a reachable origin; mirror with Control Center; compare actual court motion and audio. This is the shortest route to the requested minimum.
-2. **Evaluate Lebo's official desktop web service with the same scene.** Establish whether its offered mode mirrors the live tab, sends a URL to another renderer, or supports both. Separately establish LAN routing and the SDK contract before choosing an integration.
-3. **For controlled cross-platform LAN operation, prototype a Tenmulate receiver.** Start with WebRTC canvas streaming if TV decoding is the better hardware fit; compare TV-side rendering if its WebGL 2 performance is adequate. These can coexist with native AirPlay guidance.
+1. **Resolve the browser-to-existing-receiver contract first.** For Lebo, require a current browser SDK/sample and explicit supported platforms, receiver versions, media inputs and LAN behavior. No qualifying public Web package has been found. Do not substitute native packages or infer Qiyiguo compatibility.
+2. **Separate media casting from live page mirroring in any proof.** A Safari AirPlay picker playing an accessible test video proves browser-initiated media casting only. A real Tenmulate stream needs a separate live-source proof. Backend-assisted HLS is a conditional architecture, not a solution already meeting the LAN requirement.
+3. **Require an end-to-end proof before adding the product feature.** From a normal browser on each claimed sender platform, press Cast inside Tenmulate, select the existing receiver, show current court frames and synchronized audio, change/pause the drill and stop casting. No sender install, extension, custom receiver page or receiver replacement may be used to pass this proof.
+
+The researched outcome is therefore conditional: native media APIs and a possible vendor Web transport offer limited paths, but there is currently no verified mechanism satisfying all of the owner's requirements. Manual system mirroring can remain an explicitly labeled fallback if desired; it is not acceptance of the requested in-page mechanism.
 
 Measure frame cadence, dropped/stale frames, glass-to-glass delay, command response and audio/video skew separately. Record the actual sender/receiver versions, connection path and resolution. Start with a short representative practice run, orientation/fullscreen changes and one disconnect/reconnect; broaden to a longer thermal/stability run only for a promising route.
 
