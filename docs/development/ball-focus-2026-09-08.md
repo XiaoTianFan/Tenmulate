@@ -1,5 +1,11 @@
 # Ball-focus verification — 2026-09-08
 
+**Historical first implementation.** Later owner review found the uniform blur
+and broad glow made the ball look soft. Center-mask checks below were insufficient
+to establish silhouette quality. [ADR-0024](../decisions/0024-depth-of-field-and-sharp-ball-layer.md)
+and the [lens-focus receipt](lens-focus-2026-09-08.md) describe the replacement and
+its full ball-layer and final-output pixel checks.
+
 ## Delivered behavior
 
 Practice, drill editing and playback share **Perspective → Ball focus**. Enabling

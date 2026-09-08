@@ -9,7 +9,22 @@
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
-## Optional ball focus — 2026-09-08
+## Depth-dependent lens focus and sharp balls — 2026-09-08
+
+[ADR-0024](../decisions/0024-depth-of-field-and-sharp-ball-layer.md) supersedes the
+uniform blur described below. Actual ball color is rendered separately at full
+resolution, after excluding it from the lens input. Surface depth drives a near/far
+circle of confusion around the moving ball's focus plane. Reduced emission and a
+restrained rim preserve the ball silhouette. Perspective settings are unchanged.
+
+Verification: **316 tests / 32 files**, production build/cache guard, depth-chart
+comparison, exact moving-ball pixel equality at zero/max blur, occlusion, disappearance,
+resize, error-state restoration, UI persistence and local GPU timing pass.
+At 1200×800, paired 15-sample GPU-query runs measured 14.22/14.37 ms median for the
+new effect versus 12.81/13.25 ms for the previous effect on Chrome/ANGLE Intel UHD
+Graphics. This is bounded local evidence; see the [receipt](lens-focus-2026-09-08.md).
+
+## Initial optional ball focus — 2026-09-08 (superseded renderer)
 
 [ADR-0023](../decisions/0023-optional-ball-focus-rendering.md) adds a default-off
 Perspective toggle in Practice, drill editing and playback settings. Approaching

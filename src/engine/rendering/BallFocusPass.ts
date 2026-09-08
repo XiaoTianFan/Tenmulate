@@ -188,7 +188,9 @@ export class BallFocusPass {
     const bottom = Math.floor(Math.min(this.ballBounds.y, this.previousBounds.y) * this.size.y);
     const right = Math.ceil(Math.max(this.ballBounds.z, this.previousBounds.z) * this.size.x);
     const top = Math.ceil(Math.max(this.ballBounds.w, this.previousBounds.w) * this.size.y);
-    this.sharpBall.scissorTest = !resized;
+    // Resolve an entirely empty layer from a full clear. Some MSAA backends
+    // invalidate untouched tiles, so a partial empty resolve can retain old pixels.
+    this.sharpBall.scissorTest = !resized && this.ballBounds.x <= this.ballBounds.z && this.ballBounds.y <= this.ballBounds.w;
     this.sharpBall.scissor.set(left, bottom, Math.max(1, right - left), Math.max(1, top - bottom));
     this.previousBounds.copy(this.ballBounds);
   }

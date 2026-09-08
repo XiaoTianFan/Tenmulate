@@ -11,13 +11,14 @@ The system should optimize for perceptual credibility and testability, not for g
 
 ## 2. Proposed stack
 
-**Optional ball focus (2026-09-08):** [ADR-0023](decisions/0023-optional-ball-focus-rendering.md)
-adds an independent visual preference to the shared renderer. Camera-relative ball
-distance controls pale emission, a depth-tested sharp-ball mask and a half-resolution
-background blur/glow composite. The direct render path remains active when disabled
+**Optional ball focus (2026-09-08):** [ADR-0024](decisions/0024-depth-of-field-and-sharp-ball-layer.md)
+replaces ADR-0023's uniform blur/mask with a separate full-resolution sharp ball
+color layer and depth-dependent lens blur. A camera-forward focus plane follows
+the prominent ball. Half-resolution disk gathering separates foreground and far
+defocus while preserving the focal plane. The direct render path remains active when disabled
 or fully out of range. Perspective exposes the shared toggle and bounded maximum
 blur without changing session identity, camera authoring or deterministic timing.
-See the [verification receipt](development/ball-focus-2026-09-08.md).
+See the [verification receipt](development/lens-focus-2026-09-08.md).
 
 **Shared court and editing contract (2026-09-08):** [ADR-0020](decisions/0020-shared-court-and-transactional-zone-editing.md) moves renderer ownership to `SharedCourtProvider`. Route `CourtViewport` slots reuse the same portal, canvas, scene, WebGL context and unchanged assets. Parking or document hiding suspends rendering without disposal. `LandingZoneControl` previews translation and anchored edge/corner resizing using reusable scene geometry; it publishes one rectangle on release and restores the model on cancellation. Session identity guards prevent callback changes from rebuilding the preview. Editor edits become one undo entry, and practice preferences flush when leaving the page. The shipped corner/volley position presets carry a far-baseline `lookAt` target while retaining the selected FOV. The [verification receipt](development/shared-court-and-zone-resize-2026-09-08.md) records measured interaction latency and resource reuse.
 
