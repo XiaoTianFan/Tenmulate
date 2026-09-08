@@ -154,7 +154,7 @@ export function SceneViewport({
     if (drag && drag.pointerId === event.pointerId) {
       setTrajectoryTooltip(null);
       if (drag.mode === 'landing') {
-        sceneRef.current?.landingGizmo.move(event.clientX, event.clientY);
+        sceneRef.current?.landingZoneControl.move(event.clientX, event.clientY);
         return;
       }
       if (drag.mode === 'aim') {
@@ -167,7 +167,7 @@ export function SceneViewport({
       return;
     }
     if (!showTrajectory) return;
-    if (sceneRef.current?.landingGizmo.hover(event.clientX, event.clientY)) {
+    if (sceneRef.current?.landingZoneControl.hover(event.clientX, event.clientY)) {
       setTrajectoryTooltip(null);
       return;
     }
@@ -190,15 +190,18 @@ export function SceneViewport({
 
   const finishPointer = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     if (pointerDrag.current?.pointerId !== event.pointerId) return;
-    if (pointerDrag.current.mode === 'landing') sceneRef.current?.landingGizmo.end(event.type !== 'pointerup');
+    if (pointerDrag.current.mode === 'landing') sceneRef.current?.landingZoneControl.end();
     pointerDrag.current = null;
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    if (event.type === 'pointerup' && event.pointerType !== 'touch') sceneRef.current?.landingZoneControl.hover(event.clientX, event.clientY);
+    else sceneRef.current?.landingZoneControl.leave();
   };
 
   const interactionHint = [
-    onCameraLookChange ? 'Left-drag to look' : null,
+    onLandingChange ? 'Left-drag zone to move' : null,
+    onCameraLookChange ? onLandingChange ? 'Drag elsewhere to look' : 'Left-drag to look' : null,
     onCameraFovChange ? 'Wheel to zoom' : null,
-    onLandingChange ? 'Hover target · Drag red X / blue Z arrows' : onAimChange ? 'Right-drag to aim' : null,
+    !onLandingChange && onAimChange ? 'Right-drag to aim' : null,
     showTrajectory ? 'Hover trajectory for data' : null,
   ].filter(Boolean).join(' · ') || null;
 
@@ -216,18 +219,20 @@ export function SceneViewport({
     <div className="scene-viewport">
       <canvas
         ref={canvasRef}
-        className={[onCameraLookChange ? 'look-enabled' : '', onAimChange ? 'aim-enabled' : ''].filter(Boolean).join(' ') || undefined}
+        className={[onCameraLookChange ? 'look-enabled' : '', onAimChange ? 'aim-enabled' : '', onLandingChange ? 'landing-enabled' : ''].filter(Boolean).join(' ') || undefined}
         tabIndex={0}
-        aria-label={onLandingChange ? 'Live tennis court. Enter selects landing zone; X or Z selects an axis; arrow keys move it; Escape deselects.' : 'Live first-person tennis court preview'}
+        aria-label={onLandingChange ? 'Live tennis court. Left-drag the landing zone to move it along the court; drag elsewhere to look. Enter selects the zone; arrow keys move it relative to the view; Escape deselects.' : 'Live first-person tennis court preview'}
         onContextMenu={onAimChange ? (event) => event.preventDefault() : undefined}
         onPointerDown={onLandingChange || onAimChange || onCameraLookChange ? (event) => {
-          const mode = event.button === 0 && sceneRef.current?.landingGizmo.begin(event.clientX, event.clientY)
+          if (pointerDrag.current) return;
+          const mode = event.button === 0 && sceneRef.current?.landingZoneControl.begin(event.clientX, event.clientY)
             ? 'landing' : event.button === 0 && onCameraLookChange
             ? 'look'
             : event.button === 2 && onAimChange
               ? 'aim'
               : null;
           if (!mode) return;
+          if (mode !== 'landing') sceneRef.current?.landingZoneControl.leave();
           event.preventDefault();
           event.currentTarget.focus({ preventScroll: true });
           pointerDrag.current = {
@@ -245,9 +250,9 @@ export function SceneViewport({
         onPointerUp={finishPointer}
         onPointerCancel={finishPointer}
         onLostPointerCapture={finishPointer}
-        onPointerLeave={() => { if (!pointerDrag.current) { setTrajectoryTooltip(null); sceneRef.current?.landingGizmo.leave(); } }}
-        onKeyDown={event => { if (sceneRef.current?.landingGizmo.key(event.key)) { event.preventDefault(); event.stopPropagation(); } }}
-        onBlur={()=>sceneRef.current?.landingGizmo.leave()}
+        onPointerLeave={() => { if (!pointerDrag.current) { setTrajectoryTooltip(null); sceneRef.current?.landingZoneControl.leave(); } }}
+        onKeyDown={event => { if (sceneRef.current?.landingZoneControl.key(event.key)) { event.preventDefault(); event.stopPropagation(); } }}
+        onBlur={()=>sceneRef.current?.landingZoneControl.leave()}
       />
       {error ? <div className="renderer-error" role="alert"><strong>3D renderer unavailable</strong><span>{error}</span><small>WebGL 2 and hardware acceleration are required. Setup and local drills remain available.</small></div> : null}
       {!error && venueStatus.status !== 'ready' ? <div className="renderer-error" role={venueStatus.status === 'error' ? 'alert' : 'status'}><strong>{venueStatus.status === 'error' ? 'Venue unavailable' : 'Loading Blender venue…'}</strong><span>{venueStatus.message ?? (venueStatus.totalBytes ? `${Math.round(venueStatus.loadedBytes / venueStatus.totalBytes * 100)}%` : 'Preparing the selected scene')}</span>{venueStatus.status === 'error' ? <button onClick={() => sceneRef.current?.retryVenue()}>Retry venue</button> : null}</div> : null}

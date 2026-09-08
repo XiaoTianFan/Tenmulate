@@ -19,7 +19,7 @@ import { planRecovery } from '../session/opponentMovement';
 import { ContinuousPracticePreview } from '../session/practicePreview';
 import { sessionFlights } from '../session/sessionFlights';
 import type { CompiledRepetition } from '../session/compileSession';
-import { LandingTargetGizmo, type LandingPoint } from './LandingTargetGizmo';
+import { LandingZoneControl, type LandingPoint } from './LandingZoneControl';
 import { SHOTS } from '../../content/bundled';
 
 export type CameraConfiguration = Readonly<{
@@ -140,7 +140,7 @@ export class TennisScene {
   private motionEvents: readonly MotionEvent[] = [];
   private practicePreview: ContinuousPracticePreview | null = null;
   private previewCycle = -1;
-  readonly landingGizmo: LandingTargetGizmo;
+  readonly landingZoneControl: LandingZoneControl;
   private onSessionIndex: ((index:number, repetition: CompiledRepetition)=>void) | null = null;
   private sessionIndex = -1;
   private lineTrajectory: ResolvedTrajectory | null = null;
@@ -221,8 +221,8 @@ export class TennisScene {
       return [id, manager];
     })) as Record<AuthoredVenueId, VenueAssetManager>;
     this.scene.add(court.group);
-    this.landingGizmo = new LandingTargetGizmo(this.camera, canvas);
-    this.scene.add(this.landingGizmo.root, this.landingGizmo.zoneRoot);
+    this.landingZoneControl = new LandingZoneControl(this.camera, canvas);
+    this.scene.add(this.landingZoneControl.root);
     this.scene.add(this.audience.group);
     this.scene.add(this.opponent.group);
     this.fallbackBallMachine = court.group.getObjectByName('temporary-ball-machine');
@@ -286,9 +286,9 @@ export class TennisScene {
   private setTrajectoryLine(trajectory: ResolvedTrajectory): void {
     if(this.lineTrajectory===trajectory)return;
     this.lineTrajectory=trajectory;
-    this.landingGizmo.setZone(this.trajectoryLine.visible ? trajectory.intent.landingZone ?? null : null);
+    this.landingZoneControl.setZone(this.trajectoryLine.visible ? trajectory.intent.landingZone ?? null : null);
     const bounce = trajectory.events.find(event => event.type === 'bounce');
-    if (bounce) this.landingGizmo.setBounce(bounce.position);
+    if (bounce) this.landingZoneControl.setBounce(bounce.position);
     const points = trajectory.samples.map(
       (sample) => new THREE.Vector3(sample.position.x, sample.position.y, sample.position.z),
     );
@@ -307,12 +307,12 @@ export class TennisScene {
   }
 
   setLandingTarget(target: LandingPoint, onChange: ((point: LandingPoint) => void) | null): void {
-    this.landingGizmo.configure(target, onChange);
+    this.landingZoneControl.configure(target, onChange);
   }
 
   setTrajectoryVisible(visible: boolean): void {
     this.trajectoryLine.visible = visible;
-    this.landingGizmo.setZone(visible ? this.lineTrajectory?.intent.landingZone ?? null : null);
+    this.landingZoneControl.setZone(visible ? this.lineTrajectory?.intent.landingZone ?? null : null);
   }
 
   setBallPresentation(highContrast: boolean, showTrail: boolean): void {
@@ -659,14 +659,14 @@ export class TennisScene {
       this.applyCamera();
     }
     this.audience.update(this.elapsed);
-    this.landingGizmo.update();
+    this.landingZoneControl.update();
     this.renderer.render(this.scene, this.camera);
     this.metricFrames += 1;
     const metricElapsed = now - this.metricStartedAt;
     if (metricElapsed >= 1000) {
       this.canvas.dataset.landingZone=JSON.stringify(this.lineTrajectory?.intent.landingZone??null);
       this.canvas.dataset.landingTarget=JSON.stringify(this.lineTrajectory?.intent.target??null);
-      this.canvas.dataset.landingHandles=JSON.stringify(this.landingGizmo.screenPoints());
+      this.canvas.dataset.landingZoneScreen=JSON.stringify(this.landingZoneControl.screenPoints());
       this.canvas.dataset.audience = this.audience.state.status;
       this.canvas.dataset.spectators = String(this.audience.state.count);
       this.onMetrics?.({

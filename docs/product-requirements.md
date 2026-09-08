@@ -109,11 +109,11 @@ No single TV/projector, viewing distance, room, or GPU defines the product. Refe
 ### Landing zones and setup preview — 2026-09-08
 
 - Every practice pattern and drill event uses a rectangular zone with uniform area sampling, editable width/depth and seeded speed/spin variation. The zone is bounded to the receiving singles court or diagonal service box before sampling.
-- Translation controls are rendered 3D geometry aligned to court X/Z, with pointer capture and keyboard access. The scene shows the zone and the displayed ball's actual first bounce.
+- The rendered zone itself highlights on hover and accepts left-button free dragging along the court plane. Left-drag outside it adjusts the camera. Pointer capture keeps these gestures separate; keyboard and touch access remain available. The scene shows the displayed ball's actual first bounce without a center handle or arrows.
 - Natural fitting adjusts launch parameters to reach the sampled landing and reports resolved values or infeasibility. It must not bias the distribution by selecting a replacement target.
 - Quick Practice setup continues indefinitely with fresh feeds, without planned-set rests or a repeated countdown. Launched sessions retain selected repetitions and work/rest blocks.
 
-[ADR-0018](decisions/0018-uniform-landing-zones-and-continuous-preview.md) and the [verification receipt](development/landing-zone-verification-2026-09-08.md) define the implemented contract and its evidence.
+[ADR-0018](decisions/0018-uniform-landing-zones-and-continuous-preview.md), its interaction refinement in [ADR-0019](decisions/0019-direct-landing-zone-manipulation.md), and the [direct-drag receipt](development/landing-zone-direct-drag-2026-09-08.md) define the implemented contract and its evidence.
 
 ### Drills, editor, and feedback
 
