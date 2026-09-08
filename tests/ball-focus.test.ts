@@ -1,38 +1,63 @@
 import { describe, expect, it } from 'vitest';
-import { advanceBallFocus, ballFocusWeight, DEFAULT_BALL_FOCUS, normalizeBallFocus } from '../src/engine/rendering/ballFocus';
+import { ballFocusWeight, DEFAULT_BALL_FOCUS, normalizeBallFocus } from '../src/engine/rendering/ballFocus';
 
-describe('optional camera-relative ball focus', () => {
-  it('defaults off and bounds malformed or imported preferences', () => {
+describe('net-to-camera ball focus', () => {
+  it('defaults off at 1.5 px, preserves fine adjustments and clamps old/imported ceilings', () => {
+    expect(DEFAULT_BALL_FOCUS).toEqual({ enabled: false, maxBlurPx: 1.5 });
     for (const value of [undefined, null, [], { enabled: 'true', maxBlurPx: NaN }]) expect(normalizeBallFocus(value)).toEqual(DEFAULT_BALL_FOCUS);
-    expect(normalizeBallFocus({ enabled: true, maxBlurPx: Infinity })).toEqual({ enabled: true, maxBlurPx: 3 });
-    expect(normalizeBallFocus({ enabled: true, maxBlurPx: 60 }).maxBlurPx).toBe(6);
+    expect(normalizeBallFocus({ enabled: true, maxBlurPx: Infinity })).toEqual({ enabled: true, maxBlurPx: 1.5 });
+    for (const maxBlurPx of [0, .1, 1.5, 2.3, 3, 5]) expect(normalizeBallFocus({ enabled: true, maxBlurPx }).maxBlurPx).toBe(maxBlurPx);
+    expect(normalizeBallFocus({ enabled: true, maxBlurPx: 6 }).maxBlurPx).toBe(5);
     expect(normalizeBallFocus({ enabled: true, maxBlurPx: -2 }).maxBlurPx).toBe(0);
   });
-  it('increases smoothly with approach and releases at the view boundary', () => {
-    let previous = 0;
-    for (let distance = 25; distance >= 2; distance -= .01) {
-      const weight = ballFocusWeight(distance, distance, 0, 0);
-      expect(weight).toBeGreaterThanOrEqual(previous);
-      expect(weight - previous).toBeLessThan(.002);
-      previous = weight;
+
+  it('begins strictly after the net, even for cameras near the service line', () => {
+    for (const cameraZ of [-15, -5.4, 15, 5.4]) {
+      const sourceZ = -Math.sign(cameraZ) * 12;
+      expect(ballFocusWeight(sourceZ, sourceZ, cameraZ, 20)).toBe(0);
+      expect(ballFocusWeight(0, sourceZ, cameraZ, 12)).toBe(0);
+      expect(ballFocusWeight(Math.sign(cameraZ) * .001, sourceZ, cameraZ, 12)).toBeGreaterThan(0);
+      expect(ballFocusWeight(Math.sign(cameraZ) * -.001, sourceZ, cameraZ, 12)).toBe(0);
     }
-    expect(previous).toBe(1);
-    expect(ballFocusWeight(2, -1, 0, 0)).toBe(0);
-    expect(ballFocusWeight(2, 2, 1.2, 0)).toBe(0);
-    expect(ballFocusWeight(2, 2, 0, -1.2)).toBe(0);
-    expect(ballFocusWeight(NaN, 2, 0, 0)).toBe(0);
-    expect(ballFocusWeight(2, .4, 0, 0)).toBeCloseTo(.5);
-    expect(ballFocusWeight(2, 2, 1.01, 0)).toBeCloseTo(.5);
   });
-  it('fades handoffs without a cut and converges independently of frame rate', () => {
-    const run = (fps: number, start: number, target: number) => {
-      let value = start;
-      for (let i = 0; i < fps; i++) value = advanceBallFocus(value, target, 1 / fps);
-      return value;
-    };
-    expect(run(30, 0, 1)).toBeCloseTo(run(144, 0, 1), 10);
-    expect(run(30, 1, 0)).toBeCloseTo(run(144, 1, 0), 10);
-    expect(advanceBallFocus(1, 0, 1 / 60)).toBeGreaterThan(.9);
-    expect(run(60, 1, 0)).toBeLessThan(.011);
+
+  it('rises exponentially, concentrating the strongest change near the player', () => {
+    const weight = (progress: number) => ballFocusWeight(-15 * progress, 12, -15, 15 * (1 - progress));
+    let previous = 0, previousGain = 0;
+    for (let i = 1; i < 1000; i++) {
+      const next = weight(i / 1000), gain = next - previous;
+      expect(gain).toBeGreaterThan(previousGain);
+      expect(gain).toBeLessThan(.005);
+      previous = next; previousGain = gain;
+    }
+    expect(weight(.25)).toBeLessThan(.04);
+    expect(weight(.5)).toBeLessThan(.13);
+    expect(weight(.75)).toBeLessThan(.36);
+    expect(weight(.9)).toBeGreaterThan(.65);
+    expect(weight(.9999)).toBeGreaterThan(.999);
+    // The curve scales to each actual camera depth, including volley positions.
+    expect(ballFocusWeight(-2.7, 12, -5.4, 2.7)).toBeCloseTo(weight(.5), 12);
+  });
+
+  it('cuts to zero at the camera with no pre-crossing taper or release history', () => {
+    expect(ballFocusWeight(-14.999, 12, -15, .001)).toBeGreaterThan(.999);
+    expect(ballFocusWeight(-15, 12, -15, .5)).toBe(0);
+    expect(ballFocusWeight(-15.1, 12, -15, .4)).toBe(0);
+    // An angled camera can place the ball behind its view plane before that court depth.
+    expect(ballFocusWeight(-14, 12, -15, 0)).toBe(0);
+    expect(ballFocusWeight(-14, 12, -15, -.1)).toBe(0);
+  });
+
+  it('does not refocus on outgoing returns, tosses or malformed positions', () => {
+    expect(ballFocusWeight(-13, -14, -15, 2)).toBe(0);
+    expect(ballFocusWeight(12, 12, -15, 27)).toBe(0);
+    expect(ballFocusWeight(-13, 0, -15, 2)).toBe(0);
+    expect(ballFocusWeight(-1, 12, 0, 1)).toBe(0);
+    for (const invalid of [NaN, Infinity, -Infinity]) {
+      expect(ballFocusWeight(invalid, 12, -15, 2)).toBe(0);
+      expect(ballFocusWeight(-13, invalid, -15, 2)).toBe(0);
+      expect(ballFocusWeight(-13, 12, invalid, 2)).toBe(0);
+      expect(ballFocusWeight(-13, 12, -15, invalid)).toBe(0);
+    }
   });
 });

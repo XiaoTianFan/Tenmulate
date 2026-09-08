@@ -18,7 +18,13 @@ the prominent ball. Half-resolution disk gathering separates foreground and far
 defocus while preserving the focal plane. The direct render path remains active when disabled
 or fully out of range. Perspective exposes the shared toggle and bounded maximum
 blur without changing session identity, camera authoring or deterministic timing.
-See the [verification receipt](development/lens-focus-2026-09-08.md).
+[ADR-0025](decisions/0025-net-to-camera-focus-envelope.md) replaces the distance fade
+with a net-to-camera exponential envelope and immediate camera crossing cutoff.
+The control now spans 0–5 px in 0.1 px steps, default 1.5 px. Source-side gating
+excludes tosses and outgoing returns; the envelope reads current world/camera
+positions without storing attack/release history. See the
+[renderer receipt](development/lens-focus-2026-09-08.md) and
+[curve receipt](development/net-focus-curve-2026-09-08.md).
 
 **Shared court and editing contract (2026-09-08):** [ADR-0020](decisions/0020-shared-court-and-transactional-zone-editing.md) moves renderer ownership to `SharedCourtProvider`. Route `CourtViewport` slots reuse the same portal, canvas, scene, WebGL context and unchanged assets. Parking or document hiding suspends rendering without disposal. `LandingZoneControl` previews translation and anchored edge/corner resizing using reusable scene geometry; it publishes one rectangle on release and restores the model on cancellation. Session identity guards prevent callback changes from rebuilding the preview. Editor edits become one undo entry, and practice preferences flush when leaving the page. The shipped corner/volley position presets carry a far-baseline `lookAt` target while retaining the selected FOV. The [verification receipt](development/shared-court-and-zone-resize-2026-09-08.md) records measured interaction latency and resource reuse.
 

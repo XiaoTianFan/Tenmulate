@@ -12,7 +12,7 @@ import { updateSceneMaterialEnvironment, type SceneMaterialBundle } from './scen
 import { BALL_PRESENTATION } from './presentationMaterials';
 import { BallFocusPass } from './BallFocusPass';
 import { advanceFocusDistance } from './lensFocus';
-import { DEFAULT_BALL_FOCUS, advanceBallFocus, ballFocusWeight, normalizeBallFocus, type BallFocusSettings } from './ballFocus';
+import { DEFAULT_BALL_FOCUS, ballFocusWeight, normalizeBallFocus, type BallFocusSettings } from './ballFocus';
 import { AUTHORED_VENUES, isAuthoredVenue, VenueAssetManager, type AuthoredVenueId, type VenueAssetState } from './VenueAssetManager';
 import { resolveVenueLighting } from './venueLighting';
 import { AudienceSystem, type AudienceState } from './AudienceSystem';
@@ -376,9 +376,8 @@ export class TennisScene {
       let weight = 0;
       if (this.ballFocus.enabled && ball.visible) {
         this.focusPoint.copy(ball.position).applyMatrix4(this.camera.matrixWorldInverse);
-        const distance = this.focusPoint.length(), forward = -this.focusPoint.z;
-        this.focusPoint.applyMatrix4(this.camera.projectionMatrix);
-        weight = ballFocusWeight(distance, forward, this.focusPoint.x, this.focusPoint.y);
+        const forward = -this.focusPoint.z;
+        weight = ballFocusWeight(ball.position.z, ball.userData.focusSourceZ, this.camera.position.z, forward);
         if (weight > target) focusDistance = Math.max(.1, forward);
       }
       target = Math.max(target, weight);
@@ -388,11 +387,11 @@ export class TennisScene {
       material.emissive.setHex(presentation.emissive).lerp(this.focusEmission, weight);
       material.emissiveIntensity = presentation.emissiveIntensity + weight * .55;
     }
-    this.focusDistance = this.focusStrength < .001 ? focusDistance : advanceFocusDistance(this.focusDistance, focusDistance, delta);
-    this.focusStrength = this.ballFocus.enabled ? advanceBallFocus(this.focusStrength, target, delta) : 0;
+    this.focusDistance = this.focusStrength === 0 ? focusDistance : advanceFocusDistance(this.focusDistance, focusDistance, delta);
+    this.focusStrength = target;
     this.canvas.dataset.ballFocusStrength = this.focusStrength.toFixed(4);
     this.canvas.dataset.ballFocusDistance = this.focusDistance.toFixed(3);
-    if (this.focusStrength < .001) { this.renderer.render(this.scene, this.camera); return; }
+    if (this.focusStrength === 0) { this.renderer.render(this.scene, this.camera); return; }
     this.ballFocusPass ??= new BallFocusPass();
     this.ballFocusPass.render(this.renderer, this.scene, this.camera, this.balls, this.focusStrength, this.ballFocus.maxBlurPx, this.focusDistance);
   }
@@ -712,6 +711,8 @@ export class TennisScene {
         if (!ball.visible) continue;
         const position = toss ?? sampleTrajectoryAt(flight!.trajectory, flight!.time, false);
         ball.position.set(position.x, position.y, position.z);
+        // A toss or virtual return has not crossed from the opposite court half.
+        ball.userData.focusSourceZ = flight?.trajectory.intent.source.z ?? position.z;
       }
       const cycleTime = visibleFlights[0]?.time ?? 0;
       const ballActive = visibleFlights.length > 0;

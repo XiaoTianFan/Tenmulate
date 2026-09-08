@@ -1,6 +1,6 @@
 export type BallFocusSettings = Readonly<{ enabled: boolean; maxBlurPx: number }>;
-export const DEFAULT_BALL_FOCUS: BallFocusSettings = Object.freeze({ enabled: false, maxBlurPx: 3 });
-export const MAX_BALL_FOCUS_BLUR_PX = 6;
+export const DEFAULT_BALL_FOCUS: BallFocusSettings = Object.freeze({ enabled: false, maxBlurPx: 1.5 });
+export const MAX_BALL_FOCUS_BLUR_PX = 5;
 
 export function normalizeBallFocus(value: unknown): BallFocusSettings {
   const data = typeof value === 'object' && value !== null ? value as Record<string, unknown> : {};
@@ -11,17 +11,17 @@ export function normalizeBallFocus(value: unknown): BallFocusSettings {
   };
 }
 
-const smooth = (value: number) => { const t = Math.max(0, Math.min(1, value)); return t * t * (3 - 2 * t); };
+const EXPONENTIAL_RANGE = Math.expm1(4);
 
-/** Camera-space distance, in metres. Smoothly release as the ball leaves the view. */
-export function ballFocusWeight(distance: number, forwardDistance: number, screenX: number, screenY: number): number {
-  if (![distance, forwardDistance, screenX, screenY].every(Number.isFinite) || forwardDistance <= 0) return 0;
-  return smooth((16 - distance) / 13.5) * smooth(forwardDistance / .8)
-    * smooth((1.12 - Math.abs(screenX)) / .22) * smooth((1.12 - Math.abs(screenY)) / .22);
-}
-
-/** Only the visual envelope uses wall time; no feedback into the session clock. */
-export function advanceBallFocus(current: number, target: number, delta: number): number {
-  const tau = target > current ? .075 : .22;
-  return current + (target - current) * (1 - Math.exp(-Math.max(0, delta) / tau));
+/** Net is z=0. Only incoming flights crossing onto the camera's court half qualify.
+ * Normalize court depth so baseline, corner and volley views share the same curve.
+ * Position alone controls the envelope: no release tail after passing the camera,
+ * and no early screen-edge fade when a close ball moves below the viewport.
+ */
+export function ballFocusWeight(ballZ: number, sourceZ: number, cameraZ: number, forwardDistance: number): number {
+  if (![ballZ, sourceZ, cameraZ, forwardDistance].every(Number.isFinite)
+    || Math.abs(cameraZ) < .001 || sourceZ * cameraZ >= 0 || forwardDistance <= 0) return 0;
+  const progress = ballZ / cameraZ;
+  if (progress <= 0 || progress >= 1) return 0;
+  return Math.expm1(4 * progress) / EXPONENTIAL_RANGE;
 }

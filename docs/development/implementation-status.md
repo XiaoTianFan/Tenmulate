@@ -9,6 +9,19 @@
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
+## Net-to-camera blur curve and finer control — 2026-09-08
+
+[ADR-0025](../decisions/0025-net-to-camera-focus-envelope.md) sets Maximum blur to
+0–5 px in 0.1 px steps, default 1.5 px. Incoming balls activate blur after the net,
+increase it exponentially toward the camera, and clear it immediately upon passing.
+Outgoing returns/tosses are excluded; the separate sharp ball layer and depth lens remain.
+
+Verification: **318 tests / 32 files**, production/PWA build and active motion/cache
+guard pass. Real renderer checks cover net/camera boundaries in four views, 180
+gameplay frames, post-camera pixel equality with effect off, sharp ball pixel equality,
+and desktop/mobile control persistence across Practice, Editor and playback. The
+user's preview is refreshed at 1.5 px. See the [receipt](net-focus-curve-2026-09-08.md).
+
 ## Depth-dependent lens focus and sharp balls — 2026-09-08
 
 [ADR-0024](../decisions/0024-depth-of-field-and-sharp-ball-layer.md) supersedes the

@@ -17,5 +17,5 @@ export const LENS_FOCUS_GLSL = `
   float circleOfConfusion(float depth) {
     return maximumRadius * clamp(1. - focusDistance / max(depth, .05), -1., 1.);
   }
-  float blurCoverage(float coc) { return smoothstep(.35, 1.5, abs(coc)); }
+  float blurCoverage(float coc) { return smoothstep(0., 1.5, abs(coc)); }
 `;

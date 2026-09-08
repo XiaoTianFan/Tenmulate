@@ -16,11 +16,11 @@ describe('local application data', () => {
   beforeEach(() => vi.stubGlobal('localStorage', new MemoryStorage()));
   it('migrates optional ball focus off and persists its bounded maximum blur', () => {
     localStorage.setItem('tenmulate.appData.v1', JSON.stringify({schemaVersion:1, preferences:{ballFocus:undefined}}));
-    expect(loadAppData().preferences.ballFocus).toEqual({enabled:false,maxBlurPx:3});
-    saveAppData({...DEFAULT_APP_DATA, preferences:{...DEFAULT_PREFERENCES,ballFocus:{enabled:true,maxBlurPx:4.5}}});
-    expect(loadAppData().preferences.ballFocus).toEqual({enabled:true,maxBlurPx:4.5});
+    expect(loadAppData().preferences.ballFocus).toEqual({enabled:false,maxBlurPx:1.5});
+    saveAppData({...DEFAULT_APP_DATA, preferences:{...DEFAULT_PREFERENCES,ballFocus:{enabled:true,maxBlurPx:2.3}}});
+    expect(loadAppData().preferences.ballFocus).toEqual({enabled:true,maxBlurPx:2.3});
     localStorage.setItem('tenmulate.appData.v1', JSON.stringify({schemaVersion:1, preferences:{ballFocus:{enabled:true,maxBlurPx:999}}}));
-    expect(loadAppData().preferences.ballFocus).toEqual({enabled:true,maxBlurPx:6});
+    expect(loadAppData().preferences.ballFocus).toEqual({enabled:true,maxBlurPx:5});
   });
   it('migrates legacy landing points to zones and preserves edited dimensions',()=>{
     const save=(preferences:unknown)=>localStorage.setItem('tenmulate.appData.v1',JSON.stringify({schemaVersion:1,preferences}));

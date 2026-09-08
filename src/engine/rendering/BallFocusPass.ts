@@ -89,7 +89,7 @@ export class BallFocusPass {
           farColor += sampleColor.rgb * weight; farWeight += weight;
           // Gather the footprint of a defocused foreground object beyond its edge.
           float foreground = 1. - smoothstep(0., depthTolerance, sampleColor.a - center.a);
-          float near = sampleReach * foreground * smoothstep(.35, 1.5, -sampleCoc)
+          float near = sampleReach * foreground * blurCoverage(min(0., sampleCoc))
             * maximumRadius * maximumRadius / max(1., sampleCoc * sampleCoc);
           nearColor += sampleColor.rgb * near; nearWeight += near;
         }
@@ -115,7 +115,7 @@ export class BallFocusPass {
       ${LENS_FOCUS_GLSL}
       void main() {
         vec3 color = texture2D(source, vUv).rgb;
-        if (maximumRadius > .001) {
+        if (maximumRadius > 0.) {
           vec4 soft = texture2D(lens, vUv);
           float blend = max(blurCoverage(circleOfConfusion(viewDepth(vUv))), soft.a);
           color = mix(color, soft.rgb, blend);
@@ -238,7 +238,7 @@ export class BallFocusPass {
       scene.background = null; camera.layers.set(BALL_LAYER);
       renderer.setClearColor(0, 0);
       renderer.setRenderTarget(this.sharpBall); renderer.render(scene, camera);
-      if (this.lensUniforms.maximumRadius.value > .001) {
+      if (this.lensUniforms.maximumRadius.value > 0) {
         this.quad.material = this.prefilter;
         renderer.setRenderTarget(this.prefiltered); this.quad.render(renderer);
         this.quad.material = this.gather;
