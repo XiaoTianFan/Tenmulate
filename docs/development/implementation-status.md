@@ -9,7 +9,13 @@
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
-## Current direct landing-zone interaction — 2026-09-08
+## Current shared court and landing-zone resizing — 2026-09-08
+
+Implementation `32aabe2` applies [ADR-0020](../decisions/0020-shared-court-and-transactional-zone-editing.md). Practice, Editor and drill playback retain one mounted canvas/scene/WebGL context and unchanged venue/opponent assets; the library parks the scene with rendering stopped. Zone interior dragging and anchored side/corner resizing preview only scene geometry while held, then commit one session update and editor undo entry on release. Cancellation restores the model and immediate navigation preserves practice edits. The corner/volley camera positions now aim at opposite-baseline center; annotated explanations are removed and the variation label is **Shot Variation**.
+
+Verification: **288 tests in 27 files**, production/PWA build and active 25-clip motion/cache guard pass. Actual browser checks cover mouse/touch resizing, undo/save, preset framing, responsive layout and one-context/one-asset-load navigation. A bounded drag sample improved 95th-percentile frame intervals from 33.3 ms to 12.6 ms; the library issued no draws while parked. The [shared-court receipt](shared-court-and-zone-resize-2026-09-08.md) records measurements and limits. The local in-app preview is refreshed; owner/device acceptance and deployment remain separate.
+
+## Earlier direct landing-zone interaction — 2026-09-08
 
 Implementation `b90f791` applies [ADR-0019](../decisions/0019-direct-landing-zone-manipulation.md): center/axis arrows are replaced with hover and left-drag on the entire rendered zone. Free court-plane translation preserves the grab offset; a drag beginning outside the zone rotates the camera. Pointer capture keeps the two gestures separate, with touch and camera-relative keyboard access. Narrow preview hints and status text occupy separate rows.
 

@@ -3,7 +3,11 @@
 - **Purpose:** Record concept-to-browser inspection after every implementation stage
 - **Reference viewport:** 1920 × 1080 unless stated otherwise
 
-## Direct landing-zone dragging — 2026-09-08
+## Shared court, zone resizing and camera presets — 2026-09-08
+
+The [shared-court receipt](shared-court-and-zone-resize-2026-09-08.md) records the current interaction and renderer lifetime under implementation `32aabe2`. Actual production Chrome confirms interior movement, anchored edge/corner resizing, one commit on release, cancellation, editor Undo/Redo/save and touch access. Practice/Editor/drill playback reuse one canvas and WebGL context, with one venue/opponent load; the library stops issuing draw calls. Left/right corner and centered volley images were compared with the user's three supplied references and their look targets verified numerically. The two annotated explanations are removed and **Shot Variation** is visible. The 1440×1000 desktop, 685×898 narrow and 390×844 touch layouts were inspected; narrow hint/status bounds do not overlap. The owner's existing in-app tab is refreshed. Local measurements establish reduced drag stalls and resource reuse, without claiming device-temperature or owner acceptance.
+
+## Earlier direct landing-zone dragging — 2026-09-08
 
 The [direct-drag receipt](landing-zone-direct-drag-2026-09-08.md) supersedes the arrow interaction below. The area highlights on hover and accepts off-center left drags in both court coordinates. Camera and zone gestures retain their initial ownership across boundary crossings. Practice presets, keyboard access, persistence, saved editor placement and mobile touch pass in production Chrome. Final checks at 1440×1000, 886×883 and 390×844 verify visible geometry without center/arrow handles, no horizontal overflow and no hint/status overlap. The owner's in-app tab is refreshed; owner acceptance and physical-device qualification remain separate.
 
