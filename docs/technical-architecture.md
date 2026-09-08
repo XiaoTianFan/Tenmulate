@@ -11,6 +11,15 @@ The system should optimize for perceptual credibility and testability, not for g
 
 ## 2. Proposed stack
 
+**Groundstroke inverse search (2026-09-08):** [ADR-0030](decisions/0030-groundstroke-net-clearance-search.md)
+replaces the old angle proxy and speed-first fitting. `ball-v7-net-clearance`
+fits Natural groundstroke speed/spin together, ranking actual clearance above
+the tape with a soft 3.5 m threshold. Groundstroke spin can decrease by 75%; zone
+pace keeps its ±50% envelope. First-flight search and final playback share forces;
+the selected result alone builds the complete trajectory. Exact, deliberate high
+clearances and Lob remain available. See the
+[receipt](development/groundstroke-net-clearance-2026-09-08.md).
+
 **Interval-first motion (2026-09-08):** [ADR-0029](decisions/0029-interval-first-motion.md)
 makes requested contact interval primary. A bounded search resolves stroke and
 movement preferences (50–300%) before extending an infeasible interval. The compiler

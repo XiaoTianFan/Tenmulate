@@ -98,7 +98,10 @@ interval is shown. Ball speed remains independent. See
 Quick Practice returns to its selected home; drills recover or move directly as
 space and time permit, with physical return flights for valid rally links.
 Quick Practice uses a body recovery center and directly movable/resizable landing
-zones. Natural targets avoid the high-angle branch and show bounded speed/spin adjustments.
+zones. Natural groundstrokes fit speed and spin together to favor lower arcs,
+with a soft 3.5 m clearance preference above the net. Resolved values remain
+visible; Exact and Lob retain deliberate high-ball options. See the
+[trajectory verification](docs/development/groundstroke-net-clearance-2026-09-08.md).
 The sibling MotionLab provides phase and movement review at ports 4184/4185; see
 the [motion runbook](docs/development/local-motion-pipeline.md).
 

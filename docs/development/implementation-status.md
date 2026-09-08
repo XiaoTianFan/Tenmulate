@@ -9,6 +9,18 @@
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
+## Lower natural groundstroke arcs — 2026-09-08
+
+[ADR-0030](../decisions/0030-groundstroke-net-clearance-search.md) replaces the
+groundstroke speed-first search with joint pace/spin fitting and a **soft 3.5 m
+clearance preference above the net**. It explores substantial spin reduction,
+keeps sampled targets and physical forces, and preserves intentional high balls.
+The reproduced deep shot now clears the net by 2.61 m instead of 4.12 m, with
+1.5 cm landing error. **332 tests / 34 files**, production build, real rendered
+comparison and Practice/Editor/drill browser checks pass. The local preview is
+refreshed. See the [receipt](groundstroke-net-clearance-2026-09-08.md) for bounds,
+research, timings and remaining owner/device acceptance.
+
 ## Half-seated venue default — 2026-09-08
 
 All six courts now default to **Half seated**, including default session launches

@@ -27,12 +27,16 @@ roots: the supplied images show 58°/10.84 m apex versus 27.8°/4.22 m at 70 km/
 This is a branch-selection fault, not evidence that gravity or Magnus forces
 should be weakened. Ordinary shots now stay on the ascending-range low branch.
 
-Natural mode first tries the requested speed and spin. If that gives excessive
-elevation or misses the target, it searches a speed neighborhood (±15%), then a
-spin neighborhood (±20%). Groundstroke preference is at most 22°; this is a soft
-comfort preference, not a universal tennis limit. Net clearance and target error
-remain explicit checks. Exact mode keeps both inputs and can expose an
-unreachable target. Wind remains an external disturbance to the selected shot.
+Natural mode first tries the requested speed and spin. Groundstrokes now use
+[ADR-0030's joint search](../decisions/0030-groundstroke-net-clearance-search.md),
+superseding the initial speed-first ±15%/spin ±20% search and 22-degree proxy.
+The objective measures actual clearance above the tape, with a soft 3.5 m
+threshold and room for much lower spin. Net legality and target error take
+priority. Exact mode keeps both inputs and can expose an unreachable target;
+explicit high requests and Lob remain available. Wind remains an external
+disturbance to the selected shot. The
+[current physical examples and measurements](../development/groundstroke-net-clearance-2026-09-08.md)
+separate inverse-search preferences from aerodynamic calibration.
 
 Movement and stroke are separate clocks: requested contact-to-contact interval,
 uniform stroke source time, and distance-based gait time. The interval cannot

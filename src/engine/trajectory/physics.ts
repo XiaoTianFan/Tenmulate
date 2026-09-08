@@ -18,6 +18,8 @@ const CONTACT_VELOCITY_COUPLING = BALL_INERTIA_FACTOR / (1 + BALL_INERTIA_FACTOR
 const AERODYNAMIC_ACCELERATION_FACTOR = 0.5 * AIR_DENSITY_KG_M3 * BALL_AREA_M2 / BALL_MASS_KG;
 const MAX_SIMULATION_SECONDS = 10;
 export const POST_BOUNCE_SIMULATION_SECONDS = 3;
+/** Metres above the net tape; a preference, never a trajectory clamp. */
+export const GROUNDSTROKE_SOFT_NET_CLEARANCE_M = 3.5;
 
 export type SpinKind = 'flat' | 'topspin' | 'slice' | 'kick' | 'sidespin';
 
@@ -193,21 +195,28 @@ const decaySpin = (spin: Vec3, distanceM: number): Vec3 => (
   scale(spin, Math.exp(-SPIN_DECAY_PER_M * Math.max(0, distanceM)))
 );
 
-const acceleration = (velocity: Vec3, spin: Vec3, windVelocity = vec3()): Vec3 => {
-  const airVelocity = subtract(velocity, windVelocity);
-  const speed = magnitude(airVelocity);
-  if (speed < 0.001) return GRAVITY;
-  const drag = scale(airVelocity, -AERODYNAMIC_ACCELERATION_FACTOR * DRAG_COEFFICIENT * speed);
-  const spinMagnitude = magnitude(spin);
+type MutableVec3 = { x: number; y: number; z: number };
+
+// The inverse probes and final playback share these forces. Reusing a vector
+// in the probe avoids allocating dozens of temporary objects per integration step.
+const accelerationInto = (velocity: Vec3, spin: Vec3, windVelocity: Vec3 | undefined, out: MutableVec3): Vec3 => {
+  const x = velocity.x - (windVelocity?.x ?? 0), y = velocity.y - (windVelocity?.y ?? 0), z = velocity.z - (windVelocity?.z ?? 0);
+  const speed = Math.sqrt(x * x + y * y + z * z);
+  if (speed < .001) { out.x = 0; out.y = -9.81; out.z = 0; return out; }
+  const drag = -AERODYNAMIC_ACCELERATION_FACTOR * DRAG_COEFFICIENT * speed;
+  const spinMagnitude = Math.sqrt(spin.x * spin.x + spin.y * spin.y + spin.z * spin.z);
   const spinParameter = COURT.ballRadius * spinMagnitude / speed;
   const liftCoefficient = Math.min(MAX_LIFT_COEFFICIENT, LIFT_COEFFICIENT_SLOPE * spinParameter);
-  const spinCrossVelocity = cross(spin, airVelocity);
-  const crossMagnitude = magnitude(spinCrossVelocity);
-  const magnus = crossMagnitude > 0
-    ? scale(spinCrossVelocity, AERODYNAMIC_ACCELERATION_FACTOR * liftCoefficient * speed ** 2 / crossMagnitude)
-    : vec3();
-  return add(GRAVITY, add(drag, magnus));
+  const crossX = spin.y * z - spin.z * y, crossY = spin.z * x - spin.x * z, crossZ = spin.x * y - spin.y * x;
+  const crossMagnitude = Math.sqrt(crossX * crossX + crossY * crossY + crossZ * crossZ);
+  const magnus = crossMagnitude > 0 ? AERODYNAMIC_ACCELERATION_FACTOR * liftCoefficient * speed ** 2 / crossMagnitude : 0;
+  out.x = drag * x + magnus * crossX;
+  out.y = GRAVITY.y + (drag * y + magnus * crossY);
+  out.z = drag * z + magnus * crossZ;
+  return out;
 };
+const acceleration = (velocity: Vec3, spin: Vec3, windVelocity?: Vec3): Vec3 =>
+  accelerationInto(velocity, spin, windVelocity, { x: 0, y: 0, z: 0 });
 
 const lowArcVelocity = (intent: ShotIntent): Vec3 => {
   const dx = intent.target.x - intent.source.x;
@@ -282,36 +291,39 @@ const firstFlight = (intent: ShotIntent, initialVelocity: Vec3): Readonly<{
   bounce: FlightSample;
   netCrossing: FlightSample | null;
 }> => {
-  let position = intent.source;
-  let velocity = initialVelocity;
-  let spin = spinVector(intent, initialVelocity);
+  const position = { ...intent.source };
+  const velocity = { ...initialVelocity };
+  const spin = { ...spinVector(intent, initialVelocity) };
+  const force = { x: 0, y: 0, z: 0 };
   let netCrossing: FlightSample | null = null;
 
   for (let index = 1; index < 5 / FIXED_STEP; index += 1) {
-    const nextVelocity = add(velocity, scale(acceleration(velocity, spin), FIXED_STEP));
-    const nextPosition = add(position, scale(nextVelocity, FIXED_STEP));
-    spin = decaySpin(spin, magnitude(nextVelocity) * FIXED_STEP);
-    if (!netCrossing && position.z > 0 && nextPosition.z <= 0) {
-      netCrossing = { time: index * FIXED_STEP, position: nextPosition, velocity: nextVelocity, bounced: false };
+    accelerationInto(velocity, spin, intent.windVelocity, force);
+    velocity.x += force.x * FIXED_STEP; velocity.y += force.y * FIXED_STEP; velocity.z += force.z * FIXED_STEP;
+    const previousZ = position.z;
+    position.x += velocity.x * FIXED_STEP; position.y += velocity.y * FIXED_STEP; position.z += velocity.z * FIXED_STEP;
+    const decay = Math.exp(-SPIN_DECAY_PER_M * Math.sqrt(velocity.x ** 2 + velocity.y ** 2 + velocity.z ** 2) * FIXED_STEP);
+    spin.x *= decay; spin.y *= decay; spin.z *= decay;
+    if (!netCrossing && previousZ > 0 && position.z <= 0) {
+      netCrossing = { time: index * FIXED_STEP, position: { ...position }, velocity: { ...velocity }, bounced: false };
     }
-    if (nextPosition.y <= COURT.ballRadius && nextVelocity.y < 0) {
+    if (position.y <= COURT.ballRadius && velocity.y < 0) {
       return {
-        bounce: { time: index * FIXED_STEP, position: vec3(nextPosition.x, COURT.ballRadius, nextPosition.z), velocity: nextVelocity, bounced: true },
+        bounce: { time: index * FIXED_STEP, position: vec3(position.x, COURT.ballRadius, position.z), velocity, bounced: true },
         netCrossing,
       };
     }
-    position = nextPosition;
-    velocity = nextVelocity;
   }
   return { bounce: { time: 5, position, velocity, bounced: false }, netCrossing };
 };
 
-const directedVelocity = (intent: ShotIntent): Vec3 => {
+const directedVelocity = (intent: ShotIntent, stopAtTarget = false): Vec3 => {
   const direction = Math.min(35, Math.max(-35, intent.aimDirectionDeg ?? 0)) * Math.PI / 180;
   const speed = Math.max(8, intent.launchSpeedKmh / 3.6);
   const shotType = trajectoryShotType(intent);
   const defaultClearance = shotType === 'lob' ? 1.2 : shotType === 'serve' || shotType === 'volley' ? 0.08 : 0.12;
-  const clearance = Math.min(shotType === 'lob' ? 6 : 1.8, Math.max(0.04, intent.minimumNetClearanceM ?? defaultClearance));
+  const clearance = Math.min(shotType === 'groundstroke' ? Infinity : shotType === 'lob' ? 6 : 1.8,
+    Math.max(0.04, intent.minimumNetClearanceM ?? defaultClearance));
   const minimumAngle = (shotType === 'lob' ? 25 : shotType === 'volley' || shotType === 'overhead' ? -25 : -5) * Math.PI / 180;
   const maximumAngle = (shotType === 'lob' ? 78 : shotType === 'volley' ? 52 : 58) * Math.PI / 180;
   const calmIntent = { ...intent, windVelocity: undefined };
@@ -353,13 +365,16 @@ const directedVelocity = (intent: ShotIntent): Vec3 => {
     previousDepth = raw.bounceZ;
     const candidate = candidateAt(angle, true);
     if (candidate && prefer(candidate, best)) best = candidate;
+    // The groundstroke inverse search only needs the first range root. Its
+    // local refinement brackets this crossing without scanning the whole arc.
+    if (stopAtTarget && candidate && raw.bounceZ < intent.target.z - .04) break;
   }
 
   if (!best) return (fallback as Candidate | null)?.velocity ?? velocityForDirectionAndAngle(speed, direction, maximumAngle);
 
   let lowerAngle = Math.max(minimumAngle, best.angle - angleStep);
   let upperAngle = Math.min(maximumAngle, best.angle + angleStep);
-  for (let iteration = 0; iteration < 14; iteration += 1) {
+  for (let iteration = 0; iteration < (stopAtTarget ? 8 : 14); iteration += 1) {
     const lowerThird = lowerAngle + (upperAngle - lowerAngle) / 3;
     const upperThird = upperAngle - (upperAngle - lowerAngle) / 3;
     const lowerCandidate = candidateAt(lowerThird, true);
@@ -478,6 +493,93 @@ const targetAdjustedVelocity = (intent: ShotIntent): Vec3 => {
   return velocity;
 };
 
+/** Search pace and spin together, measuring the actual height at the net rather
+ * than using launch angle as a proxy. Keep the sampled landing fixed. */
+const resolveNaturalGroundstroke = (intent: ShotIntent): ResolvedTrajectory => {
+  const baseSpeed = Math.max(28.8, intent.launchSpeedKmh);
+  const baseSpin = intent.spinRateRpm ?? defaultSpinRateRpm(intent);
+  // A neutral recreational ball may need much less topspin, not more speed.
+  // Keep the flat-stroke calibration and never invent spin for a zero-spin feed.
+  const minimumSpin = Math.min(baseSpin, GROUNDSTROKE_FLAT_SPIN_PROFILE.minRpm);
+  const minimumSpeedFactor = intent.landingZone ? .5 : .85;
+  const maximumSpeedFactor = intent.landingZone ? 1.5 : 1.15;
+  const minimumClearance = Math.max(.04, intent.minimumNetClearanceM ?? .12);
+  const preferredClearance = Math.max(1, minimumClearance);
+  const softClearance = Math.max(GROUNDSTROKE_SOFT_NET_CLEARANCE_M, minimumClearance);
+  const candidates = new Map<string, ReturnType<typeof evaluateUncached>>();
+
+  function evaluateUncached(speed: number, spin: number) {
+    const candidateIntent = { ...intent, launchSpeedKmh: speed, spinRateRpm: spin,
+      aimDirectionDeg: aimDirectionToCourtPoint(intent.source, intent.target) };
+    let velocity = directedVelocity(candidateIntent, true);
+    for (let i = 0; i < 3; i++) {
+      const bounce = firstBounce(candidateIntent, velocity);
+      if (Math.abs(bounce.position.x - intent.target.x) < .02) break;
+      candidateIntent.aimDirectionDeg += Math.atan2(intent.target.x - bounce.position.x,
+        Math.max(2, intent.source.z - intent.target.z)) * 180 / Math.PI;
+      velocity = directedVelocity(candidateIntent, true);
+    }
+    // Probe only the first flight during search; build the full sampled/rebound
+    // trajectory once, after selection. Wind remains a physical disturbance.
+    const { bounce, netCrossing: net } = firstFlight(candidateIntent, velocity);
+    const error = Math.hypot(bounce.position.x - intent.target.x, bounce.position.z - intent.target.z);
+    const clearance = net ? net.position.y - netHeightAt(net.position.x) : -Infinity;
+    const legal = bounce.bounced && !!net && net.time < bounce.time && clearance >= minimumClearance - .015;
+    const speedFactor = speed / baseSpeed, spinFactor = baseSpin ? spin / baseSpin : 1;
+    const speedChange = Math.abs(speedFactor - 1), spinChange = Math.abs(spinFactor - 1);
+    // Landing and net legality take priority. Tiny integration errors must not
+    // outweigh arc comfort. Above 3.5 m the cost rises steeply but stays finite.
+    const score = legal && error <= .18
+      ? .7 * Math.max(0, clearance - preferredClearance) ** 2
+        + 8 * Math.max(0, clearance - softClearance) ** 2
+        + 8 * speedChange + 20 * speedChange ** 2 + spinChange + error * .1
+      : 10000 + (legal ? 0 : 10000) + error * 100;
+    return { candidateIntent, velocity, error, legal, clearance, score, speedFactor, spinFactor };
+  }
+  const evaluate = (speedFactor: number, spinFactor: number) => {
+    const speed = Math.max(28.8, baseSpeed * Math.max(minimumSpeedFactor, Math.min(maximumSpeedFactor, speedFactor)));
+    let spin = Math.max(minimumSpin, baseSpin * Math.max(.25, Math.min(1.2, spinFactor)));
+    if (intent.spin === 'flat') spin = Math.max(GROUNDSTROKE_FLAT_SPIN_PROFILE.minRpm,
+      Math.min(GROUNDSTROKE_FLAT_SPIN_PROFILE.maxRpm, spin));
+    const key = `${speed.toFixed(6)}:${spin.toFixed(6)}`;
+    let candidate = candidates.get(key);
+    if (!candidate) { candidate = evaluateUncached(speed, spin); candidates.set(key, candidate); }
+    return candidate;
+  };
+  let best = evaluate(1, 1);
+  if (!best.legal || best.error > .08 || best.clearance > preferredClearance + .25) {
+    const spins = [1, .75, .5, .25, 1.2];
+    const consider = (speed: number, spin: number) => {
+      const candidate = evaluate(speed, spin);
+      if (candidate.score < best.score) best = candidate;
+    };
+    for (const speed of [1, .85, 1.15]) for (const spin of spins) consider(speed, spin);
+    // Reaching the target is not an early exit if it still produces a lob-like
+    // groundstroke. Search the existing zone pace envelope for a lower option.
+    if (intent.landingZone && (!best.legal || best.error > .18 || best.clearance > softClearance)) {
+      for (const speed of [.5, .7, 1.3, 1.5]) for (const spin of spins) consider(speed, spin);
+    }
+    // Bounded coordinate refinement avoids coarse jumps between speed presets.
+    for (const step of [.05, .025, .0125]) {
+      const { speedFactor, spinFactor } = best;
+      consider(speedFactor - step, spinFactor);
+      consider(speedFactor + step, spinFactor);
+      consider(best.speedFactor, spinFactor - step * 2.5);
+      consider(best.speedFactor, spinFactor + step * 2.5);
+    }
+  }
+  const result = integrateTrajectory(best.candidateIntent, best.velocity);
+  const bounce = result.events.find(event => event.type === 'bounce');
+  const net = result.events.find(event => event.type === 'net-crossing');
+  const error = bounce ? Math.hypot(bounce.position.x - intent.target.x, bounce.position.z - intent.target.z) : 50;
+  const legal = !!net && !!bounce && net.time < bounce.time
+    && net.position.y - netHeightAt(net.position.x) >= minimumClearance - .015;
+  const adjusted = Math.abs(result.resolved.launchSpeedKmh - intent.launchSpeedKmh) > .001
+    || Math.abs(result.resolved.spinRateRpm - baseSpin) > .001;
+  return { ...result, intent, solution: { mode: 'natural',
+    status: !legal || error > .18 ? 'unreachable' : adjusted ? 'adjusted' : 'matched', targetErrorM: error } };
+};
+
 /** Natural shots keep a low arc and publish every bounded adjustment. The
  * target remains an intention: an infeasible request is never labelled matched. */
 export const resolveTrajectory = (intent: ShotIntent): ResolvedTrajectory => {
@@ -491,6 +593,7 @@ export const resolveTrajectory = (intent: ShotIntent): ResolvedTrajectory => {
     return {...result,solution:{mode:'exact',status:legal&&error<=.18?'matched':'unreachable',targetErrorM:error}};
   }
   const type = trajectoryShotType(intent);
+  if (type === 'groundstroke') return resolveNaturalGroundstroke(intent);
   const baseSpin = intent.spinRateRpm ?? defaultSpinRateRpm(intent);
   const desiredAngle = type === 'lob' ? 78 : type === 'serve' ? 12 : type === 'overhead' ? 12 : type === 'volley' ? 18 : 22;
   const evaluate = (speedFactor: number, spinFactor: number) => {
