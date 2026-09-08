@@ -14,6 +14,16 @@ class MemoryStorage {
 
 describe('local application data', () => {
   beforeEach(() => vi.stubGlobal('localStorage', new MemoryStorage()));
+  it('migrates preset serve rhythm to Normal while preserving explicit choices', () => {
+    expect(DEFAULT_PREFERENCES.serveRhythm).toBe('normal');
+    for (const [stored, expected] of [['preset', 'normal'], [undefined, 'normal'], ['normal', 'normal'], ['compact', 'compact']] as const) {
+      localStorage.setItem('tenmulate.appData.v1', JSON.stringify({ schemaVersion: 1, preferences: { serveRhythm: stored } }));
+      const migrated = loadAppData();
+      expect(migrated.preferences.serveRhythm).toBe(expected);
+      saveAppData(migrated);
+      expect(loadAppData().preferences.serveRhythm).toBe(expected);
+    }
+  });
   it('preserves the ball highlight toggle and removes obsolete blur preferences', () => {
     localStorage.setItem('tenmulate.appData.v1', JSON.stringify({schemaVersion:1, preferences:{ballFocus:undefined}}));
     expect(loadAppData().preferences.ballFocus).toEqual({enabled:false});

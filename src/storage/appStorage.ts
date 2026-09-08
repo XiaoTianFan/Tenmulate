@@ -68,7 +68,7 @@ export type PracticePreferencesV1 = Readonly<{
   spinRateRpm: number;
   bounceFactor: number;
   opponentHand: 'left' | 'right';
-  serveRhythm: 'preset' | 'normal' | 'compact';
+  serveRhythm: 'normal' | 'compact';
   landingDepthM: number;
   landingZone: LandingZoneSize;
   aimDirectionDeg: number;
@@ -85,7 +85,7 @@ export const DEFAULT_PREFERENCES: PracticePreferencesV1 = {
   ballFocus: DEFAULT_BALL_FOCUS,
   sessionCategory: 'Quick Rally', trajectoryEnabled: true, launchSpeedKmh: 70, interval: 5, rhythmPercent: 100, movementPercent: 100, practiceStroke: 'alternate', trajectoryMode: 'natural', returnTargetMode: 'pattern', repetitions: 12, variation: 8, timingVariation: 0,
   workBlockSize: 4, restSeconds: 20, surface: 'hard', shotType: 'groundstroke', spin: 'topspin', spinRateRpm: 1103, bounceFactor: 1,
-  opponentHand: 'right', serveRhythm: 'preset', landingDepthM: 8.5,
+  opponentHand: 'right', serveRhythm: 'normal', landingDepthM: 8.5,
   landingZone: { width: 1.6, depth: 2 },
   aimDirectionDeg: 0, opponentPosition: DEFAULT_RALLY_OPPONENT_POSITION,
   camera: { eyeHeight: 1.7, behindBaseline: 1.5, lateral: 0, yaw: 0, pitch: -1.7, fov: 70 },
@@ -189,6 +189,7 @@ export const loadAppData = (): AppDataV1 => {
       ...DEFAULT_PREFERENCES,
       ...canonicalCandidate,
       ballFocus: normalizeBallFocus(candidate.ballFocus),
+      serveRhythm: candidate.serveRhythm === 'compact' ? 'compact' : 'normal',
       trajectoryEnabled: typeof candidate.trajectoryEnabled === 'boolean'
         ? candidate.trajectoryEnabled
         : candidate.mode === 'learning'

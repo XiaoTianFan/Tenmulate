@@ -9,6 +9,18 @@
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
+## Serve rhythm placement and choices — 2026-09-08
+
+Practice now shows **Serve rhythm** immediately below Shot type in **Ball & rhythm**
+when Serve is selected. Both practice and the drill shot editor offer only **Normal**
+and **Compact**. Saved practice `preset`/missing values normalize to Normal; explicit
+Normal/Compact choices survive. Legacy drill events still resolve their authored
+shot rhythm internally, displaying the resolved choice without a preset option.
+
+Verification: 24 storage/saved-shot tests and production build with the motion/cache
+guard pass. Desktop/mobile browser checks cover placement, choices, persistence and
+editor selection. No motion assets or drill import compatibility changed.
+
 ## Gameplay controls and compact metadata — 2026-09-08
 
 Practice and drill playback now start with the header and transport hidden.
