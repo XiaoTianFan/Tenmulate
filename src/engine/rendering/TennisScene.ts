@@ -11,6 +11,7 @@ import { WeatherSystem } from './WeatherSystem';
 import { updateSceneMaterialEnvironment, type SceneMaterialBundle } from './sceneMaterials';
 import { BALL_PRESENTATION } from './presentationMaterials';
 import { BallFocusPass } from './BallFocusPass';
+import { advanceFocusDistance } from './lensFocus';
 import { DEFAULT_BALL_FOCUS, advanceBallFocus, ballFocusWeight, normalizeBallFocus, type BallFocusSettings } from './ballFocus';
 import { AUTHORED_VENUES, isAuthoredVenue, VenueAssetManager, type AuthoredVenueId, type VenueAssetState } from './VenueAssetManager';
 import { resolveVenueLighting } from './venueLighting';
@@ -122,6 +123,7 @@ export class TennisScene {
   private ballFocus = DEFAULT_BALL_FOCUS;
   private ballFocusPass: BallFocusPass | null = null;
   private focusStrength = 0;
+  private focusDistance = 16;
   private highContrastBall = false;
   private readonly focusPoint = new THREE.Vector3();
   private readonly focusLight = new THREE.Color(0xffffdc);
@@ -367,6 +369,7 @@ export class TennisScene {
 
   private renderBallFocus(delta: number): void {
     let target = 0;
+    let focusDistance = this.focusDistance;
     this.camera.updateMatrixWorld();
     const presentation = this.highContrastBall ? BALL_PRESENTATION.highContrast : BALL_PRESENTATION.standard;
     for (const ball of this.balls) {
@@ -376,19 +379,22 @@ export class TennisScene {
         const distance = this.focusPoint.length(), forward = -this.focusPoint.z;
         this.focusPoint.applyMatrix4(this.camera.projectionMatrix);
         weight = ballFocusWeight(distance, forward, this.focusPoint.x, this.focusPoint.y);
+        if (weight > target) focusDistance = Math.max(.1, forward);
       }
       target = Math.max(target, weight);
       ball.userData.focusWeight = weight;
       const material = ball.material as THREE.MeshStandardMaterial;
-      material.color.setHex(presentation.color).lerp(this.focusLight, weight * .85);
+      material.color.setHex(presentation.color).lerp(this.focusLight, weight * .62);
       material.emissive.setHex(presentation.emissive).lerp(this.focusEmission, weight);
-      material.emissiveIntensity = presentation.emissiveIntensity + weight * 1.8;
+      material.emissiveIntensity = presentation.emissiveIntensity + weight * .55;
     }
+    this.focusDistance = this.focusStrength < .001 ? focusDistance : advanceFocusDistance(this.focusDistance, focusDistance, delta);
     this.focusStrength = this.ballFocus.enabled ? advanceBallFocus(this.focusStrength, target, delta) : 0;
     this.canvas.dataset.ballFocusStrength = this.focusStrength.toFixed(4);
+    this.canvas.dataset.ballFocusDistance = this.focusDistance.toFixed(3);
     if (this.focusStrength < .001) { this.renderer.render(this.scene, this.camera); return; }
     this.ballFocusPass ??= new BallFocusPass();
-    this.ballFocusPass.render(this.renderer, this.scene, this.camera, this.balls, this.focusStrength, this.ballFocus.maxBlurPx);
+    this.ballFocusPass.render(this.renderer, this.scene, this.camera, this.balls, this.focusStrength, this.ballFocus.maxBlurPx, this.focusDistance);
   }
 
   setPlaybackRate(rate: number): void {
