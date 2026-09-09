@@ -1,13 +1,39 @@
 # V1 implementation status
 
 - **Status:** Active
-- **Last updated:** 2026-09-09
-- **Current implementation:** Direct court editing, working opening/player camera gestures, neutral-spin-first groundstroke fitting and physical Quick Rally returns with independently configurable player/opponent bounce-contact timing, defaulting to early descent. Player-first planning retains separate opponent openings, camera-anchored player contacts and independent opponent responses. Six Blender-authored venues and twelve Quality/Performance GLBs remain active; audiences default to Half.
+- **Last updated:** 2026-09-10
+- **Current implementation:** Player-first drills use staged recovery/approach, contact reaction, ball tracking and authored contact framing with fixed zoom. Direct court editing, neutral-spin-first groundstroke fitting and physical Quick Rally returns retain independent player/opponent bounce-contact timing, defaulting to early descent. Six Blender-authored venues and twelve Quality/Performance GLBs remain active; audiences default to Half.
 - **Previous venue integration:** Source/assets `25e363b`, runtime `18141c5` and verification `d1a916a` were fast-forwarded into `main`, preserving separately committed local-motion work `b2a082e`. All twelve local feature tips were included at this integration checkpoint; see the [branch audit](feature-branch-integration-2026-09-05.md). No remote push or deployment.
 
 **Motion/model integration checkpoint (2026-09-07):** Local `main` includes all 17 motion/model feature commits plus delivery/documentation reconciliation through `a9ba202`: all 24 clips, the 1.88 m articulated model, recovery planning, crossovers and both serve rhythms. No local feature tip remains unmerged. The 237-test suite, production build, active-asset/cache guard, both-hand gameplay/crossover checks and actual production-browser practice review pass. The [current motion contract](local-motion-pipeline.md) replaces competing “latest” descriptions below; the [integration receipt](motion-main-integration-2026-09-07.md) records the exact merge, evidence and remaining owner/device gates. Older stage counts and asset hashes below are historical evidence, not active selectors. No public deployment occurred.
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
+
+## Contact-driven drill camera — 2026-09-10
+
+Implementation `3a41b57` replaces direct travel toward the next event with tennis
+stages: stroke, recovery or deliberate approach, split/reaction, receipt of the
+incoming ball, and contact settling. Ordinary pre-contact positioning uses the
+known outgoing shot's coverage angle, while pointing follows the actual opponent.
+Only a chosen forward approach advances early toward the next attacking depth;
+the return's lateral destination is not anticipated. Reactive movement feasibility
+participates in physical contact/trajectory fitting.
+
+Ball tracking uses soft framing limits and yields to the authored contact view.
+Zoom remains fixed during playback; editor zoom applies to all shots. Reduced
+motion preserves physics and timing. The [research and verification record](tennis-camera-research-2026-09-10.md)
+distinguishes gaze evidence from camera design choices, and
+[ADR-0041](../decisions/0041-staged-tennis-camera.md) supersedes the old travel rule.
+
+All **507 tests / 47 files**, production build and active motion/cache guard pass.
+All 16 bundled drills connect, including two-set runs. Nine production Edge
+checks cover zoom editing, wheel input, phase playback in preview and gameplay,
+persistent court mounting and 390 px layout. Ten deterministic Three.js renders
+match the compiled camera exactly, center the opponent before contact, and keep
+the opponent visible during sampled ball tracking. Desktop/mobile and staged
+renders were inspected; no console, runtime or WebGL errors. This is local
+implementation and verification, with no public deployment or owner acceptance
+of camera comfort implied.
 
 ## Neutral groundstrokes and connected returns — 2026-09-09
 

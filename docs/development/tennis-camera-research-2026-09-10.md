@@ -101,5 +101,44 @@ the regression suite.
 Raw scripts and receipts are outside the repository at
 `C:/Users/20378/.codex/visualizations/2026/09/08/01a07e7c-7199-7900-ab83-f0437137320b/tennis-camera/`.
 `baseline.json` diagnoses old contact windows against the new planner;
-`motion-metrics.json` records sampled motion. Browser and rendered verification
-are recorded separately after the implementation stage. No public deployment.
+`motion-metrics.json` records sampled motion.
+
+### Rendered verification receipt
+
+Implementation commit: `3a41b57`. Production preview: `http://127.0.0.1:5173/`.
+The Browser plugin was not available; regular Playwright used isolated headless
+Edge with service workers blocked and no access to the owner's browser storage.
+
+The production flow tested was Practice → Drills → Make editable copy → change
+zoom → select another shot → wheel zoom → Preview sequence → Test drill → Exit.
+All **nine browser checks pass**:
+
+- A slider edit applies to subsequent shots; wheel zoom still works and applies
+  across the drill. Playback retains the precise FOV, including fractional wheel
+  changes (63.6° rendered while the integer slider displays 64°).
+- Sequence preview renders recovery, split, receive and settle. Gameplay renders
+  the same contact-driven stages through the subsequent player shot with actual
+  lateral camera movement.
+- The Three.js scene instance survives editing, preview and gameplay.
+- The 390×844 editor has no horizontal page overflow. Desktop verification uses
+  1680×1000. Both screenshots were viewed.
+- No browser console or runtime errors occur. The exit interaction first hovers
+  the header to reveal the intentionally hidden gameplay controls.
+
+A separate 1200×800 render harness uses the actual `TennisScene`, model and venue
+at ten exact session times across Crosscourt Rhythm and Approach and close.
+It advances the real renderer with the authoritative clock, including opponent
+blending, and compares the rendered camera with the compiled sampler. Every pose
+matches; there are no WebGL errors. The opponent's upper body is within 5% of
+the center in recovery/approach frames and within the viewport during incoming
+ball tracking. Stroke/split/receive/settle frames were saved, and representative
+baseline and approach images were inspected.
+
+`browser-results.json` and `render-results.json` retain checks, phase traces,
+camera poses and projected opponent/ball positions. `verify.mjs` and `render.mjs`
+are the reproducible browser scripts. The temporary development server on 4173
+was stopped after review; the existing production preview on 5173 remains.
+
+Status: local implementation and local rendered build verified. No public
+deployment. Long-session comfort and individual tactical preferences still need
+owner assessment; this is not a measured real-player head-motion calibration.
