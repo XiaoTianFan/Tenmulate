@@ -52,8 +52,9 @@ function AppRoutes({ appData }: { appData: ReturnType<typeof useAppData> }) {
         else setLaunch({ ...launch, session: compileSession(launch.session.drill, { ...launch.session.settings, seed: String(Number(launch.session.settings.seed || '0') + 1) }) });
       }}/>
       : route === 'drills' ? <DrillLibraryScreen route={route} customDrills={appData.data.customDrills} onRoute={setRoute}
+        playerHand={appData.data.drillPlayerHand} onPlayerHandChange={appData.saveDrillPlayerHand}
         onRun={(drill, rhythm, interval, movement) => void drillLaunch(drill, rhythm, interval, movement)} onEdit={editDrill} onSave={appData.saveDrill} onDelete={appData.deleteDrill}/>
-      : route === 'editor' ? <DrillEditorScreen key={editorDrill.id} route={route} initialDrill={editorDrill} surface={appData.data.preferences.surface}
+      : route === 'editor' ? <DrillEditorScreen key={editorDrill.id} route={route} initialDrill={editorDrill} initialPlayerHand={appData.data.drillPlayerHand} onPlayerHandChange={appData.saveDrillPlayerHand} surface={appData.data.preferences.surface}
         savedShots={appData.data.savedShots} onSaveShot={appData.saveShot} onDeleteShot={appData.deleteShot} onRoute={setRoute}
         onSave={drill => { appData.saveDrill(drill); setEditorDrill(drill); }} onTest={drill => { setEditorDrill(drill); void drillLaunch(drill); }}/>
       : <SetupScreen route={route} cameraPositionPresets={appData.data.cameraPositionPresets} perspectivePresets={appData.data.perspectivePresets}

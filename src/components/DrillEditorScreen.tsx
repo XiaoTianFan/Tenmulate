@@ -3,7 +3,9 @@ import { Copy, Download, Play, Redo2, Save, Trash2, Undo2, Upload } from 'lucide
 import { newPlayerEvent, openingFor, PLAYER_SHOTS, PLAYER_SHOT_BY_ID } from '../content/playerShots';
 import { parsePlayerDrillJson, snapshotPlayerShot } from '../content/playerMigration';
 import { validatePlayerDrill } from '../content/playerValidation';
-import type { DrillDefinitionV2, PlayerShotEventV2, SavedShotV2 } from '../content/types';
+import type { DrillDefinitionV2, OpponentHand, PlayerShotEventV2, SavedShotV2 } from '../content/types';
+import { openingZoneSource, playerDrillForHand, playerEventForHand } from '../content/playerHandedness';
+import { PlayerHandControls } from './PlayerHandControls';
 import { downloadDrill } from '../content/validation';
 import { DEFAULT_CAMERA } from '../app/defaults';
 import { COURT, type SurfaceId } from '../domain/court';
@@ -21,14 +23,15 @@ import { CourtViewport } from './SharedCourt';
 type History = { past: readonly DrillDefinitionV2[]; present: DrillDefinitionV2; future: readonly DrillDefinitionV2[] };
 type Props = {
   route: AppRoute; initialDrill: DrillDefinitionV2; surface: SurfaceId;
+  initialPlayerHand: OpponentHand; onPlayerHandChange: (hand: OpponentHand) => void;
   onRoute: (route: AppRoute) => void; onSave: (drill: DrillDefinitionV2) => void; onTest: (drill: DrillDefinitionV2) => void;
   savedShots: readonly SavedShotV2[]; onSaveShot: (shot: SavedShotV2) => void; onDeleteShot: (id: string) => void;
 };
 const cloneEvent = (event: PlayerShotEventV2) => ({ ...structuredClone(event), id: `event-${crypto.randomUUID()}` });
 const noMetrics = () => undefined;
 
-export function DrillEditorScreen({ route, initialDrill, surface, onRoute, onSave, onTest, savedShots, onSaveShot, onDeleteShot }: Props) {
-  const [history, setHistory] = useState<History>(() => ({ past: [], present: structuredClone(initialDrill), future: [] }));
+export function DrillEditorScreen({ route, initialDrill, initialPlayerHand, onPlayerHandChange, surface, onRoute, onSave, onTest, savedShots, onSaveShot, onDeleteShot }: Props) {
+  const [history, setHistory] = useState<History>(() => ({ past: [], present: structuredClone(playerDrillForHand(initialDrill, initialPlayerHand)), future: [] }));
   const [selectedId, setSelectedId] = useState('launch');
   const [viewDraft, setViewDraft] = useState<{ id: string; camera: CameraConfiguration } | null>(null);
   const [overview, setOverview] = useState(false), [sequence, setSequence] = useState(false);
@@ -37,6 +40,7 @@ export function DrillEditorScreen({ route, initialDrill, surface, onRoute, onSav
   const [sceneAspect, setSceneAspect] = useState(1.6);
   const sceneContainer = useRef<HTMLDivElement>(null), inputRef = useRef<HTMLInputElement>(null), clock = useRef(0);
   const drill = history.present, events = drill.events;
+  const playerHand = drill.playerHand ?? 'right';
   const openingId = selectedId.startsWith('opening:') ? selectedId.slice(8) : null;
   const selected = events.find(event => event.id === (openingId ?? selectedId)) ?? events[0];
   const isOpening = selectedId === 'launch' || !!openingId && !!selected?.openingFeed;
@@ -48,7 +52,7 @@ export function DrillEditorScreen({ route, initialDrill, surface, onRoute, onSav
   const trajectory = session?.repetitions[isOpening && !openingId ? 0 : compiled?.incomingIndex ?? 0]?.trajectory;
   const validation = validatePlayerDrill(workingDrill);
   const nearZone = isOpening ? feed.landingZone : selected?.opponentReturn.landingZone;
-  const nearLimits = useMemo(() => landingZoneLimits(isOpening ? feed.ball.family : 'groundstroke', isOpening ? feed.position : { x: 0 }), [isOpening, feed]);
+  const nearLimits = useMemo(() => landingZoneLimits(isOpening ? feed.ball.family : 'groundstroke', isOpening ? openingZoneSource(feed) : { x: 0 }), [isOpening, feed]);
   const displayCamera = useMemo(() => overview ? {
     eyeHeight: Math.max(10, (COURT.halfLength + 2) * sceneAspect), behindBaseline: -COURT.halfLength,
     lateral: 0, pitch: -90, yaw: 0, fov: 90,
@@ -83,13 +87,18 @@ export function DrillEditorScreen({ route, initialDrill, surface, onRoute, onSav
   const updateFeed = (next: typeof feed) => openingId ? updateEvent({ openingFeed: next }) : updateDrill({ launch: next });
   const commitCamera = (camera: CameraConfiguration) => updateEvent({ camera: { ...camera, pitch: Math.max(-85, Math.min(85, camera.pitch)) } });
   const selectEvent = (id: string) => { if (viewDraft) commit(workingDrill); setViewDraft(null); setSelectedId(id); setSequence(false); };
-  const undo = () => { setViewDraft(null); setHistory(current => current.past.length ? { past: current.past.slice(0, -1), present: current.past.at(-1)!, future: [current.present, ...current.future] } : current); };
-  const redo = () => { setViewDraft(null); setHistory(current => current.future.length ? { past: [...current.past, current.present], present: current.future[0]!, future: current.future.slice(1) } : current); };
+  const undo = () => { if (history.past.length) onPlayerHandChange(history.past.at(-1)!.playerHand ?? 'right'); setViewDraft(null); setHistory(current => current.past.length ? { past: current.past.slice(0, -1), present: current.past.at(-1)!, future: [current.present, ...current.future] } : current); };
+  const redo = () => { if (history.future.length) onPlayerHandChange(history.future[0]!.playerHand ?? 'right'); setViewDraft(null); setHistory(current => current.future.length ? { past: [...current.past, current.present], present: current.future[0]!, future: current.future.slice(1) } : current); };
+  const changePlayerHand = (hand: OpponentHand) => {
+    if (hand === playerHand) return;
+    updateDrill(playerDrillForHand(workingDrill, hand)); onPlayerHandChange(hand);
+  };
   const addEvent = (id = PLAYER_SHOTS[0]!.id, insertion = events.length) => {
     if (events.length >= 200) { setMessage('A drill can contain up to 200 player shots.'); return; }
     const saved = savedShots.find(item => `saved:${item.id}` === id);
     if (!saved && !PLAYER_SHOT_BY_ID.has(id)) return;
-    const event = saved ? { ...cloneEvent(saved.event), label: saved.name } : newPlayerEvent(id);
+    const source = saved ? { ...cloneEvent(saved.event), label: saved.name } : newPlayerEvent(id);
+    const event = playerEventForHand(source, saved?.playerHand ?? 'right', playerHand);
     replaceEvents([...workingDrill.events.slice(0, insertion), event, ...workingDrill.events.slice(insertion)]);
     setSelectedId(event.id); setSequence(false);
   };
@@ -110,7 +119,7 @@ export function DrillEditorScreen({ route, initialDrill, surface, onRoute, onSav
     camera => setViewDraft({ id: selected!.id, camera }), commitCamera);
   const importFile = async (file: File | undefined) => {
     if (!file) return;
-    try { commit({ ...parsePlayerDrillJson(await file.text()), category: 'Custom' }); setViewDraft(null); setSelectedId('launch'); setMessage('Loaded into the editor. Save locally to keep this drill.'); }
+    try { commit({ ...playerDrillForHand(parsePlayerDrillJson(await file.text()), playerHand), category: 'Custom' }); setViewDraft(null); setSelectedId('launch'); setMessage('Loaded into the editor. Save locally to keep this drill.'); }
     catch (error) { setMessage(error instanceof Error ? error.message : 'Import failed.'); }
     finally { if (inputRef.current) inputRef.current.value = ''; }
   };
@@ -140,6 +149,7 @@ export function DrillEditorScreen({ route, initialDrill, surface, onRoute, onSav
         <DrillTimeline drill={drill} selectedId={isOpening ? selectedId : selected?.id ?? ''} onSelect={selectEvent} onInsert={addEvent} onMove={reorder} onRemove={remove}/>
       </section>
       <aside className="event-inspector">
+        <PlayerHandControls hand={playerHand} onChange={changePlayerHand}/>
         <div className="editor-actions">
           <button type="button" onClick={undo} disabled={!history.past.length} aria-label="Undo"><Undo2 size={17}/></button><button type="button" onClick={redo} disabled={!history.future.length} aria-label="Redo"><Redo2 size={17}/></button>
           <button type="button" onClick={() => inputRef.current?.click()} aria-label="Import"><Upload size={17}/></button><button type="button" onClick={() => downloadDrill(workingDrill)} disabled={!validation.valid} aria-label="Export"><Download size={17}/></button>
@@ -168,7 +178,7 @@ export function DrillEditorScreen({ route, initialDrill, surface, onRoute, onSav
     {shotDraft && selected ? <Modal title="Save player shot preset" onClose={() => setShotDraft(null)} actions={<>
       {shotDraft.id ? <button type="button" className="secondary-button" onClick={() => { onDeleteShot(shotDraft.id); setShotNotice('Saved shot removed.'); setShotDraft(null); }}>Delete saved shot</button> : null}
       <button type="button" className="primary-button inline" disabled={!shotDraft.name.trim()} onClick={() => {
-        const name = shotDraft.name.trim(); onSaveShot({ schemaVersion: 2, id: shotDraft.id || `shot-${crypto.randomUUID()}`, name, event: snapshotPlayerShot({ ...selected, label: name, camera: previewCamera }, workingDrill) });
+        const name = shotDraft.name.trim(); onSaveShot({ schemaVersion: 2, playerHand, id: shotDraft.id || `shot-${crypto.randomUUID()}`, name, event: snapshotPlayerShot({ ...selected, label: name, camera: previewCamera }, workingDrill) });
         setShotNotice(`Saved “${name}”`); setShotDraft(null);
       }}>{shotDraft.id ? 'Update saved shot' : 'Save new shot'}</button>
     </>}>

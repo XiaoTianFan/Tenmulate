@@ -31,6 +31,12 @@ Calculation runs in a cancellable worker. Impossible links are reported before
 playback. Old drills convert by physical role and original browser data is retained.
 See the [player-first drill contract and verification](docs/development/player-first-drills-2026-09-09.md).
 
+**Player handedness** in Drills and Editor mirrors cameras, opening positions and
+both landing zones for left-handed play. Shot names and the opponent's configured
+hand are retained. The choice persists across drills and reloads; saved shots adapt
+once when reused in either orientation. See the
+[mirroring contract and verification](docs/development/player-handedness-2026-09-09.md).
+
 **Perspective → Ball highlight** makes the incoming ball lighter and more luminous
 as it approaches. It changes only the ball's material; trajectory lines and landing
 zones retain their normal appearance. The scene renders directly with no focus blur

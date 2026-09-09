@@ -2,6 +2,7 @@ import { RangeField } from './RangeField';
 import { BallFocusControls } from './BallFocusControls';
 import type { DrillBall, DrillDefinitionV2, OpeningFeed, PlayerShotEventV2, ShotFamily } from '../content/types';
 import { changeBallFamily, openingFor, receivingZone } from '../content/playerShots';
+import { openingZoneSource } from '../content/playerHandedness';
 import type { CameraConfiguration } from '../engine/rendering/TennisScene';
 import { DEFAULT_CAMERA_POSITION_PRESETS } from '../storage/appStorage';
 import { cameraLookAtCourtPoint } from '../domain/camera';
@@ -16,8 +17,8 @@ export function EditorNumber({ label, value, min, max, step = 1, onChange }: {
   return <RangeField commitOnRelease label={label} value={value ?? min} min={min} max={max} step={step} unit="" onChange={onChange}/>;
 }
 
-export function BallIdentity({ ball, label, opening = false, onChange }: {
-  ball: DrillBall; label: string; opening?: boolean; onChange: (ball: DrillBall) => void;
+export function BallIdentity({ ball, label, opening = false, showHand = true, onChange }: {
+  ball: DrillBall; label: string; opening?: boolean; showHand?: boolean; onChange: (ball: DrillBall) => void;
 }) {
   return <>
     <label className="stack-field"><span>Shot type</span><select aria-label={`${label} shot type`} value={ball.family} onChange={e => onChange(changeBallFamily(ball, e.target.value as ShotFamily))}>
@@ -27,7 +28,7 @@ export function BallIdentity({ ball, label, opening = false, onChange }: {
       {spinsForShot(ball.family).map(spin => <option key={spin} value={spin}>{spin[0]!.toUpperCase() + spin.slice(1)}</option>)}
     </select></label>
     <div className="paired-fields">
-      <label className="stack-field"><span>Playing hand</span><select aria-label={`${label} playing hand`} value={ball.hand} onChange={e => onChange({ ...ball, hand: e.target.value as DrillBall['hand'] })}><option value="right">Right</option><option value="left">Left</option></select></label>
+      {showHand ? <label className="stack-field"><span>Playing hand</span><select aria-label={`${label} playing hand`} value={ball.hand} onChange={e => onChange({ ...ball, hand: e.target.value as DrillBall['hand'] })}><option value="right">Right</option><option value="left">Left</option></select></label> : null}
       {ball.family !== 'serve' ? <label className="stack-field"><span>Stroke side</span><select aria-label={`${label} stroke side`} value={ball.stroke} onChange={e => onChange({ ...ball, stroke: e.target.value as DrillBall['stroke'] })}><option value="forehand">Forehand</option><option value="backhand">Backhand</option></select></label> : null}
     </div>
   </>;
@@ -48,7 +49,7 @@ function BallParameters({ ball, prefix = '', onChange }: { ball: DrillBall; pref
 export function OpeningShotControls({ feed, onChange }: { feed: OpeningFeed; onChange: (feed: OpeningFeed) => void }) {
   const update = (patch: Partial<OpeningFeed>) => {
     const next = { ...feed, ...patch }, zone = feed.landingZone;
-    next.landingZone = resolveLandingZone(landingZoneCenter(zone), { width: zone.maxX - zone.minX, depth: zone.maxZ - zone.minZ }, next.ball.family, next.position);
+    next.landingZone = resolveLandingZone(landingZoneCenter(zone), { width: zone.maxX - zone.minX, depth: zone.maxZ - zone.minZ }, next.ball.family, openingZoneSource(next));
     onChange(next);
   };
   return <div className="shot-controls">
@@ -72,7 +73,7 @@ export function DrillShotControls({ event, drill, camera, onChange, onCameraChan
   ];
   return <div className="shot-controls">
     <label className="stack-field"><span>Shot name</span><input maxLength={60} value={event.label} onChange={e => onChange({ label: e.target.value })}/></label>
-    <details className="editor-section" open><summary>Your shot</summary><BallIdentity ball={event.ball} label="Your" onChange={ball => onChange({ ball })}/></details>
+    <details className="editor-section" open><summary>Your shot</summary><BallIdentity ball={event.ball} label="Your" showHand={false} onChange={ball => onChange({ ball })}/></details>
     <details className="editor-section" open><summary>Ball &amp; rhythm</summary>
       <BallParameters ball={event.ball} onChange={ball => onChange({ ball })}/>
       <RangeField commitOnRelease label="Player shot interval" value={event.intervalSeconds ?? drill.defaultInterval} min={1} max={30} step={.1} unit="s" onChange={intervalSeconds => onChange({ intervalSeconds })}/>

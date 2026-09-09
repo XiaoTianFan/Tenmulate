@@ -247,6 +247,15 @@ measures player contact to player contact. `CompiledSession.playerEvents` owns
 progress and seeking; `scheduledFlights` owns the alternating physical ball clock.
 Opponent `repetitions` remain an internal adapter to the shared mannequin planner.
 
+[ADR-0038](decisions/0038-player-handedness-mirroring.md) adds a shared player-hand
+choice. `playerHand` records stored drill/preset layout orientation (older records
+default to right); `drillPlayerHand` records the browser preference. The pure
+`playerHandedness` transform reflects x bounds, camera lateral/yaw and opening
+positions once, retaining names and opponent hands. Seeded horizontal landing
+quantiles reflect too. Saved-shot insertion converts from its stored orientation,
+and the editor saves/exports actual displayed coordinates. The physical planner
+recalculates contacts with the opponent's original hand and source clock.
+
 `courtFlight` rotates the physical solver into the player's direction, including
 wind, velocities and flight events. A player contact must lie on the incoming
 path inside a 1.4 m racket-contact neighborhood anchored to camera court position.

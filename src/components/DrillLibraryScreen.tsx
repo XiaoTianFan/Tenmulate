@@ -1,9 +1,11 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Copy, Download, FileUp, PencilLine, Play, Trash2 } from 'lucide-react';
 import { rhythmFromLegacyInterval } from '../engine/session/rhythm';
 import { PLAYER_DRILLS as DRILLS } from '../content/playerDrills';
 import { copyPlayerDrill as createEditableCopy, parsePlayerDrillJson as parseDrillJson } from '../content/playerMigration';
-import type { DrillDefinitionV2 } from '../content/types';
+import type { DrillDefinitionV2, OpponentHand } from '../content/types';
+import { playerDrillForHand } from '../content/playerHandedness';
+import { PlayerHandControls } from './PlayerHandControls';
 import { downloadDrill } from '../content/validation';
 import type { AppRoute } from './AppHeader';
 import { AppHeader } from './AppHeader';
@@ -13,6 +15,8 @@ import { OfflineStatus } from './OfflineStatus';
 type DrillLibraryScreenProps = Readonly<{
   route: AppRoute;
   customDrills: readonly DrillDefinitionV2[];
+  playerHand: OpponentHand;
+  onPlayerHandChange: (hand: OpponentHand) => void;
   onRoute: (route: AppRoute) => void;
   onRun: (drill: DrillDefinitionV2, rhythmPercent: number, interval: number, movementPercent: number) => void;
   onEdit: (drill: DrillDefinitionV2) => void;
@@ -20,7 +24,7 @@ type DrillLibraryScreenProps = Readonly<{
   onDelete: (id: string) => void;
 }>;
 
-export function DrillLibraryScreen({ route, customDrills, onRoute, onRun, onEdit, onSave, onDelete }: DrillLibraryScreenProps) {
+export function DrillLibraryScreen({ route, customDrills, playerHand, onPlayerHandChange, onRoute, onRun, onEdit, onSave, onDelete }: DrillLibraryScreenProps) {
   const allDrills = [...DRILLS, ...customDrills];
   const [selectedId, setSelectedId] = useState(allDrills[0]?.id ?? '');
   const [rhythmOverride, setRhythmOverride] = useState<number | null>(null);
@@ -28,7 +32,8 @@ export function DrillLibraryScreen({ route, customDrills, onRoute, onRun, onEdit
   const [movementOverride,setMovementOverride]=useState<number|null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const selected = allDrills.find((drill) => drill.id === selectedId) ?? allDrills[0];
+  const authored = allDrills.find((drill) => drill.id === selectedId) ?? allDrills[0];
+  const selected = useMemo(() => authored && playerDrillForHand(authored, playerHand), [authored, playerHand]);
   const isCustom = Boolean(selected && customDrills.some((drill) => drill.id === selected.id));
 
   const importFile = async (file: File | undefined) => {
@@ -52,7 +57,8 @@ export function DrillLibraryScreen({ route, customDrills, onRoute, onRun, onEdit
         <aside className="library-filter">
           <h1>Drill library</h1>
           <p>Tactics built around your shots.</p>
-          <button className="primary-button" type="button" onClick={() => onEdit(createEditableCopy(DRILLS[5]!))}><PencilLine size={17} /> New custom drill</button>
+          <PlayerHandControls hand={playerHand} onChange={onPlayerHandChange}/>
+          <button className="primary-button" type="button" onClick={() => onEdit(createEditableCopy(playerDrillForHand(DRILLS[5]!, playerHand)))}><PencilLine size={17} /> New custom drill</button>
           <button className="secondary-button library-import" type="button" onClick={() => inputRef.current?.click()}><FileUp size={16} /> Import JSON</button>
           <input ref={inputRef} hidden type="file" accept="application/json,.json" onChange={(event) => void importFile(event.target.files?.[0])} />
           <OfflineStatus />

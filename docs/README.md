@@ -15,6 +15,8 @@ This folder is the project record for product discovery, design, architecture, a
 
 ## Current research reading packets
 
+- [Player handedness mirroring](development/player-handedness-2026-09-09.md): shared handedness, reversible court coordinates, saved orientation and unchanged opponent hands under [ADR-0038](decisions/0038-player-handedness-mirroring.md).
+
 - [Player-first drill planning and verification](development/player-first-drills-2026-09-09.md): schema 2 player events, opening feeds, both ball configurations, physical contact/camera linkage and migration under [ADR-0037](decisions/0037-player-first-drill-planning.md).
 
 - [Independent return shot controls and verification](development/return-shot-controls-2026-09-09.md): separate incoming/return types and spin, physical contacts, drop shots, serve-only axes and saved preset persistence under [ADR-0036](decisions/0036-independent-return-shot-and-spin.md).

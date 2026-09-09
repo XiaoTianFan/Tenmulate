@@ -3,6 +3,37 @@
 - **Purpose:** Record concept-to-browser inspection after every implementation stage
 - **Reference viewport:** 1920 × 1080 unless stated otherwise
 
+## Player handedness mirroring — 2026-09-09
+
+Production Edge at `http://127.0.0.1:5173/` passes 22 browser checks at 1680×1000
+and 390×844. The flow is Drills → choose Left-handed → edit/run → mirrored player
+placement with unchanged names and opponent hands. Editor switching reflects a
+nonzero heading, both zone coordinates and player hand; the projected blue zone
+is measured across the canvas centerline after a fresh diagnostic snapshot.
+The court remains mounted. Undo/redo, left/right saved-shot reuse and overwrite,
+new default shots, import, save/reload and gameplay metadata pass. The page has
+the expected identity/content, no framework overlay or browser runtime errors,
+and no mobile horizontal page overflow. The desktop right/left pair and mobile
+control screenshots were visually inspected.
+
+The Browser plugin is not available in this session; isolated Playwright Edge
+contexts were used with service workers blocked and visible native scrollbars.
+The owner's existing browser profile/tab was not operated or reloaded. The rig
+probe uses the current source through 4173 and measures 72 rendered approach,
+prepared-entry and contact frames across four left-handed player drills with both
+opponent hands. Maximum racket-contact error is 0.000001103 m and bone-length
+change 0.000000220 m; minimum sampled pelvis/knee height is 0.544/0.151 m. Camera
+contact views and opponent tracking pass. Opponent posture screenshots were also
+inspected. No motion asset changed.
+
+Evidence: `C:/Users/20378/.codex/visualizations/2026/09/08/01a07e7c-7199-7900-ab83-f0437137320b/player-handedness/`
+contains `mirror-ui-qa.mjs`, `ui-results.json`, `right-editor.png`,
+`left-editor.png`, `mobile-editor.png`, `left-gameplay.png`, `mirror-rig-qa.mjs`,
+`rig-results.json` and rendered contact images. `npm test` passes 451 tests;
+`npm run build` passes with the motion/cache guard and existing chunk-size advisory.
+These are local bounded checks, not certification of every custom combination,
+browser or device. See the [implementation receipt](player-handedness-2026-09-09.md).
+
 ## Player-first drill editor and playback — 2026-09-09
 
 Production Edge at 1680×1000 and 390×844 passes 42 checks covering the player

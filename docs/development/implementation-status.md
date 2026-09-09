@@ -9,6 +9,20 @@
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
+## Player handedness mirroring — 2026-09-09
+
+The shared Drills/Editor handedness choice mirrors cameras (position and heading),
+both landing-zone roles and all opening positions while retaining shot names and
+the opponent's hand. Optional schema 2 orientation metadata prevents double
+reflection during insertion, overwrite, import and reload. Browser preference is
+independent of Quick Practice; editor switching supports Undo/Redo.
+
+Verification: 451 tests across 44 files and production build/motion guard pass.
+All 16 bundled drills complete two left-handed sets. Actual renderer checks cover
+72 opponent frames, plus shot views and camera tracking. See
+[ADR-0038](../decisions/0038-player-handedness-mirroring.md) and the
+[implementation receipt](player-handedness-2026-09-09.md).
+
 ## Player-first drill planning and editor — 2026-09-09
 
 [ADR-0037](../decisions/0037-player-first-drill-planning.md) changes authored
