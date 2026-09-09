@@ -1,6 +1,7 @@
 import type { ReturnShotConfiguration, ReturnShotType, ShotFamily } from '../../content/types';
 import type { FlightSample, ResolvedTrajectory } from '../trajectory/physics';
 import { legalReturnContacts } from './playerCoverage';
+import { normalizeContactTiming } from './bounceContact';
 
 export const RETURN_SHOT_PROFILES: Readonly<Record<ReturnShotType, {
   spin: ReturnShotConfiguration['spin']; rpm: number; pace: number; clearance: number; height: number;
@@ -12,12 +13,12 @@ export const RETURN_SHOT_PROFILES: Readonly<Record<ReturnShotType, {
   lob: { spin: 'topspin', rpm: 1100, pace: 60, clearance: 2.5, height: 1.05 },
 };
 export const defaultReturnShot = (type: ReturnShotType, spin = RETURN_SHOT_PROFILES[type].spin): ReturnShotConfiguration => ({
-  type, spin, spinRateRpm: spin === RETURN_SHOT_PROFILES[type].spin ? RETURN_SHOT_PROFILES[type].rpm
+  type, spin, contactTiming: 'descent', spinRateRpm: spin === RETURN_SHOT_PROFILES[type].spin ? RETURN_SHOT_PROFILES[type].rpm
     : spin === 'flat' ? type === 'volley' ? 0 : 120 : spin === 'slice' ? 1253 : 600,
 });
 /** Old drills implicitly lobbed to the next overhead. Explicit choices never depend on that next shot. */
 export const resolveReturnShot = (shot?: ReturnShotConfiguration, nextFamily?: ShotFamily): ReturnShotConfiguration =>
-  shot ? { ...shot, spinRateRpm: shot.spinRateRpm ?? defaultReturnShot(shot.type, shot.spin).spinRateRpm }
+  shot ? { ...shot, contactTiming: normalizeContactTiming(shot.contactTiming), spinRateRpm: shot.spinRateRpm ?? defaultReturnShot(shot.type, shot.spin).spinRateRpm }
     : defaultReturnShot(nextFamily === 'overhead' ? 'lob' : 'groundstroke');
 
 export function normalizeReturnShot(value: unknown): ReturnShotConfiguration {
@@ -26,7 +27,7 @@ export function normalizeReturnShot(value: unknown): ReturnShotConfiguration {
   const type = typeof v.type === 'string' && Object.hasOwn(RETURN_SHOT_PROFILES, v.type) ? v.type as ReturnShotType : 'groundstroke';
   const spin = v.spin === 'flat' || v.spin === 'slice' || v.spin === 'topspin' ? v.spin : RETURN_SHOT_PROFILES[type].spin;
   const defaults = defaultReturnShot(type, spin);
-  return { ...defaults, ...(typeof v.paceKmh === 'number' && Number.isFinite(v.paceKmh) ? { paceKmh: Math.max(20, Math.min(260, v.paceKmh)) } : {}),
+  return { ...defaults, contactTiming: normalizeContactTiming(v.contactTiming), ...(typeof v.paceKmh === 'number' && Number.isFinite(v.paceKmh) ? { paceKmh: Math.max(20, Math.min(260, v.paceKmh)) } : {}),
     spinRateRpm: typeof v.spinRateRpm === 'number' && Number.isFinite(v.spinRateRpm) ? Math.max(0, Math.min(6000, v.spinRateRpm)) : defaults.spinRateRpm };
 }
 

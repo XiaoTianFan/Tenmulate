@@ -6,20 +6,36 @@ import { cameraEase, sampleCameraTimeline } from '../src/engine/session/cameraTi
 import { motionEvent, minimumMotionGap } from '../src/engine/session/opponentTimeline';
 import { PLAYER_CONTACT_RADIUS_M, contactDistance } from '../src/engine/session/courtFlight';
 import { sessionCues } from '../src/engine/audio/sessionCues';
+import { bounceContactPhase } from '../src/engine/session/bounceContact';
+import { receivingZone } from '../src/content/playerShots';
+import type { ContactTiming } from '../src/content/types';
 
 const settings: SessionSettings = { repetitions: 4, mode: 'drill', launchSpeedKmh: 78, surface: 'hard', seed: 'player-drill-check',
   variationPercent: 0, timingVariationPercent: 0, spin: 'preset', opponentHand: 'right', workBlockSize: 50,
   restSeconds: 0, serveRhythm: 'normal' };
 describe('player-owned drill clock and physical handoffs', () => {
-  it('varies opponent returns across rising, apex and descending bounce contacts in drills', () => {
-    const phases = new Set<string>();
-    for (let seed = 0; seed < 8; seed++) {
-      const session = compileSession(PLAYER_DRILLS[0]!, { ...settings, repetitions: 4, seed: `contact-phase-${seed}` });
-      expect(session.planningIssues).toEqual([]);
-      for (const event of session.playerEvents!) if (event.opponentContactPhase) phases.add(event.opponentContactPhase);
+  it.each((['rise', 'apex', 'descent'] as ContactTiming[]).flatMap(player =>
+    (['rise', 'apex', 'descent'] as ContactTiming[]).map(opponent => [player, opponent] as const)))
+  ('honors player %s and opponent %s contacts independently', (player, opponent) => {
+    const original = PLAYER_DRILLS[0]!;
+    const events = original.events.map(event => ({ ...event, ball: { ...event.ball, contactTiming: player },
+      opponentReturn: { ...event.opponentReturn, ball: { ...event.opponentReturn.ball, contactTiming: opponent } } }));
+    const drill = { ...original,
+      launch: { ...original.launch, landingZone: receivingZone(events[0]!.camera, 'groundstroke', events[0]!.ball) },
+      events: events.map((event, index) => {
+        const next = events[(index + 1) % events.length]!;
+        return { ...event, opponentReturn: { ...event.opponentReturn, landingZone: receivingZone(next.camera, next.ball.family, next.ball, {
+          x: (event.landingZone.minX + event.landingZone.maxX) / 2, z: (event.landingZone.minZ + event.landingZone.maxZ) / 2 + 3,
+        }) } };
+      }) };
+    const session = compileSession(drill, { ...settings, repetitions: 3 });
+    expect(session.planningIssues).toEqual([]);
+    expect(session.playerEvents).toHaveLength(3);
+    for (const event of session.playerEvents!) {
+      expect(bounceContactPhase(session.repetitions[event.incomingIndex]!.reachability.contact!)).toBe(player);
+      if (event.responseIndex !== undefined) expect(event.opponentContactPhase).toBe(opponent);
     }
-    expect([...phases].sort()).toEqual(['apex', 'descent', 'rise']);
-  }, 15000);
+  });
   it('connects the default player pattern with continuous contacts and one opening', () => {
     const drill = PLAYER_DRILLS[0]!, session = compileSession(drill, settings);
     expect(session.planningIssues).toEqual([]);
@@ -28,11 +44,13 @@ describe('player-owned drill clock and physical handoffs', () => {
     for (const event of session.playerEvents!) {
       const incoming = session.repetitions[event.incomingIndex]!;
       const contact = incoming.reachability.contact!;
+      expect(bounceContactPhase(contact)).toBe('descent');
       expect(contactDistance(contact, event.event)).toBeLessThanOrEqual(PLAYER_CONTACT_RADIUS_M);
       expect(event.trajectory.intent.source).toEqual(contact.position);
       expect(event.startTime).toBeCloseTo(incoming.startTime + contact.time, 8);
       if (event.responseIndex === undefined) continue;
       const response = session.repetitions[event.responseIndex]!;
+      expect(event.opponentContactPhase).toBe('descent');
       expect(response.shot.source.y).toBeGreaterThanOrEqual(.65);
       const playerFlight = session.scheduledFlights!.find(f => f.owner === 'player' && f.eventIndex === event.index)!;
       expect(playerFlight.trajectory.samples.at(-1)!.position).toEqual(response.shot.source);

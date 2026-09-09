@@ -4,6 +4,7 @@ import type { DrillBall, PlayerShotEventV2, ShotFamily } from '../../content/typ
 import { aimDirectionToCourtPoint, netHeightAt, resolveTrajectory, type FlightSample, type ResolvedTrajectory, type ShotIntent } from '../trajectory/physics';
 import type { LandingZone } from '../trajectory/landingZone';
 import { cameraPlayerPosition, legalReturnContacts } from './playerCoverage';
+import { contactsForTiming } from './bounceContact';
 
 export const rotateCourtPoint = (p: Vec3): Vec3 => ({ x: -p.x, y: p.y, z: -p.z });
 const rotateZone = (z: LandingZone): LandingZone => ({ minX: -z.maxX, maxX: -z.minX, minZ: -z.maxZ, maxZ: -z.minZ });
@@ -58,14 +59,14 @@ export const contactDistance = (sample: FlightSample, event: Pick<PlayerShotEven
   return Math.hypot(sample.position.x - anchor.x, sample.position.z - anchor.z);
 };
 export function playerContacts(flight: ResolvedTrajectory, event: Pick<PlayerShotEventV2, 'camera' | 'ball'>): readonly FlightSample[] {
-  return legalReturnContacts(flight).filter(sample => familyContact(sample, event.ball.family, true)
-    && contactDistance(sample, event) <= PLAYER_CONTACT_RADIUS_M);
+  return contactsForTiming(flight, event.ball.family, legalReturnContacts(flight).filter(sample => familyContact(sample, event.ball.family, true)
+    && contactDistance(sample, event) <= PLAYER_CONTACT_RADIUS_M), event.ball.contactTiming);
 }
 export function opponentContacts(flight: ResolvedTrajectory, ball: DrillBall): readonly FlightSample[] {
   const rotated = rotateCourtFlight(flight);
   // The visible opponent uses a real clip and rigid legs. A late ankle-height
   // contact would lower its pelvis through the court just to extend the interval.
   const minimumHeight = ball.family === 'overhead' ? 2.2 : ball.family === 'volley' ? 1.1 : .65;
-  return legalReturnContacts(rotated).filter(sample => familyContact(sample, ball.family) && sample.position.y >= minimumHeight)
-    .map(sample => ({ ...sample, position: rotateCourtPoint(sample.position), velocity: rotateCourtPoint(sample.velocity) }));
+  return contactsForTiming(flight, ball.family, legalReturnContacts(rotated).filter(sample => familyContact(sample, ball.family) && sample.position.y >= minimumHeight)
+    .map(sample => ({ ...sample, position: rotateCourtPoint(sample.position), velocity: rotateCourtPoint(sample.velocity) })), ball.contactTiming);
 }

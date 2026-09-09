@@ -63,8 +63,9 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
     for (const factor of ball.trajectoryMode === 'exact' ? [1] : [1, .85, 1.15]) {
       const trajectory = resolve(source, ball, zone, target, ball.paceKmh * factor);
       const contacts = receiver && landsInZone(trajectory) ? playerContacts(trajectory, receiver) : [];
+      const preference = receiver ? bounceContactPreference(trajectory, receiver.ball.family, receiver.ball.contactTiming) : null;
       const scoreContact = (contact: FlightSample) => (desired === undefined ? 0 : Math.abs(contact.time - desired))
-        + contactDistance(contact, receiver!) * .24 + Math.abs(contact.position.y - contactHeight(receiver!.ball.family)) * .1;
+        + bounceContactCost(contact, preference) + contactDistance(contact, receiver!) * .24 + Math.abs(contact.position.y - contactHeight(receiver!.ball.family)) * .1;
       const contact = [...contacts].sort((a, b) => scoreContact(a) - scoreContact(b))[0] ?? null;
       const score = (receiver ? contact ? scoreContact(contact) : 1000 : landsInZone(trajectory) ? 0 : 1000) + Math.abs(1 - factor) * .15;
       if (!best || score < best.score) best = { trajectory, contact, score };
@@ -141,7 +142,7 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
       const playerTime = 3;
       const response = event.opponentReturn, replyBall = sampleBall(response.ball, 'response', index);
       const replyTarget = sampleZone(response.landingZone, 'response', index);
-      const preference = bounceContactPreference(playerFlight, replyBall.family, random('response', index, 'contact-phase')());
+      const preference = bounceContactPreference(playerFlight, replyBall.family, replyBall.contactTiming);
       const rank = (contact: FlightSample) => bounceContactCost(contact, preference)
         + Math.abs(contact.position.y - contactHeight(replyBall.family)) * .4;
       const contacts = landsInZone(playerFlight) ? [...opponentContacts(playerFlight, replyBall)].sort((a, b) => rank(a) - rank(b)) : [];
@@ -157,7 +158,7 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
         addFlight('opponent', 'response', index, time, reply.trajectory);
         shotPreview = { player: playerFlight, opponent: reply.trajectory };
       } else issues.push({ index, phase: landsInZone(playerFlight) ? 'response' : 'player', message: landsInZone(playerFlight)
-        ? 'The opponent cannot return this ball with the selected shot type and settings.'
+        ? 'The opponent cannot return this ball with the selected shot type and contact timing. Adjust the player ball or opponent contact timing.'
         : 'The player ball cannot reach its landing zone with these settings.' });
     }
   }
@@ -168,7 +169,7 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
     if (newPoint) startPoint(event.openingFeed ?? drill.launch, event, index);
     const current: IncomingFit | null = incoming;
     if (!current?.contact) {
-      issues.push({ index, phase: newPoint ? 'opening' : 'player', message: `Shot ${index + 1}: the incoming ball does not reach this ${event.ball.family} at the player camera. Adjust the preceding return zone, ball settings or camera.` });
+      issues.push({ index, phase: newPoint ? 'opening' : 'player', message: `Shot ${index + 1}: the incoming ball does not reach this ${event.ball.family} at the player camera with the selected contact timing. Adjust the preceding return zone, ball settings, contact timing or camera.` });
       break;
     }
     const arrival = repetitions[incomingIndex]!, playerTime = arrival.startTime + current.contact.time;
@@ -199,7 +200,7 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
       return minimumMotionGap({ ...previous, motionRate: 3, movementRate: 3 }, ceiling) <= time - previous.startTime + 1e-8;
     });
     const desired = requested / 2;
-    const preference = bounceContactPreference(playerFlight, replyBall.family, random('response', index, 'contact-phase')());
+    const preference = bounceContactPreference(playerFlight, replyBall.family, replyBall.contactTiming);
     const rank = (c: FlightSample) => bounceContactCost(c, preference) + Math.abs(c.time - desired) * .25 + Math.abs(c.position.y - contactHeight(replyBall.family)) * .4;
     const ranked = [...eligible].sort((a, b) => rank(a) - rank(b));
     const selected: FlightSample[] = [];
@@ -219,7 +220,7 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
     }
     if (!best) {
       addFlight('player', 'player', index, playerTime, playerFlight);
-      issues.push({ index, phase: 'response', message: `Shot ${index + 1}: the opponent cannot connect this landing, response and next player position. Adjust the return zone, shot type, pace or next camera.` }); break;
+      issues.push({ index, phase: 'response', message: `Shot ${index + 1}: the opponent cannot connect this landing, response and next player position. Adjust the return zone, shot type, pace, contact timing or next camera.` }); break;
     }
     const gap = best.rep.startTime - previous.startTime, solved = solveShotInterval(previous, best.rep, gap);
     if (solved.gap > gap + 1e-7) {

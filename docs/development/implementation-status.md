@@ -2,12 +2,51 @@
 
 - **Status:** Active
 - **Last updated:** 2026-09-09
-- **Current implementation:** Direct court editing, working opening/player camera gestures, physical Quick Rally returns and shared varied bounce-contact timing for rallies and drills. Player-first planning retains separate opponent openings, camera-anchored player contacts and independent opponent responses. Six Blender-authored venues and twelve Quality/Performance GLBs remain active; audiences default to Half.
+- **Current implementation:** Direct court editing, working opening/player camera gestures, physical Quick Rally returns and independently configurable player/opponent bounce-contact timing for rallies and drills, defaulting to early descent. Player-first planning retains separate opponent openings, camera-anchored player contacts and independent opponent responses. Six Blender-authored venues and twelve Quality/Performance GLBs remain active; audiences default to Half.
 - **Previous venue integration:** Source/assets `25e363b`, runtime `18141c5` and verification `d1a916a` were fast-forwarded into `main`, preserving separately committed local-motion work `b2a082e`. All twelve local feature tips were included at this integration checkpoint; see the [branch audit](feature-branch-integration-2026-09-05.md). No remote push or deployment.
 
 **Motion/model integration checkpoint (2026-09-07):** Local `main` includes all 17 motion/model feature commits plus delivery/documentation reconciliation through `a9ba202`: all 24 clips, the 1.88 m articulated model, recovery planning, crossovers and both serve rhythms. No local feature tip remains unmerged. The 237-test suite, production build, active-asset/cache guard, both-hand gameplay/crossover checks and actual production-browser practice review pass. The [current motion contract](local-motion-pipeline.md) replaces competing “latest” descriptions below; the [integration receipt](motion-main-integration-2026-09-07.md) records the exact merge, evidence and remaining owner/device gates. Older stage counts and asset hashes below are historical evidence, not active selectors. No public deployment occurred.
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
+
+## Player and opponent contact timing — 2026-09-09
+
+Quick Rally and each editor shot now expose independent **On the rise**, **At the
+apex**, and **Early descent** controls. Early descent is the default, including
+older saved balls with no timing value. Volleys/overheads retain in-air contact;
+half-volleys retain their rising contact. A serve can still open Quick Rally while
+the opponent timing configures its subsequent groundstroke returns.
+
+The shared physical contact filter constrains both roles before interval, camera
+travel and motion-rate fitting. A short requested interval cannot select an early
+rebound outside the chosen phase. Unreachable links report adjustment options.
+Generated receiving zones now allow for post-bounce distance and sideways travel;
+short-angle and half-volley defaults give the opponent a playable descending
+bounce. Existing authored zones and cameras stay unchanged. Preset snapshots,
+overwrite, drill storage and Quick Practice preferences preserve both controls.
+
+The editor merges player identity and ball/rhythm parameters into **Player shot ·
+blue zone**, followed by **Opponent return · yellow zone**, then **Perspective**.
+The [player-first contract](player-first-drills-2026-09-09.md) explains how isolated
+shot editing differs from connected sequence contact timing.
+
+Verification: all **489 tests across 46 files pass**, including all nine phase
+combinations in Quick Rally and drills, a 2.5-second requested Quick Rally interval,
+continuous streamed batch handoffs, all 16 bundled drills with two test seeds, and
+legacy/default/explicit timing persistence. TypeScript and production build pass,
+including the active motion/cache guard. CPU profiling identified redundant fits
+of nearby same-phase samples; deduplicating those samples reduced the measured
+12-shot legacy compilation from about 2.25 s to 1.03 s. Test timeout limits remain
+unchanged. Motion assets and renderer effects are unchanged.
+
+Production Edge verification covers default choices, independent edits, physical
+return trajectory updates, preference reload, saved-shot creation/overwrite, full
+sequence playback, persistent scene mounting and 390 px mobile controls. Desktop
+and mobile screenshots were inspected; no runtime or console errors occurred.
+Browser plugin unavailable; isolated Playwright used `http://127.0.0.1:5173/` at
+1680×1000 and 390×844 without touching the owner's browser data. Evidence is in
+the task's `contact-timing` visualization folder. Local implementation and build;
+no public deployment.
 
 ## Editor trajectory and landing-zone synchronization — 2026-09-09
 

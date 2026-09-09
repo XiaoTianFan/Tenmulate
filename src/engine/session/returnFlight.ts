@@ -1,10 +1,10 @@
 import { COURT } from '../../domain/court';
-import type { ReturnShotConfiguration, ShotFamily } from '../../content/types';
+import type { ContactTiming, ReturnShotConfiguration, ShotFamily } from '../../content/types';
 import type { Vec3 } from '../../domain/vector';
 import type { LandingZone } from '../trajectory/landingZone';
 import { aimDirectionToCourtPoint, netHeightAt, resolveTrajectory, type FlightSample, type ResolvedTrajectory } from '../trajectory/physics';
 import { resolveReturnShot, RETURN_SHOT_PROFILES, returnShotContacts } from './returnShot';
-import { bounceContactCost, bounceContactPreference } from './bounceContact';
+import { bounceContactCost, bounceContactPreference, contactsForTiming } from './bounceContact';
 export type RallyReturn = Readonly<{ trajectory: ResolvedTrajectory; contactTime: number;
   duration: number; contactErrorM: number; speedRatio: number }>;
 
@@ -35,20 +35,26 @@ function returnFlight(incoming: ResolvedTrajectory, contact: FlightSample, targe
 /** Bounded flight search. The compiler checks opponent/camera feasibility before
  * accepting a contact. The sampled bounce target stays fixed across candidates. */
 export function returnPlanCandidates(incoming: ResolvedTrajectory, family: ShotFamily, zone: LandingZone,
-  target: { x: number; z: number }, preferredGap: number, configuration?: ReturnShotConfiguration, contactDraw?: number): ReturnCandidate[] {
+  target: { x: number; z: number }, preferredGap: number, configuration?: ReturnShotConfiguration, opponentTiming: ContactTiming = 'descent'): ReturnCandidate[] {
   if (family === 'serve') return [];
   const shot = resolveReturnShot(configuration, family), profile = RETURN_SHOT_PROFILES[shot.type];
-  const contacts = returnShotContacts(incoming, shot.type);
+  const contacts = contactsForTiming(incoming, shot.type, returnShotContacts(incoming, shot.type), shot.contactTiming);
   if (!contacts.length) return [];
-  const ranked = [...contacts].sort((a, b) => Math.abs(a.position.y - profile.height) - Math.abs(b.position.y - profile.height));
-  const selected = [...new Set([ranked[0]!, contacts[0]!])];
+  const playerPreference = bounceContactPreference(incoming, shot.type, shot.contactTiming);
+  const playerCosts = new Map(contacts.map(contact => [contact.time, bounceContactCost(contact, playerPreference)]));
+  const rank = (contact: FlightSample) => playerCosts.get(contact.time)! + Math.abs(contact.position.y - profile.height) * .15;
+  const ranked = [...contacts].sort((a, b) => rank(a) - rank(b));
+  // Nearby samples in one phase lead to nearly identical expensive flight fits.
+  // Keep the preferred contact, plus the window's start when it is distinct.
+  const selected = [ranked[0]!];
+  if (Math.abs(contacts[0]!.time - selected[0]!.time) > .1) selected.push(contacts[0]!);
   const preferred = shot.paceKmh ?? profile.pace;
   const results: ReturnCandidate[] = [];
   const preferences = new Map<ResolvedTrajectory, ReturnType<typeof bounceContactPreference>>();
   for (const contact of selected) {
     for (const factor of [1, .8, 1.2]) {
       const flight = returnFlight(incoming, contact, target, zone, preferred * factor, shot);
-      preferences.set(flight, contactDraw === undefined ? null : bounceContactPreference(flight, family, contactDraw));
+      preferences.set(flight, bounceContactPreference(flight, family, opponentTiming));
       const net = flight.events.find(e => e.type === 'net-crossing');
       const bounce = flight.events.find(e => e.type === 'bounce');
       if (!net || net.position.y < netHeightAt(net.position.x) + COURT.ballRadius + .05 || !bounce
@@ -72,7 +78,7 @@ export function returnPlanCandidates(incoming: ResolvedTrajectory, family: ShotF
           samples.push({ time: desired, position: mix(a.position, b.position), velocity: mix(a.velocity, b.velocity), bounced: a.bounced });
         }
       }
-      for (const sample of samples) {
+      for (const sample of contactsForTiming(flight, family, samples, opponentTiming)) {
         // A later sample is a genuine intercept along this flight, not a new emitter.
         results.push({ source: sample.position, contact: sample, gap: contact.time + sample.time,
           rally: { contactTime: contact.time, duration: sample.time, contactErrorM: 0,
@@ -83,6 +89,7 @@ export function returnPlanCandidates(incoming: ResolvedTrajectory, family: ShotF
   }
   return results.sort((a, b) => {
     const score = (c: ReturnCandidate) => Math.abs(c.gap - preferredGap) + Math.abs(1 - c.rally.speedRatio) * .12
+      + (playerCosts.get(c.rally.contactTime) ?? 0)
       + bounceContactCost(c.contact, preferences.get(c.rally.trajectory) ?? null)
       + Math.abs(c.source.y - (family === 'overhead' ? 2.3 : family === 'half-volley' ? .5 : 1.05)) * .04;
     return score(a) - score(b);

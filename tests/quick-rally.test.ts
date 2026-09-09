@@ -5,6 +5,7 @@ import { preparePreviewBatch } from '../src/engine/session/practicePreview';
 import { DEFAULT_RETURN_LANDING_ZONE } from '../src/engine/session/returnLandingZone';
 import { defaultReturnShot } from '../src/engine/session/returnShot';
 import { bounceContactPhase } from '../src/engine/session/bounceContact';
+import type { ContactTiming } from '../src/content/types';
 
 const settings: SessionSettings = { mode: 'quick-practice', repetitions: 6, workBlockSize: 6, restSeconds: 0, shotIntervalSeconds: 5,
   rhythmPercent: 100, movementPercent: 100, variationPercent: 8, timingVariationPercent: 0, launchSpeedKmh: 70,
@@ -27,7 +28,21 @@ describe('physical Quick Rally returns', () => {
       expect(a.recoveryPolicy).not.toBe('home');
     }
     const phases = new Set(reps.flatMap(r => r.rallyReturn ? [bounceContactPhase(r.rallyReturn.trajectory.samples.at(-1)!)] : []));
-    expect(phases.size).toBeGreaterThan(1);
+    expect([...phases]).toEqual(['descent']);
+    for (const rep of reps) if (rep.rallyReturn) expect(bounceContactPhase(rep.reachability.contact!)).toBe('descent');
+  });
+  it.each((['rise', 'apex', 'descent'] as ContactTiming[]).flatMap(player =>
+    (['rise', 'apex', 'descent'] as ContactTiming[]).map(opponent => [player, opponent] as const)))
+  ('honors player %s and opponent %s even when a faster interval is requested', (player, opponent) => {
+    const session = compileSession(drill, { ...settings, repetitions: 3, shotIntervalSeconds: 2.5,
+      rally: { ...settings.rally!, shot: { ...settings.rally!.shot, contactTiming: player }, opponentContactTiming: opponent } });
+    expect(session.planningIssues ?? []).toEqual([]);
+    expect(session.repetitions).toHaveLength(3);
+    for (const rep of session.repetitions.slice(0, -1)) {
+      expect(rep.returnStatus).toBe('linked');
+      expect(bounceContactPhase(rep.reachability.contact!)).toBe(player);
+      expect(bounceContactPhase(rep.rallyReturn!.trajectory.samples.at(-1)!)).toBe(opponent);
+    }
   });
   it('keeps other Quick Practice modes as independent feeds', () => {
     const other = compileSession(DRILL_BY_CATEGORY.get('Return Practice')!, { ...settings, practiceShotType: 'serve' });

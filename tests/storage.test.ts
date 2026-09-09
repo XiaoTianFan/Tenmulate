@@ -14,6 +14,35 @@ class MemoryStorage {
 
 describe('local application data', () => {
   beforeEach(() => vi.stubGlobal('localStorage', new MemoryStorage()));
+  it('defaults both contact timings to descent and preserves explicit independent choices', () => {
+    for (const value of [undefined, 'invalid', null, ['rise']]) {
+      localStorage.setItem('tenmulate.appData.v2', JSON.stringify({ schemaVersion: 2, preferences: {
+        opponentContactTiming: value, rallyShot: { ...DEFAULT_PREFERENCES.rallyShot, contactTiming: value },
+      } }));
+      expect(loadAppData().preferences).toMatchObject({ opponentContactTiming: 'descent', rallyShot: { contactTiming: 'descent' } });
+    }
+    const preferences = { ...DEFAULT_PREFERENCES, opponentContactTiming: 'apex' as const,
+      rallyShot: { ...DEFAULT_PREFERENCES.rallyShot, contactTiming: 'rise' as const } };
+    saveAppData({ ...DEFAULT_APP_DATA, preferences });
+    expect(loadAppData().preferences).toEqual(preferences);
+  });
+  it('loads old shot records with descent timing without moving their authored zones or camera', () => {
+    const drill = DRILLS[0]!, event = drill.events[0]!;
+    const oldEvent = { ...event, ball: { ...event.ball, contactTiming: undefined },
+      opponentReturn: { ...event.opponentReturn, ball: { ...event.opponentReturn.ball, contactTiming: undefined } } };
+    const oldDrill = { ...drill, events: [oldEvent] };
+    saveAppData({ ...DEFAULT_APP_DATA, customDrills: [oldDrill], savedShots: [{ schemaVersion: 2, id: 'saved-old', name: 'Old shot', event: oldEvent }] });
+    const loaded = loadAppData();
+    for (const shot of [loaded.customDrills[0]!.events[0]!, loaded.savedShots[0]!.event]) {
+      expect(shot.ball.contactTiming).toBe('descent');
+      expect(shot.opponentReturn.ball.contactTiming).toBe('descent');
+      expect(shot.camera).toEqual(event.camera);
+      expect(shot.landingZone).toEqual(event.landingZone);
+      expect(shot.opponentReturn.landingZone).toEqual(event.opponentReturn.landingZone);
+    }
+    saveAppData(loaded);
+    expect(loadAppData()).toEqual(loaded);
+  });
   it('retains Quick Rally return settings while safely defaulting older or malformed preferences', () => {
     const rallyShot = { type: 'groundstroke' as const, spin: 'slice' as const, spinRateRpm: 1250, paceKmh: 65 };
     const rallyLandingZone = { minX: -2, maxX: 1, minZ: 7, maxZ: 9 };

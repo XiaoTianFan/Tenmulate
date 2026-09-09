@@ -13,6 +13,7 @@ import { compilePracticeAsync } from '../engine/session/practiceSessionClient';
 import { usePracticePreview } from '../hooks/usePracticePreview';
 import { useCourtOverview } from '../hooks/useCourtOverview';
 import { QuickReturnControls } from './QuickReturnControls';
+import { ContactTimingControl } from './ContactTimingControl';
 import { aimDirectionToCourtPoint, type SpinKind } from '../engine/trajectory/physics';
 import { PRACTICE_SHOT_PROFILES, legalServeTarget, practiceLandingTarget, spinForPracticeShot, spinRateForPracticeShot, spinRateProfileForPracticeShot, type PracticeShotType } from '../engine/trajectory/practiceProfiles';
 import { practiceAudio } from '../engine/audio/AudioCueEngine';
@@ -92,6 +93,7 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
   const [launching, setLaunching] = useState(false), [launchError, setLaunchError] = useState('');
   const [rallyLandingZone, setRallyLandingZone] = useState(initialPreferences.rallyLandingZone);
   const [rallyShot, setRallyShot] = useState(initialPreferences.rallyShot);
+  const [opponentContactTiming, setOpponentContactTiming] = useState(initialPreferences.opponentContactTiming);
   const [sessionCategory, setSessionCategory] = useState<SessionCategory>(initialPractice.category);
   const [trajectoryEnabled, setTrajectoryEnabled] = useState(initialPreferences.trajectoryEnabled ?? false);
   const [launchSpeedKmh, setLaunchSpeedKmh] = useState(initialPreferences.launchSpeedKmh);
@@ -182,7 +184,7 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
   const returnServePlacement = RETURN_SERVE_PATTERN[returnPreviewIndex % RETURN_SERVE_PATTERN.length]!;
   const camera = useMemo<CameraConfiguration>(() => ({ eyeHeight, behindBaseline, lateral, yaw, pitch, fov }), [behindBaseline, eyeHeight, fov, lateral, pitch, yaw]);
   const { container: overviewContainer, displayCamera, zoomOverview } = useCourtOverview(camera, overview);
-  const rally = useMemo(() => practicePreset === 'rally' ? { landingZone: rallyLandingZone, shot: rallyShot } : undefined, [practicePreset, rallyLandingZone, rallyShot]);
+  const rally = useMemo(() => practicePreset === 'rally' ? { landingZone: rallyLandingZone, shot: rallyShot, opponentContactTiming } : undefined, [practicePreset, rallyLandingZone, rallyShot, opponentContactTiming]);
   const nearZone = useMemo(() => rally ? resolveLandingZone(practiceLandingTarget(opponentPosition, aimDirectionDeg, landingDepthM), landingZone, shotType, opponentPosition) : undefined, [rally, opponentPosition, aimDirectionDeg, landingDepthM, landingZone, shotType]);
   const sessionSettings = useMemo(() => ({
     repetitions, rhythmPercent, shotIntervalSeconds: interval, movementPercent, practiceStroke, trajectoryMode, mode: 'quick-practice' as const, camera: { lateral, behindBaseline },
@@ -204,10 +206,10 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
 
   const pendingPreferences = useRef<Omit<PracticePreferencesV1, 'ballFocus'>>(initialPreferences);
   useEffect(() => {
-    pendingPreferences.current = { sessionCategory, trajectoryEnabled, launchSpeedKmh, interval, rhythmPercent, movementPercent, practiceStroke, trajectoryMode, returnTargetMode, repetitions, variation, timingVariation, workBlockSize, restSeconds, surface, shotType, spin, spinRateRpm, bounceFactor, opponentHand, serveRhythm, landingZone, rallyLandingZone, rallyShot, landingDepthM, aimDirectionDeg, opponentPosition, camera, environment, quality, screenWidthCm, screenHeightCm, viewDistanceCm };
+    pendingPreferences.current = { sessionCategory, trajectoryEnabled, launchSpeedKmh, interval, rhythmPercent, movementPercent, practiceStroke, trajectoryMode, returnTargetMode, repetitions, variation, timingVariation, workBlockSize, restSeconds, surface, shotType, spin, spinRateRpm, bounceFactor, opponentHand, serveRhythm, landingZone, rallyLandingZone, rallyShot, opponentContactTiming, landingDepthM, aimDirectionDeg, opponentPosition, camera, environment, quality, screenWidthCm, screenHeightCm, viewDistanceCm };
     const timeout = window.setTimeout(() => onPreferencesChange(pendingPreferences.current), 180);
     return () => window.clearTimeout(timeout);
-  }, [aimDirectionDeg, bounceFactor, camera, environment, interval, movementPercent, practiceStroke, trajectoryMode, returnTargetMode, rhythmPercent, landingZone, rallyLandingZone, rallyShot, landingDepthM, launchSpeedKmh, onPreferencesChange, opponentHand, opponentPosition, quality, repetitions, restSeconds, screenHeightCm, screenWidthCm, serveRhythm, sessionCategory, shotType, spin, spinRateRpm, surface, timingVariation, trajectoryEnabled, variation, viewDistanceCm, workBlockSize]);
+  }, [aimDirectionDeg, bounceFactor, camera, environment, interval, movementPercent, practiceStroke, trajectoryMode, returnTargetMode, rhythmPercent, landingZone, rallyLandingZone, rallyShot, opponentContactTiming, landingDepthM, launchSpeedKmh, onPreferencesChange, opponentHand, opponentPosition, quality, repetitions, restSeconds, screenHeightCm, screenWidthCm, serveRhythm, sessionCategory, shotType, spin, spinRateRpm, surface, timingVariation, trajectoryEnabled, variation, viewDistanceCm, workBlockSize]);
   // A route change can follow a pointer release before the debounce expires.
   useEffect(() => () => onPreferencesChange(pendingPreferences.current), [onPreferencesChange]);
 
@@ -512,6 +514,7 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
             <label className="select-field"><span>Trajectory style</span><select aria-label="Trajectory style" value={trajectoryMode} onChange={event=>setTrajectoryMode(event.target.value as 'natural'|'exact')}><option value="natural">Natural target</option><option value="exact">Exact sampled speed & spin</option></select></label>
             <small className={`trajectory-resolution${trajectory.solution?.status==='unreachable'?' warning':''}`} role="status">{trajectory.solution?.status==='unreachable'?'Sample outside this shot’s reach. Adjust speed, spin or zone.':`Resolved ${trajectory.resolved.launchSpeedKmh.toFixed(1)} km/h · ${Math.round(trajectory.resolved.spinRateRpm)} rpm.`} {trajectoryMode==='exact'?'Each sampled speed and spin stays fixed; some landings may be out of reach.':''}</small>
             <RangeField label="Shot interval" value={interval} min={1} max={30} step={0.1} unit="s" onChange={setInterval} />
+            {rally ? <ContactTimingControl family={shotType === 'serve' ? 'groundstroke' : shotType} value={opponentContactTiming} label="Opponent contact timing" onChange={setOpponentContactTiming}/> : null}
             <RangeField label="Stroke rhythm" value={rhythmPercent} min={50} max={300} step={5} unit="%" onChange={setRhythmPercent} />
             <RangeField label="Movement pace" value={movementPercent} min={50} max={300} step={5} unit="%" onChange={setMovementPercent} />
             <small>Resolved {resolvedStroke}% stroke · {resolvedMovement}% movement. {resolvedPreview.timing?.limited?`${rally ? 'Physical contact interval' : 'Shortest feasible interval'}: ${previewGap.toFixed(2)} s.`:`${previewGap.toFixed(2)} s between shots.`}</small>

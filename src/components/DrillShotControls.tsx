@@ -1,4 +1,5 @@
 import { RangeField } from './RangeField';
+import { ContactTimingControl } from './ContactTimingControl';
 import { BallFocusControls } from './BallFocusControls';
 import type { DrillBall, DrillDefinitionV2, OpeningFeed, PlayerShotEventV2, ShotFamily } from '../content/types';
 import { changeBallFamily, openingFor, receivingZone } from '../content/playerShots';
@@ -71,13 +72,24 @@ export function DrillShotControls({ event, drill, camera, onChange, onCameraChan
   ];
   return <div className="shot-controls">
     <label className="stack-field"><span>Shot name</span><input maxLength={60} value={event.label} onChange={e => onChange({ label: e.target.value })}/></label>
-    <details className="editor-section" open><summary>Your shot</summary><BallIdentity ball={event.ball} label="Your" showHand={false} onChange={ball => onChange({ ball })}/></details>
-    <details className="editor-section" open><summary>Ball &amp; rhythm</summary>
+    <details className="editor-section" open><summary>Player shot · blue zone</summary>
+      <BallIdentity ball={event.ball} label="Your" showHand={false} onChange={ball => onChange({ ball })}/>
+      <ContactTimingControl family={event.ball.family} value={event.ball.contactTiming} label="Player contact timing" onChange={contactTiming => onChange({ ball: { ...event.ball, contactTiming } })}/>
       <BallParameters ball={event.ball} onChange={ball => onChange({ ball })}/>
       <RangeField commitOnRelease label="Player shot interval" value={event.intervalSeconds ?? drill.defaultInterval} min={1} max={30} step={.1} unit="s" onChange={intervalSeconds => onChange({ intervalSeconds })}/>
       <RangeField commitOnRelease label="Stroke rhythm" value={event.rhythmPercent ?? drill.defaultRhythmPercent ?? 100} min={50} max={300} step={5} unit="%" onChange={rhythmPercent => onChange({ rhythmPercent })}/>
       <RangeField commitOnRelease label="Movement pace" value={event.movementPercent ?? drill.defaultMovementPercent ?? 100} min={50} max={300} step={5} unit="%" onChange={movementPercent => onChange({ movementPercent })}/>
       <label className="stack-field"><span>Preparation cue</span><input maxLength={60} value={event.cue} onChange={e => onChange({ cue: e.target.value })}/></label>
+    </details>
+    <details className="editor-section return-shot-section" open><summary>Opponent return · yellow zone</summary>
+      <BallIdentity ball={event.opponentReturn.ball} label="Opponent return" onChange={ball => onChange({ opponentReturn: { ...event.opponentReturn, ball } })}/>
+      <ContactTimingControl family={event.opponentReturn.ball.family} value={event.opponentReturn.ball.contactTiming} label="Opponent contact timing" onChange={contactTiming => onChange({ opponentReturn: { ...event.opponentReturn, ball: { ...event.opponentReturn.ball, contactTiming } } })}/>
+      <BallParameters ball={event.opponentReturn.ball} prefix="Return " onChange={ball => onChange({ opponentReturn: { ...event.opponentReturn, ball } })}/>
+      {nextEvent ? <button type="button" className="secondary-button full-width" onClick={() => onChange({ opponentReturn: { ...event.opponentReturn, landingZone: receivingZone(nextEvent.camera, nextEvent.ball.family, nextEvent.ball, {
+        x: (event.landingZone.minX + event.landingZone.maxX) / 2,
+        z: (event.landingZone.minZ + event.landingZone.maxZ) / 2 + 3,
+      }) } })}>Aim return at next player shot</button> : null}
+      <small>{drill.events.at(-1)?.id === event.id ? 'This shot finishes the point. The return settings are used if another shot follows.' : 'The opponent meets your ball and returns toward the yellow zone for your next shot.'}</small>
     </details>
     <details className="editor-section"><summary>Perspective</summary><BallFocusControls/>
       <div className="court-preset-list">{DEFAULT_CAMERA_POSITION_PRESETS.map(preset => <button type="button" key={preset.id} onClick={() => {
@@ -86,12 +98,6 @@ export function DrillShotControls({ event, drill, camera, onChange, onCameraChan
       }}>{preset.name}</button>)}</div>
       {cameraFields.map(([key, label, step]) => <EditorNumber key={key} label={label} value={camera[key]} min={SHOT_CAMERA_RANGES[key][0]} max={SHOT_CAMERA_RANGES[key][1]} step={step} onChange={value => onCameraChange({ ...camera, [key]: value })}/>)}
       <small>WASD to move · Page Up/Down for height · Drag to look · Wheel to zoom.</small>
-    </details>
-    <details className="editor-section return-shot-section" open><summary>Opponent return · yellow zone</summary>
-      <BallIdentity ball={event.opponentReturn.ball} label="Opponent return" onChange={ball => onChange({ opponentReturn: { ...event.opponentReturn, ball } })}/>
-      <BallParameters ball={event.opponentReturn.ball} prefix="Return " onChange={ball => onChange({ opponentReturn: { ...event.opponentReturn, ball } })}/>
-      {nextEvent ? <button type="button" className="secondary-button full-width" onClick={() => onChange({ opponentReturn: { ...event.opponentReturn, landingZone: receivingZone(nextEvent.camera, nextEvent.ball.family) } })}>Aim return at next player shot</button> : null}
-      <small>{drill.events.at(-1)?.id === event.id ? 'This shot finishes the point. The return settings are used if another shot follows.' : 'The opponent meets your ball and returns toward the yellow zone for your next shot.'}</small>
     </details>
     <details className="editor-section"><summary>New point</summary>
       <label className="check-field"><input type="checkbox" checked={!!event.openingFeed} onChange={e => onChange({ openingFeed: e.target.checked ? openingFor(event) : undefined })}/>Start a fresh opening before this shot</label>

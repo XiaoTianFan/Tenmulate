@@ -26,10 +26,10 @@ editable yellow zone. The primary opening repeats at a set boundary; repetitions
 may finish partway through the final sequence.
 
 The left library supports type/source filters and drag/drop. The timeline supports
-insertion, reordering, right-click/Delete removal and undo/redo. The inspector
-separates shot/spin identity from ball/rhythm sliders; Perspective follows the
-player's ball section. The opponent response has equivalent independent ball
-controls. Kick and sidespin are available only for opening serves, with Normal or
+insertion, reordering and right-click/Delete removal. The inspector groups player
+identity, ball parameters and rhythm in **Player shot · blue zone**, followed by
+**Opponent return · yellow zone**, **Perspective**, and **New point**. The opponent
+response has equivalent independent ball controls. Kick and sidespin are available only for opening serves, with Normal or
 Compact rhythm. Suggested-opening and aim-at-next-shot actions explicitly help
 reconnect an edited sequence. Saved shots capture both balls, zones, camera and
 materialized timing defaults; updating a preset preserves its identity.
@@ -61,6 +61,30 @@ rig's supported envelope (0.65 m ground strokes, 1.1 m volleys, 2.2 m overheads)
 This avoids sinking the mannequin through the court to prolong an interval.
 Net-practice presets use softer volleys and sufficient clearance on approach,
 half-volley and short-angle balls to leave playable bounces and travel time.
+
+Both balls own an optional `contactTiming` (`rise`, `apex`, `descent`), which means
+the phase of the incoming ball at that actor's next stroke. Missing values resolve
+to early descent. The shared bounce-contact helper constrains candidates to the
+chosen phase of the first bounce and ranks them near its preferred time. Apex uses
+the small vertical-velocity window around the physical maximum; descent prefers
+just after that window. Air shots bypass bounce timing and half-volleys always use
+the rising phase. Player and opponent choices are independent; a shorter interval
+cannot switch either choice to an earlier phase or retime a flight.
+
+Quick Rally uses the same helper, with player timing in the blue return settings
+and opponent timing in Ball & rhythm. Its bounded search deduplicates player contact
+samples within 0.1 seconds to avoid fitting nearly identical trajectories. Motion
+rates, camera travel and contact feasibility are checked after physical candidates
+are available. Impossible combinations name contact timing among the settings to
+adjust, and the resolved interval still reports a physical timing limit.
+
+Generated receiving zones account for the requested phase, racket side and the
+incoming crosscourt direction's continued movement after the bounce. Default
+short-angle and half-volley profiles leave sufficient height for a descending
+opponent contact. These are new-preset/suggestion calculations; editing a timing
+choice never moves an existing zone or camera. The selected-shot view still previews
+its two outgoing balls in isolation; Preview sequence applies the player's timing
+to its preceding incoming ball and validates the complete exchange.
 
 Shared source-clock motion, prepared entry after a traveling unit turn, rigid
 grips, fixed bone lengths and recovery/direct-route selection remain in force.
@@ -111,6 +135,9 @@ to avoid claiming an opponent's old forehand was the player's forehand. Invalid
 legacy records remain in the original key, with a startup notice that repair is
 needed. Strict schema 1/2 JSON import rejects invalid conversions before storage.
 New presets and drills round-trip without inheriting settings from another drill.
+Older schema-2 balls and saved shots gain the descent default on load, while
+explicit timings and all authored coordinates are retained. Timing is captured by
+new-shot snapshots and saved-slot overwrite, as well as Quick Practice preferences.
 
 Migration preserves the authored data, not a promise that every old sequence can
 form a continuous physical rally. The editor reports the first unreachable link.

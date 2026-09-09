@@ -6,9 +6,11 @@ import type { ReturnZone } from '../engine/session/returnZone';
 
 export type OpponentHand = 'left' | 'right';
 export type ServeRhythm = 'normal' | 'compact';
+export type ContactTiming = 'rise' | 'apex' | 'descent';
 export type ShotFamily = 'groundstroke' | 'serve' | 'approach' | 'volley' | 'half-volley' | 'lob' | 'overhead' | 'drop-shot';
 export type ReturnShotType = 'groundstroke' | 'drop-shot' | 'volley' | 'overhead' | 'lob';
 export type ReturnShotConfiguration = Readonly<{
+  contactTiming?: ContactTiming;
   paceKmh?: number;
   type: ReturnShotType;
   spin: 'topspin' | 'flat' | 'slice';
@@ -100,6 +102,8 @@ export type SavedShotV1 = Readonly<{id:string;name:string;event:DrillEventV1}>;
 /** Canonical drill authoring. V1 remains the legacy import/Quick Practice contract. */
 export type RallyShotFamily = Exclude<ShotFamily, 'serve'>;
 export type DrillBall = Readonly<{
+  /** When this hitter meets the incoming bounce; absent legacy values mean early descent. */
+  contactTiming?: ContactTiming;
   family: ShotFamily;
   stroke: 'forehand' | 'backhand';
   hand: OpponentHand;

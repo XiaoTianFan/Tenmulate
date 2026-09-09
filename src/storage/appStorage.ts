@@ -1,7 +1,8 @@
 import { normalizeLandingZone, type LandingZone, type LandingZoneSize } from '../engine/trajectory/landingZone';
 import { DEFAULT_RETURN_LANDING_ZONE, isReturnLandingZone } from '../engine/session/returnLandingZone';
 import { defaultReturnShot, normalizeReturnShot } from '../engine/session/returnShot';
-import type { ReturnShotConfiguration } from '../content/types';
+import type { ContactTiming, ReturnShotConfiguration } from '../content/types';
+import { normalizeContactTiming } from '../engine/session/bounceContact';
 import { DEFAULT_BALL_FOCUS, normalizeBallFocus, type BallFocusSettings } from '../engine/rendering/ballFocus';
 import type { CameraConfiguration } from '../engine/rendering/TennisScene';
 import type { QualityMode } from '../engine/rendering/TennisScene';
@@ -82,6 +83,7 @@ export type PracticePreferencesV1 = Readonly<{
   landingZone: LandingZoneSize;
   rallyLandingZone: LandingZone;
   rallyShot: ReturnShotConfiguration;
+  opponentContactTiming: ContactTiming;
   aimDirectionDeg: number;
   opponentPosition: Readonly<{ x: number; z: number }>;
   camera: CameraConfiguration;
@@ -99,6 +101,7 @@ export const DEFAULT_PREFERENCES: PracticePreferencesV1 = {
   opponentHand: 'right', serveRhythm: 'normal', landingDepthM: 8.5,
   landingZone: { width: 1.6, depth: 2 },
   rallyLandingZone: DEFAULT_RETURN_LANDING_ZONE, rallyShot: defaultReturnShot('groundstroke'),
+  opponentContactTiming: 'descent',
   aimDirectionDeg: 0, opponentPosition: DEFAULT_RALLY_OPPONENT_POSITION,
   camera: { eyeHeight: 1.7, behindBaseline: 1.5, lateral: 0, yaw: 0, pitch: -1.7, fov: 70 },
   environment: DEFAULT_ENVIRONMENT, quality: 'auto', screenWidthCm: 120, screenHeightCm: 67.5, viewDistanceCm: 250,
@@ -150,7 +153,7 @@ export const loadAppData = (): AppDataV2 => {
     const customDrills: DrillDefinitionV2[] = [];
     for (const item of Array.isArray(parsed.customDrills) ? parsed.customDrills : []) {
       try {
-        const drill = isPlayerDrill(item) ? item : validateDrill(item).valid ? migratePlayerDrill(item as unknown as DrillDefinitionV1) : null;
+        const drill = isPlayerDrill(item) ? migratePlayerDrill(item) : validateDrill(item).valid ? migratePlayerDrill(item as unknown as DrillDefinitionV1) : null;
         if (drill && isPlayerDrill(drill)) customDrills.push(drill); else skipped++;
       } catch { skipped++; }
     }
@@ -238,6 +241,7 @@ export const loadAppData = (): AppDataV2 => {
       landingZone: normalizeLandingZone(candidate.landingZone, shotType),
       rallyLandingZone: isReturnLandingZone(candidate.rallyLandingZone) ? candidate.rallyLandingZone : DEFAULT_RETURN_LANDING_ZONE,
       rallyShot: normalizeReturnShot(candidate.rallyShot),
+      opponentContactTiming: normalizeContactTiming(candidate.opponentContactTiming),
       landingDepthM: typeof candidate.landingDepthM === 'number'
         ? Math.min(depthRange.max, Math.max(depthRange.min, candidate.landingDepthM))
         : shotProfile.defaultLandingDepthM,
@@ -248,7 +252,7 @@ export const loadAppData = (): AppDataV2 => {
     const savedShots: SavedShotV2[] = [];
     for (const item of Array.isArray(parsed.savedShots) ? parsed.savedShots : []) {
       try {
-        const shot = isPlayerSavedShot(item) ? item : isSavedShot(item) ? migratePlayerSavedShot(item) : null;
+        const shot = isPlayerSavedShot(item) ? migratePlayerSavedShot(item) : isSavedShot(item) ? migratePlayerSavedShot(item) : null;
         if (shot && isPlayerSavedShot(shot)) savedShots.push(shot); else skipped++;
       } catch { skipped++; }
     }

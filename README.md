@@ -28,6 +28,10 @@ position; the opponent meets the physical player flight automatically.
 Drop shots, volleys and overheads are available; kick/sidespin are serve-only.
 New/update presets retain both balls, zones, camera and timing. Playback follows
 the opponent while accelerating and braking between your configured shot views.
+Quick Rally and drill shots independently choose player/opponent contact timing:
+on the rise, at the apex, or early descent (the default). The interval solver fits
+within that phase; it does not switch to a quick rebound to meet a short interval.
+Volleys/overheads stay in the air and half-volleys stay just after the bounce.
 Calculation runs in a cancellable worker. Impossible links are reported before
 playback. Old drills convert by physical role and original browser data is retained.
 See the [player-first drill contract and verification](docs/development/player-first-drills-2026-09-09.md).

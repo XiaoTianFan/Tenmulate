@@ -15,7 +15,8 @@ function object(v: unknown, keys: string, path: string, errors: string[]): v is 
   return true;
 }
 function ball(v: unknown, role: 'launch' | 'rally', path: string, errors: string[]) {
-  if (!object(v, 'family stroke hand paceKmh spin spinRateRpm variationPercent bounceFactor trajectoryMode netClearanceM serveRhythm', path, errors)) return;
+  if (!object(v, 'family stroke hand paceKmh spin spinRateRpm variationPercent bounceFactor trajectoryMode netClearanceM serveRhythm contactTiming', path, errors)) return;
+  if (v.contactTiming !== undefined && !['rise', 'apex', 'descent'].includes(v.contactTiming as string)) errors.push(`${path} contact timing is invalid.`);
   const family = v.family;
   if (typeof family !== 'string' || !Object.hasOwn(SHOT_TYPE_LABELS, family)
     || (role === 'launch' ? !['serve', 'groundstroke'].includes(family) : family === 'serve')) errors.push(`${path} shot type is not valid for this phase.`);

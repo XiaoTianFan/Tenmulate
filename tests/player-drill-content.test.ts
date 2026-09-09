@@ -63,12 +63,23 @@ describe('player-first authoring and role migration', () => {
     expect(converted).toMatchObject({ schemaVersion: 2, name: 'Reply to Old forehand', event: { landingZone: old.event.returnLandingZone } });
     expect(isPlayerSavedShot(converted)).toBe(true);
   });
+  it('snapshots and parses both contact timings as shot settings', () => {
+    const drill = PLAYER_DRILLS[0]!, original = drill.events[0]!;
+    const event = { ...original, ball: { ...original.ball, contactTiming: 'rise' as const },
+      opponentReturn: { ...original.opponentReturn, ball: { ...original.opponentReturn.ball, contactTiming: 'apex' as const } } };
+    const snapshot = snapshotPlayerShot(event, drill);
+    expect(snapshot.ball.contactTiming).toBe('rise');
+    expect(snapshot.opponentReturn.ball.contactTiming).toBe('apex');
+    expect(parsePlayerDrillJson(JSON.stringify({ ...drill, events: [snapshot] })).events[0]).toEqual(snapshot);
+  });
   it('rejects invalid roles, unknown nested fields, non-finite parameters and wrong court halves', () => {
     const base = PLAYER_DRILLS[0]!, event = base.events[0]!;
     const invalid = [
       { ...event, ball: { ...event.ball, family: 'serve' } },
       { ...event, ball: { ...event.ball, spin: 'kick' } },
       { ...event, ball: { ...event.ball, paceKmh: Infinity } },
+      { ...event, ball: { ...event.ball, contactTiming: 'random' } },
+      { ...event, opponentReturn: { ...event.opponentReturn, ball: { ...event.opponentReturn.ball, contactTiming: ['rise'] } } },
       { ...event, opponentReturn: { ...event.opponentReturn, position: { x: 0, z: 12 } } },
       { ...event, landingZone: event.opponentReturn.landingZone },
       { ...event, camera: { ...event.camera, roll: 0 } },

@@ -1,7 +1,7 @@
 import { planRecovery } from './opponentMovement';
 import { resolveReturnShot } from './returnShot';
 import { normalizeShotSpin } from '../../domain/shotKinds';
-import type { ReturnShotConfiguration } from '../../content/types';
+import type { ContactTiming, ReturnShotConfiguration } from '../../content/types';
 import type { DrillDefinition, DrillEventV1, ShotDefinitionV1 } from '../../content/types';
 import { compilePlayerDrill, type CompiledPlayerEvent, type ScheduledDrillFlight, type DrillPlanningIssue } from './compilePlayerDrill';
 import { SHOT_BY_ID, drillShotPace } from '../../content/bundled';
@@ -69,7 +69,7 @@ export type SessionSettings = Readonly<{
   returnReceiverSide?: ReturnReceiverSide;
   windVelocity?: Vec3;
   /** Only Quick Rally enables a physical player return between opponent feeds. */
-  rally?: Readonly<{ landingZone: LandingZone; shot: ReturnShotConfiguration }>;
+  rally?: Readonly<{ landingZone: LandingZone; shot: ReturnShotConfiguration; opponentContactTiming?: ContactTiming }>;
 }>;
 
 export type CompiledRepetition = MotionRepetition & Readonly<{
@@ -141,7 +141,6 @@ export const compileSession = (
   const startTime = 3;
   const mode = settings.mode ?? (settings.practiceShotType ? 'quick-practice' : 'drill');
   const rally = mode === 'quick-practice' && drill.category === 'Quick Rally' && !!settings.rally;
-  const contactRandom = createSeededRandom(`${settings.seed}:bounce-contact`);
   if (continuation) repetitions.push(continuation);
   const rhythmPercent = normalizeRhythm(settings.rhythmPercent ?? (settings.interval !== undefined
     ? rhythmFromLegacyInterval(settings.interval)
@@ -305,7 +304,7 @@ export const compileSession = (
     let contactGap = requestedGap;
     if ((mode === 'drill' || rally) && !rest && draft.shot.family !== 'serve') {
       const target = sampleLandingZone(previous.returnLandingZone, returnRandom);
-      const candidates = returnPlanCandidates(previous.trajectory, draft.shot.family, previous.returnLandingZone, target, requestedGap, previous.returnShot, contactRandom());
+      const candidates = returnPlanCandidates(previous.trajectory, draft.shot.family, previous.returnLandingZone, target, requestedGap, previous.returnShot, settings.rally?.opponentContactTiming);
       // Cheap ceiling check first. The full rhythm search runs only on the chosen
       // intercept, not inside the physics candidate search.
       const candidate = candidates.find(c => {
@@ -321,7 +320,7 @@ export const compileSession = (
       if (rally && !candidate) {
         repetitions[index - 1] = { ...previous, returnStatus: 'infeasible' };
         repetitions.splice(index);
-        planningIssues.push({ index: previous.index, phase: 'response', message: 'The rally cannot connect these zones and shot settings. Adjust the player return or opponent shot.' });
+        planningIssues.push({ index: previous.index, phase: 'response', message: 'The rally cannot connect these zones and shot settings. Adjust the player return, opponent shot or contact timing.' });
         break;
       }
       if (position) {
