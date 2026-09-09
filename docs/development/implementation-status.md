@@ -17,6 +17,13 @@ Returns start on the resolved incoming flight, and the next physical intercept
 supplies the opponent's source and recovery route. Planner `gameplay-return-zones-v9`
 retains interval-first rhythm, continuous camera travel and the current motion bundle.
 Legacy fixed positions and return footprints remain importable but do not drive drills.
+The editor provides a filtered default/saved shot library, timeline drag insertion
+and reordering, right-click removal with Undo, gesture-based WASD, two directly
+editable court zones and explicit saved-shot overwrite. Ball & rhythm uses the
+shared practice sliders and precedes Perspective. The overview fits the whole court.
+Verification: 373 tests, production build and motion/cache checks pass. Production
+Edge checks cover desktop/mobile authoring, persistence, both-zone gestures and
+renderer continuity; actual mannequin contact and bone-length checks pass for both hands.
 The [receipt](editor-return-zones-2026-09-09.md) separates the planner/data stage,
 authoring workflow, actual mannequin checks and final browser verification.
 

@@ -1,3 +1,4 @@
+import { RangeField } from './RangeField';
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Activity, Eye, Gauge, MapPin, Plus, RotateCcw, Target, Trophy, UserRound } from 'lucide-react';
 import { DRILL_BY_CATEGORY } from '../content/bundled';
@@ -55,27 +56,6 @@ const practiceSpinLabel = (shotType: PracticeShotType, spin: SpinKind): string =
       ? 'Flat drive'
       : spin === 'topspin' ? 'Topspin' : `${spin[0]?.toUpperCase()}${spin.slice(1)}`
 );
-
-type RangeFieldProps = Readonly<{
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  step: number;
-  unit: string;
-  onChange: (value: number) => void;
-}>;
-
-function RangeField({ label, value, min, max, step, unit, onChange }: RangeFieldProps) {
-  return (
-    <label className="range-field">
-      <span>{label}</span>
-      <input aria-label={label} type="range" min={min} max={max} step={step} value={value} onChange={(event) => onChange(Number(event.target.value))} />
-      <output>{value.toFixed(step < 1 ? 2 : 0)}</output>
-      <small>{unit}</small>
-    </label>
-  );
-}
 
 function SetupSection({ title, subtitle, open = false, children }: Readonly<{ title: string; subtitle: string; open?: boolean; children: ReactNode }>) {
   return (

@@ -3,6 +3,19 @@
 - **Purpose:** Record concept-to-browser inspection after every implementation stage
 - **Reference viewport:** 1920 × 1080 unless stated otherwise
 
+## Court-space return zones and shot-library editor — 2026-09-09
+
+The [editor/return receipt](editor-return-zones-2026-09-09.md) supersedes the
+camera-relative return footprint in the next entry. Production Edge verifies the
+filtered shot library, native timeline insertion/reordering, removal/Undo, WASD,
+both court-zone moves/resizes and saved-shot overwrite through reload. Desktop,
+centered top-down and 390 px mobile layouts were inspected. Held camera/zone
+gestures do not recompile the session; Test drill retains the renderer instance.
+Actual rendered approach/swing/contact frames were reviewed for both hands at two
+successive physical return intercepts. Racket contact and non-root bone-length
+errors remain below 0.000001 m. The owner's existing editor tab was not reloaded,
+preserving any unsaved work. These are local implementation/verification results.
+
 ## Drill camera, return space and reusable shots — 2026-09-08
 
 The [camera/editor receipt](drill-camera-and-editor-2026-09-08.md) records the 1600 ×

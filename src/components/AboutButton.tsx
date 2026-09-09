@@ -7,7 +7,7 @@ import './about.css';
 const routeHelp: Record<AppRoute, string> = {
   practice: 'Choose your camera and incoming-ball settings, then start Quick Practice.',
   drills: 'Choose a drill to run, duplicate, export or edit. Custom drills stay in this browser.',
-  editor: 'Add default or saved shots, then drag the rows to order them. Set each shot’s view and your return space. Test drill plays the full sequence.',
+  editor: 'Filter default or saved shots and drag them onto the timeline. Right-click a timeline event to remove it. Use Top-down zones to move or resize the incoming landing zone and your return landing zone across the net. Test drill plays the full sequence.',
 };
 
 export function AboutButton({ route }: { route: AppRoute }) {
@@ -30,7 +30,7 @@ export function AboutButton({ route }: { route: AppRoute }) {
           <dl className="shortcut-list">
             <div><dt>Drag the court</dt><dd>Drag outside the landing zone to look around. Scroll to zoom.</dd></div>
             <div><dt>Landing zone</dt><dd>Drag inside to move it; drag an edge or corner to resize. Select the zone and use arrow keys for small adjustments.</dd></div>
-            <div><dt>WASD / Shift</dt><dd>Move around the court during setup. Hold Shift to move faster.</dd></div>
+            <div><dt>WASD / Shift</dt><dd>Move around the court during setup or shot editing. Hold Shift to move faster.</dd></div>
             <div><dt>PgUp / PgDn</dt><dd>Raise or lower the camera.</dd></div>
             <div><dt>Ctrl+W / Ctrl+S</dt><dd>Raise or lower the camera after enabling Protect Ctrl+W/S. Hold Escape to leave protected controls.</dd></div>
             <div><dt>Presets</dt><dd>Choose a camera position or perspective below the canvas. Right-click a preset to update it.</dd></div>

@@ -18,8 +18,7 @@ import { AudienceSystem, type AudienceState } from './AudienceSystem';
 import type { CompiledSession } from '../session/compileSession';
 import { motionEvent, sampleOpponentTimeline, type MotionEvent, type MotionSample } from '../session/opponentTimeline';
 import { sampleCameraTimeline } from '../session/cameraTimeline';
-import { ReturnZoneOverlay } from './ReturnZoneOverlay';
-import type { ReturnZone } from '../session/returnZone';
+import { RETURN_LANDING_LIMITS } from '../session/returnLandingZone';
 import { planRecovery } from '../session/opponentMovement';
 import { ContinuousPracticePreview } from '../session/practicePreview';
 import { sessionFlights } from '../session/sessionFlights';
@@ -117,7 +116,6 @@ export class TennisScene {
   private readonly renderer: THREE.WebGLRenderer;
   private readonly profiler: RendererProfiler | null;
   private readonly scene = new THREE.Scene();
-  private readonly returnZoneOverlay = new ReturnZoneOverlay();
   private readonly camera = new THREE.PerspectiveCamera(54, 16 / 9, 0.05, 350);
   private readonly ball: THREE.Mesh;
   private readonly balls: THREE.Mesh[] = [];
@@ -159,6 +157,7 @@ export class TennisScene {
   private practicePreview: ContinuousPracticePreview | null = null;
   private previewCycle = -1;
   readonly landingZoneControl: LandingZoneControl;
+  readonly returnLandingZoneControl: LandingZoneControl;
   private onSessionIndex: ((index:number, repetition: CompiledRepetition)=>void) | null = null;
   private sessionIndex = -1;
   private lineTrajectory: ResolvedTrajectory | null = null;
@@ -246,8 +245,10 @@ export class TennisScene {
       return [id, manager];
     })) as Record<AuthoredVenueId, VenueAssetManager>;
     this.scene.add(court.group);
-    this.landingZoneControl = new LandingZoneControl(this.camera, canvas);
+    this.landingZoneControl = new LandingZoneControl(this.camera, canvas, { sharedCursor: true });
     this.scene.add(this.landingZoneControl.root);
+    this.returnLandingZoneControl = new LandingZoneControl(this.camera, canvas, { color: 0x48b8ff, name: 'ReturnLandingZone', showBounce: false, sharedCursor: true });
+    this.scene.add(this.returnLandingZoneControl.root);
     this.scene.add(this.audience.group);
     this.scene.add(this.opponent.group);
     this.fallbackBallMachine = court.group.getObjectByName('temporary-ball-machine');
@@ -284,7 +285,6 @@ export class TennisScene {
     this.ballTrail.visible = false;
     this.scene.add(this.ballTrail);
 
-    this.scene.add(this.returnZoneOverlay.group);
     this.setCamera(this.cameraConfiguration);
     this.setQualityMode(options.quality ?? 'auto');
     this.setEnvironment(options.environment ?? DEFAULT_ENVIRONMENT);
@@ -313,10 +313,14 @@ export class TennisScene {
   private setTrajectoryLine(trajectory: ResolvedTrajectory): void {
     if(this.lineTrajectory===trajectory)return;
     this.lineTrajectory=trajectory;
-    this.landingZoneControl.setZone(this.trajectoryLine.visible ? trajectory.intent.landingZone ?? null : null,
-      landingZoneLimits(trajectory.intent.shotType ?? trajectory.intent.family ?? 'groundstroke', trajectory.intent.source));
-    const bounce = trajectory.events.find(event => event.type === 'bounce');
-    if (bounce) this.landingZoneControl.setBounce(bounce.position);
+    // The editable incoming zone stays on the near court while its return flies
+    // through the separately edited blue zone. Never rebind one control to both.
+    if (trajectory.intent.source.z >= 0) {
+      this.landingZoneControl.setZone(this.trajectoryLine.visible ? trajectory.intent.landingZone ?? null : null,
+        landingZoneLimits(trajectory.intent.shotType ?? trajectory.intent.family ?? 'groundstroke', trajectory.intent.source));
+      const bounce = trajectory.events.find(event => event.type === 'bounce');
+      if (bounce) this.landingZoneControl.setBounce(bounce.position);
+    }
     const points = trajectory.samples.map(
       (sample) => new THREE.Vector3(sample.position.x, sample.position.y, sample.position.z),
     );
@@ -344,13 +348,15 @@ export class TennisScene {
     this.landingZoneControl.configure(onChange);
   }
 
-  setReturnZonePreview(zone: ReturnZone | null, camera: CameraConfiguration): void {
-    this.returnZoneOverlay.update(zone,camera);
+  setReturnLandingZone(zone: LandingZone | null, onChange: ((zone: LandingZone) => void) | null): void {
+    this.returnLandingZoneControl.configure(onChange);
+    this.returnLandingZoneControl.acceptModel();
+    this.returnLandingZoneControl.setZone(zone, RETURN_LANDING_LIMITS);
   }
 
   setTrajectoryVisible(visible: boolean): void {
     this.trajectoryLine.visible = visible;
-    this.landingZoneControl.setZone(visible ? this.lineTrajectory?.intent.landingZone ?? null : null);
+    this.landingZoneControl.setZone(visible ? this.trajectory?.intent.landingZone ?? null : null);
   }
 
   setBallPresentation(highContrast: boolean, showTrail: boolean): void {
@@ -763,6 +769,9 @@ export class TennisScene {
     }
     this.audience.update(this.elapsed);
     this.landingZoneControl.update();
+    this.returnLandingZoneControl.update();
+    const cursor = this.returnLandingZoneControl.cursor || this.landingZoneControl.cursor;
+    if (this.canvas.style.cursor !== cursor) this.canvas.style.cursor = cursor;
     this.updateBallHighlight();
     this.profiler?.mark('presentation');
     this.profiler?.beginGpu();
@@ -776,6 +785,8 @@ export class TennisScene {
       this.canvas.dataset.landingZone=JSON.stringify(this.lineTrajectory?.intent.landingZone??null);
       this.canvas.dataset.landingTarget=JSON.stringify(this.lineTrajectory?.intent.target??null);
       this.canvas.dataset.landingZoneScreen=JSON.stringify(this.landingZoneControl.screenPoints());
+      this.canvas.dataset.returnLandingZoneScreen=JSON.stringify(this.returnLandingZoneControl.screenPoints());
+      this.canvas.dataset.zoneSnapshotAt = String(now);
       this.canvas.dataset.audience = this.audience.state.status;
       this.canvas.dataset.spectators = String(this.audience.state.count);
       this.onMetrics?.({

@@ -35,7 +35,8 @@ export class LandingZoneControl {
   private pending = false;
   private drag: { start: THREE.Vector3; zone: LandingZone; limits: LandingZone; handle: ZoneHandle; clientX: number; clientY: number; moved: boolean } | null = null;
 
-  constructor(private readonly camera: THREE.PerspectiveCamera, private readonly canvas: HTMLCanvasElement) {
+  constructor(private readonly camera: THREE.PerspectiveCamera, private readonly canvas: HTMLCanvasElement,
+    private readonly options: { color?: number; name?: string; showBounce?: boolean; sharedCursor?: boolean } = {}) {
     this.root.name = 'LandingZone'; this.root.visible = false;
     this.fill.name = 'LandingZoneArea'; this.fill.rotation.x = -Math.PI / 2;
     this.outline.name = 'LandingZoneBoundary';
@@ -47,6 +48,9 @@ export class LandingZoneControl {
       grip.userData.handle = handle; this.grips.add(grip);
     }
     this.root.add(this.fill, this.outline, this.bounceMarker, this.grips);
+    this.root.name = options.name ?? 'LandingZone';
+    this.fill.material.color.setHex(options.color ?? 0xffe924);
+    this.outline.material.color.setHex(options.color ?? 0xffe924);
   }
 
   configure(onChange: ((zone: LandingZone) => void) | null): void {
@@ -89,15 +93,19 @@ export class LandingZoneControl {
     this.fill.material.opacity = this.drag ? .3 : this.hovered || this.selected ? .23 : .13;
     this.outline.material.opacity = this.drag || this.hovered || this.selected ? 1 : .8;
     this.grips.visible = !!this.onChange && (!!this.hovered || !!this.drag || this.selected);
-    this.bounceMarker.visible = !this.drag && !this.pending;
+    this.bounceMarker.visible = this.options.showBounce !== false && !this.drag && !this.pending;
     const active = this.drag?.handle ?? this.hovered;
     for (const grip of this.grips.children as THREE.Mesh<THREE.BoxGeometry, THREE.MeshBasicMaterial>[]) {
       const h = grip.userData.handle as ZoneHandle, selected = active?.x === h.x && active.z === h.z;
-      grip.material.color.setHex(selected ? 0xffffff : 0xffe924);
+      grip.material.color.setHex(selected ? 0xffffff : this.options.color ?? 0xffe924);
       grip.scale.setScalar(THREE.MathUtils.clamp(this.camera.position.distanceTo(grip.position) * .08, .7, 1.8) * (selected ? 1.3 : 1));
     }
-    const cursor = active && (active.x || active.z) ? this.resizeCursor(active) : this.drag ? 'grabbing' : this.hovered ? 'grab' : '';
-    if (this.canvas.style.cursor !== cursor) this.canvas.style.cursor = cursor;
+    if (!this.options.sharedCursor && this.canvas.style.cursor !== this.cursor) this.canvas.style.cursor = this.cursor;
+  }
+
+  get cursor(): string {
+    const active = this.drag?.handle ?? this.hovered;
+    return active && (active.x || active.z) ? this.resizeCursor(active) : this.drag ? 'grabbing' : this.hovered ? 'grab' : '';
   }
 
   private resizeCursor(handle: ZoneHandle): string {
