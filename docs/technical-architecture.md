@@ -126,7 +126,7 @@ React owns menus and low-frequency state. The session controller owns active pla
 
 - SI units everywhere: meters, seconds, kilograms, radians.
 - Right-handed coordinates:
-  - `x`: court width, positive toward court-right as seen by the near player looking toward the opponent; this never depends on user handedness.
+  - `x`: court width, positive toward court-left as seen by the near player looking toward the opponent; this never depends on user handedness.
   - `y`: vertical, positive upward.
   - `z`: court length, positive from the near baseline toward the opponent.
 - Court center at ground level below the net: `(0, 0, 0)`.
@@ -237,7 +237,40 @@ Resolved shots are checked into source as versioned JSON. Runtime playback does 
 
 ## 7. Drill timeline
 
-**Current runtime (2026-09-09):** [ADR-0036](decisions/0036-independent-return-shot-and-spin.md) advances the planner to `gameplay-return-shots-v10`, extending [ADR-0035](decisions/0035-court-space-returns-and-shot-library-editor.md). [ADR-0022](decisions/0022-continuous-drill-camera-and-reusable-shots.md)
+**Current runtime (2026-09-09):** [ADR-0037](decisions/0037-player-first-drill-planning.md)
+uses `gameplay-player-drills-v11` for schema 2 drills. `PlayerShotEventV2` owns the
+player ball, camera and positive-z landing zone, plus the opponent response ball
+and negative-z return zone. `OpeningFeed` owns the initial opponent body position
+and a feed or serve; additional point openings are explicit event preludes. The
+21 player presets and 16 drill presets use these roles. The session interval now
+measures player contact to player contact. `CompiledSession.playerEvents` owns
+progress and seeking; `scheduledFlights` owns the alternating physical ball clock.
+Opponent `repetitions` remain an internal adapter to the shared mannequin planner.
+
+`courtFlight` rotates the physical solver into the player's direction, including
+wind, velocities and flight events. A player contact must lie on the incoming
+path inside a 1.4 m racket-contact neighborhood anchored to camera court position.
+The opponent contact must lie on that player flight and satisfy the actual motion
+budget. The search filters motion feasibility before downsampling, and rejects
+ankle-height opponent contacts that would sink the visible rig. It favors a
+comfortable contact over waiting for a very late bounce. No ball-time scaling or
+endpoint relocation is used. An impossible link stops compilation with an issue;
+playback starts only when the requested sequence is fully connected. The last
+player action ends the point and does not invent an extra opponent stroke.
+
+The editor compiles on a cancellable module worker, retaining its previous preview
+while new committed settings are solved. Both landing-zone meshes respond during
+dragging without compilation; sliders and WASD also commit on gesture release.
+Opening chips expose every new point, while the shot/spin sections, ball/rhythm
+sliders and perspective controls belong to the selected player action. Saved
+presets deep-copy both balls, both zones, camera and materialized timing defaults.
+Schema 1 remains the Quick Practice/import adapter. Migration maps old incoming
+shot 1 to the opening, each old pseudo-return to the player action, and the next
+incoming shot to its opponent response. Original `tenmulate.appData.v1` bytes remain
+untouched; new canonical records use `tenmulate.appData.v2`. See the
+[verification receipt](development/player-first-drills-2026-09-09.md).
+
+[ADR-0022](decisions/0022-continuous-drill-camera-and-reusable-shots.md)
 uses `CompiledSession.cameraTimeline`; [ADR-0033](decisions/0033-complete-short-running-steps.md)
 retains the complete short-running steps. The compiler
 reserves camera travel, gaze fades and next-stroke preparation in the same absolute
@@ -254,7 +287,7 @@ shot's resolved movement rate; the interval-first search remains primary. Urgent
 short routes complete two anchored running placements, with the source cycle
 aligned to the first anatomical foot, rather than truncating a repeating stride.
 
-`DrillEventV1.returnLandingZone` describes a positive-z court-space rectangle.
+**Legacy schema 1 adapter:** `DrillEventV1.returnLandingZone` describes a positive-z court-space rectangle.
 `returnFlight` samples a bounce target, chooses a physical contact on the incoming
 path and resolves the pseudo-return. The next source is sampled from that return,
 then the next outgoing flight is resolved. Camera placement never moves the zone.
@@ -276,7 +309,7 @@ The editor uses a filtered shot library, drag/drop insertion and timeline reorde
 right-click/Delete removal, and complete new/update preset snapshots. Two persistent
 `LandingZoneControl` meshes handle both court halves; compilation commits only at
 release. WASD and editor sliders likewise preview gestures before committing.
-`SavedShotV1` snapshots defaults in local app data; insertion deep-copies with a new
+The former `SavedShotV1` snapshots defaults in legacy local data; insertion deep-copies with a new
 id. Opponent and return shot/spin controls sit outside Ball & rhythm; Perspective
 follows the incoming flight/timing controls. See the [current receipt](development/return-shot-controls-2026-09-09.md).
 The outline below is the original conceptual model.
@@ -432,10 +465,10 @@ Proposed top-level records:
 - `ResolvedTrajectoryV1`
 - `OpponentClipMetadataV1`
 - `CameraPathV1`
-- `DrillDefinitionV1`
+- `DrillDefinitionV2`, `PlayerShotEventV2`, `SavedShotV2` (schema 1 retained for imports)
 - `AssetManifestV1`
 
-All records have an explicit schema version. Bundled content definitions are immutable build assets; camera-position and perspective preset instances are locally customizable. Legacy coupled saved views migrate into the two independent preset collections, and the former on-court Rally default migrates to the one-metre runback. User-created drills are copies with separate IDs, and each event may store an opponent floor position validated against the ITF competition runoff. JSON import rejects executable content, unknown remote asset references, out-of-envelope positions, and incompatible schema versions.
+All persisted records have an explicit schema version. Bundled content definitions are immutable build assets; camera-position and perspective presets are locally customizable. User-created drills have separate IDs. Only opening shots author an opponent floor position; rally responses resolve it from ball contact. Player and response balls have independent type/spin validation, and zone coordinates are validated for the owning court half. JSON import rejects unknown fields, remote URLs, nonfinite values, out-of-envelope coordinates and unsupported schemas. Original schema 1 drills and saved shots migrate once into the schema 2 app-data envelope; they are retained in their original storage key.
 
 V1 stores calibration, preferences, custom drills, and offline-content selection locally. A service worker precaches the shell and explicitly selected drill asset groups, exposes storage/cache state, and degrades clearly when storage quota prevents an offline promise. No personal data leaves the device unless an explicitly initiated export or a later separately approved analytics/account feature does so.
 

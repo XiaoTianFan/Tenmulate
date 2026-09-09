@@ -3,6 +3,35 @@
 - **Purpose:** Record concept-to-browser inspection after every implementation stage
 - **Reference viewport:** 1920 × 1080 unless stated otherwise
 
+## Player-first drill editor and playback — 2026-09-09
+
+Production Edge at 1680×1000 and 390×844 passes 42 checks covering the player
+library, independent ball controls, feed/serve openings, both landing-zone
+gestures, corner resizing, WASD release commits, saved-shot creation/update,
+timeline insertion/removal/undo, reload and actual startup migration. Additional
+point openings retain their own serve rhythm and yellow zone. Openings are
+excluded from player counts and Next seeks the first player contact. One canvas
+survives Practice, Editor, Library and Gameplay. No browser runtime errors or
+narrow-page horizontal overflow were observed.
+
+Desktop top-down editing, opening-serve editing, mobile layout and representative
+rendered contact screenshots were inspected. The actual Three.js mannequin was
+sampled at approach, prepared entry and contact for both hands across rally,
+Normal/Compact serve returns, overhead practice and half-volley practice: 72
+frames. Maximum racket-contact error was 0.000001103 m; maximum local bone-length
+change was 0.000000220 m. The lowest sampled pelvis/knee positions were 0.544 m
+and 0.151 m above court. Camera checks cover authored player-contact views and
+opponent tracking during travel. These bounded samples do not certify every
+possible custom shot or variation seed.
+
+Evidence: `C:/Users/20378/.codex/visualizations/2026/09/08/01a07e7c-7199-7900-ab83-f0437137320b/player-first-drills/`
+contains `ui-production-qa.mjs`, `ui-results.json`, `rig-final-qa.mjs`,
+`rig-results.json`, `variation-probe.mjs`, `variation-results.json`, desktop/mobile
+editor images, opening/gameplay images and both-hand contact images. Production
+UI checks use 5173; the actual rig probe imports current source through isolated
+4173. The owner's existing browser tab was not reloaded. See the
+[implementation receipt](player-first-drills-2026-09-09.md).
+
 ## Shared minimalist scrollbars — 2026-09-09
 
 Production Edge at 1680×1000 and 390×844 shows 8 px scrollbar tracks with 4 px

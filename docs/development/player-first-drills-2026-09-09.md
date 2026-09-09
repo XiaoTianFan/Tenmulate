@@ -1,0 +1,139 @@
+# Player-first drill planning — 2026-09-09
+
+## Contract and authoring
+
+[ADR-0037](../decisions/0037-player-first-drill-planning.md) replaces opponent-owned
+drill events with `DrillDefinitionV2` and `PlayerShotEventV2`. Quick Practice retains
+its opponent-feed contract. The drill library now contains 16 player-authored
+patterns and 21 player shot presets; forehand, backhand, crosscourt and down-the-line
+names describe the player. Presets assume a right-handed player; explicit hand,
+stroke, camera and zone edits remain independent.
+
+| Concept | Current owner and behavior |
+| --- | --- |
+| Opening | Opponent feed or serve, explicit body position, ball settings and yellow landing zone |
+| Player event | Player camera, hand/stroke, ball speed/spin/type, blue far-court landing zone |
+| Opponent return | Independent response ball and yellow near-court landing zone for the next player action |
+| Opponent position | Resolved from the player flight; authored only for openings |
+| Interval | Requested time between consecutive player contacts |
+| Repetitions | Player actions; opening feeds are excluded |
+| Set/point end | Last player shot completes the point; an extra opponent stroke is not generated |
+
+The opening chip is selectable independently of the numbered player timeline.
+An explicit new-point prelude can also precede an individual action, supporting
+consecutive serve-return exercises. Each prelude has its own opening chip and
+editable yellow zone. The primary opening repeats at a set boundary; repetitions
+may finish partway through the final sequence.
+
+The left library supports type/source filters and drag/drop. The timeline supports
+insertion, reordering, right-click/Delete removal and undo/redo. The inspector
+separates shot/spin identity from ball/rhythm sliders; Perspective follows the
+player's ball section. The opponent response has equivalent independent ball
+controls. Kick and sidespin are available only for opening serves, with Normal or
+Compact rhythm. Suggested-opening and aim-at-next-shot actions explicitly help
+reconnect an edited sequence. Saved shots capture both balls, zones, camera and
+materialized timing defaults; updating a preset preserves its identity.
+
+## Physical compilation and rendering
+
+`compilePlayerDrill` produces `playerEvents`, `scheduledFlights`, opponent motion
+records and one camera timeline. Flight ownership alternates:
+
+```text
+opponent opening -> your shot 1 -> opponent return -> your shot 2 -> ... -> point end
+```
+
+`courtFlight` rotates the existing aerodynamic solver into the player's direction,
+including velocity, wind and flight-event coordinates. Landing samples and speed/
+spin variation use independent seeded streams. Searches keep each sampled landing
+point fixed, preserving uniform area sampling instead of rejecting difficult draws.
+
+The camera anchors a small physical racket-contact neighborhood, with a 0.45 m
+stroke/hand offset and 0.65 m forward offset, bounded to a 1.4 m horizontal reach.
+The launch must also lie on the incoming trajectory and satisfy the selected shot
+family's contact phase and height. Eye height and look direction do not relocate
+the physical ball. Player volley eligibility includes high volleys up to 2.05 m.
+
+The opponent meets the actual player flight. Motion feasibility is filtered before
+reducing the expensive trajectory search, retaining narrow legal contact windows.
+The planner favors a comfortable contact and excludes contacts below the visible
+rig's supported envelope (0.65 m ground strokes, 1.1 m volleys, 2.2 m overheads).
+This avoids sinking the mannequin through the court to prolong an interval.
+Net-practice presets use softer volleys and sufficient clearance on approach,
+half-volley and short-angle balls to leave playable bounces and travel time.
+
+Shared source-clock motion, prepared entry after a traveling unit turn, rigid
+grips, fixed bone lengths and recovery/direct-route selection remain in force.
+Camera travel starts after the player's stroke, uses the existing quintic
+acceleration/deceleration curve and tracks the moving opponent between authored
+views. The authored view is restored before the next player contact. Camera
+comfort scaling changes only presentation, preserving all ball contacts and times.
+
+The final player action ends its point. Its response configuration stays in the
+saved event for later insertion/reordering, but is not played without a following
+player action. Set rests and new openings are explicit boundaries. No ball endpoint
+snaps, time warps or invisible replacement feeds are used.
+
+The module worker handles editor previews, starting a drill and new variations.
+Gesture previews update immediately; only release commits initiate a new solve.
+Obsolete jobs are terminated and the previous preview remains visible while a
+replacement is calculated. The court/renderer stays mounted across routes. Both
+zone meshes remain bound to the selected event while the ball changes flight phase.
+
+## Persistence and migration
+
+Canonical app data uses schema 2 at `tenmulate.appData.v2`. The loader reads the old
+`tenmulate.appData.v1` key only when the new key is absent; original bytes are never
+overwritten by the migration. Existing practice and camera preferences are retained.
+
+For an old drill, the first incoming shot becomes the opening, each pseudo-return
+becomes a player action, and the following incoming shot becomes its opponent
+response. Court and camera coordinates are preserved by role, not mirrored.
+Additional old serves become explicit point openings. Legacy names use “Reply to”
+to avoid claiming an opponent's old forehand was the player's forehand. Invalid
+legacy records remain in the original key, with a startup notice that repair is
+needed. Strict schema 1/2 JSON import rejects invalid conversions before storage.
+New presets and drills round-trip without inheriting settings from another drill.
+
+Migration preserves the authored data, not a promise that every old sequence can
+form a continuous physical rally. The editor reports the first unreachable link.
+The player cannot start an incomplete requested sequence; adjust its preceding
+zone, shot type, pace or next camera, or explicitly start a new point.
+
+## Practical limits
+
+This is simulated tactical rehearsal, not body-tracked racket contact. Authored
+camera positions must remain near the actual incoming ball. Shot intervals are
+search targets constrained by both physical flights, camera travel and mannequin
+preparation; the editor displays the resolved contact interval when it differs.
+An arbitrarily slow interval cannot be created by holding a flying ball in place.
+Exact speed/spin settings may be unreachable. Extreme custom combinations and
+other variation seeds may need authoring adjustments; they do not silently become
+new feeds. No motion asset or public deployment is part of this change.
+
+## Verification
+
+- 428 tests across 43 files pass, including 36 session tests for player-first
+  continuity, camera travel, timing, determinism and invalid-link reporting.
+  All 16 bundled drills complete two sets with seed 18427; a separate browser
+  probe completes all 16 with seed 18428. Content and storage checks cover strict
+  imports, role-preserving conversion, original-byte retention and idempotent reload.
+- TypeScript and the production build pass, including the active motion/cache
+  guard. The existing large-chunk build advisory remains. The shared 25-clip
+  opponent bundle and its provenance were not modified.
+- Production Edge passes 42 desktop/mobile checks: independent ball identity and
+  parameters, both zones and resizing, no mid-gesture compilation, WASD, library
+  filtering/drop, timeline removal/undo, saved-shot overwrite, reload, migration,
+  separate point openings, player counts and shared-renderer continuity.
+- Actual rendered checks cover 72 both-hand approach/entry/contact frames across
+  four representative drills, with maximum contact error 0.000001103 m and
+  bone-length change 0.000000220 m. Minimum sampled pelvis/knee heights are
+  0.544/0.151 m. Authored contact views and opponent tracking during camera travel
+  pass. Representative editor, mobile, serve-opening and contact images were
+  visually inspected; no browser runtime errors were observed.
+
+Scripts, measurements and screenshots are under
+`C:/Users/20378/.codex/visualizations/2026/09/08/01a07e7c-7199-7900-ab83-f0437137320b/player-first-drills/`.
+The [visual ledger](visual-verification.md#player-first-drill-editor-and-playback--2026-09-09)
+names the final probes. The original browser tab was preserved. Local verification
+does not claim owner acceptance, exhaustive custom-combination coverage or deployment.

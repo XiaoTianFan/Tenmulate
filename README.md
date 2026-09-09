@@ -19,15 +19,17 @@ iOS Safari; connecting to an existing receiver still requires Control Center.
 The app cannot verify that connection. See the
 [capture contract and remaining transport gate](docs/decisions/0034-persistent-court-capture.md).
 
-The drill editor filters default/saved shots for drag-and-drop timeline assembly.
-**Top-down zones** edits the yellow incoming landing zone and blue opponent-side
-return landing zone. **Return zone** selects the pseudo-return's own shot type,
-spin and spin rate; the physical return determines the opponent's next contact.
-**Opponent shot** selects the incoming type and spin separately from Ball & rhythm.
+The drill editor plans **your shots**. An opponent opening feed or serve starts
+each point; player presets then assemble the tactical sequence. **Top-down zones**
+edits your blue landing zone on the far court and the opponent's yellow return
+zone for your next shot. Each event owns both balls' settings and your camera
+position; the opponent meets the physical player flight automatically.
 Drop shots, volleys and overheads are available; kick/sidespin are serve-only.
-New/update presets retain both zones, return style, camera, ball and timing.
-Playback follows the opponent while accelerating and braking between shot views.
-See the [return shot verification receipt](docs/development/return-shot-controls-2026-09-09.md).
+New/update presets retain both balls, zones, camera and timing. Playback follows
+the opponent while accelerating and braking between your configured shot views.
+Calculation runs in a cancellable worker. Impossible links are reported before
+playback. Old drills convert by physical role and original browser data is retained.
+See the [player-first drill contract and verification](docs/development/player-first-drills-2026-09-09.md).
 
 **Perspective → Ball highlight** makes the incoming ball lighter and more luminous
 as it approaches. It changes only the ball's material; trajectory lines and landing

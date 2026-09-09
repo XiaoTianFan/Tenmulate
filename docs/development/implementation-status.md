@@ -2,12 +2,35 @@
 
 - **Status:** Active
 - **Last updated:** 2026-09-09
-- **Current implementation:** Six Blender-authored venues by default, twelve Quality/Performance GLBs, and optional Empty/Half/Full instanced 2D audiences. Procedural venue presentation and the opt-in gate are removed. Existing outdoor Quality geometry, darker grass and denser nets are preserved.
+- **Current implementation:** Player-first drill planning and editing, with separate opponent openings, camera-anchored player contacts, independent opponent responses, and migrated shot/drill presets. Six Blender-authored venues and twelve Quality/Performance GLBs remain active; audiences default to Half.
 - **Previous venue integration:** Source/assets `25e363b`, runtime `18141c5` and verification `d1a916a` were fast-forwarded into `main`, preserving separately committed local-motion work `b2a082e`. All twelve local feature tips were included at this integration checkpoint; see the [branch audit](feature-branch-integration-2026-09-05.md). No remote push or deployment.
 
 **Motion/model integration checkpoint (2026-09-07):** Local `main` includes all 17 motion/model feature commits plus delivery/documentation reconciliation through `a9ba202`: all 24 clips, the 1.88 m articulated model, recovery planning, crossovers and both serve rhythms. No local feature tip remains unmerged. The 237-test suite, production build, active-asset/cache guard, both-hand gameplay/crossover checks and actual production-browser practice review pass. The [current motion contract](local-motion-pipeline.md) replaces competing “latest” descriptions below; the [integration receipt](motion-main-integration-2026-09-07.md) records the exact merge, evidence and remaining owner/device gates. Older stage counts and asset hashes below are historical evidence, not active selectors. No public deployment occurred.
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
+
+## Player-first drill planning and editor — 2026-09-09
+
+[ADR-0037](../decisions/0037-player-first-drill-planning.md) changes authored
+events to the player's actions. The editor offers 21 player shot presets and 16
+rewritten drill presets, an independent feed/serve opening, blue player landing
+zones and yellow opponent-return zones. Each event saves both balls, its camera
+and timing. Opponent contacts resolve on the player's flight; camera travel uses
+the shared eased movement timeline and follows the opponent between shot views.
+
+Planner `gameplay-player-drills-v11` compiles continuous physical contacts in a
+cancellable module worker. Unreachable links are reported before gameplay can
+start. Original schema 1 storage is retained while schema 2 becomes canonical;
+legacy pseudo-returns become player actions without reinterpreting old opponent
+stroke labels. Quick Practice retains its existing feed model.
+
+Verification: 428 tests across 43 files, production build and active motion/cache
+guard pass. Production Edge passes 42 authoring, playback and migration checks at
+1680×1000 and 390×844. Actual renderer checks cover 72 both-hand approach, prepared
+entry and contact frames, plus authored camera views and opponent tracking.
+See the [implementation receipt](player-first-drills-2026-09-09.md) for physical
+limits, preserved data and evidence. This is local implementation and verification;
+owner acceptance and public deployment remain separate.
 
 ## Shared minimalist scrollbars — 2026-09-09
 

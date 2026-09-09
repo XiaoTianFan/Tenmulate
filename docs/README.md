@@ -15,6 +15,8 @@ This folder is the project record for product discovery, design, architecture, a
 
 ## Current research reading packets
 
+- [Player-first drill planning and verification](development/player-first-drills-2026-09-09.md): schema 2 player events, opening feeds, both ball configurations, physical contact/camera linkage and migration under [ADR-0037](decisions/0037-player-first-drill-planning.md).
+
 - [Independent return shot controls and verification](development/return-shot-controls-2026-09-09.md): separate incoming/return types and spin, physical contacts, drop shots, serve-only axes and saved preset persistence under [ADR-0036](decisions/0036-independent-return-shot-and-spin.md).
 
 - [Persistent court capture implementation and verification](development/persistent-court-capture-2026-09-09.md): stable canvas/audio capture across setup and practice, local preview and explicit iOS receiver-transport limitation. Native Screen Mirroring is a manual fallback.
