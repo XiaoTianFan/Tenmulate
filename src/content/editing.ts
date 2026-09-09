@@ -7,6 +7,8 @@ import { normalizeLandingZone } from '../engine/trajectory/landingZone';
 import { rhythmFromLegacyInterval } from '../engine/session/rhythm';
 import { strokeForShot } from '../engine/session/opponentTimeline';
 import { DEFAULT_RETURN_LANDING_ZONE } from '../engine/session/returnLandingZone';
+import { resolveReturnShot } from '../engine/session/returnShot';
+import { normalizeShotSpin } from '../domain/shotKinds';
 
 export const eventCamera = (event: DrillEventV1, previous = DEFAULT_DRILL_CAMERA): CameraConfiguration => {
   const motion = event.cameraMotion === undefined ? SHOT_BY_ID.get(event.shotId)?.cameraMotion : event.cameraMotion;
@@ -16,7 +18,7 @@ export const eventCamera = (event: DrillEventV1, previous = DEFAULT_DRILL_CAMERA
 /** Resolve inherited defaults before saving, so reuse in another drill is stable. */
 export function snapshotShot(event: DrillEventV1, drill: DrillDefinitionV1, camera: CameraConfiguration): DrillEventV1 {
   const shot = SHOT_BY_ID.get(event.shotId)!;
-  const spin = event.spin && event.spin !== 'preset' ? event.spin : shot.spin;
+  const spin = normalizeShotSpin(shot.family, event.spin && event.spin !== 'preset' ? event.spin : shot.spin);
   const index = Math.max(0,materializeEvents(drill).findIndex(item=>item.id===event.id));
   const clip = strokeForShot({...shot,stroke:event.stroke??shot.stroke,spin,
     opponentHand:event.opponentHand??shot.opponentHand},index);
@@ -24,6 +26,7 @@ export function snapshotShot(event: DrillEventV1, drill: DrillDefinitionV1, came
     paceKmh:event.paceKmh ?? drillShotPace(shot), spin, spinRateRpm:event.spinRateRpm ?? defaultSpinRateRpm({...shot,spin}),
     target:event.target ?? shot.target, landingZone:normalizeLandingZone(event.landingZone,shot.family), variationPercent:event.variationPercent ?? 8,
     returnLandingZone:event.returnLandingZone ?? DEFAULT_RETURN_LANDING_ZONE,
+    returnShot:resolveReturnShot(event.returnShot, SHOT_BY_ID.get(materializeEvents(drill)[(index + 1) % materializeEvents(drill).length]!.shotId)?.family),
     opponentPosition:undefined, opponentHand:event.opponentHand ?? shot.opponentHand,
     stroke:shot.family==='serve'?undefined:clip.startsWith('backhand')?'backhand':'forehand', serveRhythm:event.serveRhythm === 'preset' ? shot.serveRhythm : event.serveRhythm ?? shot.serveRhythm,
     netClearanceM:event.netClearanceM ?? shot.netClearanceM, cue:event.cue ?? shot.cue,

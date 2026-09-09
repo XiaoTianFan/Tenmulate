@@ -6,7 +6,13 @@ import type { ReturnZone } from '../engine/session/returnZone';
 
 export type OpponentHand = 'left' | 'right';
 export type ServeRhythm = 'normal' | 'compact';
-export type ShotFamily = 'groundstroke' | 'serve' | 'approach' | 'volley' | 'half-volley' | 'lob' | 'overhead';
+export type ShotFamily = 'groundstroke' | 'serve' | 'approach' | 'volley' | 'half-volley' | 'lob' | 'overhead' | 'drop-shot';
+export type ReturnShotType = 'groundstroke' | 'drop-shot' | 'volley' | 'overhead' | 'lob';
+export type ReturnShotConfiguration = Readonly<{
+  type: ReturnShotType;
+  spin: 'topspin' | 'flat' | 'slice';
+  spinRateRpm?: number;
+}>;
 export type SessionCategory =
   | 'Quick Rally'
   | 'Return Practice'
@@ -69,6 +75,7 @@ export type DrillEventV1 = Readonly<{
   target?: Readonly<{ x: number; z: number }>;
   landingZone?: LandingZoneSize;
   returnLandingZone?: LandingZone;
+  returnShot?: ReturnShotConfiguration;
   variationPercent?: number;
   opponentPosition?: Readonly<{ x: number; z: number }>;
   cameraMotion?: CameraMotionDefinition | null;

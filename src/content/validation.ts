@@ -4,6 +4,7 @@ import type { DrillDefinitionV1, DrillEventV1, SavedShotV1, SessionCategory } fr
 import { SHOT_CAMERA_RANGES } from '../engine/session/cameraTimeline';
 import { RETURN_ZONE_RANGES } from '../engine/session/returnZone';
 import { isReturnLandingZone } from '../engine/session/returnLandingZone';
+import { RETURN_SHOT_PROFILES } from '../engine/session/returnShot';
 
 export type ValidationResult = Readonly<{
   valid: boolean;
@@ -24,7 +25,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const allowedDrillKeys = new Set(['schemaVersion', 'id', 'title', 'description', 'category', 'shotIds', 'events', 'defaultInterval', 'defaultRhythmPercent', 'defaultMovementPercent', 'defaultRepetitions', 'returnZone']);
-const allowedEventKeys = new Set(['id', 'shotId', 'paceKmh', 'spin', 'target', 'landingZone', 'returnLandingZone', 'variationPercent', 'opponentPosition', 'cameraMotion', 'cue', 'serveRhythm', 'netClearanceM', 'label', 'camera', 'stroke', 'opponentHand', 'spinRateRpm', 'bounceFactor', 'trajectoryMode', 'rhythmPercent', 'movementPercent', 'intervalSeconds']);
+const allowedEventKeys = new Set(['id', 'shotId', 'paceKmh', 'spin', 'target', 'landingZone', 'returnLandingZone', 'returnShot', 'variationPercent', 'opponentPosition', 'cameraMotion', 'cue', 'serveRhythm', 'netClearanceM', 'label', 'camera', 'stroke', 'opponentHand', 'spinRateRpm', 'bounceFactor', 'trajectoryMode', 'rhythmPercent', 'movementPercent', 'intervalSeconds']);
 const allowedCameraMotionKeys = new Set(['from', 'to', 'duration', 'delay']);
 const allowedCameraKeys = new Set(['eyeHeight', 'behindBaseline', 'lateral', 'yaw', 'pitch', 'fov']);
 const inRange = (value: unknown, range: readonly [number,number]): boolean => typeof value === 'number' && Number.isFinite(value) && value >= range[0] && value <= range[1];
@@ -67,6 +68,14 @@ const validateEvent = (value: unknown, index: number, errors: string[]): value i
     else if (Math.abs(value.target.x) > 4.115 || value.target.z >= 0 || value.target.z < -11.885) errors.push(`Event ${index + 1} target is outside the near singles court.`);
   }
   const zone = value.landingZone;
+  const returnShot = value.returnShot;
+  if (returnShot !== undefined && (!isRecord(returnShot)
+    || Object.keys(returnShot).some(key => !['type', 'spin', 'spinRateRpm'].includes(key))
+    || typeof returnShot.type !== 'string' || !Object.hasOwn(RETURN_SHOT_PROFILES, returnShot.type)
+    || !['flat', 'topspin', 'slice'].includes(String(returnShot.spin))
+    || (returnShot.spinRateRpm !== undefined && !inRange(returnShot.spinRateRpm, [0, 6000])))) {
+    errors.push(`Event ${index + 1} return shot type, spin or spin rate is invalid.`);
+  }
   if (value.returnLandingZone !== undefined && !isReturnLandingZone(value.returnLandingZone)) {
     errors.push(`Event ${index + 1} return landing zone must be a 0.2–6 m rectangle on the far singles court.`);
   }

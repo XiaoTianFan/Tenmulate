@@ -1,9 +1,9 @@
 import { COURT } from '../../domain/court';
-import type { ShotFamily } from '../../content/types';
+import type { ReturnShotConfiguration, ShotFamily } from '../../content/types';
 import type { Vec3 } from '../../domain/vector';
 import type { LandingZone } from '../trajectory/landingZone';
 import { aimDirectionToCourtPoint, netHeightAt, resolveTrajectory, type FlightSample, type ResolvedTrajectory } from '../trajectory/physics';
-import { legalReturnContacts } from './playerCoverage';
+import { resolveReturnShot, RETURN_SHOT_PROFILES, returnShotContacts } from './returnShot';
 export type RallyReturn = Readonly<{ trajectory: ResolvedTrajectory; contactTime: number;
   duration: number; contactErrorM: number; speedRatio: number }>;
 
@@ -13,12 +13,14 @@ const rotate = (p: Vec3): Vec3 => ({ x: -p.x, y: p.y, z: -p.z });
 /** Solve in the trajectory solver's canonical half, then rotate the complete
  * physical flight 180 degrees. No endpoint snapping or retiming of the ball. */
 function returnFlight(incoming: ResolvedTrajectory, contact: FlightSample, target: { x: number; z: number },
-  zone: LandingZone, pace: number, overhead: boolean): ResolvedTrajectory {
+  zone: LandingZone, pace: number, shot: ReturnShotConfiguration): ResolvedTrajectory {
   const source = rotate(contact.position), mirroredTarget = { x: -target.x, z: -target.z };
+  const profile = RETURN_SHOT_PROFILES[shot.type];
   const flight = resolveTrajectory({ source, target: mirroredTarget,
+    landingZone: { minX: -zone.maxX, maxX: -zone.minX, minZ: -zone.maxZ, maxZ: -zone.minZ },
     aimDirectionDeg: aimDirectionToCourtPoint(source, mirroredTarget),
-    family: overhead ? 'lob' : 'groundstroke', spin: 'topspin', spinRateRpm: overhead ? 1100 : 600,
-    launchSpeedKmh: pace, trajectoryMode: 'natural', minimumNetClearanceM: overhead ? 2.5 : .25,
+    family: shot.type, spin: shot.spin, spinRateRpm: shot.spinRateRpm ?? profile.rpm,
+    launchSpeedKmh: pace, trajectoryMode: 'natural', minimumNetClearanceM: profile.clearance,
     surface: incoming.intent.surface, windVelocity: incoming.intent.windVelocity && rotate(incoming.intent.windVelocity),
     bounceFactor: incoming.intent.bounceFactor,
   });
@@ -32,19 +34,18 @@ function returnFlight(incoming: ResolvedTrajectory, contact: FlightSample, targe
 /** Bounded flight search. The compiler checks opponent/camera feasibility before
  * accepting a contact. The sampled bounce target stays fixed across candidates. */
 export function returnPlanCandidates(incoming: ResolvedTrajectory, family: ShotFamily, zone: LandingZone,
-  target: { x: number; z: number }, preferredGap: number): ReturnCandidate[] {
+  target: { x: number; z: number }, preferredGap: number, configuration?: ReturnShotConfiguration): ReturnCandidate[] {
   if (family === 'serve') return [];
-  const legal = legalReturnContacts(incoming);
-  const bounced = legal.filter(s => s.bounced && s.position.y >= .55 && s.position.y <= 1.5);
-  const contacts = bounced.length ? bounced : legal;
+  const shot = resolveReturnShot(configuration, family), profile = RETURN_SHOT_PROFILES[shot.type];
+  const contacts = returnShotContacts(incoming, shot.type);
   if (!contacts.length) return [];
-  const ranked = [...contacts].sort((a, b) => Math.abs(a.position.y - 1.05) - Math.abs(b.position.y - 1.05));
+  const ranked = [...contacts].sort((a, b) => Math.abs(a.position.y - profile.height) - Math.abs(b.position.y - profile.height));
   const selected = [...new Set([ranked[0]!, contacts[0]!])];
-  const preferred = incoming.resolved.launchSpeedKmh;
+  const preferred = profile.pace;
   const results: ReturnCandidate[] = [];
   for (const contact of selected) {
     for (const factor of [1, .8, 1.2]) {
-      const flight = returnFlight(incoming, contact, target, zone, Math.max(45, Math.min(135, preferred * factor)), family === 'overhead');
+      const flight = returnFlight(incoming, contact, target, zone, preferred * factor, shot);
       const net = flight.events.find(e => e.type === 'net-crossing');
       const bounce = flight.events.find(e => e.type === 'bounce');
       if (!net || net.position.y < netHeightAt(net.position.x) + COURT.ballRadius + .05 || !bounce
@@ -55,7 +56,7 @@ export function returnPlanCandidates(incoming: ResolvedTrajectory, family: ShotF
         && s.position.z < COURT.halfLength + 3 && Math.abs(s.position.x) < COURT.singlesWidth / 2 + 1.5
         && (family === 'volley' ? !s.bounced && s.position.z < COURT.serviceLineFromNet && s.position.y >= .65 && s.position.y <= 1.75
           : family === 'overhead' ? !s.bounced && s.position.y >= 1.8 && s.position.y <= 2.65
-          : s.bounced && s.position.y >= (family === 'half-volley' ? .25 : .55) && s.position.y <= (family === 'half-volley' ? .8 : 1.5));
+          : s.bounced && s.position.y >= (family === 'half-volley' || family === 'drop-shot' || shot.type === 'drop-shot' ? .25 : .55) && s.position.y <= (family === 'half-volley' ? .8 : 1.5));
       const samples = flight.samples.filter(eligible);
       // Include the precise requested clock when it lies inside a legal segment.
       const desired = preferredGap - contact.time;

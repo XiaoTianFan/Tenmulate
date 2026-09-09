@@ -1,8 +1,9 @@
 import { COURT, DEFAULT_RALLY_OPPONENT_POSITION, DEUCE_SERVE_OPPONENT_POSITION } from '../../domain/court';
 import type { SpinKind } from './physics';
 import { GROUNDSTROKE_FLAT_SPIN_PROFILE, GROUNDSTROKE_TOPSPIN_DEFAULT_RPM } from './spinCalibration';
+import { normalizeShotSpin } from '../../domain/shotKinds';
 
-export type PracticeShotType = 'groundstroke' | 'serve' | 'volley' | 'lob' | 'overhead';
+export type PracticeShotType = 'groundstroke' | 'serve' | 'volley' | 'lob' | 'overhead' | 'drop-shot';
 
 export type SpinRateProfile = Readonly<{
   defaultRpm: number;
@@ -25,13 +26,22 @@ export type PracticeShotProfile = Readonly<{
 }>;
 
 export const PRACTICE_SHOT_PROFILES: Readonly<Record<PracticeShotType, PracticeShotProfile>> = {
+  'drop-shot': {
+    label: 'Drop shot', contactHeight: .9, opponentPosition: { x: 0, z: 5.5 },
+    defaultLaunchSpeedKmh: 38, launchSpeedRangeKmh: { min: 20, max: 100 },
+    minimumNetClearanceM: .12, defaultLandingDepthM: 2.8,
+    landingDepthRangeM: { min: 1.2, max: COURT.halfLength - .25 },
+    defaultSpin: 'slice', spins: ['topspin', 'flat', 'slice'],
+    spinRates: { flat: { defaultRpm: 120, minRpm: 0, maxRpm: 500 },
+      topspin: { defaultRpm: 600, minRpm: 0, maxRpm: 2500 }, slice: { defaultRpm: 1400, minRpm: 0, maxRpm: 3500 } },
+  },
   overhead: {
     label: 'Overhead', contactHeight: 2.7, opponentPosition: { x: 0, z: 4.5 },
     defaultLaunchSpeedKmh: 90, launchSpeedRangeKmh: { min: 50, max: 150 },
     minimumNetClearanceM: .12, defaultLandingDepthM: 8.5,
     landingDepthRangeM: { min: 3, max: COURT.halfLength - .25 },
-    defaultSpin: 'flat', spins: ['flat', 'topspin'],
-    spinRates: { flat: { defaultRpm: 760, minRpm: 250, maxRpm: 1600 }, topspin: { defaultRpm: 1103, minRpm: 300, maxRpm: 3000 } },
+    defaultSpin: 'flat', spins: ['flat', 'topspin', 'slice'],
+    spinRates: { flat: { defaultRpm: 760, minRpm: 250, maxRpm: 1600 }, topspin: { defaultRpm: 1103, minRpm: 300, maxRpm: 3000 }, slice: { defaultRpm: 1000, minRpm: 0, maxRpm: 3000 } },
   },
   groundstroke: {
     label: 'Groundstroke',
@@ -60,11 +70,13 @@ export const PRACTICE_SHOT_PROFILES: Readonly<Record<PracticeShotType, PracticeS
     defaultLandingDepthM: 5.05,
     landingDepthRangeM: { min: 1.2, max: COURT.serviceLineFromNet - 0.12 },
     defaultSpin: 'flat',
-    spins: ['flat', 'slice', 'kick'],
+    spins: ['flat', 'topspin', 'slice', 'kick', 'sidespin'],
     spinRates: {
       flat: { defaultRpm: 1179, minRpm: 400, maxRpm: 2200 },
       slice: { defaultRpm: 2212, minRpm: 800, maxRpm: 3500 },
       kick: { defaultRpm: 3220, minRpm: 1200, maxRpm: 4000 },
+      topspin: { defaultRpm: 3220, minRpm: 1200, maxRpm: 4000 },
+      sidespin: { defaultRpm: 1814, minRpm: 400, maxRpm: 4000 },
     },
   },
   volley: {
@@ -77,9 +89,11 @@ export const PRACTICE_SHOT_PROFILES: Readonly<Record<PracticeShotType, PracticeS
     defaultLandingDepthM: 4.5,
     landingDepthRangeM: { min: 1.2, max: 9.5 },
     defaultSpin: 'flat',
-    spins: ['flat'],
+    spins: ['flat', 'topspin', 'slice'],
     spinRates: {
       flat: { defaultRpm: 0, minRpm: 0, maxRpm: 0 },
+      topspin: { defaultRpm: 600, minRpm: 0, maxRpm: 2500 },
+      slice: { defaultRpm: 650, minRpm: 0, maxRpm: 2500 },
     },
   },
   lob: {
@@ -102,12 +116,13 @@ export const PRACTICE_SHOT_PROFILES: Readonly<Record<PracticeShotType, PracticeS
 };
 
 export const isPracticeShotType = (value: unknown): value is PracticeShotType => (
-  value === 'groundstroke' || value === 'serve' || value === 'volley' || value === 'lob' || value === 'overhead'
+  value === 'groundstroke' || value === 'serve' || value === 'volley' || value === 'lob' || value === 'overhead' || value === 'drop-shot'
 );
 
 export const spinForPracticeShot = (shotType: PracticeShotType, spin: unknown): SpinKind => {
   const profile = PRACTICE_SHOT_PROFILES[shotType];
-  return profile.spins.includes(spin as SpinKind) ? spin as SpinKind : profile.defaultSpin;
+  const normalized = normalizeShotSpin(shotType, spin as SpinKind);
+  return profile.spins.includes(normalized) ? normalized : profile.defaultSpin;
 };
 
 export const spinRateProfileForPracticeShot = (

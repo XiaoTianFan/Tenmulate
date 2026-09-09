@@ -1,4 +1,7 @@
 import { planRecovery } from './opponentMovement';
+import { resolveReturnShot } from './returnShot';
+import { normalizeShotSpin } from '../../domain/shotKinds';
+import type { ReturnShotConfiguration } from '../../content/types';
 import type { DrillDefinitionV1, DrillEventV1, ShotDefinitionV1 } from '../../content/types';
 import { SHOT_BY_ID, drillShotPace } from '../../content/bundled';
 import type { SurfaceId } from '../../domain/court';
@@ -77,15 +80,16 @@ export type CompiledRepetition = MotionRepetition & Readonly<{
   returnServePlacement?: ReturnServePlacement;
   reachability: Reachability;
   returnLandingZone: LandingZone;
+  returnShot: ReturnShotConfiguration;
   rallyReturn?: RallyReturn;
   returnStatus: 'quick-practice' | 'end' | 'rest' | 'new-serve' | 'unreachable' | 'infeasible' | 'linked';
 }>;
 
 export type CompiledSession = Readonly<{
   previewLoop?: true;
-  solverVersion: 'ball-v7-net-clearance';
-  plannerVersion: 'gameplay-return-zones-v9';
-  contentVersion: '2026.09.08';
+  solverVersion: 'ball-v8-shot-spin';
+  plannerVersion: 'gameplay-return-shots-v10';
+  contentVersion: '2026.09.09';
   drill: DrillDefinitionV1;
   settings: SessionSettings;
   repetitions: readonly CompiledRepetition[];
@@ -146,11 +150,11 @@ export const compileSession = (
     const variation = Math.min(.25, Math.max(0, (eventVariation ?? settings.variationPercent) / 100));
     const eventSpin = sourceEvent && 'spin' in sourceEvent ? sourceEvent.spin : undefined;
     const practiceProfile = settings.practiceShotType ? PRACTICE_SHOT_PROFILES[settings.practiceShotType] : null;
-    const selectedSpin = settings.practiceShotType
+    const selectedSpin = normalizeShotSpin(settings.practiceShotType ?? sourceShot.family, settings.practiceShotType
       ? spinForPracticeShot(settings.practiceShotType, settings.spin)
       : eventSpin && eventSpin !== 'preset'
         ? eventSpin
-        : settings.spin === 'preset' ? sourceShot.spin : settings.spin;
+        : settings.spin === 'preset' ? sourceShot.spin : settings.spin);
     const launchSpeedKmh = sampleParameter((
       sourceEvent && 'paceKmh' in sourceEvent && sourceEvent.paceKmh
         ? sourceEvent.paceKmh
@@ -257,6 +261,7 @@ export const compileSession = (
       home: mode === 'quick-practice' ? { x: quickOrigin.x, y: 0, z: quickOrigin.z } : undefined,
       reachability: mode === 'drill' ? assessDrillReturn(trajectory) : assessReachability(trajectory, { ...cameraPlayerPosition(camera), yaw: camera.yaw }),
       returnLandingZone: sourceEvent?.returnLandingZone ?? DEFAULT_RETURN_LANDING_ZONE,
+      returnShot: resolveReturnShot(sourceEvent?.returnShot, SHOT_BY_ID.get(sourceEvents[(index + 1) % sourceEvents.length]!.shotId)?.family),
       returnStatus: mode === 'quick-practice' ? 'quick-practice' : 'end',
     });
   }
@@ -282,7 +287,7 @@ export const compileSession = (
     let contactGap = requestedGap;
     if (mode === 'drill' && !rest && draft.shot.family !== 'serve') {
       const target = sampleLandingZone(previous.returnLandingZone, returnRandom);
-      const candidates = returnPlanCandidates(previous.trajectory, draft.shot.family, previous.returnLandingZone, target, requestedGap);
+      const candidates = returnPlanCandidates(previous.trajectory, draft.shot.family, previous.returnLandingZone, target, requestedGap, previous.returnShot);
       // Cheap ceiling check first. The full rhythm search runs only on the chosen
       // intercept, not inside the physics candidate search.
       const candidate = candidates.find(c => {
@@ -362,9 +367,9 @@ export const compileSession = (
     last.startTime + (last.trajectory.samples.at(-1)?.time ?? 0)) : startTime;
 
   return {
-    solverVersion: 'ball-v7-net-clearance',
-    plannerVersion: 'gameplay-return-zones-v9',
-    contentVersion: '2026.09.08',
+    solverVersion: 'ball-v8-shot-spin',
+    plannerVersion: 'gameplay-return-shots-v10',
+    contentVersion: '2026.09.09',
     drill,
     settings: { ...settings, rhythmPercent, shotIntervalSeconds: interval, movementPercent:movementRate*100, mode },
     repetitions,

@@ -12,6 +12,12 @@ links. `ContinuousPracticePreview` joins fresh batches through the same recovery
 planner on an absolute clock. Its setup stream has no set-end rest or restart;
 launched practice still uses the finite compiled session. No motion asset changed.
 
+[ADR-0036](../decisions/0036-independent-return-shot-and-spin.md) adds independently
+configured return styles and an incoming drop-shot family. The planner resolves
+the next opponent contact from that physical return. Drop shots use the existing
+ground/slice clips; volleys and overheads retain their family-specific routing.
+The active bundle, source clocks, grips and contact anchors below are unchanged.
+
 | Surface | Authority |
 | --- | --- |
 | Gameplay, ball flight, session clock, world travel and foot correction | This repository: `compileSession.ts`, `opponentTimeline.ts`, `opponentMovement.ts`, `OpponentRig.ts`, `TennisScene.ts` |

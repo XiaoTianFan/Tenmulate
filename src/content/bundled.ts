@@ -2,7 +2,8 @@ import { COURT } from '../domain/court';
 import type { DrillDefinitionV1, ShotDefinitionV1 } from './types';
 
 /** Retain the drill library's baseline pace calibration across editor and playback. */
-export const drillShotPace = (shot: Pick<ShotDefinitionV1,'paceKmh'>, baseline=78): number => baseline+(shot.paceKmh-78)*.35;
+export const drillShotPace = (shot: Pick<ShotDefinitionV1,'paceKmh'> & Partial<Pick<ShotDefinitionV1,'family'>>, baseline=78): number =>
+  shot.family === 'drop-shot' ? shot.paceKmh * baseline / 78 : baseline+(shot.paceKmh-78)*.35;
 
 const ground = (
   id: string,
@@ -71,12 +72,12 @@ export const SHOTS: readonly ShotDefinitionV1[] = [
   ground('bh-cross-deep', 'Backhand crosscourt deep', 'BACKHAND', 2.65, -9.4, 80, 'topspin', 'Near right', 'Deep', {
     backhandStyle: 'two-handed', cameraMotion: { to: { lateral: 1.25, yaw: -2.5 }, duration: 1.25 },
   }),
-  ground('bh-cross-high', 'Heavy backhand crosscourt', 'BACKHAND', 2.35, -8.65, 70, 'kick', 'Near right', 'Deep'),
+  ground('bh-cross-high', 'Heavy backhand crosscourt', 'BACKHAND', 2.35, -8.65, 70, 'topspin', 'Near right', 'Deep'),
   ground('bh-line-deep', 'Backhand down the line', 'BACKHAND', -2.65, -9.25, 84, 'flat', 'Near left', 'Deep', { backhandStyle: 'one-handed' }),
   ground('body-neutral', 'Neutral ball to body', 'BODY', 0, -8.25, 68, 'topspin', 'Body', 'Deep'),
   ground('short-angle-left', 'Short angle left', 'MOVE LEFT', -3.35, -5.9, 62, 'topspin', 'Near left', 'Short'),
   ground('short-angle-right', 'Short angle right', 'MOVE RIGHT', 3.35, -5.9, 62, 'topspin', 'Near right', 'Short'),
-  ground('defensive-high-left', 'High defensive left', 'HIGH LEFT', -2.6, -8.1, 58, 'kick', 'Near left', 'Deep'),
+  ground('defensive-high-left', 'High defensive left', 'HIGH LEFT', -2.6, -8.1, 58, 'topspin', 'Near left', 'Deep'),
   ground('slice-low-right', 'Low slice right', 'LOW RIGHT', 2.35, -7.7, 64, 'slice', 'Near right', 'Mid'),
   serve('serve-deuce-t', 'Deuce flat T', -2.7, -0.45, -4.45, 154, 'flat', 'Body'),
   serve('serve-deuce-wide', 'Deuce slice wide', -2.7, 3.15, -4.7, 138, 'slice', 'Near right', 'right', 'compact'),
@@ -102,13 +103,16 @@ export const SHOTS: readonly ShotDefinitionV1[] = [
     family: 'volley', source: { x: 1.2, y: 1.3, z: 3.2 },
     cameraMotion: { to: { behindBaseline: -7.5, fov: 80 }, duration: 1.25 },
   }),
-  ground('lob-deep', 'Defensive lob', 'RETREAT', 0.75, -10.25, 54, 'kick', 'Body', 'Deep', {
+  ground('lob-deep', 'Defensive lob', 'RETREAT', 0.75, -10.25, 54, 'topspin', 'Body', 'Deep', {
     family: 'lob', source: { x: -1.5, y: 1.0, z: 4.1 },
     cameraMotion: { to: { behindBaseline: -1.2, pitch: 3, fov: 78 }, duration: 1.65 },
   }),
-  ground('overhead-feed', 'Overhead feed', 'OVERHEAD', -0.75, -9.6, 62, 'kick', 'Near left', 'Deep', {
+  ground('overhead-feed', 'Overhead feed', 'OVERHEAD', -0.75, -9.6, 62, 'topspin', 'Near left', 'Deep', {
     family: 'overhead', source: { x: 1.1, y: 2.4, z: 3.4 },
     cameraMotion: { to: { behindBaseline: -1, pitch: 4, fov: 80 }, duration: 1.45 },
+  }),
+  ground('drop-shot-short', 'Short drop shot', 'MOVE IN', .5, -2.8, 38, 'slice', 'Body', 'Short', {
+    family: 'drop-shot', source: { x: 0, y: .9, z: 5.5 }, netClearanceM: .12,
   }),
 ];
 

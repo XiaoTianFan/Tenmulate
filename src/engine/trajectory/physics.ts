@@ -3,6 +3,7 @@ import { add, cross, magnitude, scale, subtract, vec3, type Vec3 } from '../../d
 import type { PracticeShotType } from './practiceProfiles';
 import type { LandingZone } from './landingZone';
 import { GROUNDSTROKE_FLAT_SPIN_PROFILE, GROUNDSTROKE_TOPSPIN_DEFAULT_RPM } from './spinCalibration';
+import { normalizeShotSpin } from '../../domain/shotKinds';
 
 const GRAVITY = vec3(0, -9.81, 0);
 const FIXED_STEP = 1 / 240;
@@ -92,6 +93,7 @@ const trajectoryShotType = (intent: Pick<ShotIntent, 'shotType' | 'family'>): Pr
   if (intent.family === 'volley') return 'volley';
   if (intent.family === 'lob') return 'lob';
   if (intent.family === 'overhead') return 'overhead';
+  if (intent.family === 'drop-shot') return 'drop-shot';
   return 'groundstroke';
 };
 
@@ -100,7 +102,8 @@ const rpmFromRadiansPerSecond = (radiansPerSecond: number): number => radiansPer
 
 export const defaultSpinRateRpm = (intent: Pick<ShotIntent, 'spin' | 'shotType' | 'family'>): number => {
   const shotType = trajectoryShotType(intent);
-  if (shotType === 'volley') return 0;
+  if (shotType === 'volley') return intent.spin === 'slice' ? 650 : intent.spin === 'topspin' ? 600 : 0;
+  if (shotType === 'drop-shot') return intent.spin === 'slice' ? 1400 : intent.spin === 'topspin' ? 600 : 120;
   if (shotType === 'serve') {
     if (intent.spin === 'flat') return 1179;
     if (intent.spin === 'slice') return 2212;
@@ -124,7 +127,6 @@ const spinAxisWeights = (
 ): Readonly<{ topspin: number; sidespin: number }> => {
   const handDirection = intent.opponentHand === 'left' ? -1 : 1;
   const shotType = trajectoryShotType(intent);
-  if (shotType === 'volley') return { topspin: 0, sidespin: 0 };
   if (shotType === 'serve') {
     switch (intent.spin) {
       case 'flat':
@@ -169,7 +171,6 @@ const spinVector = (
   intent: Pick<ShotIntent, 'spin' | 'spinRateRpm' | 'shotType' | 'family' | 'opponentHand'>,
   launchVelocity: Vec3,
 ): Vec3 => {
-  if (trajectoryShotType(intent) === 'volley') return vec3();
   const requestedRateRpm = typeof intent.spinRateRpm === 'number' && Number.isFinite(intent.spinRateRpm)
     ? Math.max(0, intent.spinRateRpm)
     : defaultSpinRateRpm(intent);
@@ -583,6 +584,8 @@ const resolveNaturalGroundstroke = (intent: ShotIntent): ResolvedTrajectory => {
 /** Natural shots keep a low arc and publish every bounded adjustment. The
  * target remains an intention: an infeasible request is never labelled matched. */
 export const resolveTrajectory = (intent: ShotIntent): ResolvedTrajectory => {
+  const spin = normalizeShotSpin(trajectoryShotType(intent), intent.spin);
+  if (spin !== intent.spin) intent = { ...intent, spin };
   if (intent.trajectoryMode !== 'natural') {
     const exactIntent = intent.trajectoryMode==='exact' ? {...intent,aimDirectionDeg:intent.aimDirectionDeg??aimDirectionToCourtPoint(intent.source,intent.target)} : intent;
     const result=integrateTrajectory(intent, targetAdjustedVelocity(exactIntent));

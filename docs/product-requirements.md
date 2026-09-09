@@ -232,13 +232,14 @@ Accounts, premium entitlements, cloud content, and payments belong to a separate
 
 Each reusable shot describes independent axes:
 
-- **Source:** serve, forehand, one-handed backhand, two-handed backhand, approach, volley, half-volley, lob, overhead.
+- **Source:** serve, forehand, one-handed backhand, two-handed backhand, approach, drop shot, volley, half-volley, lob, overhead.
 - **Opponent hand:** left or right.
 - **Serve rhythm:** normal or compact when source is serve.
 - **Intent:** neutral, heavy/deep, short angle, approach, defensive height, pass, lob, volley setup, finish.
 - **Direction:** near-left, middle/body, near-right plus tactical cross-court/down-line/inside-out/inside-in metadata.
 - **Flight:** low/flat, medium, high/heavy.
-- **Spin:** shot-aware rather than one mixed list—groundstrokes and lobs allow flat/topspin/slice, serves allow flat/slice/kick, volleys are spin-free, and authored specialist content may retain validated sidespin blends.
+- **Spin:** non-serve shots allow flat/topspin/slice; kick and sidespin are available only for serves. Volleys apply the selected spin. Opponent shot/spin selection is separate from Ball & rhythm.
+- **Pseudo-return:** each drill event independently selects a groundstroke, drop shot, volley, overhead or lob return, with its own spin and opponent-side landing zone. The contact must lie on the incoming trajectory; the opponent's next position follows the resolved returned flight. Saved presets retain these settings.
 - **Pace:** beginner, club, advanced, elite-inspired, or explicit launch-speed range.
 - **Frequency:** fixed interval, work/rest cadence, or declared bounded timing variation.
 - **Landing:** named normalized zone plus exact coordinates.

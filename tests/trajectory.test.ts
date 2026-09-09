@@ -82,8 +82,8 @@ describe('fixed-step trajectory solver', () => {
     expect(bounce.position.z).toBeCloseTo(target.z, 1);
   });
 
-  it('models sidespin as a distinct curved launch solution', () => {
-    const base = { source: { x: 0, y: 1.15, z: COURT.halfLength - 0.65 }, target: { x: 1.4, z: -8.1 }, launchSpeedKmh: 74, surface: 'hard' as const };
+  it('models sidespin as a distinct curved serve solution', () => {
+    const base = { source: { x: -2.7, y: 2.75, z: COURT.halfLength - 0.65 }, target: { x: 1.4, z: -4.8 }, launchSpeedKmh: 135, family: 'serve', surface: 'hard' as const };
     const flat = resolveTrajectory({ ...base, spin: 'flat' });
     const sidespin = resolveTrajectory({ ...base, spin: 'sidespin' });
     expect(sidespin.launchVelocity.x).not.toBeCloseTo(flat.launchVelocity.x, 3);
@@ -351,12 +351,20 @@ describe('fixed-step trajectory solver', () => {
     expect(kick.events.find((event) => event.type === 'bounce')?.position.z).not.toBeCloseTo(flat.events.find((event) => event.type === 'bounce')?.position.z ?? 0, 1);
   });
 
-  it('models a volley as spin-free even if stale settings contain a spin value', () => {
+  it('applies chosen volley spin and normalizes legacy serve-only spin labels', () => {
     const base = {
       source: { x: 0, y: 1.32, z: 3.7 }, target: { x: 0, z: -4 }, aimDirectionDeg: 0,
       launchSpeedKmh: 62, minimumNetClearanceM: 0.15, shotType: 'volley' as const, surface: 'hard' as const,
     };
-    expect(resolveTrajectory({ ...base, spin: 'flat' }).samples).toEqual(resolveTrajectory({ ...base, spin: 'kick' }).samples);
+    const flat = resolveTrajectory({ ...base, spin: 'flat' });
+    const slice = resolveTrajectory({ ...base, spin: 'slice' });
+    const topspin = resolveTrajectory({ ...base, spin: 'topspin' });
+    expect(flat.resolved.spinRateRpm).toBe(0);
+    expect(slice.resolved.spinRateRpm).toBeGreaterThan(0);
+    expect(slice.launchVelocity.y).not.toBeCloseTo(flat.launchVelocity.y, 3);
+    expect(topspin.launchVelocity.y).not.toBeCloseTo(flat.launchVelocity.y, 3);
+    expect(resolveTrajectory({ ...base, spin: 'kick' }).launchVelocity).toEqual(topspin.launchVelocity);
+    expect(resolveTrajectory({ ...base, spin: 'sidespin' }).launchVelocity).toEqual(slice.launchVelocity);
   });
 
   it('applies the practice bounce-height factor only to the post-impact arrival', () => {

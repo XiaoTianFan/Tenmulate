@@ -1,7 +1,7 @@
 # Technical architecture
 
 - **Status:** Proposed
-- **Last updated:** 2026-09-08
+- **Last updated:** 2026-09-09
 
 **Persistent court capture (2026-09-09):** [ADR-0034](decisions/0034-persistent-court-capture.md)
 adds a route-independent capture controller to the existing shared canvas. Capture
@@ -237,7 +237,7 @@ Resolved shots are checked into source as versioned JSON. Runtime playback does 
 
 ## 7. Drill timeline
 
-**Current runtime (2026-09-09):** [ADR-0035](decisions/0035-court-space-returns-and-shot-library-editor.md) advances the planner to `gameplay-return-zones-v9`. [ADR-0022](decisions/0022-continuous-drill-camera-and-reusable-shots.md)
+**Current runtime (2026-09-09):** [ADR-0036](decisions/0036-independent-return-shot-and-spin.md) advances the planner to `gameplay-return-shots-v10`, extending [ADR-0035](decisions/0035-court-space-returns-and-shot-library-editor.md). [ADR-0022](decisions/0022-continuous-drill-camera-and-reusable-shots.md)
 uses `CompiledSession.cameraTimeline`; [ADR-0033](decisions/0033-complete-short-running-steps.md)
 retains the complete short-running steps. The compiler
 reserves camera travel, gaze fades and next-stroke preparation in the same absolute
@@ -263,12 +263,22 @@ camera travel before preparation. Impossible links remain explicit new feeds.
 Legacy `returnZone` and `opponentPosition` remain importable but do not drive drills.
 Quick Practice retains its home position and camera-coverage assessment.
 
+`DrillEventV1.returnShot` independently selects return type, spin and spin rate.
+The return profile defines contact eligibility, pace and net clearance; selected
+spin participates in Magnus and bounce response, including volleys. Ground/drop
+returns use post-bounce contacts; volley/overhead returns intercept before the
+bounce. Explicit settings never inherit the next opponent's stroke. Legacy absent
+settings retain their original groundstroke/lob default until materialized by a
+preset snapshot. Kick/sidespin are serve-only; legacy rally values normalize to
+topspin/slice. `drop-shot` adds a slow, short incoming profile and default preset.
+
 The editor uses a filtered shot library, drag/drop insertion and timeline reorder,
 right-click/Delete removal, and complete new/update preset snapshots. Two persistent
 `LandingZoneControl` meshes handle both court halves; compilation commits only at
 release. WASD and editor sliders likewise preview gestures before committing.
 `SavedShotV1` snapshots defaults in local app data; insertion deep-copies with a new
-id. See the [current receipt](development/editor-return-zones-2026-09-09.md).
+id. Opponent and return shot/spin controls sit outside Ball & rhythm; Perspective
+follows the incoming flight/timing controls. See the [current receipt](development/return-shot-controls-2026-09-09.md).
 The outline below is the original conceptual model.
 
 One declarative timeline coordinates all domains:

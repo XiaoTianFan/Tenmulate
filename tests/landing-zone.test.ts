@@ -26,7 +26,7 @@ describe('uniform landing zones', () => {
     for(const count of bins)expect(Math.abs(count-1000)).toBeLessThan(110);
   });
 
-  it.each(['groundstroke','serve','volley','overhead','lob'] as const)('samples %s landings and fits their actual bounces for both hands',practiceShotType=>{
+  it.each(['groundstroke','serve','volley','overhead','lob','drop-shot'] as const)('samples %s landings and fits their actual bounces for both hands',practiceShotType=>{
     const profile=PRACTICE_SHOT_PROFILES[practiceShotType];
     for(const opponentHand of ['right','left'] as const){
       const session=compileSession(DRILLS[0]!,{...settings,practiceShotType,opponentHand,
