@@ -88,8 +88,8 @@ and [movement verification receipt](development/movement-selection-2026-09-08.md
 Current renderer cost and preview preparation: [ADR-0031](decisions/0031-measured-renderer-cost-and-preview-preparation.md)
 and [GPU/CPU profiling receipt](development/renderer-performance-2026-09-08.md).
 
-Current drill camera and reusable-shot authoring: [ADR-0022](decisions/0022-continuous-drill-camera-and-reusable-shots.md)
-and [camera/editor verification](development/drill-camera-and-editor-2026-09-08.md).
+Current drill returns and shot-library authoring: [ADR-0035](decisions/0035-court-space-returns-and-shot-library-editor.md)
+and [editor/return verification](development/editor-return-zones-2026-09-09.md). ADR-0022 remains the continuous camera contract.
 
 Current move-to-hit sequencing: [ADR-0021](decisions/0021-prepared-stroke-entry-after-travel.md)
 and [prepared-entry verification](development/prepared-stroke-entry-2026-09-08.md).

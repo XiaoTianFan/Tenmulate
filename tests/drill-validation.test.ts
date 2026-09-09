@@ -57,7 +57,7 @@ describe('versioned drill documents', () => {
     expect(session.repetitions[0]!.shot).toMatchObject({
       paceKmh: 101,
       spin: 'slice',
-      source: { x: -2.5, y: 1.15, z: 10.8 },
+      source: { x: 0, y: 1.15, z: 12.4 },
       cue: 'MOVE NOW',
       opponentHand: 'left',
     });

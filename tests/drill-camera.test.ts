@@ -4,8 +4,7 @@ import { compileSession, type SessionSettings } from '../src/engine/session/comp
 import { DEFAULT_DRILL_CAMERA as base, cameraTravelSeconds, sampleCameraTimeline } from '../src/engine/session/cameraTimeline';
 import { cameraLookAtCourtPoint, wrapCameraAngle } from '../src/domain/camera';
 import { motionEvent, sampleOpponentTimeline } from '../src/engine/session/opponentTimeline';
-import { cameraPlayerPosition, reachableContacts } from '../src/engine/session/playerCoverage';
-import { DEFAULT_RETURN_ZONE, returnZoneMargin, returnZonePoint } from '../src/engine/session/returnZone';
+import { DEFAULT_RETURN_LANDING_ZONE } from '../src/engine/session/returnLandingZone';
 import { parseDrillJson, validateDrill } from '../src/content/validation';
 
 const settings: SessionSettings = { repetitions:4,mode:'drill',shotIntervalSeconds:1,rhythmPercent:100,variationPercent:0,timingVariationPercent:0,
@@ -60,21 +59,21 @@ describe('continuous drill camera and return space',()=>{
     expect(session.cameraTimeline.transitions).toEqual([]);
     for(const t of [100,0,10,3,2]) expect(sampleCameraTimeline(session.cameraTimeline,t)).toEqual(base);
   });
-  it('uses camera-relative meters and returns only from real incoming contacts within the configured zone',()=>{
-    const origin={x:2,z:-10,yaw:90},zone={forward:2,width:2,depth:1};
-    expect(returnZonePoint(origin,0,2).x).toBeCloseTo(4);
-    expect(returnZoneMargin({x:4,z:-10},origin,zone)).toBeCloseTo(.5);
-    expect(returnZoneMargin({x:2,z:-8},origin,zone)).toBeLessThan(0);
-    const session=compileSession(DRILLS[0]!,{...settings,repetitions:3,shotIntervalSeconds:3.5,seed:'gameplay'});
+  it('returns from the incoming path into a court-space zone independent of the camera',()=>{
+    const config={...settings,repetitions:3,shotIntervalSeconds:3.5,seed:'gameplay'};
+    const session=compileSession(DRILLS[0]!,config);
     expect(session.repetitions.some(rep=>rep.rallyReturn)).toBe(true);
+    const other=compileSession(DRILLS[0]!,{...config,camera:{...base,lateral:6,behindBaseline:-8,yaw:90},cameraMotionScale:0});
+    expect(session.repetitions[0]!.trajectory).toEqual(other.repetitions[0]!.trajectory);
     for(const rep of session.repetitions){
-      const player={...cameraPlayerPosition(rep.camera),yaw:rep.camera.yaw};
-      const narrow=reachableContacts(rep.trajectory,player,{...DEFAULT_RETURN_ZONE,width:.4,depth:.2});
-      const wide=reachableContacts(rep.trajectory,player,DEFAULT_RETURN_ZONE);
-      expect(narrow.length).toBeLessThanOrEqual(wide.length);
       if(rep.rallyReturn){
-        expect(returnZoneMargin(rep.rallyReturn.trajectory.samples[0]!.position,player,DEFAULT_RETURN_ZONE)).toBeGreaterThanOrEqual(0);
-        expect(rep.rallyReturn.trajectory.samples[0]!.position).toEqual(rep.trajectory.samples.find(s=>s.time===rep.rallyReturn!.contactTime)!.position);
+        const rally=rep.rallyReturn, bounce=rally.trajectory.events.find(e=>e.type==='bounce')!;
+        expect(bounce.position.x).toBeGreaterThanOrEqual(DEFAULT_RETURN_LANDING_ZONE.minX-.04);
+        expect(bounce.position.x).toBeLessThanOrEqual(DEFAULT_RETURN_LANDING_ZONE.maxX+.04);
+        expect(bounce.position.z).toBeGreaterThanOrEqual(DEFAULT_RETURN_LANDING_ZONE.minZ-.04);
+        expect(bounce.position.z).toBeLessThanOrEqual(DEFAULT_RETURN_LANDING_ZONE.maxZ+.04);
+        expect(rally.trajectory.samples[0]!.position).toEqual(rep.trajectory.samples.find(s=>s.time===rally.contactTime)!.position);
+        expect(rally.trajectory.samples.at(-1)!.position).toEqual(session.repetitions[rep.index+1]!.shot.source);
       }
     }
   });

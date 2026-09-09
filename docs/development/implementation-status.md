@@ -9,6 +9,17 @@
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
+## Court-space drill returns and shot-library editor — 2026-09-09
+
+[ADR-0035](../decisions/0035-court-space-returns-and-shot-library-editor.md) replaces
+camera-relative return space with per-shot opponent-side landing rectangles.
+Returns start on the resolved incoming flight, and the next physical intercept
+supplies the opponent's source and recovery route. Planner `gameplay-return-zones-v9`
+retains interval-first rhythm, continuous camera travel and the current motion bundle.
+Legacy fixed positions and return footprints remain importable but do not drive drills.
+The [receipt](editor-return-zones-2026-09-09.md) separates the planner/data stage,
+authoring workflow, actual mannequin checks and final browser verification.
+
 ## Header and About — 2026-09-09
 
 The shared Practice/Drills/Editor header exposes Cast and About. The Display entry

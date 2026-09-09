@@ -6,6 +6,7 @@ import { defaultSpinRateRpm } from '../engine/trajectory/physics';
 import { normalizeLandingZone } from '../engine/trajectory/landingZone';
 import { rhythmFromLegacyInterval } from '../engine/session/rhythm';
 import { strokeForShot } from '../engine/session/opponentTimeline';
+import { DEFAULT_RETURN_LANDING_ZONE } from '../engine/session/returnLandingZone';
 
 export const eventCamera = (event: DrillEventV1, previous = DEFAULT_DRILL_CAMERA): CameraConfiguration => {
   const motion = event.cameraMotion === undefined ? SHOT_BY_ID.get(event.shotId)?.cameraMotion : event.cameraMotion;
@@ -18,11 +19,12 @@ export function snapshotShot(event: DrillEventV1, drill: DrillDefinitionV1, came
   const spin = event.spin && event.spin !== 'preset' ? event.spin : shot.spin;
   const index = Math.max(0,materializeEvents(drill).findIndex(item=>item.id===event.id));
   const clip = strokeForShot({...shot,stroke:event.stroke??shot.stroke,spin,
-    opponentHand:event.opponentHand??shot.opponentHand,source:{...shot.source,...event.opponentPosition}},index);
+    opponentHand:event.opponentHand??shot.opponentHand},index);
   return structuredClone({...event, label:event.label ?? shot.label,
     paceKmh:event.paceKmh ?? drillShotPace(shot), spin, spinRateRpm:event.spinRateRpm ?? defaultSpinRateRpm({...shot,spin}),
     target:event.target ?? shot.target, landingZone:normalizeLandingZone(event.landingZone,shot.family), variationPercent:event.variationPercent ?? 8,
-    opponentPosition:event.opponentPosition ?? {x:shot.source.x,z:shot.source.z}, opponentHand:event.opponentHand ?? shot.opponentHand,
+    returnLandingZone:event.returnLandingZone ?? DEFAULT_RETURN_LANDING_ZONE,
+    opponentPosition:undefined, opponentHand:event.opponentHand ?? shot.opponentHand,
     stroke:shot.family==='serve'?undefined:clip.startsWith('backhand')?'backhand':'forehand', serveRhythm:event.serveRhythm === 'preset' ? shot.serveRhythm : event.serveRhythm ?? shot.serveRhythm,
     netClearanceM:event.netClearanceM ?? shot.netClearanceM, cue:event.cue ?? shot.cue,
     bounceFactor:event.bounceFactor ?? 1, trajectoryMode:event.trajectoryMode ?? 'natural',

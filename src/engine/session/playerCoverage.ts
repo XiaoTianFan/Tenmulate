@@ -1,7 +1,6 @@
 import { COURT } from '../../domain/court';
 import type { Vec3 } from '../../domain/vector';
 import type { CameraMotionDefinition } from '../../content/types';
-import { returnZoneMargin, returnZonePoint, type ReturnZone } from './returnZone';
 import { netHeightAt, type FlightSample, type ResolvedTrajectory } from '../trajectory/physics';
 
 /** Product calibration, with research provenance in docs/research/player-coverage.md.
@@ -22,7 +21,8 @@ export const movementReach = (time: number): number => {
   return (t < ramp ? .5 * PLAYER_COVERAGE.acceleration * t * t
     : PLAYER_COVERAGE.speedMps * (t - ramp / 2)) * PLAYER_COVERAGE.displayAllowance;
 };
-export const reachableContacts = (trajectory: ResolvedTrajectory, player: PlayerPath, zone?: ReturnZone): readonly FlightSample[] => {
+/** Physical contacts on the incoming path, independent of the viewing camera. */
+export const legalReturnContacts = (trajectory: ResolvedTrajectory): readonly FlightSample[] => {
   const net = trajectory.events.find(e => e.type === 'net-crossing');
   if (!net || net.position.y < netHeightAt(net.position.x) + COURT.ballRadius) return [];
   const bounce = trajectory.events.find(e => e.type === 'bounce');
@@ -35,18 +35,18 @@ export const reachableContacts = (trajectory: ResolvedTrajectory, player: Player
     && (!serve || s.bounced)
     && (!s.bounced || legalBounce)
     && s.position.y >= PLAYER_COVERAGE.minContactM && s.position.y <= PLAYER_COVERAGE.maxContactM
-    && Math.abs(s.position.x) <= COURT.singlesWidth / 2 + 2.5 && s.position.z >= -COURT.halfLength - 5
-    && (zone ? returnZoneMargin(s.position, playerAt(player,s.time), zone) >= 0
-      : Math.hypot(s.position.x - playerAt(player,s.time).x, s.position.z - playerAt(player,s.time).z)
-        <= movementReach(s.time) + PLAYER_COVERAGE.racketReachM * PLAYER_COVERAGE.displayAllowance));
+    && Math.abs(s.position.x) <= COURT.singlesWidth / 2 + 2.5 && s.position.z >= -COURT.halfLength - 5);
 };
-export const assessReachability = (trajectory: ResolvedTrajectory, player: PlayerPath, zone?: ReturnZone): Reachability => {
+export const reachableContacts = (trajectory: ResolvedTrajectory, player: PlayerPath): readonly FlightSample[] =>
+  legalReturnContacts(trajectory).filter(s => Math.hypot(s.position.x - playerAt(player,s.time).x, s.position.z - playerAt(player,s.time).z)
+    <= movementReach(s.time) + PLAYER_COVERAGE.racketReachM * PLAYER_COVERAGE.displayAllowance);
+export const assessReachability = (trajectory: ResolvedTrajectory, player: PlayerPath): Reachability => {
   const net = trajectory.events.find(e => e.type === 'net-crossing');
-  const candidates = reachableContacts(trajectory, player, zone);
+  const candidates = reachableContacts(trajectory, player);
   // Prefer a comfortable strike close to the camera, rather than the earliest
   // barely reachable lunge. Keep every candidate available to rally planning.
   const score = (s: FlightSample) => {
-    const origin = playerAt(player,s.time), center = zone ? returnZonePoint(origin,0,zone.forward) : origin;
+    const center = playerAt(player,s.time);
     return Math.hypot(s.position.x-center.x,s.position.z-center.z) + Math.abs(s.position.y-1.05)*.4;
   };
   const contact = [...candidates].sort((a,b) => score(a)-score(b))[0] ?? null;
@@ -56,7 +56,7 @@ export const assessReachability = (trajectory: ResolvedTrajectory, player: Playe
     || serve && (bounce.position.z < -COURT.serviceLineFromNet || bounce.position.x*trajectory.intent.source.x > 0));
   const position = playerAt(player,contact?.time??0);
   return { reachable: !!contact, reason: contact ? 'reachable' : !net || net.position.y<netHeightAt(net.position.x)+COURT.ballRadius ? 'net' : out ? 'out' : 'outside-coverage',
-    contact, playerPosition: position, marginM: contact ? zone ? returnZoneMargin(contact.position,position,zone) : movementReach(contact.time)+PLAYER_COVERAGE.racketReachM*PLAYER_COVERAGE.displayAllowance-Math.hypot(contact.position.x-position.x,contact.position.z-position.z) : 0 };
+    contact, playerPosition: position, marginM: contact ? movementReach(contact.time)+PLAYER_COVERAGE.racketReachM*PLAYER_COVERAGE.displayAllowance-Math.hypot(contact.position.x-position.x,contact.position.z-position.z) : 0 };
 };
 export const cameraPlayerPosition = (camera?: Readonly<{lateral:number;behindBaseline:number}>): Vec3 =>
   ({x:camera?.lateral ?? 0,y:0,z:-(COURT.halfLength+(camera?.behindBaseline ?? 1.5))});

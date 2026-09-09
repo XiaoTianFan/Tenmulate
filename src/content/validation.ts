@@ -3,6 +3,7 @@ import { OPPONENT_POSITION_LIMITS } from '../domain/court';
 import type { DrillDefinitionV1, DrillEventV1, SavedShotV1, SessionCategory } from './types';
 import { SHOT_CAMERA_RANGES } from '../engine/session/cameraTimeline';
 import { RETURN_ZONE_RANGES } from '../engine/session/returnZone';
+import { isReturnLandingZone } from '../engine/session/returnLandingZone';
 
 export type ValidationResult = Readonly<{
   valid: boolean;
@@ -23,7 +24,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const allowedDrillKeys = new Set(['schemaVersion', 'id', 'title', 'description', 'category', 'shotIds', 'events', 'defaultInterval', 'defaultRhythmPercent', 'defaultMovementPercent', 'defaultRepetitions', 'returnZone']);
-const allowedEventKeys = new Set(['id', 'shotId', 'paceKmh', 'spin', 'target', 'landingZone', 'variationPercent', 'opponentPosition', 'cameraMotion', 'cue', 'serveRhythm', 'netClearanceM', 'label', 'camera', 'stroke', 'opponentHand', 'spinRateRpm', 'bounceFactor', 'trajectoryMode', 'rhythmPercent', 'movementPercent', 'intervalSeconds']);
+const allowedEventKeys = new Set(['id', 'shotId', 'paceKmh', 'spin', 'target', 'landingZone', 'returnLandingZone', 'variationPercent', 'opponentPosition', 'cameraMotion', 'cue', 'serveRhythm', 'netClearanceM', 'label', 'camera', 'stroke', 'opponentHand', 'spinRateRpm', 'bounceFactor', 'trajectoryMode', 'rhythmPercent', 'movementPercent', 'intervalSeconds']);
 const allowedCameraMotionKeys = new Set(['from', 'to', 'duration', 'delay']);
 const allowedCameraKeys = new Set(['eyeHeight', 'behindBaseline', 'lateral', 'yaw', 'pitch', 'fov']);
 const inRange = (value: unknown, range: readonly [number,number]): boolean => typeof value === 'number' && Number.isFinite(value) && value >= range[0] && value <= range[1];
@@ -66,6 +67,9 @@ const validateEvent = (value: unknown, index: number, errors: string[]): value i
     else if (Math.abs(value.target.x) > 4.115 || value.target.z >= 0 || value.target.z < -11.885) errors.push(`Event ${index + 1} target is outside the near singles court.`);
   }
   const zone = value.landingZone;
+  if (value.returnLandingZone !== undefined && !isReturnLandingZone(value.returnLandingZone)) {
+    errors.push(`Event ${index + 1} return landing zone must be a 0.2–6 m rectangle on the far singles court.`);
+  }
   if (zone !== undefined && (!isRecord(zone)
     || Object.keys(zone).some(key => key !== 'width' && key !== 'depth')
     || !['width', 'depth'].every(key => typeof zone[key] === 'number'

@@ -1,7 +1,7 @@
 import type { SurfaceId } from '../domain/court';
 import type { CameraConfiguration } from '../engine/rendering/TennisScene';
 import type { SpinKind } from '../engine/trajectory/physics';
-import type { LandingZoneSize } from '../engine/trajectory/landingZone';
+import type { LandingZone, LandingZoneSize } from '../engine/trajectory/landingZone';
 import type { ReturnZone } from '../engine/session/returnZone';
 
 export type OpponentHand = 'left' | 'right';
@@ -57,6 +57,7 @@ export type DrillDefinitionV1 = Readonly<{
   defaultRhythmPercent?: number;
   defaultMovementPercent?: number;
   defaultRepetitions: number;
+  /** Legacy camera-relative calibration; retained for importing older drills. */
   returnZone?: ReturnZone;
 }>;
 
@@ -67,6 +68,7 @@ export type DrillEventV1 = Readonly<{
   spin?: 'preset' | SpinKind;
   target?: Readonly<{ x: number; z: number }>;
   landingZone?: LandingZoneSize;
+  returnLandingZone?: LandingZone;
   variationPercent?: number;
   opponentPosition?: Readonly<{ x: number; z: number }>;
   cameraMotion?: CameraMotionDefinition | null;

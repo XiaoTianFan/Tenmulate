@@ -4,6 +4,7 @@ import { copyShotEvent, eventCamera, snapshotShot } from '../src/content/editing
 import { isSavedShot, parseDrillJson } from '../src/content/validation';
 import { DEFAULT_DRILL_CAMERA } from '../src/engine/session/cameraTimeline';
 import { DEFAULT_APP_DATA, loadAppData, saveAppData } from '../src/storage/appStorage';
+import { DEFAULT_RETURN_LANDING_ZONE } from '../src/engine/session/returnLandingZone';
 import { compileSession } from '../src/engine/session/compileSession';
 
 afterEach(()=>vi.unstubAllGlobals());
@@ -13,7 +14,7 @@ describe('reusable configured shots',()=>{
   it('captures inherited settings and makes independent copies when assembling another drill',()=>{
     const saved=snapshotShot(event,drill,event.camera),copy=copyShotEvent(saved),second=copyShotEvent(saved);
     expect(copy.id).not.toBe(saved.id);expect(copy.id).not.toBe(second.id);
-    expect(copy.opponentPosition).not.toBe(saved.opponentPosition);expect(copy.camera).not.toBe(saved.camera);
+    expect(copy.returnLandingZone).not.toBe(saved.returnLandingZone);expect(copy.opponentPosition).toBeUndefined();expect(copy.camera).not.toBe(saved.camera);
     expect(copy).toMatchObject({rhythmPercent:120,movementPercent:85,intervalSeconds:4,cameraMotion:null,trajectoryMode:'natural',bounceFactor:1,variationPercent:8,stroke:'forehand'});
     expect(copy.paceKmh).toBe(drillShotPace(SHOT_BY_ID.get(event.shotId)!));
     const different={...drill,defaultRhythmPercent:50,defaultMovementPercent:150,defaultInterval:20,events:[copy,second],shotIds:[copy.shotId,second.shotId]};
@@ -21,8 +22,8 @@ describe('reusable configured shots',()=>{
     expect(roundTrip.events![0]).toEqual(copy);
     const session=compileSession(roundTrip,{repetitions:2,mode:'drill',variationPercent:0,timingVariationPercent:0,launchSpeedKmh:78,surface:'hard',seed:'saved',spin:'preset',opponentHand:'left',workBlockSize:50,restSeconds:0,serveRhythm:'preset'});
     expect(session.repetitions[0]).toMatchObject({camera:event.camera,motionRate:1.2,movementRate:.85,intervalSeconds:4,shot:{opponentHand:'right',stroke:'forehand'}});
-    const updated={...saved,camera:{...saved.camera!,yaw:20},opponentPosition:{x:-4,z:13}};
-    expect(updated.camera).not.toEqual(copy.camera);expect(copy.opponentPosition).toEqual(event.opponentPosition);
+    const updated={...saved,camera:{...saved.camera!,yaw:20},returnLandingZone:{minX:1,maxX:3,minZ:5,maxZ:7}};
+    expect(updated.camera).not.toEqual(copy.camera);expect(copy.returnLandingZone).toEqual(DEFAULT_RETURN_LANDING_ZONE);expect(updated.returnLandingZone).not.toEqual(copy.returnLandingZone);
   });
   it('carries unscripted views but honors an explicit shot view and legacy destinations',()=>{
     expect(eventCamera({id:'x',shotId:'fh-cross-deep',cameraMotion:null},event.camera)).toEqual(event.camera);

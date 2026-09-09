@@ -237,9 +237,9 @@ Resolved shots are checked into source as versioned JSON. Runtime playback does 
 
 ## 7. Drill timeline
 
-**Current runtime (2026-09-08):** [ADR-0022](decisions/0022-continuous-drill-camera-and-reusable-shots.md)
+**Current runtime (2026-09-09):** [ADR-0035](decisions/0035-court-space-returns-and-shot-library-editor.md) advances the planner to `gameplay-return-zones-v9`. [ADR-0022](decisions/0022-continuous-drill-camera-and-reusable-shots.md)
 uses `CompiledSession.cameraTimeline`; [ADR-0033](decisions/0033-complete-short-running-steps.md)
-advances the planner to `gameplay-rhythm-v8`. The compiler
+retains the complete short-running steps. The compiler
 reserves camera travel, gaze fades and next-stroke preparation in the same absolute
 schedule as opponent recovery and physics-solved returns. `TennisScene` samples the
 camera on the session clock, independently of React's HUD repetition updates.
@@ -254,14 +254,22 @@ shot's resolved movement rate; the interval-first search remains primary. Urgent
 short routes complete two anchored running placements, with the source cycle
 aligned to the first anatomical foot, rather than truncating a repeating stride.
 
-`DrillDefinitionV1.returnZone` supplies forward distance, width and depth in meters.
-`playerCoverage` and `rally` use the same camera-relative rectangle, legal height
-range and incoming contact samples. The shot view stays fixed until that contact;
-return planning also reserves time to reach the next camera pose. The editor draws
-the footprint with reusable geometry. `SavedShotV1` snapshots resolved event defaults
-in local app data; insertion deep-copies the event with a new id. Optional schema-v1
-fields retain compatibility with older drill imports. The [verification receipt](development/drill-camera-and-editor-2026-09-08.md)
-records current evidence; the outline below is the original conceptual model.
+`DrillEventV1.returnLandingZone` describes a positive-z court-space rectangle.
+`returnFlight` samples a bounce target, chooses a physical contact on the incoming
+path and resolves the pseudo-return. The next source is sampled from that return,
+then the next outgoing flight is resolved. Camera placement never moves the zone.
+The shared rhythm/recovery planner checks the exact contact clock and reserves
+camera travel before preparation. Impossible links remain explicit new feeds.
+Legacy `returnZone` and `opponentPosition` remain importable but do not drive drills.
+Quick Practice retains its home position and camera-coverage assessment.
+
+The editor uses a filtered shot library, drag/drop insertion and timeline reorder,
+right-click/Delete removal, and complete new/update preset snapshots. Two persistent
+`LandingZoneControl` meshes handle both court halves; compilation commits only at
+release. WASD and editor sliders likewise preview gestures before committing.
+`SavedShotV1` snapshots defaults in local app data; insertion deep-copies with a new
+id. See the [current receipt](development/editor-return-zones-2026-09-09.md).
+The outline below is the original conceptual model.
 
 One declarative timeline coordinates all domains:
 
