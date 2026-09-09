@@ -3,6 +3,19 @@
 - **Purpose:** Record concept-to-browser inspection after every implementation stage
 - **Reference viewport:** 1920 × 1080 unless stated otherwise
 
+## Independent incoming and return shot controls — 2026-09-09
+
+The [return shot receipt](return-shot-controls-2026-09-09.md) records production
+Edge at 1680×1080 and 390×844. Opponent shot and Return zone controls are separate
+from Ball & rhythm. Changing shot/spin and dragging the return zone preserve the
+other ball's configuration. Preset overwrite and reload/reuse pass; kick/sidespin
+appear only for serves in both editor and Quick Practice. No horizontal overflow,
+framework overlay or browser runtime errors were observed. Actual Three.js checks
+cover 54 both-hand approach/swing/contact samples across return styles and the
+opponent's drop/volley/overhead strokes; the physical handoffs and rendered racket
+contacts agree. Representative screenshots were inspected. The owner's existing
+editor was preserved without reload.
+
 ## Court-space return zones and shot-library editor — 2026-09-09
 
 The [editor/return receipt](editor-return-zones-2026-09-09.md) supersedes the

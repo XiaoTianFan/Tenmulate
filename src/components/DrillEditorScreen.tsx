@@ -23,6 +23,7 @@ import { AppHeader, type AppRoute } from './AppHeader';
 import { Modal } from './Modal';
 import { DrillShotControls, EditorNumber } from './DrillShotControls';
 import { DEFAULT_RETURN_LANDING_ZONE } from '../engine/session/returnLandingZone';
+import { defaultReturnShot, resolveReturnShot } from '../engine/session/returnShot';
 import { useEditorCameraMovement } from '../hooks/useEditorCameraMovement';
 import { ShotLibrary } from './ShotLibrary';
 import { DrillTimeline } from './DrillTimeline';
@@ -48,6 +49,7 @@ type DrillEditorScreenProps = Readonly<{
 const makeEvent = (shotId = SHOTS[0]!.id): DrillEventV1 => ({
   id: `event-${crypto.randomUUID().slice(0, 8)}`,
   shotId,
+  returnShot: defaultReturnShot('groundstroke'),
 });
 
 export function DrillEditorScreen({ route, initialDrill, onRoute, onSave, onTest, savedShots, onSaveShot, onDeleteShot }: DrillEditorScreenProps) {
@@ -94,6 +96,8 @@ export function DrillEditorScreen({ route, initialDrill, onRoute, onSave, onTest
   const previewSession = useMemo(() => {
     const base = sourceShot ?? SHOTS[0]!;
     const event = { ...selected, camera:shotCamera, id: selected?.id ?? 'preview', shotId: base.id, paceKmh: selected?.paceKmh ?? drillShotPace(base) };
+    event.returnShot = resolveReturnShot(selected?.returnShot,
+      SHOT_BY_ID.get(events[(events.indexOf(selected!) + 1) % events.length]?.shotId ?? base.id)?.family);
     return compileSession({ ...drill, events: [event], shotIds: [base.id] }, {
       repetitions: 2, mode: 'drill', shotIntervalSeconds:drill.defaultInterval, movementPercent:drill.defaultMovementPercent??100, trajectoryMode:'natural', rhythmPercent: drill.defaultRhythmPercent ?? rhythmFromLegacyInterval(drill.defaultInterval),
       variationPercent: 8, timingVariationPercent: 0, launchSpeedKmh: event.paceKmh, surface: base.surface,
@@ -220,9 +224,6 @@ export function DrillEditorScreen({ route, initialDrill, onRoute, onSave, onTest
           {selected && sourceShot ? <>
             <DrillShotControls event={selected} shot={sourceShot} drill={drill} camera={previewCamera} resolved={previewSession.repetitions[0]!} onChange={updateEvent} onCameraChange={commitCamera}/>
             <small className={`trajectory-resolution${trajectory.solution?.status==='unreachable'?' warning':''}`} role="status">{trajectory.solution?.status==='unreachable'?'Sample outside this shot’s reach. Adjust pace, spin or landing zone.':`Resolved ${trajectory.resolved.launchSpeedKmh.toFixed(1)} km/h · ${Math.round(trajectory.resolved.spinRateRpm)} rpm`}</small>
-            <small className="return-space-status" role="status">{previewSession.repetitions[0]!.returnStatus === 'linked'
-              ? 'Return linked · Opponent movement resolves automatically.'
-              : 'New feed needed for this interval or ball path.'}</small>
             <button className="secondary-button full-width save-shot-button" type="button" disabled={!validation.valid} onClick={()=>setShotDraft({id:'',name:selected.label??sourceShot.label})}><Save size={16}/> Save new shot</button>
             <button className="secondary-button full-width save-shot-button" type="button" disabled={!validation.valid || !savedShots.length} onClick={()=>setShotDraft({id:savedShots[0]!.id,name:savedShots[0]!.name})}><Save size={16}/> Update existing saved shot</button>
           </> : null}
@@ -243,7 +244,7 @@ export function DrillEditorScreen({ route, initialDrill, onRoute, onSave, onTest
       </>}>
         <label className="stack-field"><span>Save as</span><select aria-label="Save as" value={shotDraft.id} onChange={e=>setShotDraft({id:e.target.value,name:savedShots.find(item=>item.id===e.target.value)?.name??shotDraft.name})}><option value="">New saved shot</option>{savedShots.map(item=><option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
         <label className="stack-field"><span>Preset name</span><input autoFocus maxLength={60} value={shotDraft.name} onChange={e=>setShotDraft({...shotDraft,name:e.target.value})}/></label>
-        <p>Includes both landing zones, camera, ball, timing, playing hand and stroke settings. Add it to any drill from the shot list.</p>
+        <p>Includes both landing zones, return shot and spin, camera, ball, timing, playing hand and stroke settings. Add it to any drill from the shot list.</p>
       </Modal> : null}
       {message ? <Modal title="Drill editor" onClose={() => setMessage(null)} actions={<button className="primary-button inline" type="button" onClick={() => setMessage(null)}>Close</button>}><p>{message}</p></Modal> : null}
 

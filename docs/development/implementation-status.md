@@ -9,6 +9,24 @@
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
+## Independent return shot and spin controls — 2026-09-09
+
+[ADR-0036](../decisions/0036-independent-return-shot-and-spin.md) introduces
+independent per-event return type/spin/rate. Return zone controls support topspin,
+flat and slice groundstrokes, drop shots, volleys, overheads and lobs. Shot style
+constrains legal contact samples on the incoming path and resolves the returned
+flight before the opponent's next contact. Opponent shot controls are separate
+from Ball & rhythm; Quick Practice and the editor offer drop shots, and volleys
+now apply selected spin. Kick/sidespin are serve-only; older rally labels normalize
+safely. New/update presets preserve return configuration with both court zones.
+
+Verification: 384 tests, production build and motion checks pass. Isolated Edge
+checks cover desktop/mobile controls, dragging without mid-gesture compilation,
+JSON/save/update/reload and playback. Both-hand actual mannequin verification
+covers 54 approach/swing/contact frames across return styles and opponent families.
+See the [receipt](return-shot-controls-2026-09-09.md) for the physical-contact
+limits, measured errors and evidence. No motion asset was changed.
+
 ## Court-space drill returns and shot-library editor — 2026-09-09
 
 [ADR-0035](../decisions/0035-court-space-returns-and-shot-library-editor.md) replaces

@@ -19,12 +19,15 @@ iOS Safari; connecting to an existing receiver still requires Control Center.
 The app cannot verify that connection. See the
 [capture contract and remaining transport gate](docs/decisions/0034-persistent-court-capture.md).
 
-The drill editor can save complete shot presets and copy them into new sequences.
-Each shot stores its opponent, camera, ball and timing settings. Configure your
-return-space distance, width and depth in meters; **View return space** shows its
-blue footprint beside the yellow landing zone. Playback holds each shot's view,
-then follows the opponent while accelerating and braking into the next position.
-See the [drill camera and editor receipt](docs/development/drill-camera-and-editor-2026-09-08.md).
+The drill editor filters default/saved shots for drag-and-drop timeline assembly.
+**Top-down zones** edits the yellow incoming landing zone and blue opponent-side
+return landing zone. **Return zone** selects the pseudo-return's own shot type,
+spin and spin rate; the physical return determines the opponent's next contact.
+**Opponent shot** selects the incoming type and spin separately from Ball & rhythm.
+Drop shots, volleys and overheads are available; kick/sidespin are serve-only.
+New/update presets retain both zones, return style, camera, ball and timing.
+Playback follows the opponent while accelerating and braking between shot views.
+See the [return shot verification receipt](docs/development/return-shot-controls-2026-09-09.md).
 
 **Perspective → Ball highlight** makes the incoming ball lighter and more luminous
 as it approaches. It changes only the ball's material; trajectory lines and landing

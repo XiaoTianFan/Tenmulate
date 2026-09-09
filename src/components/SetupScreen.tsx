@@ -50,9 +50,7 @@ const OUTDOOR_TIME_BY_LIGHTING: Readonly<Record<'day' | 'golden-hour' | 'night',
 };
 
 const practiceSpinLabel = (shotType: PracticeShotType, spin: SpinKind): string => (
-  shotType === 'volley'
-    ? 'None'
-    : shotType === 'groundstroke' && spin === 'flat'
+  shotType === 'groundstroke' && spin === 'flat'
       ? 'Flat drive'
       : spin === 'topspin' ? 'Topspin' : `${spin[0]?.toUpperCase()}${spin.slice(1)}`
 );
@@ -486,14 +484,16 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
 
         <aside className="inspector" aria-label="Practice configuration">
           <h2>Practice configuration</h2>
+          <SetupSection title="Opponent shot" subtitle="Shot type and spin" open>
+            <label className="select-field"><span>Shot type</span><select aria-label="Shot type" value={shotType} onChange={(event) => changeShotType(event.target.value as PracticeShotType)}>{(['groundstroke','serve','drop-shot','volley','lob','overhead'] as const).map(type=><option key={type} value={type}>{PRACTICE_SHOT_PROFILES[type].label}</option>)}</select></label>
+            <label className="select-field"><span>Spin type</span><select aria-label="Spin type" value={spin} onChange={(event) => changeSpin(event.target.value)}>{shotProfile.spins.map((option) => <option key={option} value={option}>{practiceSpinLabel(shotType, option)}</option>)}</select></label>
+            {shotType!=='serve'?<label className="select-field"><span>Stroke side</span><select aria-label="Stroke side" value={practiceStroke} onChange={event=>setPracticeStroke(event.target.value as 'forehand'|'backhand'|'alternate')}><option value="alternate">Alternate sides</option><option value="forehand">Forehand</option><option value="backhand">Backhand</option></select></label>:null}
+          </SetupSection>
           <SetupSection title="Ball & rhythm" subtitle="Flight, speed, timing" open>
             <label className="toggle-field"><span>Trajectory</span><button type="button" role="switch" aria-checked={trajectoryEnabled} className={trajectoryEnabled ? 'toggle active' : 'toggle'} onClick={() => setTrajectoryEnabled((value) => !value)}><span /></button><small>{trajectoryEnabled ? 'On' : 'Off'}</small></label>
-            <label className="select-field"><span>Shot type</span><select aria-label="Shot type" value={shotType} onChange={(event) => changeShotType(event.target.value as PracticeShotType)}><option value="groundstroke">Groundstroke</option><option value="serve">Serve</option><option value="volley">Volley</option><option value="lob">Lob</option><option value="overhead">Overhead</option></select></label>
             {shotType === 'serve' ? <label className="select-field"><span>Serve rhythm</span><select aria-label="Serve rhythm" value={serveRhythm} onChange={(event) => setServeRhythm(event.target.value as 'normal' | 'compact')}><option value="normal">Normal</option><option value="compact">Compact</option></select></label> : null}
-            {shotType!=='serve'?<label className="select-field"><span>Stroke side</span><select aria-label="Stroke side" value={practiceStroke} onChange={event=>setPracticeStroke(event.target.value as 'forehand'|'backhand'|'alternate')}><option value="alternate">Alternate sides</option><option value="forehand">Forehand</option><option value="backhand">Backhand</option></select></label>:null}
             <RangeField label="Launch speed" value={launchSpeedKmh} min={shotProfile.launchSpeedRangeKmh.min} max={shotProfile.launchSpeedRangeKmh.max} step={1} unit="km/h" onChange={setLaunchSpeedKmh} />
-            <label className="select-field"><span>Spin type</span><select aria-label="Spin type" value={spin} disabled={shotType === 'volley'} onChange={(event) => changeSpin(event.target.value)}>{shotProfile.spins.map((option) => <option key={option} value={option}>{practiceSpinLabel(shotType, option)}</option>)}</select></label>
-            {shotType !== 'volley' ? <RangeField label="Spin rate" value={spinRateRpm} min={spinRateProfile.minRpm} max={spinRateProfile.maxRpm} step={1} unit="rpm" onChange={setSpinRateRpm} /> : null}
+            {spinRateProfile.maxRpm > 0 ? <RangeField label="Spin rate" value={spinRateRpm} min={spinRateProfile.minRpm} max={spinRateProfile.maxRpm} step={1} unit="rpm" onChange={setSpinRateRpm} /> : null}
             {practicePreset==='return' && shotType==='serve' ? <label className="select-field"><span>Serve placement</span><select aria-label="Serve placement" value={returnTargetMode} onChange={event=>{if(event.target.value==='custom')changeLanding(trajectory.intent.target);else setReturnTargetMode('pattern');}}><option value="pattern">T → Body → Wide</option><option value="custom">Custom target</option></select></label> : null}
             <RangeField label="Shot Variation" value={variation} min={0} max={25} step={1} unit="%" onChange={setVariation} />
             <label className="select-field"><span>Trajectory style</span><select aria-label="Trajectory style" value={trajectoryMode} onChange={event=>setTrajectoryMode(event.target.value as 'natural'|'exact')}><option value="natural">Natural target</option><option value="exact">Exact sampled speed & spin</option></select></label>

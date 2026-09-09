@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { GripVertical, Plus } from 'lucide-react';
 import { SHOTS, SHOT_BY_ID, drillShotPace } from '../content/bundled';
 import type { SavedShotV1 } from '../content/types';
+import { SHOT_TYPE_LABELS } from '../domain/shotKinds';
 
 export const SHOT_DRAG_TYPE = 'application/x-tenmulate-shot';
 export function ShotLibrary({ savedShots, notice, onAdd }: {
@@ -18,7 +19,7 @@ export function ShotLibrary({ savedShots, notice, onAdd }: {
     <div className="shot-library-filters">
       <select aria-label="Filter shots by type" value={type} onChange={event => setType(event.target.value)}>
         <option value="all">All shot types</option>
-        {[...new Set(SHOTS.map(shot => shot.family))].map(family => <option key={family} value={family}>{family[0]!.toUpperCase() + family.slice(1)}</option>)}
+        {[...new Set(SHOTS.map(shot => shot.family))].map(family => <option key={family} value={family}>{SHOT_TYPE_LABELS[family]}</option>)}
       </select>
       <select aria-label="Shot library source" value={source} onChange={event => setSource(event.target.value)}>
         <option value="all">Default &amp; saved</option><option value="default">Default shots</option><option value="saved">Saved shots</option>

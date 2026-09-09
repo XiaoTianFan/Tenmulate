@@ -5,6 +5,7 @@ import type { DrillDefinitionV1 } from '../content/types';
 import type { CameraConfiguration } from '../engine/rendering/TennisScene';
 import { DEFAULT_RETURN_LANDING_ZONE } from '../engine/session/returnLandingZone';
 import { SHOT_DRAG_TYPE } from './ShotLibrary';
+import { normalizeShotSpin } from '../domain/shotKinds';
 
 const EVENT_DRAG_TYPE = 'application/x-tenmulate-event';
 const TRACKS = ['Shot', 'Ball', 'Return', 'Camera', 'Cue'] as const;
@@ -35,7 +36,7 @@ export function DrillTimeline({ drill, selectedId, cameras, onSelect, onInsert, 
             const shot = SHOT_BY_ID.get(event.shotId)!, camera = cameras.get(event.id)!;
             const zone = event.returnLandingZone ?? DEFAULT_RETURN_LANDING_ZONE;
             const text = track === 'Shot' ? `${index + 1}. ${event.label ?? shot.label}`
-              : track === 'Ball' ? `${Math.round(event.paceKmh ?? drillShotPace(shot))} km/h · ${event.spin === 'preset' || !event.spin ? shot.spin : event.spin}`
+              : track === 'Ball' ? `${Math.round(event.paceKmh ?? drillShotPace(shot))} km/h · ${normalizeShotSpin(shot.family, event.spin === 'preset' || !event.spin ? shot.spin : event.spin)}`
               : track === 'Return' ? `${(zone.maxX-zone.minX).toFixed(1)} × ${(zone.maxZ-zone.minZ).toFixed(1)} m · ${((zone.maxZ+zone.minZ)/2).toFixed(1)} m deep`
               : track === 'Camera' ? `${camera.lateral.toFixed(1)} m · ${camera.yaw.toFixed(0)}°` : event.cue || shot.cue;
             return <button type="button" draggable key={event.id} aria-label={`${track} ${index + 1}: ${text}`}
