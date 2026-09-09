@@ -12,6 +12,7 @@ import { landingZoneLimits, landingZoneCenter, resolveLandingZone } from '../eng
 import type { CameraConfiguration } from '../engine/rendering/TennisScene';
 import { AppHeader, type AppRoute } from './AppHeader';
 import { Modal } from './Modal';
+import { SavedShotModal } from './SavedShotModal';
 import { DrillShotControls, EditorNumber, OpeningShotControls } from './DrillShotControls';
 import { useEditorCameraMovement } from '../hooks/useEditorCameraMovement';
 import { useCourtOverview } from '../hooks/useCourtOverview';
@@ -35,7 +36,7 @@ export function DrillEditorScreen({ route, initialDrill, initialPlayerHand, onPl
   const [viewDraft, setViewDraft] = useState<{ id: string; camera: CameraConfiguration } | null>(null);
   const [overview, setOverview] = useState(false), [sequence, setSequence] = useState(false);
   const [previewIndex, setPreviewIndex] = useState(0);
-  const [shotDraft, setShotDraft] = useState<{ id: string; name: string } | null>(null);
+  const [shotDraft, setShotDraft] = useState<{ mode: 'new' | 'update'; event: PlayerShotEventV2 } | null>(null);
   const [shotNotice, setShotNotice] = useState(''), [message, setMessage] = useState<string | null>(null);
   const clock = useRef(0);
   const events = drill.events;
@@ -158,25 +159,18 @@ export function DrillEditorScreen({ route, initialDrill, initialPlayerHand, onPl
         {isOpening ? <><OpeningShotControls feed={feed} onChange={updateFeed}/><button type="button" className="secondary-button full-width" onClick={() => { setOverview(true); setSequence(false); }}>Place opponent on court</button>{selected ? <button type="button" className="secondary-button full-width" onClick={() => updateFeed(openingFor(selected, feed.ball.family === 'serve'))}>Use suggested opening for player shot</button> : null}</> : selected ? <>
           <DrillShotControls event={selected} drill={drill} camera={previewCamera} onChange={updateEvent} onCameraChange={commitCamera} onEditOpening={() => selectEvent(`opening:${selected.id}`)}/>
           {compiled?.timing && !preview.pending ? <p className="saved-shot-count">Player contacts {compiled.timing.actual.toFixed(2)} s apart{compiled.timing.limited ? ` · requested ${compiled.timing.requested.toFixed(2)} s` : ''}.</p> : null}
-          <button className="secondary-button full-width save-shot-button" type="button" disabled={!validation.valid} onClick={() => setShotDraft({ id: '', name: selected.label })}><Save size={16}/> Save new shot</button>
-          <button className="secondary-button full-width save-shot-button" type="button" disabled={!validation.valid || !savedShots.length} onClick={() => setShotDraft({ id: savedShots[0]!.id, name: savedShots[0]!.name })}><Save size={16}/> Update existing saved shot</button>
+          <button className="secondary-button full-width save-shot-button" type="button" onClick={() => setShotDraft({ mode: 'new', event: snapshotPlayerShot({ ...selected, camera: previewCamera }, workingDrill) })}><Save size={16}/> Save new shot</button>
+          <button className="secondary-button full-width save-shot-button" type="button" onClick={() => setShotDraft({ mode: 'update', event: snapshotPlayerShot({ ...selected, camera: previewCamera }, workingDrill) })}><Save size={16}/> Update existing saved shot</button>
         </> : null}
         {[...validation.errors, ...issues.map(issue => issue.message), ...(preview.error ? [preview.error] : [])].length ? <ul className="validation-errors">{[...validation.errors, ...issues.map(issue => issue.message), ...(preview.error ? [preview.error] : [])].map(error => <li key={error}>{error}</li>)}</ul> : null}
         <div className="editor-primary-actions"><button className="primary-button" type="button" disabled={!validation.valid} onClick={() => { onSave(workingDrill); setMessage('Saved to this browser.'); }}><Save size={17}/> Save locally</button>
           <button className="secondary-button full-width" type="button" disabled={!validation.valid || preview.pending || !!issues.length || !!preview.error} onClick={() => onTest(workingDrill)}><Play size={16}/> Test drill</button></div>
       </aside>
     </section>
-    {shotDraft && selected ? <Modal title="Save player shot preset" onClose={() => setShotDraft(null)} actions={<>
-      {shotDraft.id ? <button type="button" className="secondary-button" onClick={() => { onDeleteShot(shotDraft.id); setShotNotice('Saved shot removed.'); setShotDraft(null); }}>Delete saved shot</button> : null}
-      <button type="button" className="primary-button inline" disabled={!shotDraft.name.trim()} onClick={() => {
-        const name = shotDraft.name.trim(); onSaveShot({ schemaVersion: 2, playerHand, id: shotDraft.id || `shot-${crypto.randomUUID()}`, name, event: snapshotPlayerShot({ ...selected, label: name, camera: previewCamera }, workingDrill) });
-        setShotNotice(`Saved “${name}”`); setShotDraft(null);
-      }}>{shotDraft.id ? 'Update saved shot' : 'Save new shot'}</button>
-    </>}>
-      <label className="stack-field"><span>Save as</span><select aria-label="Save as" value={shotDraft.id} onChange={e => setShotDraft({ id: e.target.value, name: savedShots.find(item => item.id === e.target.value)?.name ?? shotDraft.name })}><option value="">New saved shot</option>{savedShots.map(item => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
-      <label className="stack-field"><span>Preset name</span><input autoFocus maxLength={60} value={shotDraft.name} onChange={e => setShotDraft({ ...shotDraft, name: e.target.value })}/></label>
-      <p>Includes your shot and landing zone, opponent return and its zone, camera, timing, hand and stroke settings.</p>
-    </Modal> : null}
+    {shotDraft ? <SavedShotModal {...shotDraft} playerHand={playerHand} savedShots={savedShots} onClose={() => setShotDraft(null)}
+      onSave={shot => { onSaveShot(shot); setShotNotice(`Saved “${shot.name}”`); setShotDraft(null); }}
+      onDelete={id => { onDeleteShot(id); setShotNotice('Saved shot removed.'); setShotDraft(null); }}/>
+      : null}
     {message ? <Modal title="Drill editor" onClose={() => setMessage(null)} actions={<button className="primary-button inline" type="button" onClick={() => setMessage(null)}>Close</button>}><p>{message}</p></Modal> : null}
   </main>;
 }

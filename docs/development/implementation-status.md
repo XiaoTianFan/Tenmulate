@@ -9,6 +9,28 @@
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
+## Saved-shot overwrite dialog — 2026-09-09
+
+The editor's **Update existing saved shot** action always opens a modal for the
+selected player event. Previously it was silently disabled without custom slots
+or when any part of the drill failed validation. The dialog now requires an
+explicit saved-slot selection before **Overwrite saved shot** is enabled. Empty
+libraries offer creation of the first saved shot; bundled defaults remain separate.
+Only the selected shot snapshot is validated, so an unrelated drill error cannot
+block saving a valid preset. The snapshot retains both balls, both landing zones,
+camera, timing defaults and handedness, and overwriting keeps the chosen slot ID.
+Cancel/Escape make no writes, keyboard focus stays in the dialog and returns to
+the invoking button on close.
+
+Verified locally with 31 content/storage/handedness tests, the production build
+and motion asset guard, and 20 isolated Edge/Playwright checks at 1037×898 and
+390×844 on `http://127.0.0.1:5173/`. Checks cover empty-state creation, two saved
+slots, explicit selection, cancellation, complete snapshot replacement, preservation
+of the other slot, reload persistence, unrelated drill validation errors, keyboard
+navigation, screenshots and clean runtime/console output. Browser plugin not
+available; isolated Playwright used without changing the owner's browser data.
+The existing large renderer-chunk build warning remains. No public deployment.
+
 ## Direct court editing and rally contacts — 2026-09-09
 
 [ADR-0039](../decisions/0039-direct-court-editing-and-rally-contacts.md) restores
