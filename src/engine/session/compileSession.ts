@@ -93,7 +93,7 @@ export type CompiledSession = Readonly<{
   /** Prepared off-thread so mounting a rally never performs a seam solve. */
   previewNext?: Readonly<{ last: CompiledRepetition; next: CompiledSession }>;
   solverVersion: 'ball-v9-neutral-contact-fit';
-  plannerVersion: 'gameplay-return-shots-v11' | 'gameplay-player-drills-v12';
+  plannerVersion: 'gameplay-return-shots-v11' | 'gameplay-player-drills-v13';
   contentVersion: '2026.09.09';
   drill: DrillDefinition;
   settings: SessionSettings;

@@ -5,7 +5,8 @@ import type { CameraConfiguration } from '../rendering/TennisScene';
 import type { FlightSample, ResolvedTrajectory } from '../trajectory/physics';
 import { sampleLandingZone, sampleParameter, type LandingZone } from '../trajectory/landingZone';
 import { createSeededRandom } from '../random/seeded';
-import { cameraTravelSeconds, DEFAULT_DRILL_CAMERA, interpolateCamera, type CameraTransition } from './cameraTimeline';
+import { cameraTravelSeconds, DEFAULT_DRILL_CAMERA, type CameraTransition } from './cameraTimeline';
+import { planTennisCamera, TENNIS_CAMERA, type TennisCameraExchange } from './tennisCamera';
 import { cameraPlayerPosition, type Reachability } from './playerCoverage';
 import { contactDistance, contactHeight, landsInZone, opponentContacts, playerContacts, playerContactAnchor, resolveCourtFlight, trimFlight } from './courtFlight';
 import { minimumMotionGap, motionClip, motionEvent, rotateMotionPoint, strokeForShot, withPreparedApproach } from './opponentTimeline';
@@ -35,10 +36,14 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
   const workBlock = Math.max(1, Math.min(drill.events.length, Math.floor(settings.workBlockSize)));
   const cameraScale = Math.max(0, Math.min(1, settings.cameraMotionScale ?? 1));
   const initialCamera = drill.events[0]!.camera;
-  const events = Array.from({ length: count }, (_, index) => drill.events[index % drill.events.length]!);
+  const events = Array.from({ length: count }, (_, index) => {
+    const event = drill.events[index % drill.events.length]!;
+    return event.camera.fov === initialCamera.fov ? event : { ...event, camera: { ...event.camera, fov: initialCamera.fov } };
+  });
   const repetitions: CompiledRepetition[] = [], playerEvents: CompiledPlayerEvent[] = [], flights: ScheduledDrillFlight[] = [];
   const issues: DrillPlanningIssue[] = [], restPeriods: { afterIndex: number; startTime: number; endTime: number }[] = [];
   const transitions: CameraTransition[] = [];
+  const cameraExchanges: TennisCameraExchange[] = [];
   let incoming: IncomingFit | null = null, incomingIndex = -1, setIndex = -1;
   let endTime = 0, lastCamera: CameraConfiguration = initialCamera, motionTimingAdjusted = false;
 
@@ -59,12 +64,14 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
     resolveCourtFlight({ source, target, landingZone: zone, family: ball.family, opponentHand: ball.hand,
       launchSpeedKmh: pace, spin: ball.spin, spinRateRpm: ball.spinRateRpm, surface: settings.surface,
       minimumNetClearanceM: ball.netClearanceM, bounceFactor: ball.bounceFactor, trajectoryMode: ball.trajectoryMode, windVelocity: settings.windVelocity }, accepts);
-  const fitIncoming = (source: Vec3, ball: DrillBall, zone: LandingZone, target: { x: number; z: number }, receiver?: PlayerShotEventV2, desired?: number): IncomingFit => {
+  const fitIncoming = (source: Vec3, ball: DrillBall, zone: LandingZone, target: { x: number; z: number }, receiver?: PlayerShotEventV2, desired?: number,
+    canReceive?: (contact: FlightSample) => boolean): IncomingFit => {
     let best: IncomingFit | undefined;
+    const receivingContacts = (flight: ResolvedTrajectory) => receiver ? playerContacts(flight, receiver).filter(contact => !canReceive || canReceive(contact)) : [];
     for (const factor of ball.trajectoryMode === 'exact' || ['groundstroke', 'approach', 'half-volley'].includes(ball.family) ? [1] : [1, .85, 1.15]) {
       const trajectory = resolve(source, ball, zone, target, ball.paceKmh * factor,
-        receiver ? flight => playerContacts(flight, receiver).length > 0 : undefined);
-      const contacts = receiver && landsInZone(trajectory) ? playerContacts(trajectory, receiver) : [];
+        receiver ? flight => receivingContacts(flight).length > 0 : undefined);
+      const contacts = receiver && landsInZone(trajectory) ? receivingContacts(trajectory) : [];
       const preference = receiver ? bounceContactPreference(trajectory, receiver.ball.family, receiver.ball.contactTiming) : null;
       const scoreContact = (contact: FlightSample) => (desired === undefined ? 0 : Math.abs(contact.time - desired))
         + bounceContactCost(contact, preference) + contactDistance(contact, receiver!) * .24 + Math.abs(contact.position.y - contactHeight(receiver!.ball.family)) * .1;
@@ -109,7 +116,7 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
     const previous = repetitions.at(-1), lead = motionEvent(rep).contactTime - motionEvent(rep).start;
     const restStart = endTime, restSeconds = index > 0 && index % workBlock === 0 ? Math.max(0, settings.restSeconds) : 0;
     const travel = cameraTravelSeconds(lastCamera, event.camera, movement / 100);
-    const departure = index === 0 ? 0 : playerEvents.at(-1)?.startTime ?? endTime;
+    const departure = index === 0 ? 0 : (playerEvents.at(-1)?.startTime ?? endTime) + TENNIS_CAMERA.release;
     if (travel > 0) transitions.push({ start: departure, end: departure + travel, from: lastCamera, to: event.camera });
     let time = Math.max(3, endTime + restSeconds + lead + .15, departure + travel);
     if (previous) {
@@ -176,6 +183,10 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
       break;
     }
     const arrival = repetitions[incomingIndex]!, playerTime = arrival.startTime + current.contact.time;
+    if (newPoint) cameraExchanges.push({ ...planTennisCamera({ start: transitions.at(-1)?.end ?? 0, end: playerTime,
+      opponentContact: arrival.startTime, from: { ...event.camera, fov: initialCamera.fov }, to: event.camera, opening: true,
+      playerTarget: current.trajectory.intent.target, currentFamily: event.ball.family, nextFamily: event.ball.family,
+      opponentFamily: arrival.shot.family }), incoming: current.trajectory });
     repetitions[incomingIndex] = { ...arrival, reachability: { ...arrival.reachability, reachable: true, reason: 'reachable', contact: current.contact } };
     const ball = sampleBall(event.ball, 'player', index), target = sampleZone(event.landingZone, 'player', index);
     const continues = !!next && (index + 1) % workBlock !== 0 && !next.openingFeed;
@@ -211,13 +222,16 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
     const selected: FlightSample[] = [];
     for (const c of [eligible.at(-1), eligible[0], ...ranked]) if (c && selected.length < 8 && selected.every(s => Math.abs(s.time - c.time) > .07)) selected.push(c);
     let best: { contact: FlightSample; fit: IncomingFit; rep: CompiledRepetition; score: number } | undefined;
-    const preferredTravel = receiver ? cameraTravelSeconds(event.camera, receiver.camera, normalizeRhythm(receiver.movementPercent ?? movement) / 100) : 0;
-    const minimumTravel = receiver ? cameraTravelSeconds(event.camera, receiver.camera, 3) : 0;
+    const cameraPlan = (opponentTime: number, nextContact: number) => planTennisCamera({ start: playerTime, opponentContact: opponentTime,
+      end: nextContact, from: { ...event.camera, fov: initialCamera.fov }, to: next.camera, playerTarget: target,
+      currentFamily: event.ball.family, nextFamily: next.ball.family, opponentFamily: replyBall.family,
+      movementRate: normalizeRhythm(next.movementPercent ?? movement) / 100 });
     for (const contact of selected) {
       const time = playerTime + contact.time;
       const draftShot = shotDefinition(contact.position, replyBall, replyTarget, `${event.label} — opponent return`);
-      const fit = fitIncoming(contact.position, replyBall, response.landingZone, replyTarget, receiver, requested - contact.time);
-      if (!landsInZone(fit.trajectory) || receiver && (!fit.contact || contact.time + fit.contact.time < minimumTravel + .12)) continue;
+      const fit = fitIncoming(contact.position, replyBall, response.landingZone, replyTarget, receiver, requested - contact.time,
+        sample => cameraPlan(time, time + sample.time).feasible);
+      if (!landsInZone(fit.trajectory) || receiver && !fit.contact) continue;
       const total = contact.time + (fit.contact?.time ?? 0);
       const postureCost = Math.max(0, contactHeight(replyBall.family) - contact.position.y) ** 2 * 8;
       const score = (receiver ? Math.abs(total - requested) + fit.score * .1 : Math.abs(contact.time - desired)) + postureCost + bounceContactCost(contact, preference);
@@ -236,21 +250,23 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
     repetitions[previous.index] = { ...solved.previous, recoveryPolicy: route.kind === 'direct' ? 'direct' : 'recover' };
     repetitions.push({ ...solved.next, startTime: best.rep.startTime });
     const actual = best.contact.time + (best.fit.contact?.time ?? best.fit.trajectory.samples.at(-1)!.time);
-    const travel = Math.max(minimumTravel, Math.min(preferredTravel, actual - .12));
     playerEvents[index] = { ...playerEvents[index]!, responseIndex: best.rep.index, opponentContactPhase: bounceContactPhase(best.contact),
       ...(continues ? { timing: { requested, actual, limited: Math.abs(actual - requested) > 1 / 240 } } : {}) };
     addFlight('player', 'player', index, playerTime, playerFlight, best.contact);
     addFlight('opponent', 'response', index, best.rep.startTime, best.fit.trajectory, best.fit.contact);
-    if (receiver && travel > 0) transitions.push({ start: playerTime, end: playerTime + travel, from: event.camera, to: receiver.camera });
+    if (receiver && best.fit.contact) {
+      const plan = cameraPlan(best.rep.startTime, playerTime + actual);
+      transitions.push(...plan.legs);
+      cameraExchanges.push({ ...plan, incoming: best.fit.trajectory });
+    }
     incoming = best.fit; incomingIndex = best.rep.index; lastCamera = receiver?.camera ?? event.camera;
     if (solved.previous.motionRate !== previous.motionRate || solved.next.motionRate !== best.rep.motionRate || Math.abs(actual - requested) > .01) motionTimingAdjusted = true;
   }
   const last = repetitions.at(-1);
-  return { solverVersion: 'ball-v9-neutral-contact-fit', plannerVersion: 'gameplay-player-drills-v12', contentVersion: '2026.09.09',
+  return { solverVersion: 'ball-v9-neutral-contact-fit', plannerVersion: 'gameplay-player-drills-v13', contentVersion: '2026.09.09',
     drill, settings: { ...settings, mode: 'drill', rhythmPercent: rhythm, movementPercent: movement, shotIntervalSeconds: interval, workBlockSize: workBlock },
     mode: 'drill', repetitions, restPeriods, duration: Math.max(endTime, last ? planRecovery(motionEvent(last)).end + .15 : 3),
     motionTimingAdjusted, rhythmPercent: rhythm, cameraTimeline: { initial: initialCamera ?? DEFAULT_DRILL_CAMERA,
-      transitions: transitions.map(stage => ({ ...stage, from: interpolateCamera(initialCamera, stage.from, cameraScale),
-        to: interpolateCamera(initialCamera, stage.to, cameraScale) })) },
+      transitions, ...(!selection ? { tennis: { exchanges: cameraExchanges, motionScale: cameraScale } } : {}) },
     playerEvents, scheduledFlights: flights, planningIssues: issues, ...(shotPreview ? { shotPreview } : {}) };
 }

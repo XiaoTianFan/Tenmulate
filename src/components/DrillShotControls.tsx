@@ -68,7 +68,7 @@ export function DrillShotControls({ event, drill, camera, onChange, onCameraChan
   const nextEvent = drill.events[drill.events.indexOf(event) + 1];
   const cameraFields: readonly [keyof CameraConfiguration, string, number][] = [
     ['lateral', 'Camera sideways (m)', .1], ['behindBaseline', 'Behind baseline (m)', .1], ['eyeHeight', 'Eye height (m)', .01],
-    ['yaw', 'Camera heading (°)', 1], ['pitch', 'Camera tilt (°)', 1], ['fov', 'Field of view (°)', 1],
+    ['yaw', 'Camera heading (°)', 1], ['pitch', 'Camera tilt (°)', 1], ['fov', 'Field of view · all shots (°)', 1],
   ];
   return <div className="shot-controls">
     <label className="stack-field"><span>Shot name</span><input maxLength={60} value={event.label} onChange={e => onChange({ label: e.target.value })}/></label>

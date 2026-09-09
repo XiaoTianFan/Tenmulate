@@ -22,7 +22,7 @@ import type { SessionLaunch } from '../app/types';
 import { practiceAudio } from '../engine/audio/AudioCueEngine';
 import { crossedCues, sessionCues } from '../engine/audio/sessionCues';
 import { compileSession } from '../engine/session/compileSession';
-import { interpolateCamera } from '../engine/session/cameraTimeline';
+import { scaleCameraTimeline } from '../engine/session/cameraTimeline';
 import { useSessionPlayer } from '../hooks/useSessionPlayer';
 import { useFullscreen } from '../hooks/useFullscreen';
 import { Modal } from './Modal';
@@ -60,9 +60,7 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
   const session = useMemo(() => {
     if (effectiveCameraMotionScale === (launch.session.settings.cameraMotionScale ?? 1)) return launch.session;
     if (!launch.session.playerEvents) return compileSession(launch.session.drill, { ...launch.session.settings, camera: launch.camera, cameraMotionScale: effectiveCameraMotionScale });
-    const initial = launch.session.cameraTimeline.initial;
-    return { ...launch.session, cameraTimeline: { initial, transitions: launch.session.cameraTimeline.transitions.map(stage => ({ ...stage,
-      from: interpolateCamera(initial, stage.from, effectiveCameraMotionScale), to: interpolateCamera(initial, stage.to, effectiveCameraMotionScale) })) } };
+    return { ...launch.session, cameraTimeline: scaleCameraTimeline(launch.session.cameraTimeline, effectiveCameraMotionScale) };
   }, [effectiveCameraMotionScale, launch.session, launch.camera]);
   const player = useSessionPlayer(session, playbackRate);
   const playerEvent = session.playerEvents?.[Math.max(0, player.currentIndex)];

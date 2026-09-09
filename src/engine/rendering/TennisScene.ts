@@ -18,6 +18,7 @@ import { AudienceSystem, type AudienceState } from './AudienceSystem';
 import type { CompiledSession } from '../session/compileSession';
 import { motionEvent, sampleOpponentTimeline, type MotionEvent, type MotionSample } from '../session/opponentTimeline';
 import { sampleCameraTimeline } from '../session/cameraTimeline';
+import { cameraExchangeAt, tennisCameraPhase } from '../session/tennisCamera';
 import { RETURN_LANDING_LIMITS } from '../session/returnLandingZone';
 import { planRecovery } from '../session/opponentMovement';
 import { ContinuousPracticePreview } from '../session/practicePreview';
@@ -805,7 +806,9 @@ export class TennisScene {
     }
     this.profiler?.mark('balls');
     if (this.sessionCameraEnabled && this.sessionClock && this.session?.mode === 'drill') {
-      const camera = sampleCameraTimeline(this.session.cameraTimeline, this.elapsed, opponentRoot);
+      const camera = sampleCameraTimeline(this.session.cameraTimeline, this.elapsed, opponentRoot, this.camera.aspect);
+      const track = this.session.cameraTimeline.tennis, exchange = track && cameraExchangeAt(track, this.elapsed);
+      this.canvas.dataset.cameraPhase = exchange ? tennisCameraPhase(exchange, this.elapsed) : 'reset';
       if(camera!==this.cameraConfiguration){this.cameraConfiguration=camera;this.applyCamera();}
     } else if (this.cameraMotion) {
       const delay = this.cameraMotion.delay ?? 0;

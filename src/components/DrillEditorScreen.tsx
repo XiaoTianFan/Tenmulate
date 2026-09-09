@@ -31,7 +31,12 @@ const cloneEvent = (event: PlayerShotEventV2) => ({ ...structuredClone(event), i
 const noMetrics = () => undefined;
 
 export function DrillEditorScreen({ route, initialDrill, initialPlayerHand, onPlayerHandChange, surface, onRoute, onSave, onTest, savedShots, onSaveShot, onDeleteShot }: Props) {
-  const [drill, setDrill] = useState(() => ({ ...structuredClone(playerDrillForHand(initialDrill, initialPlayerHand)), defaultRepetitions: Math.max(1, initialDrill.events.length) }));
+  const [drill, setDrill] = useState<DrillDefinitionV2>(() => {
+    const copy = structuredClone(playerDrillForHand(initialDrill, initialPlayerHand));
+    const fov = copy.events[0]?.camera.fov ?? DEFAULT_CAMERA.fov;
+    return { ...copy, events: copy.events.map(event => ({ ...event, camera: { ...event.camera, fov } })),
+      defaultRepetitions: Math.max(1, copy.events.length) };
+  });
   const [selectedId, setSelectedId] = useState('launch');
   const [viewDraft, setViewDraft] = useState<{ id: string; camera: CameraConfiguration } | null>(null);
   const [zoneDraft, setZoneDraft] = useState<{ role: 'player' | 'opponent'; zone: LandingZone } | null>(null);
@@ -47,7 +52,8 @@ export function DrillEditorScreen({ route, initialDrill, initialPlayerHand, onPl
   const isOpening = selectedId === 'launch' || !!openingId && !!selected?.openingFeed;
   const feed = openingId && selected?.openingFeed ? selected.openingFeed : drill.launch;
   const previewCamera = viewDraft?.id === selected?.id ? viewDraft.camera : selected?.camera ?? DEFAULT_CAMERA;
-  const workingDrill = viewDraft ? { ...drill, events: events.map(event => event.id === viewDraft.id ? { ...event, camera: viewDraft.camera } : event) } : drill;
+  const workingDrill = viewDraft ? { ...drill, events: events.map(event => ({ ...event,
+    camera: event.id === viewDraft.id ? viewDraft.camera : { ...event.camera, fov: viewDraft.camera.fov } })) } : drill;
   const preview = usePlayerDrillPreview(drill, surface);
   const selection = useMemo(() => selected ? { eventId: selected.id, opening: isOpening, initialOpening: selectedId === 'launch' } : undefined, [selected?.id, isOpening, selectedId]);
   const shotDrill = useMemo(() => ({ ...drill,
@@ -98,7 +104,8 @@ export function DrillEditorScreen({ route, initialDrill, initialPlayerHand, onPl
     const next = { ...feed, position }, zone = feed.landingZone;
     updateFeed({ ...next, landingZone: resolveLandingZone(landingZoneCenter(zone), { width: zone.maxX - zone.minX, depth: zone.maxZ - zone.minZ }, feed.ball.family, openingZoneSource(next)) });
   };
-  const commitCamera = (camera: CameraConfiguration) => updateEvent({ camera: { ...camera, pitch: Math.max(-85, Math.min(85, camera.pitch)) } });
+  const commitCamera = (camera: CameraConfiguration) => replaceEvents(workingDrill.events.map(event => ({ ...event,
+    camera: event.id === selected?.id ? { ...camera, pitch: Math.max(-85, Math.min(85, camera.pitch)) } : { ...event.camera, fov: camera.fov } })));
   const selectEvent = (id: string) => { if (viewDraft) commit(workingDrill); setViewDraft(null); setZoneDraft(null); setSelectedId(id); setSequence(false); };
   const changePlayerHand = (hand: OpponentHand) => {
     if (hand === playerHand) return;
@@ -109,7 +116,8 @@ export function DrillEditorScreen({ route, initialDrill, initialPlayerHand, onPl
     const saved = savedShots.find(item => `saved:${item.id}` === id);
     if (!saved && !PLAYER_SHOT_BY_ID.has(id)) return;
     const source = saved ? { ...cloneEvent(saved.event), label: saved.name } : newPlayerEvent(id);
-    const event = playerEventForHand(source, saved?.playerHand ?? 'right', playerHand);
+    const oriented = playerEventForHand(source, saved?.playerHand ?? 'right', playerHand);
+    const event = { ...oriented, camera: { ...oriented.camera, fov: workingDrill.events[0]?.camera.fov ?? oriented.camera.fov } };
     replaceEvents([...workingDrill.events.slice(0, insertion), event, ...workingDrill.events.slice(insertion)]);
     setSelectedId(event.id); setSequence(false);
   };

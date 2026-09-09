@@ -104,8 +104,7 @@ describe('player-owned drill clock and physical handoffs', () => {
     const reduced = compileSession(PLAYER_DRILLS[0]!, { ...settings, repetitions: 2, cameraMotionScale: 0 });
     expect(reduced.scheduledFlights).toEqual(full.scheduledFlights);
     expect(reduced.playerEvents).toEqual(full.playerEvents);
-    for (const stage of reduced.cameraTimeline.transitions) {
-      expect(stage.from).toEqual(reduced.cameraTimeline.initial); expect(stage.to).toEqual(reduced.cameraTimeline.initial);
-    }
+    for (let time = 0; time <= reduced.duration; time += .05)
+      expect(sampleCameraTimeline(reduced.cameraTimeline, time, { x: 3, y: 0, z: 12 })).toEqual(reduced.cameraTimeline.initial);
   });
 });

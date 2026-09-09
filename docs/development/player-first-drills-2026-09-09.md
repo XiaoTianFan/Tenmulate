@@ -92,10 +92,15 @@ to its preceding incoming ball and validates the complete exchange.
 
 Shared source-clock motion, prepared entry after a traveling unit turn, rigid
 grips, fixed bone lengths and recovery/direct-route selection remain in force.
-Camera travel starts after the player's stroke, uses the existing quintic
-acceleration/deceleration curve and tracks the moving opponent between authored
-views. The authored view is restored before the next player contact. Camera
-comfort scaling changes only presentation, preserving all ball contacts and times.
+The camera now has stroke, recovery/approach, split, receive and settling stages.
+Ordinary recovery follows the known outgoing shot's coverage angle; the camera
+watches the actual opponent and waits until after contact to move toward the
+next lateral destination. Intentional approaches can advance early in depth.
+During reception, bounded ball tracking keeps opponent/court context, then restores
+the authored contact view. FOV stays fixed for the drill. Camera comfort scaling
+changes only presentation, preserving all ball contacts and times. See
+[ADR-0041](../decisions/0041-staged-tennis-camera.md) and the
+[research record](tennis-camera-research-2026-09-10.md).
 
 The final player action ends its point. Its response configuration stays in the
 saved event for later insertion/reordering, but is not played without a following
