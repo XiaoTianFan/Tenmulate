@@ -95,3 +95,51 @@ export type DrillEventV1 = Readonly<{
 }>;
 
 export type SavedShotV1 = Readonly<{id:string;name:string;event:DrillEventV1}>;
+
+/** Canonical drill authoring. V1 remains the legacy import/Quick Practice contract. */
+export type RallyShotFamily = Exclude<ShotFamily, 'serve'>;
+export type DrillBall = Readonly<{
+  family: ShotFamily;
+  stroke: 'forehand' | 'backhand';
+  hand: OpponentHand;
+  paceKmh: number;
+  spin: SpinKind;
+  spinRateRpm: number;
+  variationPercent: number;
+  bounceFactor: number;
+  trajectoryMode: 'natural' | 'exact';
+  netClearanceM: number;
+  serveRhythm: ServeRhythm;
+}>;
+export type OpponentResponse = Readonly<{ ball: DrillBall; landingZone: LandingZone }>;
+export type OpeningFeed = OpponentResponse & Readonly<{ position: Readonly<{ x: number; z: number }> }>;
+export type PlayerShotEventV2 = Readonly<{
+  id: string;
+  presetId?: string;
+  label: string;
+  cue: string;
+  camera: CameraConfiguration;
+  ball: DrillBall;
+  landingZone: LandingZone;
+  opponentReturn: OpponentResponse;
+  intervalSeconds?: number;
+  rhythmPercent?: number;
+  movementPercent?: number;
+  /** Explicit fresh point, primarily for sequences of serve-return practice. */
+  openingFeed?: OpeningFeed;
+}>;
+export type DrillDefinitionV2 = Readonly<{
+  schemaVersion: 2;
+  id: string;
+  title: string;
+  description: string;
+  category: SessionCategory;
+  launch: OpeningFeed;
+  events: readonly PlayerShotEventV2[];
+  defaultInterval: number;
+  defaultRhythmPercent?: number;
+  defaultMovementPercent?: number;
+  defaultRepetitions: number;
+}>;
+export type SavedShotV2 = Readonly<{ schemaVersion: 2; id: string; name: string; event: PlayerShotEventV2 }>;
+export type DrillDefinition = DrillDefinitionV1 | DrillDefinitionV2;
