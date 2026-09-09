@@ -44,6 +44,7 @@ export const DEFAULT_PERSPECTIVE_PRESETS: readonly PerspectivePresetV1[] = [
 
 export type AppDataV2 = Readonly<{
   schemaVersion: 2;
+  drillPlayerHand: 'left' | 'right';
   customDrills: readonly DrillDefinitionV2[];
   savedShots: readonly SavedShotV2[];
   cameraPositionPresets: readonly CameraPositionPresetV1[];
@@ -99,6 +100,7 @@ export const DEFAULT_PREFERENCES: PracticePreferencesV1 = {
 
 export const DEFAULT_APP_DATA: AppDataV2 = {
   schemaVersion: 2,
+  drillPlayerHand: 'right',
   customDrills: [],
   savedShots: [],
   cameraPositionPresets: DEFAULT_CAMERA_POSITION_PRESETS,
@@ -243,7 +245,7 @@ export const loadAppData = (): AppDataV2 => {
       } catch { skipped++; }
     }
     if (!current && (customDrills.length || savedShots.length || skipped)) storageNotice = `Saved drills and shots now use the player's perspective. Original data is retained in this browser.${skipped ? ` ${skipped} legacy item(s) need manual repair before import.` : ''}`;
-    return { schemaVersion: 2, customDrills, savedShots, cameraPositionPresets, perspectivePresets, preferences };
+    return { schemaVersion: 2, drillPlayerHand: parsed.drillPlayerHand === 'left' ? 'left' : 'right', customDrills, savedShots, cameraPositionPresets, perspectivePresets, preferences };
   } catch {
     return DEFAULT_APP_DATA;
   }

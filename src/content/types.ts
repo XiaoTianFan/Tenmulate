@@ -130,6 +130,8 @@ export type PlayerShotEventV2 = Readonly<{
 }>;
 export type DrillDefinitionV2 = Readonly<{
   schemaVersion: 2;
+  /** Handedness of the stored court layout. Missing in older right-handed layouts. */
+  playerHand?: OpponentHand;
   id: string;
   title: string;
   description: string;
@@ -141,5 +143,5 @@ export type DrillDefinitionV2 = Readonly<{
   defaultMovementPercent?: number;
   defaultRepetitions: number;
 }>;
-export type SavedShotV2 = Readonly<{ schemaVersion: 2; id: string; name: string; event: PlayerShotEventV2 }>;
+export type SavedShotV2 = Readonly<{ schemaVersion: 2; playerHand?: OpponentHand; id: string; name: string; event: PlayerShotEventV2 }>;
 export type DrillDefinition = DrillDefinitionV1 | DrillDefinitionV2;

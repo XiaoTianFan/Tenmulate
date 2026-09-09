@@ -11,6 +11,7 @@ export const useAppData = () => {
   const deleteDrill = useCallback((id: string) => setData((current) => ({ ...current, customDrills: current.customDrills.filter((item) => item.id !== id) })), []);
   const saveShot = useCallback((shot: SavedShotV2) => setData(current => ({...current,savedShots:[...current.savedShots.filter(item=>item.id!==shot.id),structuredClone(shot)]})),[]);
   const deleteShot = useCallback((id: string) => setData(current => ({...current,savedShots:current.savedShots.filter(item=>item.id!==id)})),[]);
+  const saveDrillPlayerHand = useCallback((drillPlayerHand: AppDataV2['drillPlayerHand']) => setData(current => ({ ...current, drillPlayerHand })), []);
   const saveCameraPositionPreset = useCallback((preset: CameraPositionPresetV1) => setData((current) => ({
     ...current,
     cameraPositionPresets: current.cameraPositionPresets.some((item) => item.id === preset.id)
@@ -33,6 +34,6 @@ export const useAppData = () => {
 
   return {
     data,
-    saveDrill, deleteDrill, saveShot, deleteShot, saveCameraPositionPreset, savePerspectivePreset, savePreferences, saveBallFocus,
+    saveDrill, deleteDrill, saveShot, deleteShot, saveCameraPositionPreset, savePerspectivePreset, savePreferences, saveBallFocus, saveDrillPlayerHand,
   };
 };

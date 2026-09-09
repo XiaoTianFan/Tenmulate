@@ -44,7 +44,9 @@ function response(v: unknown, launch: boolean, path: string, errors: string[]) {
     }
     if (record(v.ball) && v.ball.family === 'serve' && record(v.landingZone) && record(v.position)) {
       const z = v.landingZone, x = Number(v.position.x);
-      if (Number(z.minZ) < -COURT.serviceLineFromNet + .12 - 1e-8 || (x < 0 ? Number(z.minX) < .12 : Number(z.maxX) > -.12)) errors.push(`${path} serve landing zone must be in the diagonal service box.`);
+      const wrongBox = x < 0 ? Number(z.minX) < .12 : x > 0 ? Number(z.maxX) > -.12
+        : Number(z.minX) < .12 && Number(z.maxX) > -.12;
+      if (Number(z.minZ) < -COURT.serviceLineFromNet + .12 - 1e-8 || wrongBox) errors.push(`${path} serve landing zone must be in the diagonal service box.`);
     }
   }
 }
@@ -66,7 +68,8 @@ export function validatePlayerEvent(v: unknown, path: string, errors: string[]) 
 }
 export function validatePlayerDrill(v: unknown): ValidationResult {
   const errors: string[] = [], warnings: string[] = [];
-  if (!object(v, 'schemaVersion id title description category launch events defaultInterval defaultRhythmPercent defaultMovementPercent defaultRepetitions', 'Drill', errors)) return { valid: false, errors, warnings };
+  if (!object(v, 'schemaVersion playerHand id title description category launch events defaultInterval defaultRhythmPercent defaultMovementPercent defaultRepetitions', 'Drill', errors)) return { valid: false, errors, warnings };
+  if (v.playerHand !== undefined && !['right', 'left'].includes(String(v.playerHand))) errors.push('Player handedness must be right or left.');
   if (v.schemaVersion !== 2) errors.push('Player drills require schemaVersion 2.');
   if (!id(v.id) || !text(v.title, 100) || !text(v.description, 400, false)) errors.push('Drill id, title or description is invalid.');
   if (!['Quick Rally', 'Return Practice', 'Tactical Pattern', 'Serve & Volley', 'Net & Overhead', 'Custom'].includes(String(v.category))) errors.push('Category is not supported.');
@@ -85,7 +88,8 @@ export function validatePlayerDrill(v: unknown): ValidationResult {
 }
 export function isPlayerSavedShot(v: unknown): v is SavedShotV2 {
   const errors: string[] = [];
-  if (!object(v, 'schemaVersion id name event', 'Saved shot', errors)) return false;
+  if (!object(v, 'schemaVersion playerHand id name event', 'Saved shot', errors)) return false;
+  if (v.playerHand !== undefined && !['right', 'left'].includes(String(v.playerHand))) return false;
   if (v.schemaVersion !== 2 || !id(v.id) || !text(v.name, 60)) return false;
   validatePlayerEvent(v.event, 'Saved shot', errors);
   return !errors.length && !/https?:\/\//i.test(JSON.stringify(v));

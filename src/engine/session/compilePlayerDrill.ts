@@ -39,6 +39,14 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
   let endTime = 0, lastCamera: CameraConfiguration = initialCamera, motionTimingAdjusted = false;
 
   const random = (role: string, index: number, parameter: string) => createSeededRandom(`${settings.seed}:player-drill:${role}:${index}:${parameter}`);
+  const sampleZone = (zone: LandingZone, role: string, index: number) => {
+    const draw = random(role, index, 'landing');
+    const x = draw(), z = draw();
+    // Reflect the horizontal quantile, not just the rectangle. Uniform coverage
+    // and the seed's relative placement remain consistent when changing hands.
+    let axis = 0;
+    return sampleLandingZone(zone, () => axis++ === 0 ? drill.playerHand === 'left' ? 1 - x : x : z);
+  };
   const sampleBall = (ball: DrillBall, role: string, index: number): DrillBall => ({ ...ball,
     paceKmh: sampleParameter(ball.paceKmh, ball.variationPercent / 100, 20, 260, random(role, index, 'speed')),
     spinRateRpm: sampleParameter(ball.spinRateRpm, ball.variationPercent / 100, 0, 6000, random(role, index, 'spin')) });
@@ -81,7 +89,7 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
   };
   const startPoint = (feed: OpeningFeed, event: PlayerShotEventV2, index: number) => {
     setIndex = Math.floor(index / workBlock);
-    const ball = sampleBall(feed.ball, 'opening', index), target = sampleLandingZone(feed.landingZone, random('opening', index, 'landing'));
+    const ball = sampleBall(feed.ball, 'opening', index), target = sampleZone(feed.landingZone, 'opening', index);
     let source = { ...feed.position, y: contactHeight(ball.family) };
     // The authored opening position is the opponent's body root.
     for (let iteration = 0; iteration < 5; iteration++) {
@@ -120,7 +128,7 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
     }
     const arrival = repetitions[incomingIndex]!, playerTime = arrival.startTime + current.contact.time;
     repetitions[incomingIndex] = { ...arrival, reachability: { ...arrival.reachability, reachable: true, reason: 'reachable', contact: current.contact } };
-    const ball = sampleBall(event.ball, 'player', index), target = sampleLandingZone(event.landingZone, random('player', index, 'landing'));
+    const ball = sampleBall(event.ball, 'player', index), target = sampleZone(event.landingZone, 'player', index);
     const playerFlight = resolve(current.contact.position, ball, event.landingZone, target);
     playerEvents.push({ index, event, setIndex, startTime: playerTime, incomingIndex, trajectory: playerFlight });
     if (!landsInZone(playerFlight)) {
@@ -132,7 +140,7 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
     // retained for reuse/reordering, but no extra opponent stroke is invented.
     if (!continues) { addFlight('player', 'player', index, playerTime, playerFlight); continue; }
     const response = event.opponentReturn, replyBall = sampleBall(response.ball, 'response', index);
-    const replyTarget = sampleLandingZone(response.landingZone, random('response', index, 'landing'));
+    const replyTarget = sampleZone(response.landingZone, 'response', index);
     const requested = normalizeShotInterval(event.intervalSeconds ?? interval);
     const receiver = continues ? next : undefined;
     const previous = repetitions.at(-1)!;
