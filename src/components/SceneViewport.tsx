@@ -9,7 +9,8 @@ import {
   type QualityMode,
   type SceneMetrics,
 } from '../engine/rendering/TennisScene';
-import { netHeightAt, type FlightSample, type ResolvedTrajectory } from '../engine/trajectory/physics';
+import type { FlightSample, ResolvedTrajectory } from '../engine/trajectory/physics';
+import { trajectoryReadout } from '../engine/trajectory/trajectoryReadout';
 import type { CompiledRepetition, CompiledSession } from '../engine/session/compileSession';
 import type { LandingZone } from '../engine/trajectory/landingZone';
 import type { OpponentPlacement } from '../engine/rendering/OpponentPositionControl';
@@ -306,7 +307,7 @@ export function SceneViewport({
   const visibleTooltip = showTrajectory && trajectoryTooltip && sceneRef.current?.getDisplayedTrajectories().includes(trajectoryTooltip.trajectory) ? trajectoryTooltip : null;
   const tooltipTrajectory = visibleTooltip?.trajectory ?? trajectory;
   const bounce = tooltipTrajectory.events.find((event) => event.type === 'bounce');
-  const net = tooltipTrajectory.events.find((event) => event.type === 'net-crossing');
+  const readout = trajectoryReadout(tooltipTrajectory);
   const receiver = tooltipTrajectory.events.find((event) => event.type === 'receiver-plane');
   const spinLabel = `${tooltipTrajectory.intent.spin[0]?.toUpperCase()}${tooltipTrajectory.intent.spin.slice(1)}`;
   const tooltipSpeedKmh = visibleTooltip
@@ -367,9 +368,10 @@ export function SceneViewport({
         <aside
           className={`trajectory-tooltip${visibleTooltip.placeBelow ? ' below' : ''}`}
           role="tooltip"
+          data-flight-owner={readout.owner}
           style={{ left: visibleTooltip.x, top: visibleTooltip.y }}
         >
-          <strong>Trajectory · {spinLabel}</strong>
+          <strong>{readout.owner === 'player' ? 'Your ball' : 'Opponent ball'} · {spinLabel}</strong>
           <span className="trajectory-tooltip-current">
             {visibleTooltip.sample.time.toFixed(2)} s · {visibleTooltip.sample.position.y.toFixed(2)} m high · {Math.round(tooltipSpeedKmh)} km/h
           </span>
@@ -377,8 +379,9 @@ export function SceneViewport({
             <div><dt>Launch</dt><dd>{tooltipTrajectory.resolved.launchSpeedKmh.toFixed(1)} km/h</dd></div>
             <div><dt>Spin</dt><dd>{Math.round(tooltipTrajectory.resolved.spinRateRpm)} rpm</dd></div>
             <div><dt>Angle</dt><dd>{tooltipTrajectory.resolved.launchAngleDeg.toFixed(1)}°</dd></div>
-            <div><dt>Apex</dt><dd>{tooltipTrajectory.apexHeight.toFixed(2)} m</dd></div>
-            <div><dt>Net</dt><dd>{net ? `${(net.position.y - netHeightAt(net.position.x)).toFixed(2)} m clear` : 'No crossing'}</dd></div>
+            <div title="Highest ball centre above the court, before the first bounce"><dt>Peak height</dt><dd>{readout.peakHeight.toFixed(2)} m</dd></div>
+            <div title="Ball centre above the court at the net"><dt>Height at net</dt><dd>{readout.netHeight === undefined ? 'No crossing' : `${readout.netHeight.toFixed(2)} m`}</dd></div>
+            <div title="Ball centre above the local net tape"><dt>Over net tape</dt><dd>{readout.netClearance === undefined ? 'No crossing' : `${readout.netClearance.toFixed(2)} m`}</dd></div>
             <div><dt>Landing</dt><dd>{bounce ? `${bounce.position.x.toFixed(2)}, ${bounce.position.z.toFixed(2)} m` : 'Unresolved'}</dd></div>
             <div><dt>Target error</dt><dd>{bounce ? `${Math.hypot(bounce.position.x - tooltipTrajectory.intent.target.x, bounce.position.z - tooltipTrajectory.intent.target.z).toFixed(2)} m` : 'Unresolved'}</dd></div>
             <div><dt>Bounce</dt><dd>{bounce?.postSpeedKmh !== undefined ? `${Math.round(bounce.speedKmh)} → ${Math.round(bounce.postSpeedKmh)} km/h` : 'Unresolved'}</dd></div>

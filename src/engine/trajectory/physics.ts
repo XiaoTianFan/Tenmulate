@@ -496,18 +496,22 @@ const targetAdjustedVelocity = (intent: ShotIntent): Vec3 => {
 
 /** Search pace and spin together, measuring the actual height at the net rather
  * than using launch angle as a proxy. Keep the sampled landing fixed. */
-const resolveNaturalGroundstroke = (intent: ShotIntent): ResolvedTrajectory => {
+const resolveNaturalGroundstroke = (intent: ShotIntent, accepts?: (flight: ResolvedTrajectory) => boolean): ResolvedTrajectory => {
   const baseSpeed = Math.max(28.8, intent.launchSpeedKmh);
   const baseSpin = intent.spinRateRpm ?? defaultSpinRateRpm(intent);
-  // A neutral recreational ball may need much less topspin, not more speed.
-  // Keep the flat-stroke calibration and never invent spin for a zero-spin feed.
-  const minimumSpin = Math.min(baseSpin, GROUNDSTROKE_FLAT_SPIN_PROFILE.minRpm);
+  // Explore neutral spin before pace changes. Flat includes a genuine zero-spin
+  // ball; a selected topspin/slice keeps its axis, with a small residual spin.
+  const minimumSpin = intent.spin === 'flat' ? 0 : Math.min(baseSpin, 120);
   const minimumSpeedFactor = intent.landingZone ? .5 : .85;
-  const maximumSpeedFactor = intent.landingZone ? 1.5 : 1.15;
+  // Natural zone authoring can supply the launch energy needed for a low, deep
+  // ball. A percentage-only ceiling turns very slow requests into compulsory lobs.
+  const maximumSpeedFactor = intent.landingZone ? Math.max(1.5, 110 / baseSpeed) : 1.15;
   const minimumClearance = Math.max(.04, intent.minimumNetClearanceM ?? .12);
   const preferredClearance = Math.max(1, minimumClearance);
+  const comfortableClearance = Math.max(1.7, minimumClearance);
   const softClearance = Math.max(GROUNDSTROKE_SOFT_NET_CLEARANCE_M, minimumClearance);
   const candidates = new Map<string, ReturnType<typeof evaluateUncached>>();
+  let accepted: ReturnType<typeof evaluateUncached> | undefined;
 
   function evaluateUncached(speed: number, spin: number) {
     const candidateIntent = { ...intent, launchSpeedKmh: speed, spinRateRpm: spin,
@@ -531,44 +535,57 @@ const resolveNaturalGroundstroke = (intent: ShotIntent): ResolvedTrajectory => {
     // Landing and net legality take priority. Tiny integration errors must not
     // outweigh arc comfort. Above 3.5 m the cost rises steeply but stays finite.
     const score = legal && error <= .18
-      ? .7 * Math.max(0, clearance - preferredClearance) ** 2
+      ? 8 * Math.max(0, clearance - preferredClearance) ** 2
         + 8 * Math.max(0, clearance - softClearance) ** 2
-        + 8 * speedChange + 20 * speedChange ** 2 + spinChange + error * .1
+        + 3 * speedChange + 8 * speedChange ** 2 + spinChange * .2 + error * .1
       : 10000 + (legal ? 0 : 10000) + error * 100;
     return { candidateIntent, velocity, error, legal, clearance, score, speedFactor, spinFactor };
   }
   const evaluate = (speedFactor: number, spinFactor: number) => {
     const speed = Math.max(28.8, baseSpeed * Math.max(minimumSpeedFactor, Math.min(maximumSpeedFactor, speedFactor)));
-    let spin = Math.max(minimumSpin, baseSpin * Math.max(.25, Math.min(1.2, spinFactor)));
+    let spin = Math.max(minimumSpin, baseSpin * Math.max(0, Math.min(1.2, spinFactor)));
     if (intent.spin === 'flat') spin = Math.max(GROUNDSTROKE_FLAT_SPIN_PROFILE.minRpm,
       Math.min(GROUNDSTROKE_FLAT_SPIN_PROFILE.maxRpm, spin));
     const key = `${speed.toFixed(6)}:${spin.toFixed(6)}`;
     let candidate = candidates.get(key);
     if (!candidate) { candidate = evaluateUncached(speed, spin); candidates.set(key, candidate); }
+    if (accepts && candidate.legal && candidate.error <= .18 && (!accepted || candidate.score < accepted.score)
+      && accepts(integrateTrajectory(candidate.candidateIntent, candidate.velocity))) accepted = candidate;
     return candidate;
   };
   let best = evaluate(1, 1);
-  if (!best.legal || best.error > .08 || best.clearance > preferredClearance + .25) {
-    const spins = [1, .75, .5, .25, 1.2];
+  if (!best.legal || best.error > .08 || best.clearance > preferredClearance + .25 || accepts && !accepted) {
+    const spins = [1, .5, .2, 0, 1.2];
     const consider = (speed: number, spin: number) => {
       const candidate = evaluate(speed, spin);
       if (candidate.score < best.score) best = candidate;
     };
-    for (const speed of [1, .85, 1.15]) for (const spin of spins) consider(speed, spin);
-    // Reaching the target is not an early exit if it still produces a lob-like
-    // groundstroke. Search the existing zone pace envelope for a lower option.
-    if (intent.landingZone && (!best.legal || best.error > .18 || best.clearance > softClearance)) {
-      for (const speed of [.5, .7, 1.3, 1.5]) for (const spin of spins) consider(speed, spin);
-    }
-    // Bounded coordinate refinement avoids coarse jumps between speed presets.
-    for (const step of [.05, .025, .0125]) {
-      const { speedFactor, spinFactor } = best;
-      consider(speedFactor - step, spinFactor);
-      consider(speedFactor + step, spinFactor);
-      consider(best.speedFactor, spinFactor - step * 2.5);
-      consider(best.speedFactor, spinFactor + step * 2.5);
+    for (const spin of spins) consider(1, spin);
+    const needsPaceSearch = () => {
+      const receivingCandidate = accepted ?? best;
+      return !receivingCandidate.legal || receivingCandidate.error > .18
+        || receivingCandidate.clearance > comfortableClearance || !!accepts && !accepted;
+    };
+    if (needsPaceSearch()) {
+      for (const speed of [.85, 1.15]) for (const spin of spins) consider(speed, spin);
+      if (intent.landingZone && needsPaceSearch()) {
+        for (const speed of [.5, .7, 1.3, 1.5]) for (const spin of spins) consider(speed, spin);
+      }
+      if (intent.landingZone && needsPaceSearch()) {
+        for (const speed of [80, 95, 110]) if (speed > baseSpeed * 1.5) for (const spin of spins) consider(speed / baseSpeed, spin);
+      }
+      // Bounded coordinate refinement avoids coarse jumps between speed presets.
+      for (const step of [.05, .025, .0125]) {
+        if (accepted) best = accepted;
+        const { speedFactor, spinFactor } = best;
+        consider(speedFactor - step, spinFactor);
+        consider(speedFactor + step, spinFactor);
+        consider(best.speedFactor, spinFactor - step * 2.5);
+        consider(best.speedFactor, spinFactor + step * 2.5);
+      }
     }
   }
+  if (accepted) best = accepted;
   const result = integrateTrajectory(best.candidateIntent, best.velocity);
   const bounce = result.events.find(event => event.type === 'bounce');
   const net = result.events.find(event => event.type === 'net-crossing');
@@ -583,7 +600,7 @@ const resolveNaturalGroundstroke = (intent: ShotIntent): ResolvedTrajectory => {
 
 /** Natural shots keep a low arc and publish every bounded adjustment. The
  * target remains an intention: an infeasible request is never labelled matched. */
-export const resolveTrajectory = (intent: ShotIntent): ResolvedTrajectory => {
+export const resolveTrajectory = (intent: ShotIntent, accepts?: (flight: ResolvedTrajectory) => boolean): ResolvedTrajectory => {
   const spin = normalizeShotSpin(trajectoryShotType(intent), intent.spin);
   if (spin !== intent.spin) intent = { ...intent, spin };
   if (intent.trajectoryMode !== 'natural') {
@@ -596,7 +613,7 @@ export const resolveTrajectory = (intent: ShotIntent): ResolvedTrajectory => {
     return {...result,solution:{mode:'exact',status:legal&&error<=.18?'matched':'unreachable',targetErrorM:error}};
   }
   const type = trajectoryShotType(intent);
-  if (type === 'groundstroke') return resolveNaturalGroundstroke(intent);
+  if (type === 'groundstroke') return resolveNaturalGroundstroke(intent, accepts);
   const baseSpin = intent.spinRateRpm ?? defaultSpinRateRpm(intent);
   const desiredAngle = type === 'lob' ? 78 : type === 'serve' ? 12 : type === 'overhead' ? 12 : type === 'volley' ? 18 : 22;
   const evaluate = (speedFactor: number, spinFactor: number) => {
@@ -614,29 +631,30 @@ export const resolveTrajectory = (intent: ShotIntent): ResolvedTrajectory => {
     const bounce = result.events.find(e=>e.type==='bounce'), net = result.events.find(e=>e.type==='net-crossing');
     const error = bounce ? Math.hypot(bounce.position.x-intent.target.x,bounce.position.z-intent.target.z) : 50;
     const legal = !!net && !!bounce && net.time < bounce.time && net.position.y >= netHeightAt(net.position.x)+(intent.minimumNetClearanceM??.08)-.015;
-    const score = (legal?0:1000) + error*20 + Math.max(0,result.resolved.launchAngleDeg-desiredAngle)*.2
+    const acceptable = !accepts || accepts(result);
+    const score = (acceptable ? 0 : 100000) + (legal?0:1000) + error*20 + Math.max(0,result.resolved.launchAngleDeg-desiredAngle)*.2
       + Math.abs(speedFactor-1)*2 + Math.abs(spinFactor-1)*.8;
-    return { result, error, legal, score, speedFactor, spinFactor };
+    return { result, error, legal, acceptable, score, speedFactor, spinFactor };
   };
   let best = evaluate(1,1);
-  if (best.error>.12 || !best.legal || best.result.resolved.launchAngleDeg>desiredAngle+1) {
+  if (best.error>.12 || !best.legal || !best.acceptable || best.result.resolved.launchAngleDeg>desiredAngle+1) {
     for (const speed of [1.05,1.1,1.15,.95,.9,.85]) {
       const candidate=evaluate(speed,1); if(candidate.score<best.score)best=candidate;
-      if(best.legal && best.error<.12 && best.result.resolved.launchAngleDeg<=desiredAngle)break;
+      if(best.acceptable && best.legal && best.error<.12 && best.result.resolved.launchAngleDeg<=desiredAngle)break;
     }
     // Spin adjustment is a second choice, after the speed neighborhood.
-    if(best.error>.12 || !best.legal || best.result.resolved.launchAngleDeg>desiredAngle+1) for (const spin of [.8,.9,1.1,1.2]) {
+    if(best.error>.12 || !best.legal || !best.acceptable || best.result.resolved.launchAngleDeg>desiredAngle+1) for (const spin of [.8,.9,1.1,1.2]) {
       const candidate=evaluate(best.speedFactor,spin); if(candidate.score<best.score)best=candidate;
     }
   }
   // Zone membership is the primary intention. Short half-volleys in particular
   // need a slower ball than the old point-target ±15% neighborhood permits.
   // Keep the sampled target (no rejection bias), and publish the resolved speed.
-  if (intent.landingZone && (!best.legal || best.error>.18)) {
+  if (intent.landingZone && (!best.legal || !best.acceptable || best.error>.18)) {
     for (const speed of [.8,.7,.6,.5,1.2,1.35,1.5]) {
       const candidate=evaluate(speed,best.spinFactor);
       if(candidate.score<best.score)best=candidate;
-      if(best.legal && best.error<.12)break;
+      if(best.acceptable && best.legal && best.error<.12)break;
     }
   }
   const status = !best.legal || best.error>.18 ? 'unreachable' : Math.abs(best.speedFactor-1)>.001 || Math.abs(best.spinFactor-1)>.001 ? 'adjusted' : 'matched';

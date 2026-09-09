@@ -6,6 +6,7 @@ import { DEFAULT_RETURN_LANDING_ZONE } from '../src/engine/session/returnLanding
 import { defaultReturnShot } from '../src/engine/session/returnShot';
 import { bounceContactPhase } from '../src/engine/session/bounceContact';
 import type { ContactTiming } from '../src/content/types';
+import { trajectoryReadout } from '../src/engine/trajectory/trajectoryReadout';
 
 const settings: SessionSettings = { mode: 'quick-practice', repetitions: 6, workBlockSize: 6, restSeconds: 0, shotIntervalSeconds: 5,
   rhythmPercent: 100, movementPercent: 100, variationPercent: 8, timingVariationPercent: 0, launchSpeedKmh: 70,
@@ -14,6 +15,23 @@ const settings: SessionSettings = { mode: 'quick-practice', repetitions: 6, work
   rally: { landingZone: DEFAULT_RETURN_LANDING_ZONE, shot: defaultReturnShot('groundstroke') } };
 const drill = DRILL_BY_CATEGORY.get('Quick Rally')!;
 describe('physical Quick Rally returns', () => {
+  it.each([50, 60, 70])('keeps %s km/h intentions connected and low at short and long intervals', pace => {
+    for (const interval of [2.5, 5]) {
+      const session = compileSession(drill, { ...settings, repetitions: 4, shotIntervalSeconds: interval,
+        launchSpeedKmh: pace, landingDepthM: 10, rally: { ...settings.rally!, shot: { ...settings.rally!.shot, paceKmh: pace } } });
+      expect(session.planningIssues ?? []).toEqual([]);
+      expect(session.repetitions).toHaveLength(4);
+      for (const rep of session.repetitions.slice(0, -1)) {
+        expect(rep.returnStatus).toBe('linked');
+        for (const flight of [rep.trajectory, rep.rallyReturn!.trajectory]) {
+          expect(trajectoryReadout(flight).netClearance).toBeLessThan(1.9);
+          expect(flight.solution!.targetErrorM).toBeLessThan(.18);
+        }
+        expect(bounceContactPhase(rep.reachability.contact!)).toBe('descent');
+        expect(bounceContactPhase(rep.rallyReturn!.trajectory.samples.at(-1)!)).toBe('descent');
+      }
+    }
+  });
   it('connects real incoming and return contacts, including streamed batch seams', () => {
     const session = compileSession(drill, settings);
     expect(session.planningIssues ?? []).toEqual([]);

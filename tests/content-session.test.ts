@@ -131,7 +131,7 @@ describe('session compiler', () => {
     expect(bounce.position.x).toBeLessThan(0);
   });
 
-  it('normalizes a selected flat groundstroke to the research-calibrated low-spin profile', () => {
+  it('preserves an explicitly spin-free flat groundstroke', () => {
     const session = compileSession(drill, {
       ...settings,
       repetitions: 1,
@@ -144,8 +144,8 @@ describe('session compiler', () => {
     });
 
     expect(session.repetitions[0]!.shot.spin).toBe('flat');
-    expect(session.repetitions[0]!.trajectory.resolved.spinRateRpm).toBeCloseTo(250, 6);
-    expect(session.repetitions[0]!.trajectory.resolved.spinParameter).toBeGreaterThan(0);
+    expect(session.repetitions[0]!.trajectory.resolved.spinRateRpm).toBe(0);
+    expect(session.repetitions[0]!.trajectory.resolved.spinParameter).toBe(0);
   });
 
   it('alternates T, body, and wide serves toward the selected receiver corner', () => {

@@ -30,14 +30,16 @@ describe('mode-aware gameplay planning', () => {
     expect(previous.root).toEqual(events[0]!.home);
     expect(session.repetitions.every(r=>!r.rallyReturn)).toBe(true);
   });
-  it('chooses recovery with a long interval and direct movement with a short interval',()=>{
+  it('plans recovery against the real contact clock rather than stretching the ball to fill a long interval',()=>{
     const drill={...DRILLS[0]!,events:[{id:'a',shotId:'fh-cross-deep',opponentPosition:{x:3.7,z:12.8}},
       {id:'b',shotId:'bh-cross-deep',opponentPosition:{x:-3.7,z:12.8}}]};
     const slow=compileSession(drill,{...settings,rhythmPercent:100,shotIntervalSeconds:10});
     const fast=compileSession(drill,{...settings,rhythmPercent:100,shotIntervalSeconds:3});
-    expect(slow.repetitions[0]!.recoveryPolicy).toBe('recover');
     expect(fast.repetitions[0]!.recoveryPolicy).toBe('direct');
-    expect(fast.repetitions[1]!.startTime).toBeLessThan(slow.repetitions[1]!.startTime);
+    expect(slow.repetitions[0]!.rallyReturn).toBeDefined();
+    expect(slow.repetitions[0]!.timing!.actual).toBeLessThan(10);
+    expect(slow.repetitions[0]!.timing!.limited).toBe(true);
+    expect(fast.repetitions[1]!.startTime).toBeLessThanOrEqual(slow.repetitions[1]!.startTime);
     expect(fast.repetitions[0]!.trajectory).toEqual(slow.repetitions[0]!.trajectory);
     const shortRest=compileSession(drill,{...settings,rhythmPercent:150,workBlockSize:1,restSeconds:.5});
     for(const session of [fast,shortRest]){
@@ -83,7 +85,7 @@ describe('mode-aware gameplay planning', () => {
     expect(assessReachability(trajectory,{x:40,z:-13}).reachable).toBe(false);
     expect(movementReach(.1)).toBe(0);
     expect(movementReach(1)).toBeLessThan(movementReach(2));
-    expect(Math.abs(trajectory.resolved.launchSpeedKmh / session.repetitions[0]!.shot.paceKmh - 1)).toBeLessThanOrEqual(.150001);
+    expect(trajectory.resolved.launchSpeedKmh).toBeLessThanOrEqual(Math.max(110, trajectory.intent.launchSpeedKmh * 1.5) + .001);
   });
   it('uses camera position, scripted motion and a modest display allowance',()=>{
     const path=cameraCoveragePath({lateral:2,behindBaseline:1.5},{to:{lateral:-2,behindBaseline:-4},duration:2},.5);

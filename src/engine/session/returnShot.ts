@@ -1,7 +1,7 @@
 import type { ReturnShotConfiguration, ReturnShotType, ShotFamily } from '../../content/types';
 import type { FlightSample, ResolvedTrajectory } from '../trajectory/physics';
 import { legalReturnContacts } from './playerCoverage';
-import { normalizeContactTiming } from './bounceContact';
+import { contactsForTiming, normalizeContactTiming } from './bounceContact';
 
 export const RETURN_SHOT_PROFILES: Readonly<Record<ReturnShotType, {
   spin: ReturnShotConfiguration['spin']; rpm: number; pace: number; clearance: number; height: number;
@@ -36,4 +36,8 @@ export function returnShotContacts(incoming: ResolvedTrajectory, type: ReturnSho
     ? !sample.bounced && sample.position.y >= .65 && sample.position.y <= 1.75
     : type === 'overhead' ? !sample.bounced && sample.position.y >= 1.8 && sample.position.y <= 2.65
       : sample.bounced && sample.position.y >= (type === 'drop-shot' ? .25 : .55) && sample.position.y <= 1.5);
+}
+
+export function acceptsPlayerReturn(incoming: ResolvedTrajectory, shot: ReturnShotConfiguration): boolean {
+  return contactsForTiming(incoming, shot.type, returnShotContacts(incoming, shot.type), shot.contactTiming).length > 0;
 }

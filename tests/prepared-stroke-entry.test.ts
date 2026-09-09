@@ -76,7 +76,7 @@ describe('prepared stroke entries after travel',()=>{
  it('prepares a repeated same-position drill shot after its full recovery route',()=>{
   const drill={...DRILLS[0]!,events:[0,1].map(i=>({id:`same-${i}`,shotId:SHOTS[0]!.id,opponentPosition:{x:3,z:12.5}}))};
   const session=compileSession(drill,{mode:'drill',repetitions:2,shotIntervalSeconds:12,rhythmPercent:100,movementPercent:100,
-   landingZone:{width:0.2,depth:0.2},variationPercent:0,timingVariationPercent:0,launchSpeedKmh:70,surface:'hard',seed:'same-point',spin:'topspin',opponentHand:'right',workBlockSize:2,restSeconds:0,serveRhythm:'normal'});
+   landingZone:{width:0.2,depth:0.2},variationPercent:0,timingVariationPercent:0,launchSpeedKmh:70,surface:'hard',seed:'same-point',spin:'topspin',opponentHand:'right',workBlockSize:1,restSeconds:8,serveRhythm:'normal'});
   const [previous,next]=session.repetitions.map(motionEvent);const plan=planRecovery(previous!,next!);
   expect(plan.kind).toBe('recovery');expect(next!.entryTime).toBeGreaterThan(0);
   expect(plan.approach!.arrival?.entryTime).toBe(next!.entryTime);

@@ -56,7 +56,6 @@ describe('player-owned drill clock and physical handoffs', () => {
       expect(playerFlight.trajectory.samples.at(-1)!.position).toEqual(response.shot.source);
       expect(playerFlight.endTime).toBeCloseTo(response.startTime, 8);
     }
-    expect(session.repetitions[1]!.shot.source.y).toBeGreaterThan(.85);
     for (let i = 1; i < session.repetitions.length; i++) {
       const a = session.repetitions[i - 1]!, b = session.repetitions[i]!;
       expect(minimumMotionGap(a, b)).toBeLessThanOrEqual(b.startTime - a.startTime + 1e-6);

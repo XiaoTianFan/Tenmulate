@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { integrateTrajectory, netHeightAt, resolveTrajectory, type ShotIntent } from '../src/engine/trajectory/physics';
+import { resolveCourtFlight, rotateCourtFlight } from '../src/engine/session/courtFlight';
+import { trajectoryReadout } from '../src/engine/trajectory/trajectoryReadout';
 
 const deep: ShotIntent = {
   source: { x: 0, y: 1.15, z: 12.885 }, target: { x: 0, z: -10.5 },
@@ -21,31 +23,60 @@ const expectTarget = (result: ReturnType<typeof resolveTrajectory>) => {
 };
 
 describe('natural groundstroke arc selection', () => {
+  it('checks the forward model against a published no-spin trajectory, independently of target fitting', () => {
+    // Cross, Ball Trajectories, Fig 42.3: 30 m/s, 1 m contact, 8.1 degrees,
+    // approximately 23.77 m carry. Ball size/ground contact differ slightly.
+    const angle = 8.1 * Math.PI / 180;
+    const result = integrateTrajectory({ ...deep, source: { x: 0, y: 1, z: 11.885 }, spinRateRpm: 0 },
+      { x: 0, y: 30 * Math.sin(angle), z: -30 * Math.cos(angle) });
+    const range = 11.885 - result.events.find(event => event.type === 'bounce')!.position.z;
+    expect(range).toBeGreaterThan(23.1);
+    expect(range).toBeLessThan(24.3);
+  });
+
+  it('uses reduced spin before increasing pace when the requested speed already permits a low deep ball', () => {
+    const result = resolveTrajectory({ ...deep, source: { x: 0, y: 1.15, z: 6 }, target: { x: 0, z: -10 }, launchSpeedKmh: 70, spinRateRpm: 2000 });
+    expectTarget(result);
+    expect(result.resolved.launchSpeedKmh).toBeCloseTo(70, 6);
+    expect(result.resolved.spinRateRpm).toBeLessThan(1000);
+    expect(clearance(result)).toBeLessThan(1.7);
+  });
+
+  it('resolves identical physical paths for the player and opponent and reports the actual hovered path', () => {
+    const opponent = resolveCourtFlight(deep);
+    const player = resolveCourtFlight({ ...deep, source: { ...deep.source, z: -deep.source.z },
+      target: { x: 0, z: -deep.target.z }, landingZone: { minX: -.8, maxX: .8, minZ: 9.5, maxZ: 11.5 } });
+    expect(JSON.stringify(player.samples)).toEqual(JSON.stringify(rotateCourtFlight(opponent).samples));
+    expect(trajectoryReadout(player).owner).toBe('player');
+    expect(trajectoryReadout(opponent).owner).toBe('opponent');
+    expect(trajectoryReadout(player).netHeight! - trajectoryReadout(player).netClearance!).toBeCloseTo(.914, 8);
+    const rebound = { ...player, apexHeight: 99, samples: [...player.samples, { time: 9, bounced: true, position: { x: 0, y: 99, z: 10 }, velocity: { x: 0, y: 0, z: 0 } }] };
+    expect(trajectoryReadout(rebound).peakHeight).toBe(trajectoryReadout(player).peakHeight);
+  });
   it('lowers the reported slow/deep arc by jointly reducing topspin and fitting pace', () => {
     const result = resolveTrajectory(deep);
     expectTarget(result);
     // Previously 4.12 m above the tape / 5.07 m apex at 70.15 km/h, 979 rpm.
-    expect(clearance(result)).toBeLessThan(3);
-    expect(result.apexHeight).toBeLessThan(4);
+    expect(clearance(result)).toBeLessThan(1.8);
+    expect(result.apexHeight).toBeLessThan(2.8);
     expect(result.resolved.spinRateRpm).toBeLessThan(600);
-    expect(result.resolved.launchSpeedKmh).toBeLessThan(80);
+    expect(result.resolved.launchSpeedKmh).toBeLessThan(100);
     expect(result.intent).toBe(deep);
   });
 
   it('limits speed increases by reducing excessive spin for a moderate deep ball', () => {
     const result = resolveTrajectory({ ...deep, launchSpeedKmh: 80, spinRateRpm: 2500 });
     expectTarget(result);
-    // The previous speed-first solve needed 88 km/h and retained all 2500 rpm.
-    expect(result.resolved.launchSpeedKmh).toBeLessThan(85);
+    expect(result.resolved.launchSpeedKmh).toBeLessThan(105);
     expect(result.resolved.spinRateRpm).toBeLessThan(1250);
-    expect(clearance(result)).toBeLessThan(2.5);
+    expect(clearance(result)).toBeLessThan(1.8);
   });
 
-  it('keeps the 3.5 m preference soft when the bounded pace cannot produce a lower deep ball', () => {
+  it('automatically supplies a low deep ball instead of making a very slow request a compulsory lob', () => {
     const result = resolveTrajectory({ ...deep, launchSpeedKmh: 45, spinRateRpm: 300 });
     expectTarget(result);
-    expect(clearance(result)).toBeGreaterThan(3.5);
-    expect(result.resolved.launchSpeedKmh).toBeLessThanOrEqual(45 * 1.5 + .001);
+    expect(clearance(result)).toBeLessThan(1.8);
+    expect(result.resolved.launchSpeedKmh).toBeLessThanOrEqual(110);
     const physical = integrateTrajectory({ ...result.intent, ...result.resolved }, result.launchVelocity);
     expect(result.samples).toEqual(physical.samples);
   });
@@ -70,7 +101,7 @@ describe('natural groundstroke arc selection', () => {
       const result = resolveTrajectory({ ...deep, target: { x, z: -10.5 }, launchSpeedKmh: 70, spin });
       expectTarget(result);
       expect(clearance(result)).toBeLessThan(3.5);
-      expect(result.resolved.spinRateRpm).toBeGreaterThanOrEqual(250);
+      expect(result.resolved.spinRateRpm).toBeGreaterThanOrEqual(spin === 'flat' ? 0 : 120 - 1e-8);
     }
   });
 

@@ -81,14 +81,14 @@ describe('selected shot physics independent of sequence validation', () => {
     expect(preview().shotPreview).toEqual(right);
   });
 
-  it('reports an impossible response without retaining another event’s trajectory', () => {
+  it('automatically connects the formerly unreturnable slice using a real bounce contact', () => {
     const drill = edit(), event = drill.events[0]!;
     drill.events[0] = { ...event, ball: { ...event.ball, spin: 'slice', spinRateRpm: 1800, paceKmh: 95 } };
     const result = preview(drill);
-    expect(result.planningIssues!.length).toBeGreaterThan(0);
+    expect(result.planningIssues).toEqual([]);
     expect(result.shotPreview!.player!.intent.spin).toBe('slice');
-    expect(result.shotPreview!.opponent).toBeUndefined();
-    expect(result.repetitions).toEqual([]);
-    expect(result.scheduledFlights!.map(flight => flight.owner)).toEqual(['player']);
+    expect(landsInZone(result.shotPreview!.opponent!)).toBe(true);
+    expect(result.scheduledFlights![0]!.trajectory.samples.at(-1)!.position).toEqual(result.shotPreview!.opponent!.intent.source);
+    expect(result.scheduledFlights!.map(flight => flight.owner)).toEqual(['player', 'opponent']);
   });
 });

@@ -54,14 +54,16 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
   const sampleBall = (ball: DrillBall, role: string, index: number): DrillBall => ({ ...ball,
     paceKmh: sampleParameter(ball.paceKmh, ball.variationPercent / 100, 20, 260, random(role, index, 'speed')),
     spinRateRpm: sampleParameter(ball.spinRateRpm, ball.variationPercent / 100, 0, 6000, random(role, index, 'spin')) });
-  const resolve = (source: Vec3, ball: DrillBall, zone: LandingZone, target: { x: number; z: number }, pace = ball.paceKmh) =>
+  const resolve = (source: Vec3, ball: DrillBall, zone: LandingZone, target: { x: number; z: number }, pace = ball.paceKmh,
+    accepts?: (flight: ResolvedTrajectory) => boolean) =>
     resolveCourtFlight({ source, target, landingZone: zone, family: ball.family, opponentHand: ball.hand,
       launchSpeedKmh: pace, spin: ball.spin, spinRateRpm: ball.spinRateRpm, surface: settings.surface,
-      minimumNetClearanceM: ball.netClearanceM, bounceFactor: ball.bounceFactor, trajectoryMode: ball.trajectoryMode, windVelocity: settings.windVelocity });
+      minimumNetClearanceM: ball.netClearanceM, bounceFactor: ball.bounceFactor, trajectoryMode: ball.trajectoryMode, windVelocity: settings.windVelocity }, accepts);
   const fitIncoming = (source: Vec3, ball: DrillBall, zone: LandingZone, target: { x: number; z: number }, receiver?: PlayerShotEventV2, desired?: number): IncomingFit => {
     let best: IncomingFit | undefined;
-    for (const factor of ball.trajectoryMode === 'exact' ? [1] : [1, .85, 1.15]) {
-      const trajectory = resolve(source, ball, zone, target, ball.paceKmh * factor);
+    for (const factor of ball.trajectoryMode === 'exact' || ['groundstroke', 'approach', 'half-volley'].includes(ball.family) ? [1] : [1, .85, 1.15]) {
+      const trajectory = resolve(source, ball, zone, target, ball.paceKmh * factor,
+        receiver ? flight => playerContacts(flight, receiver).length > 0 : undefined);
       const contacts = receiver && landsInZone(trajectory) ? playerContacts(trajectory, receiver) : [];
       const preference = receiver ? bounceContactPreference(trajectory, receiver.ball.family, receiver.ball.contactTiming) : null;
       const scoreContact = (contact: FlightSample) => (desired === undefined ? 0 : Math.abs(contact.time - desired))
@@ -137,7 +139,8 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
       if (!landsInZone(trajectory)) issues.push({ index, phase: 'opening', message: 'The opening ball cannot reach its landing zone with these settings.' });
     } else {
       const ball = sampleBall(event.ball, 'player', index), target = sampleZone(event.landingZone, 'player', index);
-      const playerFlight = resolve(playerContactAnchor(event), ball, event.landingZone, target);
+      const playerFlight = resolve(playerContactAnchor(event), ball, event.landingZone, target, ball.paceKmh,
+        flight => opponentContacts(flight, event.opponentReturn.ball).length > 0);
       shotPreview = { player: playerFlight };
       const playerTime = 3;
       const response = event.opponentReturn, replyBall = sampleBall(response.ball, 'response', index);
@@ -175,30 +178,32 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
     const arrival = repetitions[incomingIndex]!, playerTime = arrival.startTime + current.contact.time;
     repetitions[incomingIndex] = { ...arrival, reachability: { ...arrival.reachability, reachable: true, reason: 'reachable', contact: current.contact } };
     const ball = sampleBall(event.ball, 'player', index), target = sampleZone(event.landingZone, 'player', index);
-    const playerFlight = resolve(current.contact.position, ball, event.landingZone, target);
-    playerEvents.push({ index, event, setIndex, startTime: playerTime, incomingIndex, trajectory: playerFlight });
-    if (!landsInZone(playerFlight)) {
-      addFlight('player', 'player', index, playerTime, playerFlight);
-      issues.push({ index, phase: 'player', message: `Shot ${index + 1}: the player ball cannot reach its landing zone with these settings.` }); break;
-    }
     const continues = !!next && (index + 1) % workBlock !== 0 && !next.openingFeed;
-    // The last player action finishes the point. Its response configuration is
-    // retained for reuse/reordering, but no extra opponent stroke is invented.
-    if (!continues) { addFlight('player', 'player', index, playerTime, playerFlight); continue; }
     const response = event.opponentReturn, replyBall = sampleBall(response.ball, 'response', index);
     const replyTarget = sampleZone(response.landingZone, 'response', index);
-    const requested = normalizeShotInterval(event.intervalSeconds ?? interval);
-    const receiver = continues ? next : undefined;
     const previous = repetitions.at(-1)!;
-    // Filter motion feasibility before reducing the physics search. A short
-    // legal window near the end of a bounce must not disappear in downsampling.
-    const eligible = opponentContacts(playerFlight, replyBall).filter(contact => {
+    const reachableOpponentContacts = (flight: ResolvedTrajectory) => opponentContacts(flight, replyBall).filter(contact => {
       const time = playerTime + contact.time;
       const shot = shotDefinition(contact.position, replyBall, replyTarget, `${event.label} — opponent return`);
       const ceiling = withPreparedApproach({ ...previous, motionRate: 3, movementRate: 3 },
         { ...previous, index: repetitions.length, shot, startTime: time, motionRate: 3, movementRate: 3 });
       return minimumMotionGap({ ...previous, motionRate: 3, movementRate: 3 }, ceiling) <= time - previous.startTime + 1e-8;
     });
+    const playerFlight = resolve(current.contact.position, ball, event.landingZone, target, ball.paceKmh,
+      continues ? flight => reachableOpponentContacts(flight).length > 0 : undefined);
+    playerEvents.push({ index, event, setIndex, startTime: playerTime, incomingIndex, trajectory: playerFlight });
+    if (!landsInZone(playerFlight)) {
+      addFlight('player', 'player', index, playerTime, playerFlight);
+      issues.push({ index, phase: 'player', message: `Shot ${index + 1}: the player ball cannot reach its landing zone with these settings.` }); break;
+    }
+    // The last player action finishes the point. Its response configuration is
+    // retained for reuse/reordering, but no extra opponent stroke is invented.
+    if (!continues) { addFlight('player', 'player', index, playerTime, playerFlight); continue; }
+    const requested = normalizeShotInterval(event.intervalSeconds ?? interval);
+    const receiver = continues ? next : undefined;
+    // Filter motion feasibility before reducing the physics search. A short
+    // legal window near the end of a bounce must not disappear in downsampling.
+    const eligible = reachableOpponentContacts(playerFlight);
     const desired = requested / 2;
     const preference = bounceContactPreference(playerFlight, replyBall.family, replyBall.contactTiming);
     const rank = (c: FlightSample) => bounceContactCost(c, preference) + Math.abs(c.time - desired) * .25 + Math.abs(c.position.y - contactHeight(replyBall.family)) * .4;
@@ -241,7 +246,7 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
     if (solved.previous.motionRate !== previous.motionRate || solved.next.motionRate !== best.rep.motionRate || Math.abs(actual - requested) > .01) motionTimingAdjusted = true;
   }
   const last = repetitions.at(-1);
-  return { solverVersion: 'ball-v8-shot-spin', plannerVersion: 'gameplay-player-drills-v11', contentVersion: '2026.09.09',
+  return { solverVersion: 'ball-v9-neutral-contact-fit', plannerVersion: 'gameplay-player-drills-v12', contentVersion: '2026.09.09',
     drill, settings: { ...settings, mode: 'drill', rhythmPercent: rhythm, movementPercent: movement, shotIntervalSeconds: interval, workBlockSize: workBlock },
     mode: 'drill', repetitions, restPeriods, duration: Math.max(endTime, last ? planRecovery(motionEvent(last)).end + .15 : 3),
     motionTimingAdjusted, rhythmPercent: rhythm, cameraTimeline: { initial: initialCamera ?? DEFAULT_DRILL_CAMERA,

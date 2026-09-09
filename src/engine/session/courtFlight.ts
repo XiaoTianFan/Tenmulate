@@ -20,14 +20,14 @@ export function rotateCourtFlight(flight: ResolvedTrajectory): ResolvedTrajector
 }
 /** The aerodynamic solver has one canonical half; rotate the entire physical
  * solution for a player stroke, including velocity, wind and event coordinates. */
-export function resolveCourtFlight(intent: ShotIntent): ResolvedTrajectory {
-  if (intent.source.z > 0) return resolveTrajectory({ ...intent, aimDirectionDeg: aimDirectionToCourtPoint(intent.source, intent.target) });
+export function resolveCourtFlight(intent: ShotIntent, accepts?: (flight: ResolvedTrajectory) => boolean): ResolvedTrajectory {
+  if (intent.source.z > 0) return resolveTrajectory({ ...intent, aimDirectionDeg: aimDirectionToCourtPoint(intent.source, intent.target) }, accepts);
   const source = rotateCourtPoint(intent.source), target = { x: -intent.target.x, z: -intent.target.z };
   return rotateCourtFlight(resolveTrajectory({ ...intent, source, target,
     landingZone: intent.landingZone && rotateZone(intent.landingZone),
     aimDirectionDeg: aimDirectionToCourtPoint(source, target),
     windVelocity: intent.windVelocity && rotateCourtPoint(intent.windVelocity),
-    receiverZ: intent.receiverZ === undefined ? undefined : -intent.receiverZ }));
+    receiverZ: intent.receiverZ === undefined ? undefined : -intent.receiverZ }, accepts && (flight => accepts(rotateCourtFlight(flight)))));
 }
 export function trimFlight(flight: ResolvedTrajectory, contact: FlightSample): ResolvedTrajectory {
   return { ...flight, samples: [...flight.samples.filter(s => s.time < contact.time), contact],

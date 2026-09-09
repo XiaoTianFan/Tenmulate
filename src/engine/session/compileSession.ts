@@ -1,5 +1,5 @@
 import { planRecovery } from './opponentMovement';
-import { resolveReturnShot } from './returnShot';
+import { acceptsPlayerReturn, resolveReturnShot } from './returnShot';
 import { normalizeShotSpin } from '../../domain/shotKinds';
 import type { ContactTiming, ReturnShotConfiguration } from '../../content/types';
 import type { DrillDefinition, DrillEventV1, ShotDefinitionV1 } from '../../content/types';
@@ -92,8 +92,8 @@ export type CompiledSession = Readonly<{
   previewLoop?: true;
   /** Prepared off-thread so mounting a rally never performs a seam solve. */
   previewNext?: Readonly<{ last: CompiledRepetition; next: CompiledSession }>;
-  solverVersion: 'ball-v8-shot-spin';
-  plannerVersion: 'gameplay-return-shots-v10' | 'gameplay-player-drills-v11';
+  solverVersion: 'ball-v9-neutral-contact-fit';
+  plannerVersion: 'gameplay-return-shots-v11' | 'gameplay-player-drills-v12';
   contentVersion: '2026.09.09';
   drill: DrillDefinition;
   settings: SessionSettings;
@@ -259,7 +259,7 @@ export const compileSession = (
       minimumNetClearanceM: shot.netClearanceM, shotType: practiceType,
       aimDirectionDeg: returnServePlacement ? undefined : aimDirectionToCourtPoint(source,target),
       windVelocity: settings.windVelocity, bounceFactor: sourceEvent?.bounceFactor ?? settings.bounceFactor,
-    });
+    }, rally ? flight => acceptsPlayerReturn(flight, settings.rally!.shot) : undefined);
     // Legacy destination views remain usable, but an unscripted shot holds the
     // preceding view instead of resetting to the session launch camera.
     authoredCamera = sourceEvent?.camera ?? (shot.cameraMotion ? { ...authoredCamera, ...shot.cameraMotion.to } : authoredCamera);
@@ -304,18 +304,22 @@ export const compileSession = (
     let contactGap = requestedGap;
     if ((mode === 'drill' || rally) && !rest && draft.shot.family !== 'serve') {
       const target = sampleLandingZone(previous.returnLandingZone, returnRandom);
-      const candidates = returnPlanCandidates(previous.trajectory, draft.shot.family, previous.returnLandingZone, target, requestedGap, previous.returnShot, settings.rally?.opponentContactTiming);
+      let candidates = returnPlanCandidates(previous.trajectory, draft.shot.family, previous.returnLandingZone, target, requestedGap, previous.returnShot, settings.rally?.opponentContactTiming);
       // Cheap ceiling check first. The full rhythm search runs only on the chosen
       // intercept, not inside the physics candidate search.
-      const candidate = candidates.find(c => {
-        if (!rally && c.gap < requestedGap - 1e-7) return false;
+      const canMeet = (c: (typeof candidates)[number]) => {
         const a = { ...schedulingPrevious, motionRate: 3, movementRate: 3 };
         const b = withPreparedApproach(a, { ...draft, startTime: a.startTime + c.gap,
           shot: { ...draft.shot, source: c.source }, motionRate: 3, movementRate: 3 });
         const event = motionEvent(b), travel = mode === 'drill' ? cameraTravelSeconds(a.camera, b.camera, 3) : 0;
         return minimumMotionGap(a, b) <= c.gap + 1e-8
           && (!travel || c.rally.contactTime + travel + event.contactTime - event.start <= c.gap + 1e-8);
-      });
+      };
+      let candidate = candidates.find(canMeet);
+      if (!candidate) {
+        candidates = returnPlanCandidates(previous.trajectory, draft.shot.family, previous.returnLandingZone, target, requestedGap, previous.returnShot, settings.rally?.opponentContactTiming, canMeet);
+        candidate = candidates[0];
+      }
       const position = candidate?.source ?? candidates[0]?.source;
       if (rally && !candidate) {
         repetitions[index - 1] = { ...previous, returnStatus: 'infeasible' };
@@ -326,7 +330,7 @@ export const compileSession = (
       if (position) {
         const shot = { ...draft.shot, source: position };
         const trajectory = resolveTrajectory({ ...draft.trajectory.intent, source: position,
-          aimDirectionDeg: aimDirectionToCourtPoint(position, shot.target) });
+          aimDirectionDeg: aimDirectionToCourtPoint(position, shot.target) }, rally ? flight => acceptsPlayerReturn(flight, settings.rally!.shot) : undefined);
         draft = withPreparedApproach(schedulingPrevious, { ...draft, shot, trajectory, reachability: assessDrillReturn(trajectory),
           startTime: previous.startTime + (candidate?.gap ?? requestedGap) });
       }
@@ -376,7 +380,7 @@ export const compileSession = (
     // silently switch direct travel back to a full recovery detour.
     const route=planRecovery(motionEvent(schedulingPrevious),motionEvent(proposed));
     repetitions[index-1]={...repetitions[index-1]!,motionRate:previous.motionRate,movementRate:previous.movementRate,
-      timing:{requested:requestedGap,actual:gap,limited:!rest&&(rally?Math.abs(gap-requestedGap)>1/240+1e-7:gap>requestedGap+1/240+1e-7)},
+      timing:{requested:requestedGap,actual:gap,limited:!rest&&Math.abs(gap-requestedGap)>1/240+1e-7},
       recoveryPolicy:mode==='quick-practice'&&!rally?'home':!rest&&route.kind==='direct'?'direct':'recover'};
     repetitions[index] = { ...next, startTime: previous.startTime+gap };
     if (cameraTravel > 0) {
@@ -390,8 +394,8 @@ export const compileSession = (
     last.startTime + (last.trajectory.samples.at(-1)?.time ?? 0)) : startTime;
 
   return {
-    solverVersion: 'ball-v8-shot-spin',
-    plannerVersion: 'gameplay-return-shots-v10',
+    solverVersion: 'ball-v9-neutral-contact-fit',
+    plannerVersion: 'gameplay-return-shots-v11',
     contentVersion: '2026.09.09',
     drill,
     settings: { ...settings, rhythmPercent, shotIntervalSeconds: interval, movementPercent:movementRate*100, mode },
