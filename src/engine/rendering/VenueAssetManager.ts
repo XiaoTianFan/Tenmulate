@@ -102,7 +102,12 @@ export class VenueAssetManager {
   private generation = 0;
   private readonly surfaces = new Map<THREE.Mesh, THREE.Material | THREE.Material[]>();
   variant: VenueVariant = 'quality';
+  renderedVariant: VenueVariant | null = null;
+  private readyState: VenueAssetState | null = null;
   audienceManifest: AudienceManifest | undefined;
+
+  /** The committed model remains drawable while a quality replacement loads. */
+  get hasAsset(): boolean { return this.asset !== null; }
 
   constructor(private readonly changed: () => void, readonly venueId: AuthoredVenueId = 'hard-open-arena') {
     this.group.name = `blender-${venueId}`;
@@ -112,7 +117,7 @@ export class VenueAssetManager {
   /** Approximate diffuse light through fabric without a second shadow map.
    * Opaque venues, inactive assets and roof cutaways keep normal full shadows. */
   get sunShadowIntensity(): number {
-    return this.active && this.state.status === 'ready' && this.roofVisible
+    return this.active && this.hasAsset && this.roofVisible
       ? 1 - this.roofTransmission : 1;
   }
 
@@ -127,30 +132,44 @@ export class VenueAssetManager {
   setVariant(variant: VenueVariant): void {
     if (variant === this.variant || this.state.status === 'disposed') return;
     this.variant = variant;
-    this.release();
+    this.cancelLoad();
+    if (this.asset && this.renderedVariant === variant && this.readyState) {
+      this.update(this.readyState);
+      return;
+    }
     if (this.active) void this.load();
   }
 
   retry(): void {
     if (!this.active || this.state.status !== 'error') return;
-    this.release();
+    this.cancelLoad();
     void this.load();
   }
 
   /** Only the active model remains resident. HTTP cache handles reuse. */
   private release(): void {
+    this.cancelLoad();
+    this.releaseAsset();
+    this.update({ status: 'idle', loadedBytes: 0, totalBytes: 0 });
+  }
+
+  private cancelLoad(): void {
     this.generation += 1;
     this.controller?.abort();
     this.controller = null;
+  }
+
+  private releaseAsset(): void {
     for (const [mesh, original] of this.surfaces) mesh.material = original;
     this.surfaces.clear();
     if (this.asset) disposeVenue(this.asset);
     this.group.clear();
     this.group.visible = false;
     this.asset = null;
+    this.renderedVariant = null;
+    this.readyState = null;
     this.audienceManifest = undefined;
     this.roofTransmission = 0;
-    this.update({ status: 'idle', loadedBytes: 0, totalBytes: 0 });
   }
 
   applySurface(surface: SurfaceId, bundle: SceneMaterialBundle, wetness: number): void {
@@ -175,6 +194,7 @@ export class VenueAssetManager {
 
   private async load(): Promise<void> {
     const generation = ++this.generation;
+    const variant = this.variant;
     const controller = new AbortController();
     this.controller = controller;
     this.update({ status: 'loading', loadedBytes: 0, totalBytes: 0 });
@@ -193,7 +213,7 @@ export class VenueAssetManager {
       try { catalog = JSON.parse(manifestText); }
       catch { throw new Error(`Invalid venue manifest JSON for ${this.venueId}`); }
       validateVenueManifest(catalog, this.venueId);
-      const manifest = selectVenueVariant(catalog, this.variant);
+      const manifest = selectVenueVariant(catalog, variant);
       const model = await fetch(manifest.url, { signal: controller.signal });
       if (!model.ok) throw new Error(`Arena model HTTP ${model.status}`);
       const chunks: Uint8Array[] = [];
@@ -225,6 +245,8 @@ export class VenueAssetManager {
         .parseAsync(bytes.buffer, base)).scene;
       if (generation !== this.generation) { disposeVenue(parsed); return; }
       validateCourtRegistration(parsed);
+      const surfaces = new Map<THREE.Mesh, THREE.Material | THREE.Material[]>();
+      let roofTransmission = 0;
       parsed.traverse(object => {
         if (!(object instanceof THREE.Mesh)) return;
         object.receiveShadow = true;
@@ -245,11 +267,11 @@ export class VenueAssetManager {
           for (const mat of Array.isArray(object.material) ? object.material : [object.material]) {
             mat.forceSinglePass = true;
             if (mat instanceof THREE.MeshPhysicalMaterial && Number.isFinite(mat.transmission)) {
-              this.roofTransmission = Math.max(this.roofTransmission, THREE.MathUtils.clamp(mat.transmission, 0, .5));
+              roofTransmission = Math.max(roofTransmission, THREE.MathUtils.clamp(mat.transmission, 0, .5));
             }
           }
         }
-        if (object.userData.surfaceRole) this.surfaces.set(object, object.material);
+        if (object.userData.surfaceRole) surfaces.set(object, object.material);
       });
       installFilteredNet(parsed);
       const fixtures: THREE.Object3D[] = [];
@@ -264,12 +286,19 @@ export class VenueAssetManager {
         light.target.position.set(0, 0, position.z * .2);
         parsed.add(light, light.target);
       }
+      // Commit the complete replacement together. Never expose an empty stadium
+      // or reset its shade/audience while a lighter variant downloads or parses.
+      this.releaseAsset();
       this.asset = parsed;
+      this.renderedVariant = variant;
+      this.roofTransmission = roofTransmission;
+      for (const [mesh, material] of surfaces) this.surfaces.set(mesh, material);
       this.audienceManifest = catalog.audience;
       this.setRoofVisible(this.roofVisible);
       this.group.add(parsed);
       this.group.visible = this.active;
-      this.update({ status: 'ready', loadedBytes, totalBytes: manifest.bytes });
+      this.readyState = { status: 'ready', loadedBytes, totalBytes: manifest.bytes };
+      this.update(this.readyState);
     } catch (error) {
       if (parsed && parsed !== this.asset) disposeVenue(parsed);
       if (generation === this.generation) {
@@ -284,16 +313,9 @@ export class VenueAssetManager {
 
   dispose(): void {
     if (this.state.status === 'disposed') return;
-    this.generation += 1;
-    this.controller?.abort();
-    this.controller = null;
-    // Restore owned materials before disposal: alternative surfaces borrow the court bundle.
-    for (const [mesh, original] of this.surfaces) mesh.material = original;
-    this.surfaces.clear();
+    this.cancelLoad();
+    this.releaseAsset();
     this.group.removeFromParent();
-    if (this.asset) disposeVenue(this.asset);
-    this.group.clear();
-    this.asset = null;
     this.state = { status: 'disposed', loadedBytes: 0, totalBytes: 0 };
   }
 }

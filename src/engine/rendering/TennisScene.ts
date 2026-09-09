@@ -48,7 +48,7 @@ export type SceneMetrics = Readonly<{
   drawCalls: number;
   triangles: number;
   textures: number;
-  venueAsset: VenueAssetState;
+  venueAsset: VenueAssetState & { hasAsset: boolean };
   audience: AudienceState;
   practiceIssue?: string;
 }>;
@@ -183,6 +183,8 @@ export class TennisScene {
   private qualityMode: QualityMode = 'auto';
   private autoPerformance = false;
   private adaptivePixelRatio = Math.min(window.devicePixelRatio, 1.75);
+  private resizePending = true;
+  private readonly rendererSize = new THREE.Vector2();
   private slowMetricWindows = 0;
   private environmentConfiguration = DEFAULT_ENVIRONMENT;
   private cameraConfiguration: CameraConfiguration = {
@@ -212,7 +214,6 @@ export class TennisScene {
     this.renderer.toneMappingExposure = 0.5;
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
-    this.renderer.setPixelRatio(this.adaptivePixelRatio);
     this.profiler = (options.profile ?? new URLSearchParams(window.location.search).get('profileRenderer') === '1')
       ? new RendererProfiler(this.renderer.getContext() as WebGL2RenderingContext) : null;
 
@@ -444,13 +445,13 @@ export class TennisScene {
 
   private syncArenaPresentation(): void {
     const arena = this.activeAuthoredArena;
-    const ready = arena?.state.status === 'ready';
+    const ready = arena?.hasAsset;
     this.canvas.dataset.venueAsset = arena?.state.status ?? 'idle';
     this.canvas.dataset.authoredVenue = ready ? this.environmentConfiguration.venue : '';
     this.canvas.dataset.venueSource = ready ? 'blender' : arena?.state.status === 'error' ? 'error' : 'loading';
-    this.canvas.dataset.venueVariant = arena?.variant ?? 'quality';
+    this.canvas.dataset.venueVariant = arena?.renderedVariant ?? arena?.variant ?? 'quality';
     this.audience.apply(this.environmentConfiguration.venue, ready ? arena.audienceManifest : undefined,
-      this.environmentConfiguration.audience, arena?.variant ?? 'quality');
+      this.environmentConfiguration.audience, arena?.renderedVariant ?? arena?.variant ?? 'quality');
     // Fabric casts one continuous shade, with a bounded diffuse-light allowance.
     // Reset on every asset/venue/cutaway transition; hard and fallback stay intact.
     this.sun.shadow.intensity = ready && arena ? arena.sunShadowIntensity : 1;
@@ -668,6 +669,7 @@ export class TennisScene {
   }
 
   private readonly animate = (now: number): void => {
+    this.resizeBeforeRender();
     this.profiler?.beginFrame(now, document.visibilityState === 'visible');
     const delta = Math.min(0.05, Math.max(0, (now - this.lastFrame) / 1000));
     this.lastFrame = now;
@@ -819,7 +821,7 @@ export class TennisScene {
         drawCalls: this.renderer.info.render.calls,
         triangles: this.renderer.info.render.triangles,
         textures: this.renderer.info.memory.textures,
-        venueAsset: this.activeAuthoredArena?.state ?? { status: 'idle', loadedBytes: 0, totalBytes: 0 },
+        venueAsset: { ...(this.activeAuthoredArena?.state ?? { status: 'idle', loadedBytes: 0, totalBytes: 0 }), hasAsset: this.activeAuthoredArena?.hasAsset ?? false },
         audience: this.audience.state,
         practiceIssue: this.practicePreview?.issue,
       });
@@ -850,7 +852,9 @@ export class TennisScene {
       buffer: { width: this.canvas.width, height: this.canvas.height, pixels: this.canvas.width * this.canvas.height },
       css: { width: this.canvas.clientWidth, height: this.canvas.clientHeight },
       pixelRatio: this.renderer.getPixelRatio(), quality: this.qualityMode,
-      venue: this.environmentConfiguration.venue, variant: this.activeAuthoredArena?.variant,
+      venue: this.environmentConfiguration.venue,
+      variant: this.activeAuthoredArena?.renderedVariant ?? this.activeAuthoredArena?.variant,
+      requestedVariant: this.activeAuthoredArena?.variant,
       audience: this.audience.state, shadowMapSize: this.sun.shadow.mapSize.x,
       previewPreparation: this.practicePreview?.preparation,
       drawCalls: this.renderer.info.render.calls, triangles: this.renderer.info.render.triangles,
@@ -869,13 +873,22 @@ export class TennisScene {
   }
 
   private resize(): void {
+    // A canvas size assignment clears its drawing buffer, even at the same size.
+    // ResizeObserver and end-of-frame auto quality must never erase a presented frame.
+    this.resizePending = true;
+  }
+
+  private resizeBeforeRender(): void {
+    if (!this.resizePending) return;
     if (!this.active || !this.canvas.clientWidth || !this.canvas.clientHeight) return;
+    this.resizePending = false;
     const width = Math.max(1, this.canvas.clientWidth);
     const height = Math.max(1, this.canvas.clientHeight);
-    this.profiler?.reset();
     const pixelRatio = capturePixelRatio(width, height, this.adaptivePixelRatio, this.captureActive);
-    if (this.renderer.getPixelRatio() !== pixelRatio) this.renderer.setPixelRatio(pixelRatio);
-    this.renderer.setSize(width, height, false);
+    this.renderer.getSize(this.rendererSize);
+    if (this.rendererSize.x === width && this.rendererSize.y === height && this.renderer.getPixelRatio() === pixelRatio) return;
+    this.profiler?.reset();
+    this.renderer.setDrawingBufferSize(width, height, pixelRatio);
     this.camera.aspect = width / height;
     this.applyCamera();
   }

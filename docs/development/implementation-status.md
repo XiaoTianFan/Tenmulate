@@ -9,6 +9,36 @@
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
+## First-shot startup flash — 2026-09-09
+
+Reproduced the flash in a fresh Edge context using the default Quick Rally.
+Startup's slow metric windows triggered automatic Quality → Performance selection.
+The previous manager removed the stadium before its replacement loaded, exposing
+the bright sky; the same update resized and cleared the WebGL buffer after drawing.
+The loading overlay could also re-cover the court during replacement. A baseline
+capture recorded one fully cleared frame followed by a near-white frame around
+4.1 seconds after navigation, before the scene returned to normal.
+
+Quality replacements now retain the committed stadium, surface overrides, shade
+and audience metadata until the complete replacement is ready. Failed replacements
+retain the current scene with a nonblocking retry notice; cancellation/disposal
+still releases stale assets. Renderer diagnostics distinguish requested and rendered
+variants. All canvas size changes are queued for the next render, applied before
+drawing, and skipped if unchanged. The blocking venue overlay is reserved for
+states without a usable model. Gameplay clocks and motion assets are unchanged.
+
+Verification: 46 focused venue/loading, lighting, playback and capture tests pass,
+including five new replacement/cancellation cases. Production build and the active
+motion asset guard pass; the existing renderer chunk-size warning remains. Isolated
+Edge/Playwright frame captures covered fresh load and reload; the final cold-load
+run exercised automatic variant selection and three pixel-ratio changes across
+337 frames without clearing or re-showing the loader. Another 241 frames covered
+a 1.8-second delayed replacement, desktop/mobile resizing and shared-court editor
+resumption, with no blank/overbright frame or blocking overlay. Pixel readbacks add
+measurement overhead, so these counts are continuity evidence, not FPS benchmarks.
+Browser plugin not available; Playwright used without changing the owner's tab or
+saved data. Local implementation only; no public deployment.
+
 ## Saved-shot overwrite dialog — 2026-09-09
 
 The editor's **Update existing saved shot** action always opens a modal for the
