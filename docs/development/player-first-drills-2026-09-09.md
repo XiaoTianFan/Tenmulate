@@ -75,10 +75,27 @@ player action. Set rests and new openings are explicit boundaries. No ball endpo
 snaps, time warps or invisible replacement feeds are used.
 
 The module worker handles editor previews, starting a drill and new variations.
-Gesture previews update immediately; only release commits initiate a new solve.
-Obsolete jobs are terminated and the previous preview remains visible while a
-replacement is calculated. The court/renderer stays mounted across routes. Both
-zone meshes remain bound to the selected event while the ball changes flight phase.
+Selected-shot editing uses an isolated compilation mode: the player starts at the
+configured racket anchor, and the opponent meets that physical flight at a legal
+bounce/contact phase. Both paths stay visible in their zone colors throughout the
+local animation. The preceding incoming shot is not shown beside the selected
+event's future response zone. Even a final event previews its reusable response;
+full sequence playback still ends at the final player action.
+
+This editing preview is independent of reachability elsewhere in the drill. The
+full sequence compiler remains authoritative for actual incoming-contact positions,
+interval fitting, motion travel and camera continuity. It can reject an unreachable
+link while the selected shot remains editable. An impossible local response is
+reported without substituting an old flight or moving a bounce marker into the zone.
+
+Zone gestures update meshes immediately and send transient drafts to the isolated
+worker after a 75 ms quiet period; release commits the drill and starts its full
+validation solve. Committed shot changes start the isolated solve without the old
+180 ms full-drill debounce. Obsolete jobs terminate, and publication checks include
+drill identity, surface and selection. Old balls, paths, markers and tooltips hide
+while an updated shot is pending; the court, zones and camera stay mounted and
+interactive. Bounce markers use actual flight events and matching authored zone
+bounds, independently of whether those bounds were supplied by the editor.
 
 ## Persistence and migration
 

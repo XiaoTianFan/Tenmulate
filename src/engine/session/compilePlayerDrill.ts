@@ -7,7 +7,7 @@ import { sampleLandingZone, sampleParameter, type LandingZone } from '../traject
 import { createSeededRandom } from '../random/seeded';
 import { cameraTravelSeconds, DEFAULT_DRILL_CAMERA, interpolateCamera, type CameraTransition } from './cameraTimeline';
 import { cameraPlayerPosition, type Reachability } from './playerCoverage';
-import { contactDistance, contactHeight, landsInZone, opponentContacts, playerContacts, resolveCourtFlight, trimFlight } from './courtFlight';
+import { contactDistance, contactHeight, landsInZone, opponentContacts, playerContacts, playerContactAnchor, resolveCourtFlight, trimFlight } from './courtFlight';
 import { minimumMotionGap, motionClip, motionEvent, rotateMotionPoint, strokeForShot, withPreparedApproach } from './opponentTimeline';
 import { planRecovery } from './opponentMovement';
 import { normalizeRhythm, normalizeShotInterval } from './rhythm';
@@ -23,8 +23,10 @@ export type CompiledPlayerEvent = Readonly<{ index: number; event: PlayerShotEve
   opponentContactPhase?: BounceContactPhase; }>;
 export type DrillPlanningIssue = Readonly<{ index: number; phase: 'opening' | 'player' | 'response'; message: string }>;
 type IncomingFit = { trajectory: ResolvedTrajectory; contact: FlightSample | null; score: number };
+export type PlayerShotSelection = Readonly<{ eventId: string; opening: boolean; initialOpening?: boolean }>;
+export type ShotPreviewTrajectories = Readonly<{ player?: ResolvedTrajectory; opponent?: ResolvedTrajectory }>;
 
-export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSettings): CompiledSession {
+export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSettings, selection?: PlayerShotSelection): CompiledSession {
   if (!drill.events.length) throw new Error('A drill needs at least one player shot.');
   const count = Math.max(1, Math.min(200, Math.floor(settings.repetitions)));
   const rhythm = normalizeRhythm(settings.rhythmPercent ?? drill.defaultRhythmPercent ?? 100);
@@ -119,7 +121,48 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
     lastCamera = event.camera;
   };
 
-  for (let index = 0; index < events.length; index++) {
+  let shotPreview: ShotPreviewTrajectories | undefined;
+  if (selection) {
+    // Editing a shot must not depend on an earlier/next camera being reachable.
+    // Use the same seeded physics and real bounce contacts as gameplay, but start
+    // at this player's configured racket anchor and include even a final response.
+    const index = drill.events.findIndex(event => event.id === selection.eventId);
+    const event = drill.events[index];
+    if (!event) throw new Error('The selected shot no longer exists.');
+    if (selection.opening) {
+      startPoint(selection.initialOpening ? drill.launch : event.openingFeed ?? drill.launch, event, index);
+      const trajectory = repetitions[0]!.trajectory;
+      shotPreview = { opponent: trajectory };
+      if (!landsInZone(trajectory)) issues.push({ index, phase: 'opening', message: 'The opening ball cannot reach its landing zone with these settings.' });
+    } else {
+      const ball = sampleBall(event.ball, 'player', index), target = sampleZone(event.landingZone, 'player', index);
+      const playerFlight = resolve(playerContactAnchor(event), ball, event.landingZone, target);
+      shotPreview = { player: playerFlight };
+      const playerTime = 3;
+      const response = event.opponentReturn, replyBall = sampleBall(response.ball, 'response', index);
+      const replyTarget = sampleZone(response.landingZone, 'response', index);
+      const preference = bounceContactPreference(playerFlight, replyBall.family, random('response', index, 'contact-phase')());
+      const rank = (contact: FlightSample) => bounceContactCost(contact, preference)
+        + Math.abs(contact.position.y - contactHeight(replyBall.family)) * .4;
+      const contacts = landsInZone(playerFlight) ? [...opponentContacts(playerFlight, replyBall)].sort((a, b) => rank(a) - rank(b)) : [];
+      let reply: { contact: FlightSample; trajectory: ResolvedTrajectory } | undefined;
+      for (const contact of contacts.slice(0, 8)) {
+        const fit = fitIncoming(contact.position, replyBall, response.landingZone, replyTarget);
+        if (landsInZone(fit.trajectory)) { reply = { contact, trajectory: fit.trajectory }; break; }
+      }
+      addFlight('player', 'player', index, playerTime, playerFlight, reply?.contact);
+      if (reply) {
+        const time = playerTime + reply.contact.time;
+        repetitions.push(repetition(shotDefinition(reply.contact.position, replyBall, replyTarget, `${event.label} — opponent return`), reply.trajectory, time, event));
+        addFlight('opponent', 'response', index, time, reply.trajectory);
+        shotPreview = { player: playerFlight, opponent: reply.trajectory };
+      } else issues.push({ index, phase: landsInZone(playerFlight) ? 'response' : 'player', message: landsInZone(playerFlight)
+        ? 'The opponent cannot return this ball with the selected shot type and settings.'
+        : 'The player ball cannot reach its landing zone with these settings.' });
+    }
+  }
+
+  for (let index = 0; !selection && index < events.length; index++) {
     const event = events[index]!, next = events[index + 1];
     const newPoint = index === 0 || index % workBlock === 0 || !!event.openingFeed;
     if (newPoint) startPoint(event.openingFeed ?? drill.launch, event, index);
@@ -203,5 +246,5 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
     motionTimingAdjusted, rhythmPercent: rhythm, cameraTimeline: { initial: initialCamera ?? DEFAULT_DRILL_CAMERA,
       transitions: transitions.map(stage => ({ ...stage, from: interpolateCamera(initialCamera, stage.from, cameraScale),
         to: interpolateCamera(initialCamera, stage.to, cameraScale) })) },
-    playerEvents, scheduledFlights: flights, planningIssues: issues };
+    playerEvents, scheduledFlights: flights, planningIssues: issues, ...(shotPreview ? { shotPreview } : {}) };
 }

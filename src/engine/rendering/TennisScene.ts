@@ -130,6 +130,9 @@ export class TennisScene {
   private readonly focusLight = new THREE.Color(0xffffdc);
   private readonly focusEmission = new THREE.Color(0xfff7b3);
   private readonly trajectoryLine: THREE.Line;
+  private readonly playerPreviewLine = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: 0x48b8ff, transparent: true, opacity: .6, toneMapped: false }));
+  private trajectoryVisible = true;
+  private shotPreviewPending = false;
   private readonly ballTrail: THREE.Line;
   private readonly trailPositions = new THREE.BufferAttribute(new Float32Array(30), 3).setUsage(THREE.DynamicDrawUsage);
   private readonly hemisphere: THREE.HemisphereLight;
@@ -256,6 +259,8 @@ export class TennisScene {
     this.scene.add(this.opponentPositionControl.root);
     this.returnLandingZoneControl = new LandingZoneControl(this.camera, canvas, { color: 0x48b8ff, name: 'ReturnLandingZone', showBounce: false, sharedCursor: true });
     this.scene.add(this.returnLandingZoneControl.root);
+    this.playerPreviewLine.visible = false;
+    this.scene.add(this.playerPreviewLine);
     this.scene.add(this.audience.group);
     this.scene.add(this.opponent.group);
     this.fallbackBallMachine = court.group.getObjectByName('temporary-ball-machine');
@@ -318,16 +323,17 @@ export class TennisScene {
   }
 
   private setTrajectoryLine(trajectory: ResolvedTrajectory): void {
+    trajectory = this.session?.shotPreview?.opponent ?? this.session?.shotPreview?.player ?? trajectory;
     if(this.lineTrajectory===trajectory)return;
     this.lineTrajectory=trajectory;
+    (this.trajectoryLine.material as THREE.LineBasicMaterial).color.setHex(this.session?.shotPreview && trajectory.intent.source.z < 0 ? 0x48b8ff : BALL_PRESENTATION.trajectoryColor);
     // The editable incoming zone stays on the near court while its return flies
     // through the separately edited blue zone. Never rebind one control to both.
     if (trajectory.intent.source.z >= 0 && !this.authoredNearLandingZone) {
-      this.landingZoneControl.setZone(this.trajectoryLine.visible ? trajectory.intent.landingZone ?? null : null,
+      this.landingZoneControl.setZone(this.trajectoryVisible ? trajectory.intent.landingZone ?? null : null,
         landingZoneLimits(trajectory.intent.shotType ?? trajectory.intent.family ?? 'groundstroke', trajectory.intent.source));
-      const bounce = trajectory.events.find(event => event.type === 'bounce');
-      if (bounce) this.landingZoneControl.setBounce(bounce.position);
     }
+    this.updateBounceMarkers();
     const points = trajectory.samples.map(
       (sample) => new THREE.Vector3(sample.position.x, sample.position.y, sample.position.z),
     );
@@ -343,6 +349,13 @@ export class TennisScene {
     this.canvas.dataset.sessionRevision = String(++this.sessionRevision);
     if(this.session!==session&&!clock){this.elapsed=0;this.sessionIndex=-1;}
     this.session = session;
+    this.playerPreviewLine.geometry.dispose();
+    const player = session?.shotPreview?.opponent && session.shotPreview.player;
+    this.playerPreviewLine.geometry = new THREE.BufferGeometry().setFromPoints(player?.samples.map(sample => new THREE.Vector3(sample.position.x, sample.position.y, sample.position.z)) ?? []);
+    this.lineTrajectory = null;
+    const path = session?.shotPreview?.opponent ?? session?.shotPreview?.player ?? this.trajectory;
+    if (path) this.setTrajectoryLine(path);
+    this.setShotPreviewPending(this.shotPreviewPending);
     this.sessionClock = clock;
     this.onSessionIndex=onIndex??null;
     this.motionEvents = session?.repetitions.map(motionEvent) ?? [];
@@ -360,7 +373,7 @@ export class TennisScene {
     this.authoredNearLandingZone = zone;
     this.landingZoneControl.acceptModel();
     const incoming = this.trajectory && this.trajectory.intent.source.z >= 0 ? this.trajectory : null;
-    this.landingZoneControl.setZone(this.trajectoryLine.visible ? zone ?? incoming?.intent.landingZone ?? null : null,
+    this.landingZoneControl.setZone(this.trajectoryVisible ? zone ?? incoming?.intent.landingZone ?? null : null,
       limits ?? landingZoneLimits(incoming?.intent.shotType ?? incoming?.intent.family ?? 'groundstroke', incoming?.intent.source ?? { x: 0 }));
   }
 
@@ -371,7 +384,8 @@ export class TennisScene {
   }
 
   setTrajectoryVisible(visible: boolean): void {
-    this.trajectoryLine.visible = visible;
+    this.trajectoryVisible = visible;
+    this.setShotPreviewPending(this.shotPreviewPending);
     this.landingZoneControl.setZone(visible ? this.authoredNearLandingZone ?? this.trajectory?.intent.landingZone ?? null : null);
   }
 
@@ -384,6 +398,23 @@ export class TennisScene {
     this.ballMaterial.color.setHex(presentation.color);
     this.ballMaterial.emissive.setHex(presentation.emissive);
     this.ballMaterial.emissiveIntensity = presentation.emissiveIntensity;
+  }
+
+  private updateBounceMarkers(): void {
+    const preview = this.session?.shotPreview;
+    const near = preview ? preview.opponent : this.lineTrajectory && this.lineTrajectory.intent.source.z >= 0 ? this.lineTrajectory : null;
+    const far = preview?.player;
+    this.landingZoneControl.setBounce(this.shotPreviewPending ? null : near?.events.find(event => event.type === 'bounce')?.position ?? null, near?.intent.landingZone ?? null);
+    this.returnLandingZoneControl.setBounceVisible(!!preview && !this.shotPreviewPending);
+    this.returnLandingZoneControl.setBounce(this.shotPreviewPending ? null : far?.events.find(event => event.type === 'bounce')?.position ?? null, far?.intent.landingZone ?? null);
+  }
+
+  setShotPreviewPending(pending: boolean): void {
+    this.shotPreviewPending = pending;
+    this.trajectoryLine.visible = this.trajectoryVisible && !pending;
+    this.playerPreviewLine.visible = this.trajectoryVisible && !pending && !!this.session?.shotPreview?.player && !!this.session.shotPreview.opponent;
+    this.updateBounceMarkers();
+    this.canvas.dataset.shotPreviewPending = String(pending);
   }
 
   setBallFocus(settings: BallFocusSettings): void {
@@ -558,6 +589,10 @@ export class TennisScene {
   }
 
   getDisplayedTrajectory(): ResolvedTrajectory | null { return this.lineTrajectory; }
+  getDisplayedTrajectories(): readonly ResolvedTrajectory[] {
+    return !this.trajectoryLine.visible || !this.lineTrajectory ? [] : this.playerPreviewLine.visible && this.session?.shotPreview?.player
+      ? [this.lineTrajectory, this.session.shotPreview.player] : [this.lineTrajectory];
+  }
 
   projectCourtPoint(point: Readonly<{x:number;y?:number;z:number}>): {x:number;y:number} | null {
     const p=new THREE.Vector3(point.x,point.y??COURT.ballRadius,point.z).project(this.camera);
@@ -577,8 +612,7 @@ export class TennisScene {
     return point && Math.abs(point.x)<100 && Math.abs(point.z)<100 ? {x:point.x,z:point.z}:null;
   }
 
-  trajectorySampleFromClientPoint(clientX: number, clientY: number, thresholdPx = 11): FlightSample | null {
-    const trajectory = this.lineTrajectory;
+  trajectorySampleFromClientPoint(clientX: number, clientY: number, thresholdPx = 11, trajectory = this.lineTrajectory): FlightSample | null {
     if (!trajectory || !this.trajectoryLine.visible) return null;
     const bounds = this.canvas.getBoundingClientRect();
     if (bounds.width <= 0 || bounds.height <= 0) return null;
@@ -703,9 +737,12 @@ export class TennisScene {
         this.canvas.dataset.ballPhase=flights[0]?.phase??'none';
         this.canvas.dataset.sessionTime=this.elapsed.toFixed(4);
         const repetition=frame?.repetition ?? this.session.repetitions.reduce((active,rep)=>motionTime>=rep.startTime?rep:active,this.session.repetitions[0]!);
-        const index=repetition.index, cycle=frame?.cycle??0;
-        if(index!==this.sessionIndex || cycle!==this.previewCycle){this.sessionIndex=index;this.previewCycle=cycle;this.onSessionIndex?.(index,repetition);}
-        this.setTrajectoryLine(flights[0]?.trajectory??repetition.trajectory);
+        if (repetition) {
+          const index=repetition.index, cycle=frame?.cycle??0;
+          if(index!==this.sessionIndex || cycle!==this.previewCycle){this.sessionIndex=index;this.previewCycle=cycle;this.onSessionIndex?.(index,repetition);}
+        }
+        const path = flights[0]?.trajectory ?? repetition?.trajectory;
+        if (path) this.setTrajectoryLine(path);
       } else if (this.previewEvent) {
         const interval = Math.max(this.previewEvent.end-this.previewEvent.start+planRecovery(this.previewEvent,this.previewEvent).requiredDuration, this.trajectoryInterval ?? duration + .5);
         const cycle = this.loopTrajectory ? Math.max(0, Math.floor((this.elapsed - 3) / interval)) : 0;
@@ -744,7 +781,7 @@ export class TennisScene {
         const ball = this.balls[index]!;
         const flight = visibleFlights[index];
         const toss = index === visibleFlights.length ? motion?.toss : null;
-        ball.visible = !!flight || !!toss;
+        ball.visible = !this.shotPreviewPending && (!!flight || !!toss);
         if (!ball.visible) continue;
         const position = toss ?? sampleTrajectoryAt(flight!.trajectory, flight!.time, false);
         ball.position.set(position.x, position.y, position.z);
@@ -753,7 +790,7 @@ export class TennisScene {
       }
       const cycleTime = visibleFlights[0]?.time ?? 0;
       const ballActive = visibleFlights.length > 0;
-      this.ballTrail.visible = this.showBallTrail && ballActive;
+      this.ballTrail.visible = this.showBallTrail && ballActive && !this.shotPreviewPending;
       if (this.showBallTrail && ballActive) {
         for (let index = 9; index >= 0; index -= 1) {
           const trailPosition = sampleTrajectoryAt(visibleFlights[0]!.trajectory, Math.max(0, cycleTime - index * 0.018), false);
@@ -805,6 +842,9 @@ export class TennisScene {
       if (this.profiler) this.canvas.dataset.rendererProfile = JSON.stringify(this.getRendererProfile());
       this.canvas.dataset.landingZone=JSON.stringify(this.lineTrajectory?.intent.landingZone??null);
       this.canvas.dataset.landingTarget=JSON.stringify(this.lineTrajectory?.intent.target??null);
+      this.canvas.dataset.actualBounce=JSON.stringify(this.landingZoneControl.displayedBounce);
+      this.canvas.dataset.playerBounce=JSON.stringify(this.returnLandingZoneControl.displayedBounce);
+      this.canvas.dataset.shotPreview=JSON.stringify(this.session?.shotPreview ? Object.fromEntries(Object.entries(this.session.shotPreview).map(([role, flight]) => [role, { source: flight.intent.source, target: flight.intent.target, zone: flight.intent.landingZone, bounce: flight.events.find(event => event.type === 'bounce')?.position, resolved: flight.resolved }])) : null);
       this.canvas.dataset.landingZoneScreen=JSON.stringify(this.landingZoneControl.screenPoints());
       this.canvas.dataset.returnLandingZoneScreen=JSON.stringify(this.returnLandingZoneControl.screenPoints());
       this.canvas.dataset.opponentPlacementScreen=JSON.stringify(this.opponentPositionControl.screenPoint());

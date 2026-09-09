@@ -38,6 +38,9 @@ export type SceneViewportProps = Readonly<{
   showBallTrail?: boolean;
   onAimChange?: (directionDeg: number) => void;
   onLandingZoneChange?: (zone: LandingZone) => void;
+  onLandingZoneDraft?: (zone: LandingZone | null) => void;
+  onReturnLandingZoneDraft?: (zone: LandingZone | null) => void;
+  shotPreviewPending?: boolean;
   onCameraFovChange?: (fov: number) => void;
   onCameraLookChange?: (look: CameraLook) => void;
   onCameraViewCommit?: (camera: CameraConfiguration) => void;
@@ -93,6 +96,9 @@ export function SceneViewport({
   showBallTrail = false,
   onAimChange,
   onLandingZoneChange,
+  onLandingZoneDraft,
+  onReturnLandingZoneDraft,
+  shotPreviewPending = false,
   onCameraFovChange,
   onCameraLookChange,
   onCameraViewCommit,
@@ -197,6 +203,9 @@ export function SceneViewport({
   useEffect(() => sceneRef.current?.setReturnLandingZone(returnLandingZone ?? null, onReturnLandingZoneChange ?? null), [returnLandingZone, onReturnLandingZoneChange]);
   useEffect(() => sceneRef.current?.setNearLandingZone(nearLandingZone ?? null, nearLandingZoneLimits), [nearLandingZone, nearLandingZoneLimits]);
   useEffect(() => sceneRef.current?.setSession(session ?? null, sessionClock ?? null, onSessionIndex), [session, sessionClock, onSessionIndex]);
+  useEffect(() => sceneRef.current?.setShotPreviewPending(shotPreviewPending), [shotPreviewPending]);
+  useEffect(() => sceneRef.current?.landingZoneControl.setDraftListener(onLandingZoneDraft ?? null), [onLandingZoneDraft]);
+  useEffect(() => sceneRef.current?.returnLandingZoneControl.setDraftListener(onReturnLandingZoneDraft ?? null), [onReturnLandingZoneDraft]);
   useEffect(() => sceneRef.current?.setTrajectory(trajectory), [trajectory]);
   useEffect(() => sceneRef.current?.setLandingZoneInteraction(
     showTrajectory ? onLandingZoneChange ?? null : null), [showTrajectory, onLandingZoneChange]);
@@ -254,8 +263,8 @@ export function SceneViewport({
       setTrajectoryTooltip(null);
       return;
     }
-    const sample = sceneRef.current?.trajectorySampleFromClientPoint(event.clientX, event.clientY) ?? null;
-    if (!sample) {
+    const hit = sceneRef.current?.getDisplayedTrajectories().map(path => ({ path, sample: sceneRef.current?.trajectorySampleFromClientPoint(event.clientX, event.clientY, 11, path) })).find(hit => hit.sample);
+    if (!hit?.sample) {
       setTrajectoryTooltip(null);
       return;
     }
@@ -266,8 +275,8 @@ export function SceneViewport({
       x: Math.min(Math.max(localX, 136), Math.max(136, bounds.width - 136)),
       y: localY,
       placeBelow: localY < 150,
-      sample,
-      trajectory: sceneRef.current?.getDisplayedTrajectory() ?? trajectory,
+      sample: hit.sample,
+      trajectory: hit.path,
     });
   };
 
@@ -294,7 +303,7 @@ export function SceneViewport({
     showTrajectory ? 'Hover trajectory for data' : null,
   ].filter(Boolean).join(' · ') || null;
 
-  const visibleTooltip = showTrajectory && trajectoryTooltip?.trajectory === sceneRef.current?.getDisplayedTrajectory() ? trajectoryTooltip : null;
+  const visibleTooltip = showTrajectory && trajectoryTooltip && sceneRef.current?.getDisplayedTrajectories().includes(trajectoryTooltip.trajectory) ? trajectoryTooltip : null;
   const tooltipTrajectory = visibleTooltip?.trajectory ?? trajectory;
   const bounce = tooltipTrajectory.events.find((event) => event.type === 'bounce');
   const net = tooltipTrajectory.events.find((event) => event.type === 'net-crossing');

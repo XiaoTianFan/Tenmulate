@@ -19,6 +19,29 @@ function setup(position = [0, 2, -14]) {
 }
 
 describe('landing-zone edit gestures', () => {
+  it('clears a stale bounce when its authored zone changes, then accepts the new physical bounce', () => {
+    const { control } = setup();
+    expect(control.displayedBounce).toEqual({ x: .2, z: -8.3 });
+    const next = { ...zone, minX: 2, maxX: 4 };
+    control.setZone(next); control.update();
+    expect(control.displayedBounce).toBeNull();
+    control.setBounce({ x: 3, z: -8 }, next); control.update();
+    expect(control.displayedBounce).toEqual({ x: 3, z: -8 });
+    control.setBounce(null); control.update();
+    expect(control.displayedBounce).toBeNull();
+  });
+
+  it('publishes transient zone drafts without committing a drill, and clears the draft on cancel', () => {
+    const { control, changes, project } = setup(), drafts: Array<LandingZone | null> = [];
+    control.setDraftListener(zone => drafts.push(zone));
+    const start = project(0, -8), end = project(.7, -7.8);
+    control.begin(start.x, start.y); control.move(end.x, end.y);
+    expect(drafts[0]!.minX).toBeCloseTo(-.3);
+    expect(changes).toEqual([]);
+    control.end(false);
+    expect(drafts.at(-1)).toBeNull();
+    expect(changes).toEqual([]);
+  });
   it.each([[0, 2, -14], [7, 6, -13], [-5, 5, -15]])('updates only geometry during a drag from %s,%s,%s and commits once', (...position) => {
     const { control, changes, project, canvas } = setup(position), start = project(.3, -8.15);
     expect(control.begin(start.x, start.y)).toBe(true); expect(canvas.style.cursor).toBe('grabbing');

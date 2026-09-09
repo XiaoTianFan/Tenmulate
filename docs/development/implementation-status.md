@@ -9,6 +9,36 @@
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
+## Editor trajectory and landing-zone synchronization — 2026-09-09
+
+The selected editor event previously showed its preceding incoming flight beside
+its own future yellow response zone. Full-drill compilation could also stop before
+the edited response when a subsequent camera became unreachable. Separately, the
+renderer skipped bounce-marker updates whenever an explicit editable near zone
+was supplied, leaving an old white marker behind.
+
+Selected-shot editing now solves its player ball and opponent response independently
+in the existing cancellable worker, sharing seeded sampling, aerodynamic physics
+and legal opponent contact timing with gameplay. Both colored paths and actual
+bounce markers stay attached to the selected event. Both zones, ball parameters,
+camera position and surface invalidate the preview. Zone drafts update the isolated
+preview during a held gesture; full-drill validation still runs only on commit.
+Stale worker results cannot publish over newer settings or a changed surface.
+Pending edits hide outdated balls, paths and markers while keeping the court and
+zone controls mounted. Full sequence playback retains strict physical continuity
+and unreachable-link checks. The [player-first contract](player-first-drills-2026-09-09.md)
+documents the boundary between isolated editing and connected gameplay.
+
+Verification: all 469 tests across 46 files pass, including physical bounce/zone agreement, continuous player-to-opponent
+handoff, final-shot response editing, unreachable neighboring events, deterministic
+mirroring with independent opponent hand, surface changes and stale-marker clearing.
+Production build and active motion/cache guard pass. Isolated Edge/Playwright passes
+12 checks covering both zone drags (including a held yellow draft), actual markers,
+rapid speed edits, sequence playback, final-event response, persistent canvas and
+390 px mobile layout. Browser plugin unavailable; the isolated browser did not
+modify the owner's tab or saved data. Evidence is under the task's
+`editor-trajectory-sync` visualization folder. Local implementation only.
+
 ## First-shot startup flash — 2026-09-09
 
 Reproduced the flash in a fresh Edge context using the default Quick Rally.

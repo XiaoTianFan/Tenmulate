@@ -6,8 +6,9 @@ The repository contains the active V1 implementation: a deterministic Three.js c
 
 Quick Practice and drills use editable uniform landing zones. Left-drag the interior
 to move, a side to resize one dimension, or a corner to resize both. Drag elsewhere
-to look around. The zone previews immediately and recalculates the session once on
-release. Practice, Editor and drill playback share one mounted court; the library
+to look around. The zone previews immediately and recalculates the full session once on
+release. The editor also updates isolated shot trajectories during zone gestures.
+Practice, Editor and drill playback share one mounted court; the library
 parks it without rendering. Setup previews stream fresh feeds continuously;
 launched sets honor their chosen repetitions and rests. See the
 [shared-court verification receipt](docs/development/shared-court-and-zone-resize-2026-09-08.md).

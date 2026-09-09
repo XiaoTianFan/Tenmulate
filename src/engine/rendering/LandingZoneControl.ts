@@ -28,6 +28,10 @@ export class LandingZoneControl {
   private canonicalZone: LandingZone | null = null;
   private limits = landingZoneLimits('groundstroke', { x: 0 });
   private onChange: ((zone: LandingZone) => void) | null = null;
+  private onDraft: ((zone: LandingZone | null) => void) | null = null;
+  private bounceZone: LandingZone | null = null;
+  private hasBounce = false;
+  private showBounce: boolean;
   private pointer: { x: number; y: number; radius: number } | null = null;
   private hovered: ZoneHandle | null = null;
   private selected = false;
@@ -37,6 +41,7 @@ export class LandingZoneControl {
 
   constructor(private readonly camera: THREE.PerspectiveCamera, private readonly canvas: HTMLCanvasElement,
     private readonly options: { color?: number; name?: string; showBounce?: boolean; sharedCursor?: boolean } = {}) {
+    this.showBounce = options.showBounce !== false;
     this.root.name = 'LandingZone'; this.root.visible = false;
     this.fill.name = 'LandingZoneArea'; this.fill.rotation.x = -Math.PI / 2;
     this.outline.name = 'LandingZoneBoundary';
@@ -60,7 +65,15 @@ export class LandingZoneControl {
 
   /** A new compiled session acknowledges the one completed edit. */
   acceptModel(): void { this.pending = false; }
-  setBounce(point: Readonly<{ x: number; z: number }>): void { this.bounceMarker.position.set(point.x, .04, point.z); }
+  setDraftListener(listener: ((zone: LandingZone | null) => void) | null): void { this.onDraft = listener; }
+  setBounce(point: Readonly<{ x: number; z: number }> | null, zone = this.canonicalZone): void {
+    this.hasBounce = !!point; this.bounceZone = zone;
+    if (point) this.bounceMarker.position.set(point.x, .04, point.z);
+  }
+  setBounceVisible(visible: boolean): void { this.showBounce = visible; }
+  get displayedBounce(): { x: number; z: number } | null {
+    return this.root.visible && this.bounceMarker.visible ? { x: this.bounceMarker.position.x, z: this.bounceMarker.position.z } : null;
+  }
 
   setZone(zone: LandingZone | null, limits = this.limits): void {
     this.canonicalZone = zone; this.limits = limits;
@@ -93,7 +106,8 @@ export class LandingZoneControl {
     this.fill.material.opacity = this.drag ? .3 : this.hovered || this.selected ? .23 : .13;
     this.outline.material.opacity = this.drag || this.hovered || this.selected ? 1 : .8;
     this.grips.visible = !!this.onChange && (!!this.hovered || !!this.drag || this.selected);
-    this.bounceMarker.visible = this.options.showBounce !== false && !this.drag && !this.pending;
+    const matches = this.zone && this.bounceZone && (['minX', 'maxX', 'minZ', 'maxZ'] as const).every(key => Math.abs(this.zone![key] - this.bounceZone![key]) < 1e-7);
+    this.bounceMarker.visible = this.showBounce && this.hasBounce && !!matches && !this.drag && !this.pending;
     const active = this.drag?.handle ?? this.hovered;
     for (const grip of this.grips.children as THREE.Mesh<THREE.BoxGeometry, THREE.MeshBasicMaterial>[]) {
       const h = grip.userData.handle as ZoneHandle, selected = active?.x === h.x && active.z === h.z;
@@ -174,6 +188,7 @@ export class LandingZoneControl {
     const point = this.ray(clientX, clientY).intersectPlane(this.plane, this.intersection); if (!point) return;
     drag.moved = true;
     this.draw(editLandingZone(drag.zone, drag.handle, point.x - drag.start.x, point.z - drag.start.z, drag.limits));
+    this.onDraft?.(this.zone);
     this.update();
   }
 
@@ -181,6 +196,7 @@ export class LandingZoneControl {
     const drag = this.drag; this.drag = null;
     if (drag?.moved && commit && this.zone) { this.pending = true; this.onChange?.(this.zone); }
     else if (drag) this.draw(this.canonicalZone);
+    if (drag) this.onDraft?.(null);
     this.dirty = true; this.update();
   }
 

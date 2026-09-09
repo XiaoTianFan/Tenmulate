@@ -106,6 +106,8 @@ export type CompiledSession = Readonly<{
   cameraTimeline: CameraTimeline;
   playerEvents?: readonly CompiledPlayerEvent[];
   scheduledFlights?: readonly ScheduledDrillFlight[];
+  /** Isolated editor paths; never used by full drill playback. */
+  shotPreview?: import('./compilePlayerDrill').ShotPreviewTrajectories;
   planningIssues?: readonly DrillPlanningIssue[];
 }>;
 
