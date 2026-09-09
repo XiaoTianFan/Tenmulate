@@ -28,7 +28,7 @@ export function DrillTimeline({ drill, selectedId, onSelect, onInsert, onMove, o
     <div className="timeline-toolbar"><button type="button" className={`opening-chip${selectedId === 'launch' ? ' selected' : ''}`} onClick={() => onSelect('launch')}>Opening · Opponent {drill.launch.ball.family === 'serve' ? 'serve' : 'feed'}</button>
       {events.map((event, index) => event.openingFeed ? <button type="button" key={event.id} className={`opening-chip${selectedId === `opening:${event.id}` ? ' selected' : ''}`} onClick={() => onSelect(`opening:${event.id}`)}>Opening before {index + 1}</button> : null)}
       <strong>{drill.title}</strong><span>{events.length} player shots</span>
-      <button type="button" className="sequence-preview-button" disabled={previewDisabled} aria-pressed={playing} onClick={onPreview}>{playing ? <Square size={14}/> : <Play size={14}/>} {playing ? 'Stop preview' : 'Preview sequence'}</button></div>
+      <button type="button" className="sequence-preview-button" disabled={previewDisabled && !playing} aria-pressed={playing} onClick={onPreview}>{playing ? <Square size={14}/> : <Play size={14}/>} {playing ? 'Stop preview' : 'Preview sequence'}</button></div>
     <div className="timeline-body">
       {events.length ? TRACKS.map(track => <div className="timeline-track" key={track}>
         <strong>{track}</strong><div className="track-events">

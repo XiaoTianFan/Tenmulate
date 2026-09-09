@@ -181,7 +181,7 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
   const returnPatternActive = practicePreset === 'return' && shotType === 'serve' && returnTargetMode === 'pattern';
   const returnServePlacement = RETURN_SERVE_PATTERN[returnPreviewIndex % RETURN_SERVE_PATTERN.length]!;
   const camera = useMemo<CameraConfiguration>(() => ({ eyeHeight, behindBaseline, lateral, yaw, pitch, fov }), [behindBaseline, eyeHeight, fov, lateral, pitch, yaw]);
-  const { container: overviewContainer, displayCamera } = useCourtOverview(camera, overview);
+  const { container: overviewContainer, displayCamera, zoomOverview } = useCourtOverview(camera, overview);
   const rally = useMemo(() => practicePreset === 'rally' ? { landingZone: rallyLandingZone, shot: rallyShot } : undefined, [practicePreset, rallyLandingZone, rallyShot]);
   const nearZone = useMemo(() => rally ? resolveLandingZone(practiceLandingTarget(opponentPosition, aimDirectionDeg, landingDepthM), landingZone, shotType, opponentPosition) : undefined, [rally, opponentPosition, aimDirectionDeg, landingDepthM, landingZone, shotType]);
   const sessionSettings = useMemo(() => ({
@@ -476,7 +476,7 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
             <CourtViewport camera={displayCamera} trajectory={trajectory} surface={surface} environment={environment} quality={quality} running resetToken={resetToken} showTrajectory={trajectoryEnabled || overview} loopTrajectory session={previewSession} onSessionIndex={onPreviewIndex} onLandingZoneChange={changeLandingZone}
               nearLandingZone={nearZone} returnLandingZone={rally && (trajectoryEnabled || overview) ? rallyLandingZone : undefined} onReturnLandingZoneChange={rally ? setRallyLandingZone : undefined}
               opponentPlacement={overview ? { ...opponentPosition, hand: opponentHand } : undefined} onOpponentPositionChange={overview ? changeRecoveryCenter : undefined}
-              onCameraFovChange={overview ? undefined : updateCameraFov} onCameraLookChange={overview ? undefined : updateCameraLook} onMetrics={onMetrics} />
+              onCameraFovChange={overview ? zoomOverview : updateCameraFov} onCameraLookChange={overview ? undefined : updateCameraLook} onMetrics={onMetrics} />
             <div className="editor-view-tools"><button type="button" aria-pressed={overview} onClick={() => setOverview(value => !value)}>{overview ? 'Back to player view' : 'Top-down court'}</button>{overview ? <span>{rally ? <><i className="return-swatch"/>Your return <i className="landing-swatch"/>Opponent landing</> : 'Drag opponent or landing zone'}</span> : null}</div>
             <div className="court-metadata" aria-live="polite">{metrics ? `${metrics.renderer} · ${metrics.fps} fps · ${metrics.pixelRatio.toFixed(2)}× ${metrics.quality}` : 'Starting renderer'} · Stroke {resolvedStroke}%{previewGap ? ` · ${previewGap.toFixed(2)} s between shots` : ''}</div>
           </div>
@@ -514,7 +514,7 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
             <RangeField label="Shot interval" value={interval} min={1} max={30} step={0.1} unit="s" onChange={setInterval} />
             <RangeField label="Stroke rhythm" value={rhythmPercent} min={50} max={300} step={5} unit="%" onChange={setRhythmPercent} />
             <RangeField label="Movement pace" value={movementPercent} min={50} max={300} step={5} unit="%" onChange={setMovementPercent} />
-            <small>Resolved {resolvedStroke}% stroke · {resolvedMovement}% movement. {resolvedPreview.timing?.limited?`Shortest feasible interval: ${previewGap.toFixed(2)} s.`:`${previewGap.toFixed(2)} s between shots.`}</small>
+            <small>Resolved {resolvedStroke}% stroke · {resolvedMovement}% movement. {resolvedPreview.timing?.limited?`${rally ? 'Physical contact interval' : 'Shortest feasible interval'}: ${previewGap.toFixed(2)} s.`:`${previewGap.toFixed(2)} s between shots.`}</small>
           </SetupSection>
           <SetupSection title="Ball arrival" subtitle="Surface response and perceived height"><RangeField label="Bounce height" value={bounceFactor} min={0.6} max={1.4} step={0.05} unit="×" onChange={setBounceFactor} /></SetupSection>
           {rally ? <SetupSection title="Your return" subtitle="Blue landing zone" open><QuickReturnControls shot={rallyShot} onChange={setRallyShot}/><button type="button" className="text-action" onClick={() => setOverview(true)}>Edit return landing zone on court</button></SetupSection> : null}

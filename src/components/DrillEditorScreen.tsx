@@ -53,7 +53,7 @@ export function DrillEditorScreen({ route, initialDrill, initialPlayerHand, onPl
   const validation = validatePlayerDrill(workingDrill);
   const nearZone = isOpening ? feed.landingZone : selected?.opponentReturn.landingZone;
   const nearLimits = useMemo(() => landingZoneLimits(isOpening ? feed.ball.family : 'groundstroke', isOpening ? openingZoneSource(feed) : { x: 0 }), [isOpening, feed]);
-  const { container: sceneContainer, displayCamera } = useCourtOverview(previewCamera, overview);
+  const { container: sceneContainer, displayCamera, zoomOverview } = useCourtOverview(previewCamera, overview);
   useEffect(() => {
     if (!session) return;
     const start = sequence || isOpening && !openingId ? 0 : Math.max(0, (session.repetitions[compiled?.incomingIndex ?? 0]?.startTime ?? 3) - .7);
@@ -135,7 +135,7 @@ export function DrillEditorScreen({ route, initialDrill, initialPlayerHand, onPl
             onLandingZoneChange={sequence ? undefined : zone => isOpening ? updateFeed({ ...feed, landingZone: zone }) : selected && updateEvent({ opponentReturn: { ...selected.opponentReturn, landingZone: zone } })}
             onReturnLandingZoneChange={!sequence && selected ? zone => updateEvent({ landingZone: zone }) : undefined}
             onCameraLookChange={lookEnabled ? draftLook : undefined}
-            onCameraFovChange={lookEnabled ? fov => setViewDraft({ id: selected!.id, camera: { ...previewCamera, fov } }) : undefined}
+            onCameraFovChange={overview ? zoomOverview : lookEnabled ? fov => setViewDraft({ id: selected!.id, camera: { ...previewCamera, fov } }) : undefined}
             onCameraViewCommit={lookEnabled ? commitCamera : undefined} onMetrics={noMetrics}/> : <div className="editor-preview-loading">{events.length ? 'Preparing drill preview…' : 'Add your first shot from the library.'}</div>}
           <div className="editor-scene-label"><span>{isOpening ? 'Opening shot' : `Your shot ${events.indexOf(selected!) + 1}`}</span><strong>{isOpening ? 'Opponent initiates the rally' : selected?.label ?? 'Add a player shot'}</strong></div>
           <div className="editor-view-tools"><button type="button" aria-pressed={overview} onClick={() => { setSequence(false); setOverview(value => !value); }}>{overview ? 'Back to shot view' : 'Top-down zones'}</button><span><i className="return-swatch"/>Your landing <i className="landing-swatch"/>{isOpening ? 'Opening landing' : 'Opponent return'}</span></div>

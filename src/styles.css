@@ -268,7 +268,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .timeline { min-width: 0; min-height: 0; overflow: hidden; border-top: 1px solid var(--divider); background: #080d10; display: grid; grid-template-rows: 42px minmax(0,1fr) 27px; }
 .timeline-toolbar { height: 42px; display: flex; align-items: center; gap: 18px; padding: 0 16px; border-bottom: 1px solid var(--divider); font-size: 11px; }
 .timeline-toolbar > strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
-.timeline-toolbar > span:nth-of-type(1) { color: var(--muted); font-variant-numeric: tabular-nums; }
+.timeline-toolbar > span:nth-of-type(1) { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; flex-shrink: 0; }
 .validation { margin-left: auto; display: flex; align-items: center; gap: 5px; }
 .validation.valid { color: var(--valid); }
 .validation.invalid { color: #ef8179; }

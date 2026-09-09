@@ -375,7 +375,7 @@ export const compileSession = (
     // silently switch direct travel back to a full recovery detour.
     const route=planRecovery(motionEvent(schedulingPrevious),motionEvent(proposed));
     repetitions[index-1]={...repetitions[index-1]!,motionRate:previous.motionRate,movementRate:previous.movementRate,
-      timing:{requested:requestedGap,actual:gap,limited:!rest&&gap>requestedGap+1/240+1e-7},
+      timing:{requested:requestedGap,actual:gap,limited:!rest&&(rally?Math.abs(gap-requestedGap)>1/240+1e-7:gap>requestedGap+1/240+1e-7)},
       recoveryPolicy:mode==='quick-practice'&&!rally?'home':!rest&&route.kind==='direct'?'direct':'recover'};
     repetitions[index] = { ...next, startTime: previous.startTime+gap };
     if (cameraTravel > 0) {

@@ -20,8 +20,10 @@ streamed batch seams; other practice modes retain independent feeds. Both gamepl
 planners prefer seeded rising, apex or early descending contacts subject to physics
 and movement feasibility. Source assets and opponent hands are unchanged.
 
-See the [implementation receipt](court-editing-rally-contacts-2026-09-09.md) for
-verification and remaining review state.
+Verification: 456 cumulative tests, focused rechecks, production build/motion
+guard, 34 production-browser checks and 120 rendered opponent frames pass. See
+the [implementation receipt](court-editing-rally-contacts-2026-09-09.md) for evidence
+and the distinction between local verification and owner acceptance.
 
 ## Player handedness mirroring — 2026-09-09
 
