@@ -47,7 +47,7 @@ export function DrillLibraryScreen({ route, customDrills, onRoute, onRun, onEdit
 
   return (
     <main className="app-shell library-shell">
-      <AppHeader route={route} onRoute={onRoute} onDisplay={() => onRoute('practice')} onHelp={() => setMessage('Choose a drill to rehearse, duplicate, export, or edit. Custom drills stay in this browser.')} />
+      <AppHeader route={route} onRoute={onRoute} />
       <section className="library-layout">
         <aside className="library-filter">
           <h1>Drill library</h1>

@@ -9,6 +9,22 @@
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
+## Header and About — 2026-09-09
+
+The shared Practice/Drills/Editor header exposes Cast and About. The Display entry
+is removed; direct canvas perspective controls remain available. Physical display
+calibration is still accessible within the Perspective settings. About combines
+route-specific help and court shortcuts with a Contact section below them.
+Xiaotian Fan (GleeGen) links to [the portfolio](https://www.xiaotianfanx.com/), with
+the portfolio's public email as a mail link. The live portfolio returned HTTP 200
+and identified the name, alias and contact address on 2026-09-09.
+
+Verification: production build and motion/cache guard pass. The production preview
+shows only Cast/About in the header; About opens from Practice, Drills and Editor
+with the corresponding help text and correct portfolio/mail links. The modal layout
+was visually reviewed. Browser checks used a separate tab to preserve the owner's
+current editor state. No public deployment.
+
 ## Persistent court capture — 2026-09-09
 
 The Cast panel exposes optional local canvas/audio capture and a separately labeled

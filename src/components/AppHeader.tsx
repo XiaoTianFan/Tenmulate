@@ -1,16 +1,14 @@
-import { CircleHelp, Monitor } from 'lucide-react';
 import { CastingButton } from './CastingButton';
+import { AboutButton } from './AboutButton';
 
 export type AppRoute = 'practice' | 'drills' | 'editor';
 
 type AppHeaderProps = Readonly<{
   route: AppRoute;
   onRoute: (route: AppRoute) => void;
-  onDisplay: () => void;
-  onHelp: () => void;
 }>;
 
-export function AppHeader({ route, onRoute, onDisplay, onHelp }: AppHeaderProps) {
+export function AppHeader({ route, onRoute }: AppHeaderProps) {
   return (
     <header className="app-header">
       <strong className="wordmark">Tenmulate</strong>
@@ -21,8 +19,7 @@ export function AppHeader({ route, onRoute, onDisplay, onHelp }: AppHeaderProps)
       </nav>
       <div className="header-actions">
         <CastingButton />
-        <button className="icon-text-button" type="button" aria-label="Display" onClick={onDisplay}><Monitor size={18} /> Display</button>
-        <button className="icon-text-button" type="button" aria-label="Help" onClick={onHelp}><CircleHelp size={18} /> Help</button>
+        <AboutButton route={route} />
       </div>
     </header>
   );

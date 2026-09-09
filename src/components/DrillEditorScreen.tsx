@@ -174,7 +174,7 @@ export function DrillEditorScreen({ route, initialDrill, onRoute, onSave, onTest
 
   return (
     <main className="app-shell editor-shell">
-      <AppHeader route={route} onRoute={onRoute} onDisplay={() => onRoute('practice')} onHelp={() => setMessage('Add default or saved shots, then drag the rows to order them. Set a view for each shot and your return-space dimensions. Test drill plays the full sequence with camera and opponent movement.')} />
+      <AppHeader route={route} onRoute={onRoute} />
       <section className="editor-workspace">
         <aside className="event-library">
           <header><h1>Shot events</h1><button type="button" aria-label="Add default event" onClick={() => addEvent()}><Plus size={18} /></button></header>
