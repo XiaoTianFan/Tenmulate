@@ -3,6 +3,31 @@
 - **Purpose:** Record concept-to-browser inspection after every implementation stage
 - **Reference viewport:** 1920 × 1080 unless stated otherwise
 
+## Shared minimalist scrollbars — 2026-09-09
+
+Production Edge at 1680×1000 and 390×844 shows 8 px scrollbar tracks with 4 px
+rounded thumbs, muted at rest, brighter on hover and yellow while dragged.
+Overflow-free axes show no bar. Practice/editor inspectors, the shot library,
+timeline, drill table and About dialog share the style. The narrow drill table
+keeps both overflow axes inside its wrapper. Desktop and narrow screenshots were
+visually inspected, including the active horizontal thumb and the dialog's
+vertical thumb. Touch emulation uses a 12 px target and preserves swipe scrolling;
+Windows forced-color emulation retains visible system-color thumbs.
+
+`npm run build` passes, including TypeScript and the active motion/cache guard.
+Browser assertions pass for native wheel and thumb input, Tab-driven focus
+scrolling, mobile containment, both-axis drill-table scrolling and an unchanged
+scene instance across route changes. No page errors or framework overlay occurred.
+This CSS-only change adds no runtime scroll handlers or renderer work; physics and
+motion tests were not repeated. Firefox's standard-property fallback is implemented
+but was not separately browser-tested.
+
+Evidence: `C:/Users/20378/.codex/visualizations/2026/09/08/01a07e7c-7199-7900-ab83-f0437137320b/scrollbars/`
+contains `scrollbar-qa.mjs`, `results.json`, and the practice/editor, active timeline,
+mobile table/dialog, touch and high-contrast screenshots. The isolated Edge launch
+removes Playwright's default `--hide-scrollbars` argument so these checks exercise
+visible native scrollbars. The owner's existing editor tab was not reloaded.
+
 ## Independent incoming and return shot controls — 2026-09-09
 
 The [return shot receipt](return-shot-controls-2026-09-09.md) records production

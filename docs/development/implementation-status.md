@@ -9,6 +9,22 @@
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
+## Shared minimalist scrollbars — 2026-09-09
+
+`src/scrollbars.css` themes native overflow scrolling across panels, the timeline,
+camera preset strips, dialogs and page overflow. Both axes use a narrow rounded
+thumb with hover/drag feedback; pointer targets widen on touch devices and forced
+colors retain platform colors. Scroll position and thumb sizing remain browser-owned,
+with no JavaScript observers or React scroll updates. Camera strips no longer hide
+their overflow indicators. The library grid can shrink so the drill table scrolls
+within its wrapper on narrow screens instead of widening the page.
+
+Verification: production build and its motion/cache guard pass. Isolated Edge
+checks at 1680×1000 and 390×844 cover both-axis dragging, wheel scrolling, keyboard
+focus scrolling, touch swipes, high-contrast rendering and shared-canvas continuity.
+No runtime errors or narrow-page horizontal overflow were observed. See the
+[visual verification ledger](visual-verification.md#shared-minimalist-scrollbars--2026-09-09).
+
 ## Independent return shot and spin controls — 2026-09-09
 
 [ADR-0036](../decisions/0036-independent-return-shot-and-spin.md) introduces
