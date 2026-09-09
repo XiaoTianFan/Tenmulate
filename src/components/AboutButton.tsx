@@ -5,9 +5,9 @@ import type { AppRoute } from './AppHeader';
 import './about.css';
 
 const routeHelp: Record<AppRoute, string> = {
-  practice: 'Choose your camera and incoming-ball settings, then start Quick Practice.',
+  practice: 'Choose your camera and incoming-ball settings, then start Quick Practice. Top-down court lets you drag the opponent and landing zones. Rally also includes your configured return ball toward the blue zone.',
   drills: 'Choose a drill to run, duplicate, export or edit. Custom drills stay in this browser.',
-  editor: 'Start with an opponent feed or serve, then plan your own shots. Drag player presets onto the timeline; right-click a shot to remove it. In Top-down zones, blue is your landing on the opponent’s side and yellow is the opponent’s return for your next shot. WASD sets your hitting position. Test drill plays the connected sequence.',
+  editor: 'Select an opening or player shot to edit it. WASD moves its player camera; drag to look and wheel to zoom. In Top-down zones, drag the opening opponent, blue player landing or yellow opponent landing. Drag presets onto the timeline and right-click to remove a shot. Preview sequence below the court plays the full drill.',
 };
 
 export function AboutButton({ route }: { route: AppRoute }) {

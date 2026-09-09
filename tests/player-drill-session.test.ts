@@ -11,6 +11,15 @@ const settings: SessionSettings = { repetitions: 4, mode: 'drill', launchSpeedKm
   variationPercent: 0, timingVariationPercent: 0, spin: 'preset', opponentHand: 'right', workBlockSize: 50,
   restSeconds: 0, serveRhythm: 'normal' };
 describe('player-owned drill clock and physical handoffs', () => {
+  it('varies opponent returns across rising, apex and descending bounce contacts in drills', () => {
+    const phases = new Set<string>();
+    for (let seed = 0; seed < 8; seed++) {
+      const session = compileSession(PLAYER_DRILLS[0]!, { ...settings, repetitions: 4, seed: `contact-phase-${seed}` });
+      expect(session.planningIssues).toEqual([]);
+      for (const event of session.playerEvents!) if (event.opponentContactPhase) phases.add(event.opponentContactPhase);
+    }
+    expect([...phases].sort()).toEqual(['apex', 'descent', 'rise']);
+  }, 15000);
   it('connects the default player pattern with continuous contacts and one opening', () => {
     const drill = PLAYER_DRILLS[0]!, session = compileSession(drill, settings);
     expect(session.planningIssues).toEqual([]);

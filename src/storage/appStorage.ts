@@ -1,4 +1,7 @@
-import { normalizeLandingZone, type LandingZoneSize } from '../engine/trajectory/landingZone';
+import { normalizeLandingZone, type LandingZone, type LandingZoneSize } from '../engine/trajectory/landingZone';
+import { DEFAULT_RETURN_LANDING_ZONE, isReturnLandingZone } from '../engine/session/returnLandingZone';
+import { defaultReturnShot, normalizeReturnShot } from '../engine/session/returnShot';
+import type { ReturnShotConfiguration } from '../content/types';
 import { DEFAULT_BALL_FOCUS, normalizeBallFocus, type BallFocusSettings } from '../engine/rendering/ballFocus';
 import type { CameraConfiguration } from '../engine/rendering/TennisScene';
 import type { QualityMode } from '../engine/rendering/TennisScene';
@@ -77,6 +80,8 @@ export type PracticePreferencesV1 = Readonly<{
   serveRhythm: 'normal' | 'compact';
   landingDepthM: number;
   landingZone: LandingZoneSize;
+  rallyLandingZone: LandingZone;
+  rallyShot: ReturnShotConfiguration;
   aimDirectionDeg: number;
   opponentPosition: Readonly<{ x: number; z: number }>;
   camera: CameraConfiguration;
@@ -93,6 +98,7 @@ export const DEFAULT_PREFERENCES: PracticePreferencesV1 = {
   workBlockSize: 4, restSeconds: 20, surface: 'hard', shotType: 'groundstroke', spin: 'topspin', spinRateRpm: 1103, bounceFactor: 1,
   opponentHand: 'right', serveRhythm: 'normal', landingDepthM: 8.5,
   landingZone: { width: 1.6, depth: 2 },
+  rallyLandingZone: DEFAULT_RETURN_LANDING_ZONE, rallyShot: defaultReturnShot('groundstroke'),
   aimDirectionDeg: 0, opponentPosition: DEFAULT_RALLY_OPPONENT_POSITION,
   camera: { eyeHeight: 1.7, behindBaseline: 1.5, lateral: 0, yaw: 0, pitch: -1.7, fov: 70 },
   environment: DEFAULT_ENVIRONMENT, quality: 'auto', screenWidthCm: 120, screenHeightCm: 67.5, viewDistanceCm: 250,
@@ -230,6 +236,8 @@ export const loadAppData = (): AppDataV2 => {
         ? Math.min(1.4, Math.max(0.6, candidate.bounceFactor))
         : DEFAULT_PREFERENCES.bounceFactor,
       landingZone: normalizeLandingZone(candidate.landingZone, shotType),
+      rallyLandingZone: isReturnLandingZone(candidate.rallyLandingZone) ? candidate.rallyLandingZone : DEFAULT_RETURN_LANDING_ZONE,
+      rallyShot: normalizeReturnShot(candidate.rallyShot),
       landingDepthM: typeof candidate.landingDepthM === 'number'
         ? Math.min(depthRange.max, Math.max(depthRange.min, candidate.landingDepthM))
         : shotProfile.defaultLandingDepthM,

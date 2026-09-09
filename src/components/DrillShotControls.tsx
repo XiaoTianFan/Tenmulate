@@ -6,7 +6,7 @@ import { openingZoneSource } from '../content/playerHandedness';
 import type { CameraConfiguration } from '../engine/rendering/TennisScene';
 import { DEFAULT_CAMERA_POSITION_PRESETS } from '../storage/appStorage';
 import { cameraLookAtCourtPoint } from '../domain/camera';
-import { COURT, OPPONENT_POSITION_LIMITS } from '../domain/court';
+import { COURT } from '../domain/court';
 import { SHOT_CAMERA_RANGES } from '../engine/session/cameraTimeline';
 import { SHOT_TYPE_LABELS, spinsForShot } from '../domain/shotKinds';
 import { landingZoneCenter, resolveLandingZone } from '../engine/trajectory/landingZone';
@@ -54,8 +54,6 @@ export function OpeningShotControls({ feed, onChange }: { feed: OpeningFeed; onC
   };
   return <div className="shot-controls">
     <details className="editor-section" open><summary>Opening opponent shot</summary><BallIdentity ball={feed.ball} label="Opening" opening onChange={ball => update({ ball })}/>
-      <RangeField commitOnRelease label="Opponent sideways" value={feed.position.x} min={-OPPONENT_POSITION_LIMITS.halfWidth} max={OPPONENT_POSITION_LIMITS.halfWidth} step={.1} unit="m" onChange={x => update({ position: { ...feed.position, x } })}/>
-      <RangeField commitOnRelease label="Opponent depth" value={feed.position.z} min={.7} max={OPPONENT_POSITION_LIMITS.halfLength} step={.1} unit="m" onChange={z => update({ position: { ...feed.position, z } })}/>
     </details>
     <details className="editor-section" open><summary>Ball &amp; rhythm</summary><BallParameters ball={feed.ball} prefix="Opening " onChange={ball => update({ ball })}/></details>
     <p className="saved-shot-count">Drag the yellow landing zone to deliver the opening ball to your first shot.</p>

@@ -8,7 +8,7 @@ import { sessionFlights, type SessionFlight } from './sessionFlights';
  * sides, three step offsets and T/body/wide serves. The next batch is fresh. */
 export function compilePracticePreview(drill: DrillDefinitionV1, settings: SessionSettings): CompiledSession {
   const session = compileSession(drill, { ...settings, repetitions: 6, workBlockSize: 6, restSeconds: 0 });
-  return { ...session, previewLoop: true };
+  return { ...session, ...(!session.planningIssues?.length ? { previewLoop: true as const } : {}) };
 }
 
 type PreviewFrame = Readonly<{
@@ -27,6 +27,10 @@ export type PreviewBatchCompiler = {
 
 /** The same deterministic compilation and seam fitting run in either thread. */
 export function preparePreviewBatch({ drill, settings, last, cycle }: PreviewBatchRequest): PreviewBatch {
+  if (settings.rally && drill.category === 'Quick Rally') {
+    const continued = compileSession(drill, { ...settings, seed: `${settings.seed}:preview:${cycle}`, repetitions: 6, workBlockSize: 6, restSeconds: 0 }, last);
+    return { last: continued.repetitions[0]!, next: { ...continued, previewLoop: true, repetitions: continued.repetitions.slice(1) } };
+  }
   const next = compilePracticePreview(drill, { ...settings, seed: `${settings.seed}:preview:${cycle}` });
   const first = next.repetitions[0]!, requested = settings.shotIntervalSeconds!;
   const solved = solveShotInterval(last, first, requested), gap = solved.gap;
@@ -45,7 +49,8 @@ export function preparePreviewBatch({ drill, settings, last, cycle }: PreviewBat
 export class ContinuousPracticePreview {
   private previous: CompiledSession | null = null;
   private current: CompiledSession;
-  private next: CompiledSession;
+  private next: CompiledSession | null;
+  issue: string | undefined;
   private cycle = 0;
   private events: readonly MotionEvent[] = [];
   private prepared: Readonly<{ cycle: number; batch: PreviewBatch }> | null = null;
@@ -57,12 +62,13 @@ export class ContinuousPracticePreview {
 
   constructor(private readonly initial: CompiledSession, private readonly compiler?: PreviewBatchCompiler) {
     this.current = initial;
+    if (initial.previewNext) this.prepared = { cycle: 1, batch: initial.previewNext };
     this.next = this.following(initial, 1);
     this.updateEvents();
     this.prefetch();
   }
 
-  private following(previous: CompiledSession, cycle: number): CompiledSession {
+  private following(previous: CompiledSession, cycle: number): CompiledSession | null {
     const cached = this.prepared?.cycle === cycle ? this.prepared.batch : null;
     if (cycle > 1) { if (cached) this.cacheHits++; else this.cacheMisses++; }
     const batch = cached ?? preparePreviewBatch(this.request(previous, cycle));
@@ -71,7 +77,8 @@ export class ContinuousPracticePreview {
     // This boundary is compiled at the beginning of the current batch, before
     // its last stroke plays. Raising rates shrinks occupied stroke windows.
     this.current = { ...previous, repetitions: previous.repetitions.map(rep => rep === last ? batch.last : rep) };
-    return batch.next;
+    this.issue = batch.next.planningIssues?.[0]?.message;
+    return batch.next.repetitions.length ? batch.next : null;
   }
 
   private request(previous: CompiledSession, cycle: number): PreviewBatchRequest {
@@ -80,7 +87,7 @@ export class ContinuousPracticePreview {
   }
 
   private prefetch(): void {
-    if (!this.compiler || this.workerFailed || this.disposed) return;
+    if (!this.compiler || this.workerFailed || this.disposed || !this.next) return;
     const generation = ++this.generation, cycle = this.cycle + 2;
     this.compiler.compile(this.request(this.next, cycle)).then(batch => {
       if (!this.disposed && generation === this.generation) this.prepared = { cycle, batch };
@@ -106,15 +113,16 @@ export class ContinuousPracticePreview {
     if (this.cycle > 0 && elapsed < this.current.repetitions[0]!.startTime) {
       this.prepared = null; this.generation++;
       this.previous = null; this.current = this.initial; this.cycle = 0;
+      if (this.initial.previewNext) this.prepared = { cycle: 1, batch: this.initial.previewNext };
       this.next = this.following(this.current, 1); this.updateEvents(); this.prefetch();
     }
-    while (elapsed >= this.next.repetitions[0]!.startTime) {
+    while (this.next && elapsed >= this.next.repetitions[0]!.startTime) {
       this.previous = this.current; this.current = this.next; this.cycle++;
       this.next = this.following(this.current, this.cycle + 1); this.updateEvents(); this.prefetch();
     }
     const flights = [this.previous, this.current].flatMap(session => session ? sessionFlights(session, elapsed) : []);
     flights.sort((a, b) => a.time - b.time);
     const repetition = [...this.current.repetitions].reverse().find(rep => elapsed >= rep.startTime) ?? this.current.repetitions[0]!;
-    return { cycle: this.cycle, flights, events: this.events, repetition, nextContact: this.next.repetitions[0]!.startTime };
+    return { cycle: this.cycle, flights, events: this.events, repetition, nextContact: this.next?.repetitions[0]?.startTime ?? Infinity };
   }
 }

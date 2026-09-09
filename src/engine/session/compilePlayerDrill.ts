@@ -13,12 +13,14 @@ import { planRecovery } from './opponentMovement';
 import { normalizeRhythm, normalizeShotInterval } from './rhythm';
 import { solveShotInterval } from './shotTiming';
 import { defaultReturnShot } from './returnShot';
+import { bounceContactCost, bounceContactPhase, bounceContactPreference, type BounceContactPhase } from './bounceContact';
 
 export type ScheduledDrillFlight = Readonly<{ owner: 'player' | 'opponent'; phase: 'opening' | 'player' | 'response';
   eventIndex: number; startTime: number; endTime: number; trajectory: ResolvedTrajectory }>;
 export type CompiledPlayerEvent = Readonly<{ index: number; event: PlayerShotEventV2; setIndex: number;
   startTime: number; incomingIndex: number; responseIndex?: number; trajectory: ResolvedTrajectory;
-  timing?: Readonly<{ requested: number; actual: number; limited: boolean }>; }>;
+  timing?: Readonly<{ requested: number; actual: number; limited: boolean }>;
+  opponentContactPhase?: BounceContactPhase; }>;
 export type DrillPlanningIssue = Readonly<{ index: number; phase: 'opening' | 'player' | 'response'; message: string }>;
 type IncomingFit = { trajectory: ResolvedTrajectory; contact: FlightSample | null; score: number };
 
@@ -154,8 +156,9 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
       return minimumMotionGap({ ...previous, motionRate: 3, movementRate: 3 }, ceiling) <= time - previous.startTime + 1e-8;
     });
     const desired = requested / 2;
-    const ranked = [...eligible].sort((a, b) => Math.abs(a.time - desired) + Math.abs(a.position.y - contactHeight(replyBall.family)) * .8
-      - Math.abs(b.time - desired) - Math.abs(b.position.y - contactHeight(replyBall.family)) * .8);
+    const preference = bounceContactPreference(playerFlight, replyBall.family, random('response', index, 'contact-phase')());
+    const rank = (c: FlightSample) => bounceContactCost(c, preference) + Math.abs(c.time - desired) * .25 + Math.abs(c.position.y - contactHeight(replyBall.family)) * .4;
+    const ranked = [...eligible].sort((a, b) => rank(a) - rank(b));
     const selected: FlightSample[] = [];
     for (const c of [eligible.at(-1), eligible[0], ...ranked]) if (c && selected.length < 8 && selected.every(s => Math.abs(s.time - c.time) > .07)) selected.push(c);
     let best: { contact: FlightSample; fit: IncomingFit; rep: CompiledRepetition; score: number } | undefined;
@@ -168,7 +171,7 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
       if (!landsInZone(fit.trajectory) || receiver && (!fit.contact || contact.time + fit.contact.time < minimumTravel + .12)) continue;
       const total = contact.time + (fit.contact?.time ?? 0);
       const postureCost = Math.max(0, contactHeight(replyBall.family) - contact.position.y) ** 2 * 8;
-      const score = (receiver ? Math.abs(total - requested) + fit.score * .1 : Math.abs(contact.time - desired)) + postureCost;
+      const score = (receiver ? Math.abs(total - requested) + fit.score * .1 : Math.abs(contact.time - desired)) + postureCost + bounceContactCost(contact, preference);
       if (!best || score < best.score) best = { contact, fit, rep: repetition(draftShot, fit.trajectory, time, event), score };
     }
     if (!best) {
@@ -185,7 +188,7 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
     repetitions.push({ ...solved.next, startTime: best.rep.startTime });
     const actual = best.contact.time + (best.fit.contact?.time ?? best.fit.trajectory.samples.at(-1)!.time);
     const travel = Math.max(minimumTravel, Math.min(preferredTravel, actual - .12));
-    playerEvents[index] = { ...playerEvents[index]!, responseIndex: best.rep.index,
+    playerEvents[index] = { ...playerEvents[index]!, responseIndex: best.rep.index, opponentContactPhase: bounceContactPhase(best.contact),
       ...(continues ? { timing: { requested, actual, limited: Math.abs(actual - requested) > 1 / 240 } } : {}) };
     addFlight('player', 'player', index, playerTime, playerFlight, best.contact);
     addFlight('opponent', 'response', index, best.rep.startTime, best.fit.trajectory, best.fit.contact);

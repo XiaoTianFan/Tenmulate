@@ -20,6 +20,16 @@ export const resolveReturnShot = (shot?: ReturnShotConfiguration, nextFamily?: S
   shot ? { ...shot, spinRateRpm: shot.spinRateRpm ?? defaultReturnShot(shot.type, shot.spin).spinRateRpm }
     : defaultReturnShot(nextFamily === 'overhead' ? 'lob' : 'groundstroke');
 
+export function normalizeReturnShot(value: unknown): ReturnShotConfiguration {
+  if (!value || typeof value !== 'object') return defaultReturnShot('groundstroke');
+  const v = value as Record<string, unknown>;
+  const type = typeof v.type === 'string' && Object.hasOwn(RETURN_SHOT_PROFILES, v.type) ? v.type as ReturnShotType : 'groundstroke';
+  const spin = v.spin === 'flat' || v.spin === 'slice' || v.spin === 'topspin' ? v.spin : RETURN_SHOT_PROFILES[type].spin;
+  const defaults = defaultReturnShot(type, spin);
+  return { ...defaults, ...(typeof v.paceKmh === 'number' && Number.isFinite(v.paceKmh) ? { paceKmh: Math.max(20, Math.min(260, v.paceKmh)) } : {}),
+    spinRateRpm: typeof v.spinRateRpm === 'number' && Number.isFinite(v.spinRateRpm) ? Math.max(0, Math.min(6000, v.spinRateRpm)) : defaults.spinRateRpm };
+}
+
 export function returnShotContacts(incoming: ResolvedTrajectory, type: ReturnShotType): readonly FlightSample[] {
   return legalReturnContacts(incoming).filter(sample => type === 'volley'
     ? !sample.bounced && sample.position.y >= .65 && sample.position.y <= 1.75

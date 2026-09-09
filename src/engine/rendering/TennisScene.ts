@@ -24,6 +24,7 @@ import { ContinuousPracticePreview } from '../session/practicePreview';
 import { sessionFlights } from '../session/sessionFlights';
 import type { CompiledRepetition } from '../session/compileSession';
 import { LandingZoneControl } from './LandingZoneControl';
+import { OpponentPositionControl } from './OpponentPositionControl';
 import { landingZoneLimits, type LandingZone } from '../trajectory/landingZone';
 import { SHOTS } from '../../content/bundled';
 import { RendererProfiler } from './RendererProfiler';
@@ -49,6 +50,7 @@ export type SceneMetrics = Readonly<{
   textures: number;
   venueAsset: VenueAssetState;
   audience: AudienceState;
+  practiceIssue?: string;
 }>;
 
 export type QualityMode = 'auto' | 'performance' | 'quality';
@@ -157,6 +159,7 @@ export class TennisScene {
   private practicePreview: ContinuousPracticePreview | null = null;
   private previewCycle = -1;
   readonly landingZoneControl: LandingZoneControl;
+  readonly opponentPositionControl: OpponentPositionControl;
   readonly returnLandingZoneControl: LandingZoneControl;
   private authoredNearLandingZone: LandingZone | null = null;
   private onSessionIndex: ((index:number, repetition: CompiledRepetition)=>void) | null = null;
@@ -248,6 +251,8 @@ export class TennisScene {
     this.scene.add(court.group);
     this.landingZoneControl = new LandingZoneControl(this.camera, canvas, { sharedCursor: true });
     this.scene.add(this.landingZoneControl.root);
+    this.opponentPositionControl = new OpponentPositionControl(this.camera, canvas);
+    this.scene.add(this.opponentPositionControl.root);
     this.returnLandingZoneControl = new LandingZoneControl(this.camera, canvas, { color: 0x48b8ff, name: 'ReturnLandingZone', showBounce: false, sharedCursor: true });
     this.scene.add(this.returnLandingZoneControl.root);
     this.scene.add(this.audience.group);
@@ -668,7 +673,7 @@ export class TennisScene {
     this.lastFrame = now;
     if (this.sessionClock) this.elapsed = this.sessionClock.current;
     else if (this.running) this.elapsed += delta * this.playbackRate;
-    if(this.session&&!this.session.previewLoop&&!this.sessionClock&&this.loopTrajectory&&this.session.duration>0)this.elapsed%=this.session.duration;
+    if(this.session&&!this.session.previewLoop&&!this.session.planningIssues?.length&&!this.sessionClock&&this.loopTrajectory&&this.session.duration>0)this.elapsed%=this.session.duration;
     this.skySystem.update(now);
     this.weatherSystem.update(this.elapsed);
     const wind = windVelocityFromEnvironment(this.environmentConfiguration);
@@ -715,7 +720,10 @@ export class TennisScene {
         }
       }
       this.profiler?.mark('session');
-      const motion = this.motionPreview ? this.motionPreview(motionTime) : sampleOpponentTimeline(events, motionTime);
+      const placement = this.opponentPositionControl.position;
+      const motion: MotionSample | null = placement ? { root: { x: placement.x, y: 0, z: placement.z }, yaw: Math.PI, hand: placement.hand,
+        layers: [{ clip: 'ready', time: 0, weight: 1 }], event: null, verticalCorrection: 0, toss: null }
+        : this.motionPreview ? this.motionPreview(motionTime) : sampleOpponentTimeline(events, motionTime);
       opponentRoot = motion?.root;
       if (motion) {
         this.opponent.sampleMotion(motion);
@@ -780,7 +788,8 @@ export class TennisScene {
     this.audience.update(this.elapsed);
     this.landingZoneControl.update();
     this.returnLandingZoneControl.update();
-    const cursor = this.returnLandingZoneControl.cursor || this.landingZoneControl.cursor;
+    this.opponentPositionControl.update();
+    const cursor = this.opponentPositionControl.cursor || this.returnLandingZoneControl.cursor || this.landingZoneControl.cursor;
     if (this.canvas.style.cursor !== cursor) this.canvas.style.cursor = cursor;
     this.updateBallHighlight();
     this.profiler?.mark('presentation');
@@ -796,7 +805,9 @@ export class TennisScene {
       this.canvas.dataset.landingTarget=JSON.stringify(this.lineTrajectory?.intent.target??null);
       this.canvas.dataset.landingZoneScreen=JSON.stringify(this.landingZoneControl.screenPoints());
       this.canvas.dataset.returnLandingZoneScreen=JSON.stringify(this.returnLandingZoneControl.screenPoints());
+      this.canvas.dataset.opponentPlacementScreen=JSON.stringify(this.opponentPositionControl.screenPoint());
       this.canvas.dataset.zoneSnapshotAt = String(now);
+      this.canvas.dataset.cameraPose = JSON.stringify(this.cameraConfiguration);
       this.canvas.dataset.audience = this.audience.state.status;
       this.canvas.dataset.spectators = String(this.audience.state.count);
       this.onMetrics?.({
@@ -810,6 +821,7 @@ export class TennisScene {
         textures: this.renderer.info.memory.textures,
         venueAsset: this.activeAuthoredArena?.state ?? { status: 'idle', loadedBytes: 0, totalBytes: 0 },
         audience: this.audience.state,
+        practiceIssue: this.practicePreview?.issue,
       });
       const fps = (this.metricFrames * 1000) / metricElapsed;
       if (this.qualityMode === 'auto') {

@@ -70,7 +70,8 @@ const validateEvent = (value: unknown, index: number, errors: string[]): value i
   const zone = value.landingZone;
   const returnShot = value.returnShot;
   if (returnShot !== undefined && (!isRecord(returnShot)
-    || Object.keys(returnShot).some(key => !['type', 'spin', 'spinRateRpm'].includes(key))
+    || Object.keys(returnShot).some(key => !['type', 'spin', 'spinRateRpm', 'paceKmh'].includes(key))
+    || (returnShot.paceKmh !== undefined && !inRange(returnShot.paceKmh, [20, 260]))
     || typeof returnShot.type !== 'string' || !Object.hasOwn(RETURN_SHOT_PROFILES, returnShot.type)
     || !['flat', 'topspin', 'slice'].includes(String(returnShot.spin))
     || (returnShot.spinRateRpm !== undefined && !inRange(returnShot.spinRateRpm, [0, 6000])))) {

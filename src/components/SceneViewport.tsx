@@ -12,6 +12,7 @@ import {
 import { netHeightAt, type FlightSample, type ResolvedTrajectory } from '../engine/trajectory/physics';
 import type { CompiledRepetition, CompiledSession } from '../engine/session/compileSession';
 import type { LandingZone } from '../engine/trajectory/landingZone';
+import type { OpponentPlacement } from '../engine/rendering/OpponentPositionControl';
 import { DEFAULT_BALL_FOCUS, type BallFocusSettings } from '../engine/rendering/ballFocus';
 
 export type SceneViewportProps = Readonly<{
@@ -44,6 +45,8 @@ export type SceneViewportProps = Readonly<{
   nearLandingZone?: LandingZone;
   nearLandingZoneLimits?: LandingZone;
   onReturnLandingZoneChange?: (zone: LandingZone) => void;
+  opponentPlacement?: OpponentPlacement;
+  onOpponentPositionChange?: (point: OpponentPlacement) => void;
   onMetrics: (metrics: SceneMetrics) => void;
   onPointerActivity?: () => void;
   session?: CompiledSession;
@@ -53,7 +56,7 @@ export type SceneViewportProps = Readonly<{
 
 type CameraPointerDrag = {
   pointerId: number;
-  mode: 'look' | 'aim' | 'landing' | 'return';
+  mode: 'look' | 'aim' | 'landing' | 'return' | 'opponent';
   lastX: number;
   lastY: number;
   look: CameraLook;
@@ -97,6 +100,8 @@ export function SceneViewport({
   nearLandingZone,
   nearLandingZoneLimits,
   onReturnLandingZoneChange,
+  opponentPlacement,
+  onOpponentPositionChange,
   onMetrics,
   onPointerActivity,
   session,
@@ -112,6 +117,7 @@ export function SceneViewport({
   const [error, setError] = useState<string | null>(null);
   const [venueStatus, setVenueStatus] = useState<SceneMetrics['venueAsset']>({ status: 'loading', loadedBytes: 0, totalBytes: 0 });
   const [audienceError, setAudienceError] = useState<string | null>(null);
+  const [practiceIssue, setPracticeIssue] = useState<string | undefined>();
   const initialSceneOptions = useRef({ quality, environment });
   const captureSource = useRef(onCaptureSource);
   const zoomCommitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -149,6 +155,7 @@ export function SceneViewport({
         metricsListener.current(metrics);
         setVenueStatus(previous => previous.status === metrics.venueAsset.status && previous.loadedBytes === metrics.venueAsset.loadedBytes ? previous : metrics.venueAsset);
         setAudienceError(metrics.audience.status === 'error' ? metrics.audience.message ?? 'Audience unavailable' : null);
+        setPracticeIssue(metrics.practiceIssue);
       }, initialSceneOptions.current);
       sceneRef.current = scene;
       captureSource.current?.(canvas);
@@ -171,6 +178,8 @@ export function SceneViewport({
     sceneRef.current?.landingZoneControl.leave();
     sceneRef.current?.returnLandingZoneControl.end(false);
     sceneRef.current?.returnLandingZoneControl.leave();
+    sceneRef.current?.opponentPositionControl.end(false);
+    sceneRef.current?.opponentPositionControl.leave();
     const drag = pointerDrag.current, canvas = canvasRef.current;
     if (drag && canvas?.hasPointerCapture(drag.pointerId)) canvas.releasePointerCapture(drag.pointerId);
     pointerDrag.current = null;
@@ -182,7 +191,8 @@ export function SceneViewport({
     return () => document.removeEventListener('visibilitychange', update);
   }, [active]);
 
-  useEffect(() => sceneRef.current?.setCamera(camera), [camera]);
+  useEffect(() => sceneRef.current?.setCamera(camera), [camera, followSessionCamera]);
+  useEffect(() => sceneRef.current?.opponentPositionControl.configure(opponentPlacement ?? null, onOpponentPositionChange ?? null), [opponentPlacement, onOpponentPositionChange]);
   useEffect(() => sceneRef.current?.setBallFocus(ballFocus), [ballFocus]);
   useEffect(() => sceneRef.current?.setReturnLandingZone(returnLandingZone ?? null, onReturnLandingZoneChange ?? null), [returnLandingZone, onReturnLandingZoneChange]);
   useEffect(() => sceneRef.current?.setNearLandingZone(nearLandingZone ?? null, nearLandingZoneLimits), [nearLandingZone, nearLandingZoneLimits]);
@@ -212,6 +222,9 @@ export function SceneViewport({
     const drag = pointerDrag.current;
     if (drag && drag.pointerId === event.pointerId) {
       setTrajectoryTooltip(null);
+      if (drag.mode === 'opponent') {
+        sceneRef.current?.opponentPositionControl.move(event.clientX, event.clientY); return;
+      }
       if (drag.mode === 'landing') {
         sceneRef.current?.landingZoneControl.move(event.clientX, event.clientY);
         return;
@@ -228,6 +241,10 @@ export function SceneViewport({
       pointerDrag.current = { ...drag, lastX: event.clientX, lastY: event.clientY, look };
       onCameraLookChange?.(look);
       return;
+    }
+    if (sceneRef.current?.opponentPositionControl.hover(event.clientX, event.clientY)) {
+      sceneRef.current.landingZoneControl.leave(); sceneRef.current.returnLandingZoneControl.leave();
+      setTrajectoryTooltip(null); return;
     }
     if (!showTrajectory) return;
     const landingHover = sceneRef.current?.landingZoneControl.hover(event.clientX, event.clientY);
@@ -258,6 +275,7 @@ export function SceneViewport({
     if (pointerDrag.current?.pointerId !== event.pointerId) return;
     if (pointerDrag.current.mode === 'landing') sceneRef.current?.landingZoneControl.end(event.type === 'pointerup');
     if (pointerDrag.current.mode === 'return') sceneRef.current?.returnLandingZoneControl.end(event.type === 'pointerup');
+    if (pointerDrag.current.mode === 'opponent') sceneRef.current?.opponentPositionControl.end(event.type === 'pointerup');
     if (pointerDrag.current.mode === 'look' && event.type === 'pointerup') onCameraViewCommit?.({...camera,...pointerDrag.current.look});
     pointerDrag.current = null;
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
@@ -268,6 +286,7 @@ export function SceneViewport({
   };
 
   const interactionHint = [
+    onOpponentPositionChange ? 'Drag opponent to place' : null,
     onLandingZoneChange ? 'Drag zone to move · Edges to resize' : null,
     onCameraLookChange ? onLandingZoneChange ? 'Drag elsewhere to look' : 'Left-drag to look' : null,
     onCameraFovChange ? 'Wheel to zoom' : null,
@@ -293,9 +312,10 @@ export function SceneViewport({
         tabIndex={0}
         aria-label={onLandingZoneChange ? 'Live tennis court. Left-drag inside the landing zone to move; drag an edge or corner to resize; drag elsewhere to look. Enter selects the zone; arrow keys move it; Escape deselects.' : 'Live first-person tennis court preview'}
         onContextMenu={onAimChange ? (event) => event.preventDefault() : undefined}
-        onPointerDown={onLandingZoneChange || onAimChange || onCameraLookChange ? (event) => {
+        onPointerDown={onLandingZoneChange || onAimChange || onCameraLookChange || onOpponentPositionChange ? (event) => {
           if (pointerDrag.current) return;
-          const mode = event.button === 0 && sceneRef.current?.returnLandingZoneControl.begin(event.clientX, event.clientY, event.pointerType === 'touch')
+          const mode = event.button === 0 && sceneRef.current?.opponentPositionControl.begin(event.clientX, event.clientY)
+            ? 'opponent' : event.button === 0 && sceneRef.current?.returnLandingZoneControl.begin(event.clientX, event.clientY, event.pointerType === 'touch')
             ? 'return' : event.button === 0 && sceneRef.current?.landingZoneControl.begin(event.clientX, event.clientY, event.pointerType === 'touch')
             ? 'landing' : event.button === 0 && onCameraLookChange
             ? 'look'
@@ -318,13 +338,13 @@ export function SceneViewport({
           event.currentTarget.setPointerCapture(event.pointerId);
           if (mode === 'aim') updateAimFromPointer(event);
         } : undefined}
-        onPointerMove={showTrajectory || onAimChange || onCameraLookChange || onPointerActivity ? event => {
+        onPointerMove={showTrajectory || onAimChange || onCameraLookChange || onPointerActivity || onOpponentPositionChange ? event => {
           onPointerActivity?.(); updateFromPointer(event);
         } : undefined}
         onPointerUp={finishPointer}
         onPointerCancel={finishPointer}
         onLostPointerCapture={finishPointer}
-        onPointerLeave={() => { if (!pointerDrag.current) { setTrajectoryTooltip(null); sceneRef.current?.landingZoneControl.leave(); sceneRef.current?.returnLandingZoneControl.leave(); } }}
+        onPointerLeave={() => { if (!pointerDrag.current) { setTrajectoryTooltip(null); sceneRef.current?.landingZoneControl.leave(); sceneRef.current?.returnLandingZoneControl.leave(); sceneRef.current?.opponentPositionControl.leave(); } }}
         onKeyDown={event => { if (sceneRef.current?.[keyboardZone.current].key(event.key)) { event.preventDefault(); event.stopPropagation(); } }}
         onBlur={()=>{ sceneRef.current?.landingZoneControl.leave(); sceneRef.current?.returnLandingZoneControl.leave(); }}
       />
@@ -332,6 +352,7 @@ export function SceneViewport({
       {!error && venueStatus.status !== 'ready' ? <div className="renderer-error" role={venueStatus.status === 'error' ? 'alert' : 'status'}><strong>{venueStatus.status === 'error' ? 'Venue unavailable' : 'Loading Blender venue…'}</strong><span>{venueStatus.message ?? (venueStatus.totalBytes ? `${Math.round(venueStatus.loadedBytes / venueStatus.totalBytes * 100)}%` : 'Preparing the selected scene')}</span>{venueStatus.status === 'error' ? <button onClick={() => sceneRef.current?.retryVenue()}>Retry venue</button> : null}</div> : null}
       {audienceError ? <div className="scene-audience-error" role="alert">{audienceError} <button onClick={() => sceneRef.current?.retryVenue()}>Retry audience</button></div> : null}
       {interactionHint ? <div className="scene-aim-hint">{interactionHint}</div> : null}
+      {practiceIssue ? <div className="scene-audience-error" role="alert">{practiceIssue}</div> : null}
       {visibleTooltip ? (
         <aside
           className={`trajectory-tooltip${visibleTooltip.placeBelow ? ' below' : ''}`}

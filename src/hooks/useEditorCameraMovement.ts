@@ -3,7 +3,7 @@ import { cameraMovementForKeys, type CameraMoveKey } from '../domain/court';
 import { SHOT_CAMERA_RANGES } from '../engine/session/cameraTimeline';
 import type { CameraConfiguration } from '../engine/rendering/TennisScene';
 
-/** Preview at frame rate; a complete key gesture produces one undoable edit. */
+/** Preview at frame rate; persist once at the end of a key gesture. */
 export function useEditorCameraMovement(camera: CameraConfiguration, enabled: boolean,
   onPreview: (camera: CameraConfiguration) => void, onCommit: (camera: CameraConfiguration) => void) {
   const current = useRef(camera), callbacks = useRef({ onPreview, onCommit });

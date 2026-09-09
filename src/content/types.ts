@@ -9,6 +9,7 @@ export type ServeRhythm = 'normal' | 'compact';
 export type ShotFamily = 'groundstroke' | 'serve' | 'approach' | 'volley' | 'half-volley' | 'lob' | 'overhead' | 'drop-shot';
 export type ReturnShotType = 'groundstroke' | 'drop-shot' | 'volley' | 'overhead' | 'lob';
 export type ReturnShotConfiguration = Readonly<{
+  paceKmh?: number;
   type: ReturnShotType;
   spin: 'topspin' | 'flat' | 'slice';
   spinRateRpm?: number;

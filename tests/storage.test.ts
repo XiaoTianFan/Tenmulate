@@ -14,6 +14,14 @@ class MemoryStorage {
 
 describe('local application data', () => {
   beforeEach(() => vi.stubGlobal('localStorage', new MemoryStorage()));
+  it('retains Quick Rally return settings while safely defaulting older or malformed preferences', () => {
+    const rallyShot = { type: 'groundstroke' as const, spin: 'slice' as const, spinRateRpm: 1250, paceKmh: 65 };
+    const rallyLandingZone = { minX: -2, maxX: 1, minZ: 7, maxZ: 9 };
+    saveAppData({ ...DEFAULT_APP_DATA, preferences: { ...DEFAULT_PREFERENCES, rallyShot, rallyLandingZone } });
+    expect(loadAppData().preferences).toMatchObject({ rallyShot, rallyLandingZone });
+    localStorage.setItem('tenmulate.appData.v2', JSON.stringify({ schemaVersion: 2, preferences: { rallyShot: { type: 'unknown', spin: 'kick' }, rallyLandingZone: { minX: 99 } } }));
+    expect(loadAppData().preferences).toMatchObject({ rallyShot: DEFAULT_PREFERENCES.rallyShot, rallyLandingZone: DEFAULT_PREFERENCES.rallyLandingZone });
+  });
   it('migrates preset serve rhythm to Normal while preserving explicit choices', () => {
     expect(DEFAULT_PREFERENCES.serveRhythm).toBe('normal');
     for (const [stored, expected] of [['preset', 'normal'], [undefined, 'normal'], ['normal', 'normal'], ['compact', 'compact']] as const) {

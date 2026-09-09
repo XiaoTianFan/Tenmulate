@@ -4,6 +4,7 @@ import type { Vec3 } from '../../domain/vector';
 import type { LandingZone } from '../trajectory/landingZone';
 import { aimDirectionToCourtPoint, netHeightAt, resolveTrajectory, type FlightSample, type ResolvedTrajectory } from '../trajectory/physics';
 import { resolveReturnShot, RETURN_SHOT_PROFILES, returnShotContacts } from './returnShot';
+import { bounceContactCost, bounceContactPreference } from './bounceContact';
 export type RallyReturn = Readonly<{ trajectory: ResolvedTrajectory; contactTime: number;
   duration: number; contactErrorM: number; speedRatio: number }>;
 
@@ -34,18 +35,20 @@ function returnFlight(incoming: ResolvedTrajectory, contact: FlightSample, targe
 /** Bounded flight search. The compiler checks opponent/camera feasibility before
  * accepting a contact. The sampled bounce target stays fixed across candidates. */
 export function returnPlanCandidates(incoming: ResolvedTrajectory, family: ShotFamily, zone: LandingZone,
-  target: { x: number; z: number }, preferredGap: number, configuration?: ReturnShotConfiguration): ReturnCandidate[] {
+  target: { x: number; z: number }, preferredGap: number, configuration?: ReturnShotConfiguration, contactDraw?: number): ReturnCandidate[] {
   if (family === 'serve') return [];
   const shot = resolveReturnShot(configuration, family), profile = RETURN_SHOT_PROFILES[shot.type];
   const contacts = returnShotContacts(incoming, shot.type);
   if (!contacts.length) return [];
   const ranked = [...contacts].sort((a, b) => Math.abs(a.position.y - profile.height) - Math.abs(b.position.y - profile.height));
   const selected = [...new Set([ranked[0]!, contacts[0]!])];
-  const preferred = profile.pace;
+  const preferred = shot.paceKmh ?? profile.pace;
   const results: ReturnCandidate[] = [];
+  const preferences = new Map<ResolvedTrajectory, ReturnType<typeof bounceContactPreference>>();
   for (const contact of selected) {
     for (const factor of [1, .8, 1.2]) {
       const flight = returnFlight(incoming, contact, target, zone, preferred * factor, shot);
+      preferences.set(flight, contactDraw === undefined ? null : bounceContactPreference(flight, family, contactDraw));
       const net = flight.events.find(e => e.type === 'net-crossing');
       const bounce = flight.events.find(e => e.type === 'bounce');
       if (!net || net.position.y < netHeightAt(net.position.x) + COURT.ballRadius + .05 || !bounce
@@ -56,7 +59,7 @@ export function returnPlanCandidates(incoming: ResolvedTrajectory, family: ShotF
         && s.position.z < COURT.halfLength + 3 && Math.abs(s.position.x) < COURT.singlesWidth / 2 + 1.5
         && (family === 'volley' ? !s.bounced && s.position.z < COURT.serviceLineFromNet && s.position.y >= .65 && s.position.y <= 1.75
           : family === 'overhead' ? !s.bounced && s.position.y >= 1.8 && s.position.y <= 2.65
-          : s.bounced && s.position.y >= (family === 'half-volley' || family === 'drop-shot' || shot.type === 'drop-shot' ? .25 : .55) && s.position.y <= (family === 'half-volley' ? .8 : 1.5));
+          : s.bounced && s.position.y >= (family === 'half-volley' ? .25 : .65) && s.position.y <= (family === 'half-volley' ? .8 : 1.5));
       const samples = flight.samples.filter(eligible);
       // Include the precise requested clock when it lies inside a legal segment.
       const desired = preferredGap - contact.time;
@@ -80,6 +83,7 @@ export function returnPlanCandidates(incoming: ResolvedTrajectory, family: ShotF
   }
   return results.sort((a, b) => {
     const score = (c: ReturnCandidate) => Math.abs(c.gap - preferredGap) + Math.abs(1 - c.rally.speedRatio) * .12
+      + bounceContactCost(c.contact, preferences.get(c.rally.trajectory) ?? null)
       + Math.abs(c.source.y - (family === 'overhead' ? 2.3 : family === 'half-volley' ? .5 : 1.05)) * .04;
     return score(a) - score(b);
   });

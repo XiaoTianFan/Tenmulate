@@ -2,12 +2,26 @@
 
 - **Status:** Active
 - **Last updated:** 2026-09-09
-- **Current implementation:** Player-first drill planning and editing, with separate opponent openings, camera-anchored player contacts, independent opponent responses, and migrated shot/drill presets. Six Blender-authored venues and twelve Quality/Performance GLBs remain active; audiences default to Half.
+- **Current implementation:** Direct court editing, working opening/player camera gestures, physical Quick Rally returns and shared varied bounce-contact timing for rallies and drills. Player-first planning retains separate opponent openings, camera-anchored player contacts and independent opponent responses. Six Blender-authored venues and twelve Quality/Performance GLBs remain active; audiences default to Half.
 - **Previous venue integration:** Source/assets `25e363b`, runtime `18141c5` and verification `d1a916a` were fast-forwarded into `main`, preserving separately committed local-motion work `b2a082e`. All twelve local feature tips were included at this integration checkpoint; see the [branch audit](feature-branch-integration-2026-09-05.md). No remote push or deployment.
 
 **Motion/model integration checkpoint (2026-09-07):** Local `main` includes all 17 motion/model feature commits plus delivery/documentation reconciliation through `a9ba202`: all 24 clips, the 1.88 m articulated model, recovery planning, crossovers and both serve rhythms. No local feature tip remains unmerged. The 237-test suite, production build, active-asset/cache guard, both-hand gameplay/crossover checks and actual production-browser practice review pass. The [current motion contract](local-motion-pipeline.md) replaces competing “latest” descriptions below; the [integration receipt](motion-main-integration-2026-09-07.md) records the exact merge, evidence and remaining owner/device gates. Older stage counts and asset hashes below are historical evidence, not active selectors. No public deployment occurred.
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
+
+## Direct court editing and rally contacts — 2026-09-09
+
+[ADR-0039](../decisions/0039-direct-court-editing-and-rally-contacts.md) restores
+opening camera editing, separates timeline selection from whole-sequence preview,
+removes the editor history/import toolbar and derives saved shot count from the
+timeline. Temporary top-down views support direct mannequin placement and both
+zone roles. Quick Rally connects independently configured player returns, including
+streamed batch seams; other practice modes retain independent feeds. Both gameplay
+planners prefer seeded rising, apex or early descending contacts subject to physics
+and movement feasibility. Source assets and opponent hands are unchanged.
+
+See the [implementation receipt](court-editing-rally-contacts-2026-09-09.md) for
+verification and remaining review state.
 
 ## Player handedness mirroring — 2026-09-09
 
@@ -15,7 +29,8 @@ The shared Drills/Editor handedness choice mirrors cameras (position and heading
 both landing-zone roles and all opening positions while retaining shot names and
 the opponent's hand. Optional schema 2 orientation metadata prevents double
 reflection during insertion, overwrite, import and reload. Browser preference is
-independent of Quick Practice; editor switching supports Undo/Redo.
+independent of Quick Practice. ADR-0039 subsequently removes the editor Undo/Redo
+controls; handedness remains an immediately editable two-choice selection.
 
 Verification: 451 tests across 44 files and production build/motion guard pass.
 All 16 bundled drills complete two left-handed sets. Actual renderer checks cover

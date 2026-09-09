@@ -1,14 +1,15 @@
 import { useState, type DragEvent } from 'react';
-import { Plus } from 'lucide-react';
+import { Play, Plus, Square } from 'lucide-react';
 import type { DrillDefinitionV2 } from '../content/types';
 import { SHOT_DRAG_TYPE } from './ShotLibrary';
 
 const EVENT_DRAG_TYPE = 'application/x-tenmulate-event';
 const TRACKS = ['Your shot', 'Your ball', 'Opponent', 'Camera', 'Cue'] as const;
-export function DrillTimeline({ drill, selectedId, onSelect, onInsert, onMove, onRemove }: {
+export function DrillTimeline({ drill, selectedId, onSelect, onInsert, onMove, onRemove, playing, previewDisabled, onPreview }: {
   drill: DrillDefinitionV2; selectedId: string;
   onSelect: (id: string) => void; onInsert: (id: string, index: number) => void;
   onMove: (id: string, index: number) => void; onRemove: (id: string) => void;
+  playing: boolean; previewDisabled: boolean; onPreview: () => void;
 }) {
   const [dropIndex, setDropIndex] = useState<number | null>(null);
   const events = drill.events ?? [];
@@ -26,7 +27,8 @@ export function DrillTimeline({ drill, selectedId, onSelect, onInsert, onMove, o
   }}>
     <div className="timeline-toolbar"><button type="button" className={`opening-chip${selectedId === 'launch' ? ' selected' : ''}`} onClick={() => onSelect('launch')}>Opening · Opponent {drill.launch.ball.family === 'serve' ? 'serve' : 'feed'}</button>
       {events.map((event, index) => event.openingFeed ? <button type="button" key={event.id} className={`opening-chip${selectedId === `opening:${event.id}` ? ' selected' : ''}`} onClick={() => onSelect(`opening:${event.id}`)}>Opening before {index + 1}</button> : null)}
-      <strong>{drill.title}</strong><span>{events.length} player shots</span></div>
+      <strong>{drill.title}</strong><span>{events.length} player shots</span>
+      <button type="button" className="sequence-preview-button" disabled={previewDisabled} aria-pressed={playing} onClick={onPreview}>{playing ? <Square size={14}/> : <Play size={14}/>} {playing ? 'Stop preview' : 'Preview sequence'}</button></div>
     <div className="timeline-body">
       {events.length ? TRACKS.map(track => <div className="timeline-track" key={track}>
         <strong>{track}</strong><div className="track-events">
@@ -51,6 +53,6 @@ export function DrillTimeline({ drill, selectedId, onSelect, onInsert, onMove, o
         </div>
       </div>) : <div className="timeline-empty">Drop a shot here to start a drill.</div>}
     </div>
-    <small className="timeline-help">Drag to add or reorder · Right-click to remove · Undo restores a removed shot</small>
+    <small className="timeline-help">Drag to add or reorder · Right-click to remove</small>
   </div>;
 }

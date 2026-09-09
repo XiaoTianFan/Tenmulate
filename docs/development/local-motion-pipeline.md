@@ -12,6 +12,13 @@ links. `ContinuousPracticePreview` joins fresh batches through the same recovery
 planner on an absolute clock. Its setup stream has no set-end rest or restart;
 launched practice still uses the finite compiled session. No motion asset changed.
 
+[ADR-0039](../decisions/0039-direct-court-editing-and-rally-contacts.md) extends
+Quick Rally with continuous physical pseudo-returns. `bounceContact.ts` supplies
+the seeded rise/apex/early-descent preference to both the Quick Rally connector
+and player-first drill planner. Legal contacts, shared recovery feasibility,
+source clocks and rigid contact anchors constrain that preference. A setup-only
+ready pose allows direct body-root placement without editing any source clip.
+
 [ADR-0036](../decisions/0036-independent-return-shot-and-spin.md) adds independently
 configured return styles and an incoming drop-shot family. The planner resolves
 the next opponent contact from that physical return. Drop shots use the existing
