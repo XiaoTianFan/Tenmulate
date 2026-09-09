@@ -445,6 +445,12 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .editor-view-tools { position: absolute; top: 18px; right: 18px; display: grid; justify-items: end; gap: 8px; }
 .editor-view-tools button { border: 1px solid #5c818f; border-radius: 5px; padding: 9px 12px; background: #07151ee6; color: #e0f1f6; cursor: pointer; }
 .editor-view-tools > span { background: #07151ee6; padding: 5px 7px; border-radius: 3px; color: #d4e3e9; font-size: 10px; }
+.editor-preview-status { position: absolute; right: 14px; bottom: 14px; max-width: 65%; padding: 6px 9px; border-radius: 4px; color: var(--muted); background: #07151ee6; font-size: 11px; pointer-events: none; }
+.editor-preview-loading { display: grid; place-items: center; height: 100%; color: var(--muted); font-size: 13px; }
+.opening-chip { flex-shrink: 0; border: 1px solid var(--divider); border-radius: 4px; padding: 6px 9px; background: #13232b; color: var(--text); font-size: 11px; cursor: pointer; }
+.opening-chip.selected { border-color: var(--accent); color: var(--accent); }
+.timeline-toolbar { min-width: 0; overflow-x: auto; }
+.drill-planning-message { white-space: pre-line; }
 .editor-section .court-preset-list { margin-top: 12px; }
 @media (max-width: 1270px) and (min-width: 901px) {
   .shot-controls { display: block; }

@@ -6,6 +6,7 @@ import { DEFAULT_DRILL_CAMERA } from '../src/engine/session/cameraTimeline';
 import { DEFAULT_APP_DATA, loadAppData, saveAppData } from '../src/storage/appStorage';
 import { DEFAULT_RETURN_LANDING_ZONE } from '../src/engine/session/returnLandingZone';
 import { compileSession } from '../src/engine/session/compileSession';
+import { migratePlayerSavedShot } from '../src/content/playerMigration';
 
 afterEach(()=>vi.unstubAllGlobals());
 describe('reusable configured shots',()=>{
@@ -33,11 +34,11 @@ describe('reusable configured shots',()=>{
   it('persists snapshots, loads older storage, and discards malformed saved shots independently',()=>{
     let stored='';vi.stubGlobal('localStorage',{getItem:()=>stored,setItem:(_key:string,value:string)=>{stored=value;}});
     const saved={id:'shot-local',name:'Wide forehand',event:snapshotShot(event,drill,event.camera)};
-    saveAppData({...DEFAULT_APP_DATA,savedShots:[saved]});
-    expect(loadAppData().savedShots).toEqual([saved]);
+    saveAppData({...DEFAULT_APP_DATA,savedShots:[migratePlayerSavedShot(saved)]});
+    expect(loadAppData().savedShots).toEqual([migratePlayerSavedShot(saved)]);
     stored=JSON.stringify({...DEFAULT_APP_DATA,savedShots:undefined});expect(loadAppData().savedShots).toEqual([]);
     stored=JSON.stringify({...DEFAULT_APP_DATA,savedShots:[saved,{...saved,id:'bad id'},{...saved,event:{...saved.event,camera:{yaw:0}}}]});
-    expect(loadAppData().savedShots).toEqual([saved]);
+    expect(loadAppData().savedShots).toEqual([migratePlayerSavedShot(saved)]);
     expect(isSavedShot({...saved,event:{...saved.event,spinRateRpm:Infinity}})).toBe(false);
     expect(isSavedShot({...saved,event:{...saved.event,cue:'https://example.com'}})).toBe(false);
   });

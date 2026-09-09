@@ -158,6 +158,7 @@ export class TennisScene {
   private previewCycle = -1;
   readonly landingZoneControl: LandingZoneControl;
   readonly returnLandingZoneControl: LandingZoneControl;
+  private authoredNearLandingZone: LandingZone | null = null;
   private onSessionIndex: ((index:number, repetition: CompiledRepetition)=>void) | null = null;
   private sessionIndex = -1;
   private lineTrajectory: ResolvedTrajectory | null = null;
@@ -315,7 +316,7 @@ export class TennisScene {
     this.lineTrajectory=trajectory;
     // The editable incoming zone stays on the near court while its return flies
     // through the separately edited blue zone. Never rebind one control to both.
-    if (trajectory.intent.source.z >= 0) {
+    if (trajectory.intent.source.z >= 0 && !this.authoredNearLandingZone) {
       this.landingZoneControl.setZone(this.trajectoryLine.visible ? trajectory.intent.landingZone ?? null : null,
         landingZoneLimits(trajectory.intent.shotType ?? trajectory.intent.family ?? 'groundstroke', trajectory.intent.source));
       const bounce = trajectory.events.find(event => event.type === 'bounce');
@@ -348,6 +349,15 @@ export class TennisScene {
     this.landingZoneControl.configure(onChange);
   }
 
+  /** An editor-selected response zone stays attached to its event throughout playback. */
+  setNearLandingZone(zone: LandingZone | null, limits?: LandingZone): void {
+    this.authoredNearLandingZone = zone;
+    this.landingZoneControl.acceptModel();
+    const incoming = this.trajectory && this.trajectory.intent.source.z >= 0 ? this.trajectory : null;
+    this.landingZoneControl.setZone(this.trajectoryLine.visible ? zone ?? incoming?.intent.landingZone ?? null : null,
+      limits ?? landingZoneLimits(incoming?.intent.shotType ?? incoming?.intent.family ?? 'groundstroke', incoming?.intent.source ?? { x: 0 }));
+  }
+
   setReturnLandingZone(zone: LandingZone | null, onChange: ((zone: LandingZone) => void) | null): void {
     this.returnLandingZoneControl.configure(onChange);
     this.returnLandingZoneControl.acceptModel();
@@ -356,7 +366,7 @@ export class TennisScene {
 
   setTrajectoryVisible(visible: boolean): void {
     this.trajectoryLine.visible = visible;
-    this.landingZoneControl.setZone(visible ? this.trajectory?.intent.landingZone ?? null : null);
+    this.landingZoneControl.setZone(visible ? this.authoredNearLandingZone ?? this.trajectory?.intent.landingZone ?? null : null);
   }
 
   setBallPresentation(highContrast: boolean, showTrail: boolean): void {

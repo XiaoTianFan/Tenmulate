@@ -38,9 +38,9 @@ export function landsInZone(flight: ResolvedTrajectory): boolean {
     && bounce.position.x >= zone.minX - .04 && bounce.position.x <= zone.maxX + .04
     && bounce.position.z >= zone.minZ - .04 && bounce.position.z <= zone.maxZ + .04;
 }
-function familyContact(sample: FlightSample, family: ShotFamily): boolean {
+function familyContact(sample: FlightSample, family: ShotFamily, player = false): boolean {
   const height = sample.position.y;
-  return family === 'volley' ? !sample.bounced && height >= .65 && height <= 1.75
+  return family === 'volley' ? !sample.bounced && height >= .65 && height <= (player ? 2.05 : 1.75)
     : family === 'overhead' ? !sample.bounced && height >= 1.8 && height <= 2.65
       : family === 'half-volley' ? sample.bounced && height >= .25 && height <= .8
         : sample.bounced && height >= (family === 'drop-shot' ? .25 : .35) && height <= 1.5;
@@ -58,11 +58,14 @@ export const contactDistance = (sample: FlightSample, event: Pick<PlayerShotEven
   return Math.hypot(sample.position.x - anchor.x, sample.position.z - anchor.z);
 };
 export function playerContacts(flight: ResolvedTrajectory, event: Pick<PlayerShotEventV2, 'camera' | 'ball'>): readonly FlightSample[] {
-  return legalReturnContacts(flight).filter(sample => familyContact(sample, event.ball.family)
+  return legalReturnContacts(flight).filter(sample => familyContact(sample, event.ball.family, true)
     && contactDistance(sample, event) <= PLAYER_CONTACT_RADIUS_M);
 }
 export function opponentContacts(flight: ResolvedTrajectory, ball: DrillBall): readonly FlightSample[] {
   const rotated = rotateCourtFlight(flight);
-  return legalReturnContacts(rotated).filter(sample => familyContact(sample, ball.family))
+  // The visible opponent uses a real clip and rigid legs. A late ankle-height
+  // contact would lower its pelvis through the court just to extend the interval.
+  const minimumHeight = ball.family === 'overhead' ? 2.2 : ball.family === 'volley' ? 1.1 : .65;
+  return legalReturnContacts(rotated).filter(sample => familyContact(sample, ball.family) && sample.position.y >= minimumHeight)
     .map(sample => ({ ...sample, position: rotateCourtPoint(sample.position), velocity: rotateCourtPoint(sample.velocity) }));
 }

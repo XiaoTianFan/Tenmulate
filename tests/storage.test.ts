@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { DRILLS } from '../src/content/bundled';
+import { PLAYER_DRILLS as DRILLS } from '../src/content/playerDrills';
 import { DEFAULT_APP_DATA, DEFAULT_PREFERENCES, loadAppData, saveAppData } from '../src/storage/appStorage';
 
 class MemoryStorage {
@@ -17,7 +17,7 @@ describe('local application data', () => {
   it('migrates preset serve rhythm to Normal while preserving explicit choices', () => {
     expect(DEFAULT_PREFERENCES.serveRhythm).toBe('normal');
     for (const [stored, expected] of [['preset', 'normal'], [undefined, 'normal'], ['normal', 'normal'], ['compact', 'compact']] as const) {
-      localStorage.setItem('tenmulate.appData.v1', JSON.stringify({ schemaVersion: 1, preferences: { serveRhythm: stored } }));
+      localStorage.setItem('tenmulate.appData.v2', JSON.stringify({ schemaVersion: 1, preferences: { serveRhythm: stored } }));
       const migrated = loadAppData();
       expect(migrated.preferences.serveRhythm).toBe(expected);
       saveAppData(migrated);
@@ -25,18 +25,18 @@ describe('local application data', () => {
     }
   });
   it('preserves the ball highlight toggle and removes obsolete blur preferences', () => {
-    localStorage.setItem('tenmulate.appData.v1', JSON.stringify({schemaVersion:1, preferences:{ballFocus:undefined}}));
+    localStorage.setItem('tenmulate.appData.v2', JSON.stringify({schemaVersion:1, preferences:{ballFocus:undefined}}));
     expect(loadAppData().preferences.ballFocus).toEqual({enabled:false});
     saveAppData({...DEFAULT_APP_DATA, preferences:{...DEFAULT_PREFERENCES,ballFocus:{enabled:true}}});
     expect(loadAppData().preferences.ballFocus).toEqual({enabled:true});
-    localStorage.setItem('tenmulate.appData.v1', JSON.stringify({schemaVersion:1, preferences:{ballFocus:{enabled:true,maxBlurPx:999}}}));
+    localStorage.setItem('tenmulate.appData.v2', JSON.stringify({schemaVersion:1, preferences:{ballFocus:{enabled:true,maxBlurPx:999}}}));
     const migrated = loadAppData();
     expect(migrated.preferences.ballFocus).toEqual({enabled:true});
     saveAppData(migrated);
-    expect(JSON.parse(localStorage.getItem('tenmulate.appData.v1')!).preferences.ballFocus).toEqual({enabled:true});
+    expect(JSON.parse(localStorage.getItem('tenmulate.appData.v2')!).preferences.ballFocus).toEqual({enabled:true});
   });
   it('migrates legacy landing points to zones and preserves edited dimensions',()=>{
-    const save=(preferences:unknown)=>localStorage.setItem('tenmulate.appData.v1',JSON.stringify({schemaVersion:1,preferences}));
+    const save=(preferences:unknown)=>localStorage.setItem('tenmulate.appData.v2',JSON.stringify({schemaVersion:1,preferences}));
     save({...DEFAULT_PREFERENCES,landingZone:undefined});
     expect(loadAppData().preferences.landingZone).toEqual({width:1.6,depth:2});
     save({...DEFAULT_PREFERENCES,shotType:'serve',landingZone:undefined});
@@ -48,11 +48,11 @@ describe('local application data', () => {
   });
   it('migrates seconds once and gives persisted rhythm precedence',()=>{
     const legacy={...DEFAULT_PREFERENCES,rhythmPercent:undefined,interval:7};
-    localStorage.setItem('tenmulate.appData.v1',JSON.stringify({schemaVersion:1,preferences:legacy}));
+    localStorage.setItem('tenmulate.appData.v2',JSON.stringify({schemaVersion:1,preferences:legacy}));
     expect(loadAppData().preferences.rhythmPercent).toBe(50);
-    localStorage.setItem('tenmulate.appData.v1',JSON.stringify({schemaVersion:1,preferences:{...legacy,rhythmPercent:125}}));
+    localStorage.setItem('tenmulate.appData.v2',JSON.stringify({schemaVersion:1,preferences:{...legacy,rhythmPercent:125}}));
     expect(loadAppData().preferences.rhythmPercent).toBe(125);
-    localStorage.setItem('tenmulate.appData.v1',JSON.stringify({schemaVersion:1,preferences:{...legacy,rhythmPercent:900}}));
+    localStorage.setItem('tenmulate.appData.v2',JSON.stringify({schemaVersion:1,preferences:{...legacy,rhythmPercent:900}}));
     expect(loadAppData().preferences.rhythmPercent).toBe(300);
   });
 
@@ -83,7 +83,7 @@ describe('local application data', () => {
   });
 
   it('migrates older V1 data that predates persisted preferences', () => {
-    localStorage.setItem('tenmulate.appData.v1', JSON.stringify({ schemaVersion: 1, customDrills: [], savedViews: [] }));
+    localStorage.setItem('tenmulate.appData.v2', JSON.stringify({ schemaVersion: 1, customDrills: [], savedViews: [] }));
     expect(loadAppData().preferences).toEqual(DEFAULT_PREFERENCES);
   });
 
@@ -95,13 +95,13 @@ describe('local application data', () => {
       expect(loadAppData().preferences).toMatchObject({ quality: 'performance', environment: { venue: 'clay-stadium', audience } });
     }
     const { audience: _oldAudience, ...oldEnvironment } = DEFAULT_PREFERENCES.environment;
-    localStorage.setItem('tenmulate.appData.v1', JSON.stringify({ ...DEFAULT_APP_DATA,
+    localStorage.setItem('tenmulate.appData.v2', JSON.stringify({ ...DEFAULT_APP_DATA,
       preferences: { ...DEFAULT_PREFERENCES, environment: oldEnvironment } }));
     expect(loadAppData().preferences.environment.audience).toBe('half');
   });
 
   it('migrates the old on-court rally default behind the baseline', () => {
-    localStorage.setItem('tenmulate.appData.v1', JSON.stringify({
+    localStorage.setItem('tenmulate.appData.v2', JSON.stringify({
       schemaVersion: 1,
       customDrills: [],
       preferences: { shotType: 'groundstroke', opponentPosition: { x: 0, z: 11.235 } },
@@ -110,7 +110,7 @@ describe('local application data', () => {
   });
 
   it('migrates the removed spin preset into a legal shot-aware selection', () => {
-    localStorage.setItem('tenmulate.appData.v1', JSON.stringify({
+    localStorage.setItem('tenmulate.appData.v2', JSON.stringify({
       schemaVersion: 1,
       customDrills: [],
       preferences: { sessionCategory: 'Return Practice', spin: 'preset', bounceFactor: 9 },
@@ -119,7 +119,7 @@ describe('local application data', () => {
   });
 
   it('migrates a legacy zero-spin flat groundstroke to the low-spin floor', () => {
-    localStorage.setItem('tenmulate.appData.v1', JSON.stringify({
+    localStorage.setItem('tenmulate.appData.v2', JSON.stringify({
       schemaVersion: 1,
       customDrills: [],
       preferences: { shotType: 'groundstroke', spin: 'flat', spinRateRpm: 0 },
@@ -128,7 +128,7 @@ describe('local application data', () => {
   });
 
   it('migrates the former on-court serve origin behind the baseline', () => {
-    localStorage.setItem('tenmulate.appData.v1', JSON.stringify({
+    localStorage.setItem('tenmulate.appData.v2', JSON.stringify({
       schemaVersion: 1,
       customDrills: [],
       preferences: { shotType: 'serve', opponentPosition: { x: -1.25, z: 11.705 } },
@@ -137,7 +137,7 @@ describe('local application data', () => {
   });
 
   it('migrates overhead practice to a bounded lob profile with independent landing depth', () => {
-    localStorage.setItem('tenmulate.appData.v1', JSON.stringify({
+    localStorage.setItem('tenmulate.appData.v2', JSON.stringify({
       schemaVersion: 1,
       customDrills: [],
       preferences: { sessionCategory: 'Net & Overhead', pace: 999, netClearanceM: -2, landingDepthM: 999 },
@@ -152,7 +152,7 @@ describe('local application data', () => {
   });
 
   it('migrates coupled saved views into independent position and perspective presets', () => {
-    localStorage.setItem('tenmulate.appData.v1', JSON.stringify({
+    localStorage.setItem('tenmulate.appData.v2', JSON.stringify({
       schemaVersion: 1,
       customDrills: [],
       savedViews: [{ id: 'view-one', name: 'Projector', camera: DEFAULT_PREFERENCES.camera }],
@@ -163,7 +163,7 @@ describe('local application data', () => {
   });
 
   it('migrates the legacy left camera preset to player-view left', () => {
-    localStorage.setItem('tenmulate.appData.v1', JSON.stringify({
+    localStorage.setItem('tenmulate.appData.v2', JSON.stringify({
       ...DEFAULT_APP_DATA,
       cameraPositionPresets: [
         { id: 'position-left', name: 'Left corner', position: { eyeHeight: 1.68, behindBaseline: 1.4, lateral: -2.6 } },
@@ -184,7 +184,7 @@ describe('local application data', () => {
   });
 
   it('adds the right receiver corner to a persisted legacy built-in camera set', () => {
-    localStorage.setItem('tenmulate.appData.v1', JSON.stringify({
+    localStorage.setItem('tenmulate.appData.v2', JSON.stringify({
       ...DEFAULT_APP_DATA,
       cameraPositionPresets: DEFAULT_APP_DATA.cameraPositionPresets.filter((preset) => preset.id !== 'position-right'),
     }));
@@ -193,7 +193,7 @@ describe('local application data', () => {
   });
 
   it('migrates legacy surface preferences into the canonical visual-and-physics surface', () => {
-    localStorage.setItem('tenmulate.appData.v1', JSON.stringify({
+    localStorage.setItem('tenmulate.appData.v2', JSON.stringify({
       schemaVersion: 1,
       customDrills: [],
       savedViews: [],
@@ -205,7 +205,7 @@ describe('local application data', () => {
   });
 
   it('uses the saved bounce surface as the canonical surface over a legacy appearance', () => {
-    localStorage.setItem('tenmulate.appData.v1', JSON.stringify({
+    localStorage.setItem('tenmulate.appData.v2', JSON.stringify({
       schemaVersion: 1,
       customDrills: [],
       savedViews: [],
@@ -217,7 +217,7 @@ describe('local application data', () => {
   });
 
   it('normalizes legacy and invalid environment weather and wind fields', () => {
-    localStorage.setItem('tenmulate.appData.v1', JSON.stringify({
+    localStorage.setItem('tenmulate.appData.v2', JSON.stringify({
       schemaVersion: 1,
       customDrills: [],
       savedViews: [],
@@ -229,7 +229,7 @@ describe('local application data', () => {
   });
 
   it('fails closed on corrupt storage', () => {
-    localStorage.setItem('tenmulate.appData.v1', '{broken');
+    localStorage.setItem('tenmulate.appData.v2', '{broken');
     expect(loadAppData()).toEqual(DEFAULT_APP_DATA);
   });
 });

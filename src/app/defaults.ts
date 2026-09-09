@@ -1,6 +1,6 @@
-import type { DrillDefinitionV1 } from '../content/types';
+import type { DrillDefinition } from '../content/types';
 import { DEFAULT_ENVIRONMENT } from '../domain/environment';
-import { compileSession } from '../engine/session/compileSession';
+import { compileSession, type SessionSettings } from '../engine/session/compileSession';
 import type { SessionLaunch } from './types';
 import { rhythmFromLegacyInterval } from '../engine/session/rhythm';
 
@@ -13,8 +13,7 @@ export const DEFAULT_CAMERA = Object.freeze({
   fov: 70,
 });
 
-export const createDefaultLaunch = (drill: DrillDefinitionV1, rhythmPercent = drill.defaultRhythmPercent ?? rhythmFromLegacyInterval(drill.defaultInterval), interval = drill.defaultInterval, movementPercent = drill.defaultMovementPercent ?? 100): SessionLaunch => ({
-  session: compileSession(drill, {
+export const defaultDrillSettings = (drill: DrillDefinition, rhythmPercent = drill.defaultRhythmPercent ?? rhythmFromLegacyInterval(drill.defaultInterval), interval = drill.defaultInterval, movementPercent = drill.defaultMovementPercent ?? 100): SessionSettings => ({
     repetitions: drill.defaultRepetitions,
     rhythmPercent, shotIntervalSeconds: interval, movementPercent, trajectoryMode: 'natural', mode: 'drill', camera: DEFAULT_CAMERA,
     variationPercent: 8,
@@ -25,10 +24,13 @@ export const createDefaultLaunch = (drill: DrillDefinitionV1, rhythmPercent = dr
     spin: 'preset',
     spinRateRpm: undefined,
     opponentHand: 'right',
-    workBlockSize: Math.min(4, drill.events?.length ?? drill.defaultRepetitions),
+    workBlockSize: drill.schemaVersion === 2 ? drill.events.length : Math.min(4, drill.events?.length ?? drill.defaultRepetitions),
     restSeconds: 20,
     serveRhythm: 'preset',
-  }),
+});
+
+export const createDefaultLaunch = (drill: DrillDefinition, rhythmPercent?: number, interval?: number, movementPercent?: number): SessionLaunch => ({
+  session: compileSession(drill, defaultDrillSettings(drill, rhythmPercent, interval, movementPercent)),
   trajectoryEnabled: false,
   camera: DEFAULT_CAMERA,
   environment: DEFAULT_ENVIRONMENT,

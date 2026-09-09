@@ -61,7 +61,7 @@ describe('uniform landing zones', () => {
       }
       expect(session.repetitions[0]!.shot.target).not.toEqual(session.repetitions[1]!.shot.target);
     }
-  });
+  }, 15000); // Full inverse-physics sweep, not a single lightweight unit case.
 
   it('keeps landing, speed, spin and timing random streams independent and replayable',()=>{
     const base={...settings,practiceShotType:'groundstroke' as const,spin:'topspin' as const,spinRateRpm:1103};

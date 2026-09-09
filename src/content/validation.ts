@@ -163,7 +163,7 @@ export const parseDrillJson = (source: string): DrillDefinitionV1 => {
   return parsed as DrillDefinitionV1;
 };
 
-export const downloadDrill = (drill: DrillDefinitionV1): void => {
+export const downloadDrill = (drill: import("./types").DrillDefinition): void => {
   const blob = new Blob([JSON.stringify(drill, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');

@@ -24,10 +24,12 @@ describe('player-owned drill clock and physical handoffs', () => {
       expect(event.startTime).toBeCloseTo(incoming.startTime + contact.time, 8);
       if (event.responseIndex === undefined) continue;
       const response = session.repetitions[event.responseIndex]!;
+      expect(response.shot.source.y).toBeGreaterThanOrEqual(.65);
       const playerFlight = session.scheduledFlights!.find(f => f.owner === 'player' && f.eventIndex === event.index)!;
       expect(playerFlight.trajectory.samples.at(-1)!.position).toEqual(response.shot.source);
       expect(playerFlight.endTime).toBeCloseTo(response.startTime, 8);
     }
+    expect(session.repetitions[1]!.shot.source.y).toBeGreaterThan(.85);
     for (let i = 1; i < session.repetitions.length; i++) {
       const a = session.repetitions[i - 1]!, b = session.repetitions[i]!;
       expect(minimumMotionGap(a, b)).toBeLessThanOrEqual(b.startTime - a.startTime + 1e-6);
@@ -47,6 +49,9 @@ describe('player-owned drill clock and physical handoffs', () => {
     expect(session.planningIssues).toEqual([]);
     expect(session.playerEvents).toHaveLength(drill.defaultRepetitions);
     expect(session.restPeriods).toHaveLength(1);
+    expect(session.playerEvents!.map(event => event.setIndex)).toEqual(Array.from({ length: drill.defaultRepetitions }, (_, index) => Math.floor(index / drill.events.length)));
+    for (let i = 1; i < session.cameraTimeline.transitions.length; i++) expect(session.cameraTimeline.transitions[i]!.start)
+      .toBeGreaterThanOrEqual(session.cameraTimeline.transitions[i - 1]!.end - 1e-7);
     expect(session.scheduledFlights!.filter(f => f.phase === 'opening').length).toBeGreaterThanOrEqual(2);
     for (let i = 1; i < session.scheduledFlights!.length; i++) expect(session.scheduledFlights![i]!.startTime)
       .toBeGreaterThanOrEqual(session.scheduledFlights![i - 1]!.endTime - 1e-7);
@@ -67,5 +72,14 @@ describe('player-owned drill clock and physical handoffs', () => {
     expect(session.planningIssues?.[0]).toMatchObject({ phase: 'opening', index: 0 });
     expect(session.playerEvents).toHaveLength(0);
     expect(session.scheduledFlights).toHaveLength(1);
+  });
+  it('reduces camera movement without changing physical contacts, flights or timing', () => {
+    const full = compileSession(PLAYER_DRILLS[0]!, { ...settings, repetitions: 2 });
+    const reduced = compileSession(PLAYER_DRILLS[0]!, { ...settings, repetitions: 2, cameraMotionScale: 0 });
+    expect(reduced.scheduledFlights).toEqual(full.scheduledFlights);
+    expect(reduced.playerEvents).toEqual(full.playerEvents);
+    for (const stage of reduced.cameraTimeline.transitions) {
+      expect(stage.from).toEqual(reduced.cameraTimeline.initial); expect(stage.to).toEqual(reduced.cameraTimeline.initial);
+    }
   });
 });

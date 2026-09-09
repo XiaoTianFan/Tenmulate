@@ -80,7 +80,7 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
     endTime = Math.max(endTime, flights.at(-1)!.endTime);
   };
   const startPoint = (feed: OpeningFeed, event: PlayerShotEventV2, index: number) => {
-    setIndex++;
+    setIndex = Math.floor(index / workBlock);
     const ball = sampleBall(feed.ball, 'opening', index), target = sampleLandingZone(feed.landingZone, random('opening', index, 'landing'));
     let source = { ...feed.position, y: contactHeight(ball.family) };
     // The authored opening position is the opponent's body root.
@@ -135,27 +135,32 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
     const replyTarget = sampleLandingZone(response.landingZone, random('response', index, 'landing'));
     const requested = normalizeShotInterval(event.intervalSeconds ?? interval);
     const receiver = continues ? next : undefined;
-    const eligible = opponentContacts(playerFlight, replyBall);
-    const desired = requested / 2;
-    const ranked = [...eligible].sort((a, b) => Math.abs(a.time - desired) + Math.abs(a.position.y - contactHeight(replyBall.family)) * .1
-      - Math.abs(b.time - desired) - Math.abs(b.position.y - contactHeight(replyBall.family)) * .1);
-    const selected: FlightSample[] = [];
-    for (const c of [...ranked, eligible[0], eligible.at(-1)]) if (c && selected.length < 8 && selected.every(s => Math.abs(s.time - c.time) > .07)) selected.push(c);
     const previous = repetitions.at(-1)!;
+    // Filter motion feasibility before reducing the physics search. A short
+    // legal window near the end of a bounce must not disappear in downsampling.
+    const eligible = opponentContacts(playerFlight, replyBall).filter(contact => {
+      const time = playerTime + contact.time;
+      const shot = shotDefinition(contact.position, replyBall, replyTarget, `${event.label} — opponent return`);
+      const ceiling = withPreparedApproach({ ...previous, motionRate: 3, movementRate: 3 },
+        { ...previous, index: repetitions.length, shot, startTime: time, motionRate: 3, movementRate: 3 });
+      return minimumMotionGap({ ...previous, motionRate: 3, movementRate: 3 }, ceiling) <= time - previous.startTime + 1e-8;
+    });
+    const desired = requested / 2;
+    const ranked = [...eligible].sort((a, b) => Math.abs(a.time - desired) + Math.abs(a.position.y - contactHeight(replyBall.family)) * .8
+      - Math.abs(b.time - desired) - Math.abs(b.position.y - contactHeight(replyBall.family)) * .8);
+    const selected: FlightSample[] = [];
+    for (const c of [eligible.at(-1), eligible[0], ...ranked]) if (c && selected.length < 8 && selected.every(s => Math.abs(s.time - c.time) > .07)) selected.push(c);
     let best: { contact: FlightSample; fit: IncomingFit; rep: CompiledRepetition; score: number } | undefined;
     const preferredTravel = receiver ? cameraTravelSeconds(event.camera, receiver.camera, normalizeRhythm(receiver.movementPercent ?? movement) / 100) : 0;
     const minimumTravel = receiver ? cameraTravelSeconds(event.camera, receiver.camera, 3) : 0;
     for (const contact of selected) {
       const time = playerTime + contact.time;
       const draftShot = shotDefinition(contact.position, replyBall, replyTarget, `${event.label} — opponent return`);
-      // Motion feasibility uses the same route selector as final playback.
-      const ceiling = withPreparedApproach({ ...previous, motionRate: 3, movementRate: 3 },
-        { ...previous, index: repetitions.length, shot: draftShot, startTime: time, motionRate: 3, movementRate: 3 });
-      if (minimumMotionGap({ ...previous, motionRate: 3, movementRate: 3 }, ceiling) > time - previous.startTime + 1e-8) continue;
       const fit = fitIncoming(contact.position, replyBall, response.landingZone, replyTarget, receiver, requested - contact.time);
       if (!landsInZone(fit.trajectory) || receiver && (!fit.contact || contact.time + fit.contact.time < minimumTravel + .12)) continue;
       const total = contact.time + (fit.contact?.time ?? 0);
-      const score = receiver ? Math.abs(total - requested) + fit.score * .1 : Math.abs(contact.time - desired);
+      const postureCost = Math.max(0, contactHeight(replyBall.family) - contact.position.y) ** 2 * 8;
+      const score = (receiver ? Math.abs(total - requested) + fit.score * .1 : Math.abs(contact.time - desired)) + postureCost;
       if (!best || score < best.score) best = { contact, fit, rep: repetition(draftShot, fit.trajectory, time, event), score };
     }
     if (!best) {

@@ -66,12 +66,14 @@ export const useSessionPlayer = (session: CompiledSession, playbackRate: number)
     return () => cancelAnimationFrame(frame);
   }, [playbackRate, session.duration, firstContact, session.restPeriods, status]);
 
-  const currentIndex = session.repetitions.reduce((active, repetition, index) => elapsed >= repetition.startTime ? index : active, 0);
+  const actions = session.playerEvents ?? session.repetitions;
+  const currentIndex = actions.reduce((active, repetition, index) => elapsed >= repetition.startTime ? index : active, session.playerEvents ? -1 : 0);
   const activeRest = session.restPeriods.find((period) => elapsed >= period.startTime && elapsed < period.endTime);
 
   const seekToIndex = useCallback((index: number) => {
-    const bounded = Math.min(session.repetitions.length - 1, Math.max(0, index));
-    const nextElapsed = session.repetitions[bounded]!.startTime;
+    const actions = session.playerEvents ?? session.repetitions;
+    const bounded = Math.min(actions.length - 1, Math.max(0, index));
+    const nextElapsed = index < 0 && session.playerEvents ? 0 : actions[bounded]?.startTime ?? 0;
     elapsedRef.current = nextElapsed;
     setElapsed(nextElapsed);
     setStatus('paused');
@@ -84,8 +86,8 @@ export const useSessionPlayer = (session: CompiledSession, playbackRate: number)
     currentIndex,
     countdown: status === 'countdown' ? Math.max(1, Math.ceil(firstContact - elapsed)) : null,
     restRemaining: activeRest ? Math.max(1, Math.ceil(activeRest.endTime - elapsed)) : null,
-    currentSet: Math.floor(currentIndex / Math.max(1, session.settings.workBlockSize)) + 1,
-    setCount: Math.ceil(session.repetitions.length / Math.max(1, session.settings.workBlockSize)),
+    currentSet: Math.floor(Math.max(0, currentIndex) / Math.max(1, session.settings.workBlockSize)) + 1,
+    setCount: Math.ceil(actions.length / Math.max(1, session.settings.workBlockSize)),
     progress: session.duration <= 0 ? 0 : elapsed / session.duration,
     play: () => {
       const resting = session.restPeriods.some((period) => elapsedRef.current >= period.startTime && elapsedRef.current < period.endTime);

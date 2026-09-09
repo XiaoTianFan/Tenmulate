@@ -7,7 +7,7 @@ import './about.css';
 const routeHelp: Record<AppRoute, string> = {
   practice: 'Choose your camera and incoming-ball settings, then start Quick Practice.',
   drills: 'Choose a drill to run, duplicate, export or edit. Custom drills stay in this browser.',
-  editor: 'Filter default or saved shots and drag them onto the timeline. Right-click a timeline event to remove it. Use Top-down zones to move or resize the incoming landing zone and your return landing zone across the net. Test drill plays the full sequence.',
+  editor: 'Start with an opponent feed or serve, then plan your own shots. Drag player presets onto the timeline; right-click a shot to remove it. In Top-down zones, blue is your landing on the opponent’s side and yellow is the opponent’s return for your next shot. WASD sets your hitting position. Test drill plays the connected sequence.',
 };
 
 export function AboutButton({ route }: { route: AppRoute }) {

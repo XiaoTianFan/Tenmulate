@@ -2,7 +2,9 @@ import { normalizeLandingZone, type LandingZoneSize } from '../engine/trajectory
 import { DEFAULT_BALL_FOCUS, normalizeBallFocus, type BallFocusSettings } from '../engine/rendering/ballFocus';
 import type { CameraConfiguration } from '../engine/rendering/TennisScene';
 import type { QualityMode } from '../engine/rendering/TennisScene';
-import type { DrillDefinitionV1, SavedShotV1 } from '../content/types';
+import type { DrillDefinitionV1, DrillDefinitionV2, SavedShotV2 } from '../content/types';
+import { migratePlayerDrill, migratePlayerSavedShot } from '../content/playerMigration';
+import { isPlayerDrill, isPlayerSavedShot } from '../content/playerValidation';
 import { isSavedShot, validateDrill } from '../content/validation';
 import { AD_SERVE_OPPONENT_POSITION, COURT, DEFAULT_RALLY_OPPONENT_POSITION, DEUCE_SERVE_OPPONENT_POSITION, clampOpponentPosition, type SurfaceId } from '../domain/court';
 import { DEFAULT_ENVIRONMENT, normalizeEnvironmentConfiguration, type EnvironmentConfiguration } from '../domain/environment';
@@ -10,7 +12,10 @@ import type { SpinKind } from '../engine/trajectory/physics';
 import { normalizeRhythm, normalizeShotInterval, rhythmFromLegacyInterval } from '../engine/session/rhythm';
 import { PRACTICE_SHOT_PROFILES, isPracticeShotType, spinForPracticeShot, spinRateForPracticeShot, type PracticeShotType } from '../engine/trajectory/practiceProfiles';
 
-const STORAGE_KEY = 'tenmulate.appData.v1';
+const STORAGE_KEY = 'tenmulate.appData.v2';
+const LEGACY_STORAGE_KEY = 'tenmulate.appData.v1';
+let storageNotice = '';
+export const appStorageNotice = () => storageNotice;
 
 export type SavedViewV1 = Readonly<{
   id: string;
@@ -37,10 +42,10 @@ export const DEFAULT_PERSPECTIVE_PRESETS: readonly PerspectivePresetV1[] = [
   { id: 'perspective-focus', name: 'Focused', perspective: { yaw: 0, pitch: -0.8, fov: 58 } },
 ];
 
-export type AppDataV1 = Readonly<{
-  schemaVersion: 1;
-  customDrills: readonly DrillDefinitionV1[];
-  savedShots: readonly SavedShotV1[];
+export type AppDataV2 = Readonly<{
+  schemaVersion: 2;
+  customDrills: readonly DrillDefinitionV2[];
+  savedShots: readonly SavedShotV2[];
   cameraPositionPresets: readonly CameraPositionPresetV1[];
   perspectivePresets: readonly PerspectivePresetV1[];
   preferences: PracticePreferencesV1;
@@ -92,8 +97,8 @@ export const DEFAULT_PREFERENCES: PracticePreferencesV1 = {
   environment: DEFAULT_ENVIRONMENT, quality: 'auto', screenWidthCm: 120, screenHeightCm: 67.5, viewDistanceCm: 250,
 };
 
-export const DEFAULT_APP_DATA: AppDataV1 = {
-  schemaVersion: 1,
+export const DEFAULT_APP_DATA: AppDataV2 = {
+  schemaVersion: 2,
   customDrills: [],
   savedShots: [],
   cameraPositionPresets: DEFAULT_CAMERA_POSITION_PRESETS,
@@ -125,17 +130,24 @@ const addRightCornerToLegacyBuiltIns = (presets: readonly CameraPositionPresetV1
   return [...presets.slice(0, leftIndex + 1), rightCorner, ...presets.slice(leftIndex + 1)];
 };
 
-export const loadAppData = (): AppDataV1 => {
+export const loadAppData = (): AppDataV2 => {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    storageNotice = '';
+    const current = localStorage.getItem(STORAGE_KEY);
+    const raw = current ?? localStorage.getItem(LEGACY_STORAGE_KEY);
     if (!raw) return DEFAULT_APP_DATA;
-    const parsed = JSON.parse(raw) as Partial<AppDataV1>;
-    if (parsed.schemaVersion !== 1) return DEFAULT_APP_DATA;
-    const customDrills = Array.isArray(parsed.customDrills)
-      ? parsed.customDrills.filter((drill) => validateDrill(drill).valid)
-      : [];
-    const legacyViews = Array.isArray((parsed as Partial<AppDataV1> & { savedViews?: unknown }).savedViews)
-      ? ((parsed as Partial<AppDataV1> & { savedViews?: unknown[] }).savedViews ?? []).filter((view): view is SavedViewV1 => Boolean(view && typeof view === 'object' && 'id' in view && 'name' in view && 'camera' in view))
+    const parsed = JSON.parse(raw) as Partial<Omit<AppDataV2, "schemaVersion">> & {schemaVersion?:number};
+    if (parsed.schemaVersion !== 1 && parsed.schemaVersion !== 2) return DEFAULT_APP_DATA;
+    let skipped = 0;
+    const customDrills: DrillDefinitionV2[] = [];
+    for (const item of Array.isArray(parsed.customDrills) ? parsed.customDrills : []) {
+      try {
+        const drill = isPlayerDrill(item) ? item : validateDrill(item).valid ? migratePlayerDrill(item as unknown as DrillDefinitionV1) : null;
+        if (drill && isPlayerDrill(drill)) customDrills.push(drill); else skipped++;
+      } catch { skipped++; }
+    }
+    const legacyViews = Array.isArray((parsed as Partial<AppDataV2> & { savedViews?: unknown }).savedViews)
+      ? ((parsed as Partial<AppDataV2> & { savedViews?: unknown[] }).savedViews ?? []).filter((view): view is SavedViewV1 => Boolean(view && typeof view === 'object' && 'id' in view && 'name' in view && 'camera' in view))
       : [];
     const cameraPositionPresets = Array.isArray(parsed.cameraPositionPresets) && parsed.cameraPositionPresets.length
       ? addRightCornerToLegacyBuiltIns(parsed.cameraPositionPresets.map(normalizePlayerViewCameraPreset))
@@ -223,13 +235,20 @@ export const loadAppData = (): AppDataV1 => {
       camera,
       environment,
     } as PracticePreferencesV1;
-    const savedShots = Array.isArray(parsed.savedShots) ? parsed.savedShots.filter(isSavedShot) : [];
-    return { schemaVersion: 1, customDrills, savedShots, cameraPositionPresets, perspectivePresets, preferences };
+    const savedShots: SavedShotV2[] = [];
+    for (const item of Array.isArray(parsed.savedShots) ? parsed.savedShots : []) {
+      try {
+        const shot = isPlayerSavedShot(item) ? item : isSavedShot(item) ? migratePlayerSavedShot(item) : null;
+        if (shot && isPlayerSavedShot(shot)) savedShots.push(shot); else skipped++;
+      } catch { skipped++; }
+    }
+    if (!current && (customDrills.length || savedShots.length || skipped)) storageNotice = `Saved drills and shots now use the player's perspective. Original data is retained in this browser.${skipped ? ` ${skipped} legacy item(s) need manual repair before import.` : ''}`;
+    return { schemaVersion: 2, customDrills, savedShots, cameraPositionPresets, perspectivePresets, preferences };
   } catch {
     return DEFAULT_APP_DATA;
   }
 };
 
-export const saveAppData = (data: AppDataV1): void => {
+export const saveAppData = (data: AppDataV2): void => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 };

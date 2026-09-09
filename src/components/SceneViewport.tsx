@@ -41,6 +41,8 @@ export type SceneViewportProps = Readonly<{
   onCameraLookChange?: (look: CameraLook) => void;
   onCameraViewCommit?: (camera: CameraConfiguration) => void;
   returnLandingZone?: LandingZone;
+  nearLandingZone?: LandingZone;
+  nearLandingZoneLimits?: LandingZone;
   onReturnLandingZoneChange?: (zone: LandingZone) => void;
   onMetrics: (metrics: SceneMetrics) => void;
   onPointerActivity?: () => void;
@@ -92,6 +94,8 @@ export function SceneViewport({
   onCameraLookChange,
   onCameraViewCommit,
   returnLandingZone,
+  nearLandingZone,
+  nearLandingZoneLimits,
   onReturnLandingZoneChange,
   onMetrics,
   onPointerActivity,
@@ -181,6 +185,7 @@ export function SceneViewport({
   useEffect(() => sceneRef.current?.setCamera(camera), [camera]);
   useEffect(() => sceneRef.current?.setBallFocus(ballFocus), [ballFocus]);
   useEffect(() => sceneRef.current?.setReturnLandingZone(returnLandingZone ?? null, onReturnLandingZoneChange ?? null), [returnLandingZone, onReturnLandingZoneChange]);
+  useEffect(() => sceneRef.current?.setNearLandingZone(nearLandingZone ?? null, nearLandingZoneLimits), [nearLandingZone, nearLandingZoneLimits]);
   useEffect(() => sceneRef.current?.setSession(session ?? null, sessionClock ?? null, onSessionIndex), [session, sessionClock, onSessionIndex]);
   useEffect(() => sceneRef.current?.setTrajectory(trajectory), [trajectory]);
   useEffect(() => sceneRef.current?.setLandingZoneInteraction(
