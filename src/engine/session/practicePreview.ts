@@ -75,6 +75,7 @@ export class ContinuousPracticePreview {
   }
 
   private request(previous: CompiledSession, cycle: number): PreviewBatchRequest {
+    if (this.initial.drill.schemaVersion !== 1) throw new Error('Continuous practice requires an opponent-feed definition.');
     return { drill: this.initial.drill, settings: this.initial.settings, last: previous.repetitions.at(-1)!, cycle };
   }
 

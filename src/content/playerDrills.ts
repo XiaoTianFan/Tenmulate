@@ -8,7 +8,9 @@ function drill(id: string, title: string, description: string, category: DrillDe
   // authored, this zone remains independently editable and is never silently moved.
   const configured = events.map((event, index) => {
     const next = events[(index + 1) % events.length]!;
-    return { ...event, opponentReturn: { ball: ballDefaults(next.ball.family === 'overhead' ? 'lob' : 'groundstroke'),
+    return { ...event, opponentReturn: { ball: next.ball.family === 'volley'
+      ? { ...ballDefaults(), paceKmh: 90, spin: 'flat' as const, spinRateRpm: 120, netClearanceM: .12 }
+      : ballDefaults(next.ball.family === 'overhead' ? 'lob' : 'groundstroke'),
       landingZone: receivingZone(next.camera, next.ball.family) },
       ...(serve && index > 0 ? { openingFeed: openingFor(event, true) } : {}) };
   });

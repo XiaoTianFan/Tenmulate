@@ -25,6 +25,8 @@ player event records own authoring, repetition counts, seeking, cues and metadat
 Opening shots do not count as player repetitions. New points and set rests are
 explicit boundaries. An optional event opening feed preserves older sequences
 that contained additional serves; it remains a launch phase before that action.
+The final player action finishes a point. Its opponent response remains saved for
+reuse if another action is appended, but is not played after the point ends.
 
 Schema 1 is an import/Quick Practice compatibility contract. Migration moves the
 first incoming shot into the opening phase, maps each old pseudo-return into the

@@ -2,7 +2,8 @@ import { planRecovery } from './opponentMovement';
 import { resolveReturnShot } from './returnShot';
 import { normalizeShotSpin } from '../../domain/shotKinds';
 import type { ReturnShotConfiguration } from '../../content/types';
-import type { DrillDefinitionV1, DrillEventV1, ShotDefinitionV1 } from '../../content/types';
+import type { DrillDefinition, DrillEventV1, ShotDefinitionV1 } from '../../content/types';
+import { compilePlayerDrill, type CompiledPlayerEvent, type ScheduledDrillFlight, type DrillPlanningIssue } from './compilePlayerDrill';
 import { SHOT_BY_ID, drillShotPace } from '../../content/bundled';
 import type { SurfaceId } from '../../domain/court';
 import type { OpponentHand, ServeRhythm } from '../../content/types';
@@ -88,9 +89,9 @@ export type CompiledRepetition = MotionRepetition & Readonly<{
 export type CompiledSession = Readonly<{
   previewLoop?: true;
   solverVersion: 'ball-v8-shot-spin';
-  plannerVersion: 'gameplay-return-shots-v10';
+  plannerVersion: 'gameplay-return-shots-v10' | 'gameplay-player-drills-v11';
   contentVersion: '2026.09.09';
-  drill: DrillDefinitionV1;
+  drill: DrillDefinition;
   settings: SessionSettings;
   repetitions: readonly CompiledRepetition[];
   restPeriods: readonly Readonly<{ afterIndex: number; startTime: number; endTime: number }>[];
@@ -99,6 +100,9 @@ export type CompiledSession = Readonly<{
   rhythmPercent: number;
   mode: 'quick-practice' | 'drill';
   cameraTimeline: CameraTimeline;
+  playerEvents?: readonly CompiledPlayerEvent[];
+  scheduledFlights?: readonly ScheduledDrillFlight[];
+  planningIssues?: readonly DrillPlanningIssue[];
 }>;
 
 function assessDrillReturn(trajectory: ResolvedTrajectory): Reachability {
@@ -110,9 +114,10 @@ function assessDrillReturn(trajectory: ResolvedTrajectory): Reachability {
 }
 
 export const compileSession = (
-  drill: DrillDefinitionV1,
+  drill: DrillDefinition,
   settings: SessionSettings,
 ): CompiledSession => {
+  if (drill.schemaVersion === 2) return compilePlayerDrill(drill, settings);
   const landingRandom = createSeededRandom(`${settings.seed}:landing`);
   const speedRandom = createSeededRandom(`${settings.seed}:speed`);
   const spinRandom = createSeededRandom(`${settings.seed}:spin`);

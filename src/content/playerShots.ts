@@ -8,7 +8,7 @@ import type { DrillBall, OpeningFeed, PlayerShotEventV2, RallyShotFamily, ShotFa
 export const ballDefaults = (family: ShotFamily = 'groundstroke'): DrillBall => {
   const profile = {
     groundstroke: [70, 600, .25], approach: [72, 650, .22], 'half-volley': [55, 650, .15],
-    volley: [60, 650, .15], overhead: [95, 120, .15], lob: [60, 1100, 2.5],
+    volley: [50, 650, .15], overhead: [95, 120, .15], lob: [60, 1100, 2.5],
     'drop-shot': [38, 1400, .12], serve: [140, 900, .18],
   }[family];
   return { family, stroke: 'forehand', hand: 'right', paceKmh: profile[0]!,
@@ -31,7 +31,7 @@ export const cameraForShot = (x: number, z = -12.1): CameraConfiguration => ({
 });
 /** A bounce intent in front of the player's court position, never a camera-relative emitter. */
 export const receivingZone = (camera: CameraConfiguration, family: ShotFamily = 'groundstroke'): LandingZone =>
-  nearZone(camera.lateral, ['volley', 'overhead'].includes(family) ? -8.5
+  nearZone(family === 'volley' ? camera.lateral * 1.5 : camera.lateral, ['volley', 'overhead'].includes(family) ? -8.5
     : Math.min(-1.2, -(COURT.halfLength + camera.behindBaseline) + (family === 'half-volley' ? .45 : 3)), 1.2, 1.4);
 export const openingFor = (event: Pick<PlayerShotEventV2, 'camera' | 'ball'>, serve = false): OpeningFeed => ({
   position: { x: serve ? event.camera.lateral > 0 ? -1.25 : 1.25 : 0, z: 12.4 },
@@ -39,8 +39,9 @@ export const openingFor = (event: Pick<PlayerShotEventV2, 'camera' | 'ball'>, se
     // Overhead launches are still groundstroke feeds with an intentionally high arc.
     family: serve ? 'serve' : 'groundstroke',
     netClearanceM: event.ball.family === 'overhead' ? 3.2 : serve ? .18 : .25,
+    ...(!serve && event.ball.family === 'volley' ? { paceKmh: 90, spin: 'flat' as const, spinRateRpm: 120, netClearanceM: .12 } : {}),
     variationPercent: 0 },
-  landingZone: serve ? resolveLandingZone({ x: event.camera.lateral > 0 ? 2.5 : -2.5, z: -4.8 },
+  landingZone: serve ? resolveLandingZone({ x: event.camera.lateral > 0 ? 1.9 : -1.9, z: -4.8 },
     { width: .7, depth: .8 }, 'serve', { x: event.camera.lateral > 0 ? -1.25 : 1.25 })
     : receivingZone(event.camera, event.ball.family),
 });
@@ -56,14 +57,14 @@ const specs: readonly ShotSpec[] = [
   ['bh-cross-high', 'Heavy backhand crosscourt', 'groundstroke', 'backhand', 2.2, -12.1, -2.4, 9],
   ['bh-line-deep', 'Backhand down the line', 'groundstroke', 'backhand', 2.2, -12.1, 2.6, 9.3],
   ['body-neutral', 'Neutral ball through the middle', 'groundstroke', 'forehand', 0, -12.1, 0, 9],
-  ['short-angle-left', 'Short angle left', 'groundstroke', 'forehand', -2, -9, 3.3, 4.5],
-  ['short-angle-right', 'Short angle right', 'groundstroke', 'backhand', 2, -9, -3.3, 4.5],
+  ['short-angle-left', 'Short angle left', 'groundstroke', 'forehand', -2, -9, 2.7, 5.3],
+  ['short-angle-right', 'Short angle right', 'groundstroke', 'backhand', 2, -9, -2.7, 5.3],
   ['defensive-high-left', 'High defensive crosscourt', 'groundstroke', 'forehand', -2.5, -12.5, 2.5, 9.7],
   ['slice-low-right', 'Backhand slice down the line', 'groundstroke', 'backhand', 2.1, -11.8, 2.4, 8.6],
   ['approach-feed', 'Forehand approach down the line', 'approach', 'forehand', -1.8, -8, -2.4, 9.3],
   ['half-volley-body', 'Half-volley through the middle', 'half-volley', 'forehand', 0, -6.5, 0, 8.5],
-  ['volley-left', 'Forehand volley crosscourt', 'volley', 'forehand', -1.6, -4.3, 2.7, 7],
-  ['volley-right', 'Backhand volley crosscourt', 'volley', 'backhand', 1.6, -3.8, -2.7, 7],
+  ['volley-left', 'Forehand volley crosscourt', 'volley', 'forehand', -1.6, -4.3, 1.5, 9.3],
+  ['volley-right', 'Backhand volley crosscourt', 'volley', 'backhand', 1.6, -3.8, -1.5, 9.3],
   ['lob-deep', 'Defensive lob', 'lob', 'backhand', 1.2, -10, -1.2, 10.1],
   ['overhead-feed', 'Overhead into the open court', 'overhead', 'forehand', -.8, -5.5, 2, 9],
   ['drop-shot-short', 'Forehand drop shot', 'drop-shot', 'forehand', -1.6, -8, 1.8, 2.8],
@@ -74,7 +75,8 @@ export type PlayerShotPreset = Readonly<{ id: string; name: string; event: Playe
 export const PLAYER_SHOTS: readonly PlayerShotPreset[] = specs.map(([id, name, family, stroke, x, z, targetX, targetZ]) => {
   const camera = cameraForShot(x, z), ball = { ...ballDefaults(family), stroke };
   return { id, name, event: { id: `preset-${id}`, presetId: id, label: name, cue: name.toUpperCase(), camera,
-    ball: id === 'slice-low-right' ? { ...ball, spin: 'slice', spinRateRpm: 1253 } : ball,
+    ball: id === 'slice-low-right' ? { ...ball, spin: 'slice', spinRateRpm: 1253 }
+      : id.startsWith('short-angle') ? { ...ball, paceKmh: 60 } : ball,
     landingZone: farZone(targetX, targetZ), opponentReturn: { ball: ballDefaults(), landingZone: receivingZone(camera, family) } } };
 });
 export const PLAYER_SHOT_BY_ID = new Map(PLAYER_SHOTS.map(shot => [shot.id, shot]));

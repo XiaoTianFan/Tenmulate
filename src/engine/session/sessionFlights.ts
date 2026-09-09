@@ -3,6 +3,9 @@ import type { ResolvedTrajectory } from '../trajectory/physics';
 
 export type SessionFlight = Readonly<{trajectory:ResolvedTrajectory;time:number;phase:'outgoing'|'return';index:number}>;
 export function sessionFlights(session:CompiledSession,time:number):SessionFlight[] {
+  if (session.scheduledFlights) return session.scheduledFlights.filter(flight => time >= flight.startTime && time < flight.endTime - 1e-8)
+    .map(flight => ({ trajectory: flight.trajectory, time: time - flight.startTime,
+      phase: flight.owner === 'player' ? 'return' as const : 'outgoing' as const, index: flight.eventIndex }));
   const flights:SessionFlight[]=[];
   for(const rep of session.repetitions){
     const age=time-rep.startTime,rally=rep.rallyReturn;
