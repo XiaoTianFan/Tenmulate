@@ -2,12 +2,37 @@
 
 - **Status:** Active
 - **Last updated:** 2026-09-09
-- **Current implementation:** Direct court editing, working opening/player camera gestures, physical Quick Rally returns and independently configurable player/opponent bounce-contact timing for rallies and drills, defaulting to early descent. Player-first planning retains separate opponent openings, camera-anchored player contacts and independent opponent responses. Six Blender-authored venues and twelve Quality/Performance GLBs remain active; audiences default to Half.
+- **Current implementation:** Direct court editing, working opening/player camera gestures, neutral-spin-first groundstroke fitting and physical Quick Rally returns with independently configurable player/opponent bounce-contact timing, defaulting to early descent. Player-first planning retains separate opponent openings, camera-anchored player contacts and independent opponent responses. Six Blender-authored venues and twelve Quality/Performance GLBs remain active; audiences default to Half.
 - **Previous venue integration:** Source/assets `25e363b`, runtime `18141c5` and verification `d1a916a` were fast-forwarded into `main`, preserving separately committed local-motion work `b2a082e`. All twelve local feature tips were included at this integration checkpoint; see the [branch audit](feature-branch-integration-2026-09-05.md). No remote push or deployment.
 
 **Motion/model integration checkpoint (2026-09-07):** Local `main` includes all 17 motion/model feature commits plus delivery/documentation reconciliation through `a9ba202`: all 24 clips, the 1.88 m articulated model, recovery planning, crossovers and both serve rhythms. No local feature tip remains unmerged. The 237-test suite, production build, active-asset/cache guard, both-hand gameplay/crossover checks and actual production-browser practice review pass. The [current motion contract](local-motion-pipeline.md) replaces competing “latest” descriptions below; the [integration receipt](motion-main-integration-2026-09-07.md) records the exact merge, evidence and remaining owner/device gates. Older stage counts and asset hashes below are historical evidence, not active selectors. No public deployment occurred.
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
+
+## Neutral groundstrokes and connected returns — 2026-09-09
+
+Natural groundstrokes now explore neutral spin at the requested pace before a
+joint pace/spin fit. Flat allows zero spin. Both court directions share the same
+adapter and contact-aware solver; rally timing no longer selects a slower, higher
+return merely to fill an interval. Physical receiving windows and opponent travel
+are considered during fitting. Existing zones, camera positions and selected
+contact phases remain. Explicit high shots and Exact settings retain their meaning.
+
+Primary-source research and an independent RK4 check found no reason to alter
+gravity or drag. The [research and verification receipt](groundstroke-flight-research-2026-09-09.md)
+distinguishes first-bounce distance, contact-to-contact distance and launch versus
+average flight speed. [ADR-0040](../decisions/0040-neutral-groundstrokes-and-contact-fitting.md)
+supersedes the older spin floor and interval-filling selection documented below.
+Tooltip readings now identify each ball and distinguish height above court from
+clearance above the tape.
+
+All **495 tests / 46 files**, the production build and active motion/cache guard
+pass. Twelve reproduced Quick Rally cases complete, with maximum player clearance
+reduced from 5.01 m to at most 1.35 m across the matrix. All 16 bundled drills
+connect. Thirteen isolated production Edge checks cover playback, edits, both
+tooltip paths, persistence and mobile layout; viewed renders show lower arcs at
+the same landing targets. No runtime or WebGL errors. This is local verification,
+not public deployment or a measured real-player calibration.
 
 ## Player and opponent contact timing — 2026-09-09
 

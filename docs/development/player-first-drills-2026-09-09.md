@@ -73,10 +73,14 @@ cannot switch either choice to an earlier phase or retime a flight.
 
 Quick Rally uses the same helper, with player timing in the blue return settings
 and opponent timing in Ball & rhythm. Its bounded search deduplicates player contact
-samples within 0.1 seconds to avoid fitting nearly identical trajectories. Motion
-rates, camera travel and contact feasibility are checked after physical candidates
-are available. Impossible combinations name contact timing among the settings to
-adjust, and the resolved interval still reports a physical timing limit.
+samples within 0.1 seconds to avoid fitting nearly identical trajectories. The
+shared resolver also considers receiving contacts and, when necessary, movement
+feasibility while selecting the physical flight. It tries neutral spin at the
+requested pace before changing pace; outer groundstroke searches cannot lower
+pace merely to fill an interval. The full motion-rate fit uses the chosen real
+contact. Remaining impossible combinations report their physical limit; zones,
+cameras and selected phases are not silently moved. See [ADR-0040](../decisions/0040-neutral-groundstrokes-and-contact-fitting.md)
+and the [research receipt](groundstroke-flight-research-2026-09-09.md).
 
 Generated receiving zones account for the requested phase, racket side and the
 incoming crosscourt direction's continued movement after the bounce. Default
