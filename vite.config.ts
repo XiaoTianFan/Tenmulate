@@ -3,10 +3,12 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import opponentMotion from './src/content/opponent-motion.json' with { type: 'json' };
 import { projectDrillsPlugin } from './server/projectDrills';
+import { projectShotsPlugin } from './server/projectShots';
 
 export default defineConfig({
   plugins: [
     projectDrillsPlugin(),
+    projectShotsPlugin(),
     react(),
     VitePWA({
       registerType: 'autoUpdate',
