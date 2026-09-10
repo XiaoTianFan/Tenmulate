@@ -9,6 +9,23 @@
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
+## Calibrated natural bounce — 2026-09-11
+
+Player and opponent balls now share an impact-speed/angle dependent bounce model
+with deformable-ball grip and spin response. The factor-1 hard reference drop
+improves from 1.059 m to 1.398 m (2.54 m drop, heights to the ball bottom). Natural
+flat/topspin/slice regression rebounds increase by about 60% without changing their
+launch or first landing. Quick Rally now uses the same five-metre run-back contact
+space as drills, preserving selected bounce phase and physical movement limits.
+
+**565 tests / 53 files** are verified, including the new physics benchmarks, all
+shipped drills and both-hand post-IK timing. Production build and active motion
+guard pass. Actual renderer inspection confirms a 1.505 m return apex followed
+0.15 s later by the descending racket contact at 1.383 m. Solver version:
+`ball-v10-court-bounce`. See [research and limits](ball-bounce-research-2026-09-11.md)
+and [ADR-0046](../decisions/0046-calibrated-court-bounce.md). Local only; no public
+deployment or owner visual acceptance is claimed.
+
 ## Project shot presets, including system defaults — 2026-09-11
 
 The reusable shot library now reads and writes `src/content/project-shots.json`.

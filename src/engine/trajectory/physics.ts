@@ -4,6 +4,8 @@ import type { PracticeShotType } from './practiceProfiles';
 import type { LandingZone } from './landingZone';
 import { GROUNDSTROKE_FLAT_SPIN_PROFILE, GROUNDSTROKE_TOPSPIN_DEFAULT_RPM } from './spinCalibration';
 import { normalizeShotSpin } from '../../domain/shotKinds';
+import { resolveCourtBounce, SURFACE_PROFILES } from './courtBounce';
+export { SURFACE_PROFILES, type SurfaceProfile } from './courtBounce';
 
 const GRAVITY = vec3(0, -9.81, 0);
 const FIXED_STEP = 1 / 240;
@@ -14,8 +16,6 @@ const DRAG_COEFFICIENT = 0.55;
 const LIFT_COEFFICIENT_SLOPE = 0.6;
 const MAX_LIFT_COEFFICIENT = 0.35;
 const SPIN_DECAY_PER_M = -Math.log(0.98) / 6.4;
-const BALL_INERTIA_FACTOR = 0.55;
-const CONTACT_VELOCITY_COUPLING = BALL_INERTIA_FACTOR / (1 + BALL_INERTIA_FACTOR);
 const AERODYNAMIC_ACCELERATION_FACTOR = 0.5 * AIR_DENSITY_KG_M3 * BALL_AREA_M2 / BALL_MASS_KG;
 const MAX_SIMULATION_SECONDS = 10;
 export const POST_BOUNCE_SIMULATION_SECONDS = 3;
@@ -23,19 +23,6 @@ export const POST_BOUNCE_SIMULATION_SECONDS = 3;
 export const GROUNDSTROKE_SOFT_NET_CLEARANCE_M = 3.5;
 
 export type SpinKind = 'flat' | 'topspin' | 'slice' | 'kick' | 'sidespin';
-
-export type SurfaceProfile = Readonly<{
-  id: SurfaceId;
-  normalRestitution: number;
-  friction: number;
-  rollingResistance: number;
-}>;
-
-export const SURFACE_PROFILES: Record<SurfaceId, SurfaceProfile> = {
-  hard: { id: 'hard', normalRestitution: 0.67, friction: 0.56, rollingResistance: 1.8 },
-  clay: { id: 'clay', normalRestitution: 0.71, friction: 0.68, rollingResistance: 2.2 },
-  grass: { id: 'grass', normalRestitution: 0.60, friction: 0.42, rollingResistance: 1.45 },
-};
 
 export type ShotIntent = Readonly<{
   source: Vec3;
@@ -709,34 +696,10 @@ export const integrateTrajectory = (intent: ShotIntent, launchVelocity: Vec3, st
       bounceCount += 1;
       const preBounceSpeed = magnitude(velocity) * 3.6;
       position = vec3(position.x, COURT.ballRadius, position.z);
-      const normalImpactSpeed = -velocity.y;
-      const speedCorrection = Math.min(1.04, Math.max(0.82, 1.04 - Math.max(0, normalImpactSpeed - 4) * 0.012));
-      const effectiveRestitution = surface.normalRestitution * speedCorrection;
-      const practiceBounceFactor = firstGroundContact
-        ? Math.min(1.4, Math.max(0.6, intent.bounceFactor ?? 1))
-        : 1;
-      const reboundSpeed = normalImpactSpeed * effectiveRestitution * practiceBounceFactor;
-      const contactVelocityX = velocity.x + COURT.ballRadius * spin.z;
-      const contactVelocityZ = velocity.z - COURT.ballRadius * spin.x;
-      const requiredDeltaX = -contactVelocityX * CONTACT_VELOCITY_COUPLING;
-      const requiredDeltaZ = -contactVelocityZ * CONTACT_VELOCITY_COUPLING;
-      const requiredDelta = Math.hypot(requiredDeltaX, requiredDeltaZ);
-      const maximumFrictionDelta = surface.friction * (1 + effectiveRestitution) * normalImpactSpeed;
-      const frictionScale = requiredDelta > maximumFrictionDelta && requiredDelta > 0
-        ? maximumFrictionDelta / requiredDelta
-        : 1;
-      const deltaVelocityX = requiredDeltaX * frictionScale;
-      const deltaVelocityZ = requiredDeltaZ * frictionScale;
-      velocity = vec3(
-        velocity.x + deltaVelocityX,
-        reboundSpeed,
-        velocity.z + deltaVelocityZ,
-      );
-      spin = vec3(
-        spin.x - deltaVelocityZ / (BALL_INERTIA_FACTOR * COURT.ballRadius),
-        spin.y,
-        spin.z + deltaVelocityX / (BALL_INERTIA_FACTOR * COURT.ballRadius),
-      );
+      const impact = resolveCourtBounce(velocity, spin, surface, firstGroundContact ? intent.bounceFactor ?? 1 : 1);
+      velocity = impact.velocity;
+      spin = impact.spin;
+      const reboundSpeed = velocity.y;
       bounced = true;
       if (firstGroundContact) {
         firstBounceTime = time;

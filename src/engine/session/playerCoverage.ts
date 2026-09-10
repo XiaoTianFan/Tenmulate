@@ -9,6 +9,8 @@ export const PLAYER_COVERAGE = Object.freeze({ heightM: 1.75, reactionSeconds: .
   acceleration: 5.5, speedMps: 4.5, racketReachM: 1.05, minContactM: .25,
   maxContactM: 2.65, displayAllowance: 1.12 });
 export type PlayerPosition = Readonly<{ x: number; z: number; yaw?: number }>;
+/** Shared playable contact space, including run-off behind a deep bounce. */
+export const CONTACT_COURT_LIMITS = Object.freeze({ halfWidth: COURT.singlesWidth / 2 + 2.5, halfLength: COURT.halfLength + 5 });
 export type PlayerPath = PlayerPosition | ((time:number)=>PlayerPosition);
 export const playerAt = (player:PlayerPath,time:number):PlayerPosition => typeof player==='function'?player(time):player;
 export type Reachability = Readonly<{
@@ -35,7 +37,7 @@ export const legalReturnContacts = (trajectory: ResolvedTrajectory): readonly Fl
     && (!serve || s.bounced)
     && (!s.bounced || legalBounce)
     && s.position.y >= PLAYER_COVERAGE.minContactM && s.position.y <= PLAYER_COVERAGE.maxContactM
-    && Math.abs(s.position.x) <= COURT.singlesWidth / 2 + 2.5 && s.position.z >= -COURT.halfLength - 5);
+    && Math.abs(s.position.x) <= CONTACT_COURT_LIMITS.halfWidth && s.position.z >= -CONTACT_COURT_LIMITS.halfLength);
 };
 export const reachableContacts = (trajectory: ResolvedTrajectory, player: PlayerPath): readonly FlightSample[] =>
   legalReturnContacts(trajectory).filter(s => Math.hypot(s.position.x - playerAt(player,s.time).x, s.position.z - playerAt(player,s.time).z)

@@ -6,6 +6,7 @@ import { netHeightAt, type FlightSample, type ResolvedTrajectory } from '../traj
 import { resolveCourtFlight } from './courtFlight';
 import { resolveReturnShot, RETURN_SHOT_PROFILES, returnShotContacts } from './returnShot';
 import { bounceContactCost, bounceContactPreference, contactsForTiming } from './bounceContact';
+import { CONTACT_COURT_LIMITS } from './playerCoverage';
 export type RallyReturn = Readonly<{ trajectory: ResolvedTrajectory; contactTime: number;
   duration: number; contactErrorM: number; speedRatio: number }>;
 
@@ -53,7 +54,7 @@ export function returnPlanCandidates(incoming: ResolvedTrajectory, family: ShotF
         || bounce.position.z < zone.minZ - .04 || bounce.position.z > zone.maxZ + .04) return [];
       const end = flight.events.find(e => e.type === 'second-bounce')?.time ?? Infinity;
       const eligible = (s: FlightSample) => s.time > net.time && s.time < end && s.position.z > .3
-        && s.position.z < COURT.halfLength + 3 && Math.abs(s.position.x) < COURT.singlesWidth / 2 + 1.5
+        && s.position.z <= CONTACT_COURT_LIMITS.halfLength && Math.abs(s.position.x) <= CONTACT_COURT_LIMITS.halfWidth
         && (family === 'volley' ? !s.bounced && s.position.z < COURT.serviceLineFromNet && s.position.y >= .65 && s.position.y <= 1.75
           : family === 'overhead' ? !s.bounced && s.position.y >= 1.8 && s.position.y <= 2.65
           : s.bounced && s.position.y >= (family === 'half-volley' ? .25 : .65) && s.position.y <= (family === 'half-volley' ? .8 : 1.5));

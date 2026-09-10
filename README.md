@@ -56,6 +56,10 @@ Quick Rally and drill shots independently choose player/opponent contact timing:
 on the rise, at the apex, or early descent (the default). The interval solver fits
 within that phase; it does not switch to a quick rebound to meet a short interval.
 Volleys/overheads stay in the air and half-volleys stay just after the bounce.
+Bounce factor **1.0** uses the shared calibrated court response for both players:
+the hard reference passes the standard ball-drop range, and angled impacts retain
+more rebound height while accounting for court grip and spin. See the
+[bounce calibration and limits](docs/development/ball-bounce-research-2026-09-11.md).
 Calculation runs in a cancellable worker. Impossible links are reported before
 playback. Old drills convert by physical role and original browser data is retained.
 See the [player-first drill contract and verification](docs/development/player-first-drills-2026-09-09.md).
