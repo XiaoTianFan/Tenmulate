@@ -36,8 +36,14 @@ edits your blue landing zone on the far court and the opponent's yellow return
 zone for your next shot. Each event owns both balls' settings and your camera
 position; the opponent meets the physical player flight automatically.
 Drop shots, volleys and overheads are available; kick/sidespin are serve-only.
-New/update presets retain both balls, zones, camera and timing. Playback follows
-the opponent while accelerating and braking between your configured shot views.
+New/update presets retain both balls, zones, camera and timing.
+**Save new shot** and **Update existing saved shot** write
+`src/content/project-shots.json`, including updates to system default shots. The
+overwrite dialog lists every library shot and selects the current preset when
+known. Later timeline additions use the updated project preset; events already
+placed in drills retain their own settings. Older browser-only presets remain
+available to save into the project. See the [shot saving guide](docs/development/project-shot-saving.md).
+Playback follows the opponent while accelerating and braking between your configured shot views.
 Select the narrow **camera event between shots** to configure movement and focus
 independently. Keep Automatic, recover to neutral, travel directly, or stop at a
 custom position. Choose departure/continuation timing and separate focus targets

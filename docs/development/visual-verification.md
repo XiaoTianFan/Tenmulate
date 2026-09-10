@@ -3,6 +3,23 @@
 - **Purpose:** Record concept-to-browser inspection after every implementation stage
 - **Reference viewport:** 1920 × 1080 unless stated otherwise
 
+## Project shot saving — 2026-09-11
+
+The isolated production preview at 127.0.0.1:5174 shows all 21 default shots in the
+update dialog, with `fh-cross-deep` selected from the active event. Changing its
+speed to 69 km/h and contact phase to apex, overwriting, reloading and adding it
+again retains both values. Direct disk readback confirms the same ID and settings.
+The real project catalog remains at its original values. A new custom shot and an
+explicit overwrite of another default also appear immediately in the library.
+
+Duplicate names disable an incompatible explicit overwrite. Advancing the catalog
+revision while the dialog is open causes a stale-save error that preserves the
+selected slot and settings; retry succeeds after refresh. Cancel dismisses the
+modal. The 1280×720 screenshot fits; at 390×844 the dialog bounds are x=24, width=334,
+y=134, height=576, within the viewport without horizontal overflow. The app renders
+its actual court with no framework overlay or uncaught application errors. One
+Three.js shader precision warning was observed; it is unrelated to shot saving.
+
 ## Opponent reception and bounce-contact timing — 2026-09-10
 
 The actual Three.js scene and active rig were inspected at eighteen checkpoints:

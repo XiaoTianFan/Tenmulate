@@ -2,25 +2,31 @@ import { useEffect, useRef, useState } from 'react';
 import { isPlayerSavedShot, validatePlayerEvent } from '../content/playerValidation';
 import type { OpponentHand, PlayerShotEventV2, SavedShotV2 } from '../content/types';
 import { Modal } from './Modal';
+import { shotNameKey } from '../storage/projectShots';
 
 type Props = {
   mode: 'new' | 'update';
   event: PlayerShotEventV2;
   playerHand: OpponentHand;
   savedShots: readonly SavedShotV2[];
-  onSave: (shot: SavedShotV2) => void;
-  onDelete: (id: string) => void;
+  writable: boolean; projectStatus: string; projectShotIds: readonly string[];
+  onSave: (shot: SavedShotV2, targetId?: string) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
   onClose: () => void;
 };
 
-export function SavedShotModal({ mode: initialMode, event, playerHand, savedShots, onSave, onDelete, onClose }: Props) {
+export function SavedShotModal({ mode: initialMode, event, playerHand, savedShots, writable, projectStatus, projectShotIds, onSave, onDelete, onClose }: Props) {
+  const initialSlot = savedShots.find(shot => shot.id === event.presetId) ?? savedShots.find(shot => shotNameKey(shot.name) === shotNameKey(event.label));
   const [mode, setMode] = useState(initialMode);
-  const [slotId, setSlotId] = useState('');
-  const [name, setName] = useState(initialMode === 'new' ? event.label : '');
+  const [slotId, setSlotId] = useState(initialSlot?.id ?? '');
+  const [name, setName] = useState(initialMode === 'new' ? event.label : initialSlot?.name ?? '');
+  const [busy, setBusy] = useState(false), [failure, setFailure] = useState('');
+  const dismiss = () => { if (!busy) onClose(); };
   const body = useRef<HTMLDivElement>(null);
   const close = useRef(onClose);
-  close.current = onClose;
-  const slot = savedShots.find(shot => shot.id === slotId);
+  close.current = dismiss;
+  const slot = mode === 'update' ? savedShots.find(shot => shot.id === slotId) : undefined;
+  const named = savedShots.find(shot => shotNameKey(shot.name) === shotNameKey(name));
   const empty = mode === 'update' && !savedShots.length;
   const errors: string[] = [];
   validatePlayerEvent(event, 'Selected shot', errors);
@@ -28,7 +34,18 @@ export function SavedShotModal({ mode: initialMode, event, playerHand, savedShot
     schemaVersion: 2, playerHand, id: mode === 'update' ? slotId : 'new-shot',
     name: name.trim(), event: { ...event, label: name.trim() },
   };
-  const canSave = (mode === 'new' || !!slot) && isPlayerSavedShot(candidate);
+  const collision = mode === 'update' && slot && named && named.id !== slot.id;
+  const canSave = writable && !busy && !collision && (mode === 'new' || !!slot) && isPlayerSavedShot(candidate);
+  const act = async (operation: 'save' | 'delete') => {
+    if (busy) return;
+    setBusy(true); setFailure('');
+    try {
+      if (operation === 'delete' && slot) await onDelete(slot.id);
+      else if (canSave) await onSave({ ...candidate, id: mode === 'update' ? slotId : `shot-${crypto.randomUUID()}` },
+        slot && projectShotIds.includes(slot.id) ? slot.id : undefined);
+    } catch (error) { setFailure(error instanceof Error ? error.message : 'Project save failed. Your shot settings are retained.'); }
+    finally { setBusy(false); }
+  };
 
   useEffect(() => {
     const dialog = body.current?.closest<HTMLElement>('[role="dialog"]');
@@ -50,29 +67,33 @@ export function SavedShotModal({ mode: initialMode, event, playerHand, savedShot
     (dialog?.querySelector<HTMLElement>('select, input:not(:disabled)') ?? dialog?.querySelector<HTMLElement>('button'))?.focus();
   }, [mode]);
 
-  return <Modal title={mode === 'update' ? 'Update existing saved shot' : 'Save new shot'} onClose={onClose} actions={<>
-    <button type="button" className="secondary-button" onClick={onClose}>Cancel</button>
+  return <Modal title={mode === 'update' ? 'Update project shot' : 'Save new shot to project'} onClose={dismiss} actions={<>
+    <button type="button" className="secondary-button" disabled={busy} onClick={dismiss}>Cancel</button>
     {empty ? <button type="button" className="primary-button inline" onClick={() => { setMode('new'); setName(event.label); }}>Save new shot</button>
-      : <button type="button" className="primary-button inline" disabled={!canSave} onClick={() => {
-        if (canSave) onSave({ ...candidate, id: mode === 'update' ? slotId : `shot-${crypto.randomUUID()}` });
-      }}>{mode === 'update' ? 'Overwrite saved shot' : 'Save new shot'}</button>}
+      : <button type="button" className="primary-button inline" disabled={!canSave} onClick={() => void act('save')}>
+        {busy ? 'Saving…' : mode === 'update' || named ? 'Overwrite project shot' : 'Save to project'}</button>}
   </>}>
     <div ref={body}>
-      {empty ? <p>No saved shots yet. Save a new shot to create your first slot.</p> : <>
-        {mode === 'update' ? <label className="stack-field"><span>Saved shot to overwrite</span>
-          <select aria-label="Saved shot to overwrite" value={slotId} onChange={e => {
+      <p className="project-save-status" role="status">{projectStatus}</p>
+      {empty ? <p>The shot library is empty. Save a new shot to create your first slot.</p> : <>
+        {mode === 'update' ? <label className="stack-field"><span>Shot to overwrite</span>
+          <select aria-label="Shot to overwrite" disabled={busy} value={slotId} onChange={e => {
             setSlotId(e.target.value);
             setName(savedShots.find(shot => shot.id === e.target.value)?.name ?? '');
+            setFailure('');
           }}>
-            <option value="" disabled>Choose a saved shot…</option>
+            <option value="" disabled>Choose a library shot…</option>
             {savedShots.map(shot => <option key={shot.id} value={shot.id}>{shot.name}</option>)}
           </select>
         </label> : null}
-        <label className="stack-field"><span>Preset name</span><input maxLength={60} disabled={mode === 'update' && !slot} value={name} onChange={e => setName(e.target.value)}/></label>
-        <p>{slot ? <>Replace “{slot.name}” with the current shot's settings.</> : 'Save the current shot and its settings.'} Includes both balls, landing zones, contact camera, camera transition, timing and opponent settings.</p>
-        {slot ? <button type="button" className="secondary-button" onClick={() => onDelete(slot.id)}>Delete saved shot</button> : null}
+        <label className="stack-field"><span>Preset name</span><input maxLength={60} disabled={busy || mode === 'update' && !slot} value={name} onChange={e => setName(e.target.value)}/></label>
+        <p>{slot || named ? <>Replace “{(slot ?? named)!.name}” in the project with the current shot's settings.</> : 'Save the current shot to the project.'} Includes both balls, landing zones, contact camera, camera transition, timing and opponent settings.</p>
+        <p>Future timeline additions use this preset. Shots already placed in drills keep their own settings.</p>
+        {collision ? <p className="validation-errors" role="alert">Another shot uses this name. Choose a different name or select that shot to overwrite.</p> : null}
+        {slot ? <button type="button" className="secondary-button" disabled={busy || !writable} onClick={() => void act('delete')}>Delete shot</button> : null}
       </>}
       {errors.length ? <ul className="validation-errors" role="alert">{errors.map(error => <li key={error}>{error}</li>)}</ul> : null}
+      {failure ? <p className="validation-errors" role="alert">{failure}</p> : null}
     </div>
   </Modal>;
 }

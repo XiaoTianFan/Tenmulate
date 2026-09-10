@@ -14,6 +14,8 @@ import { appStorageNotice } from '../storage/appStorage';
 import { useProjectDrills } from '../hooks/useProjectDrills';
 import { createEditorDraftCache, reconcileEditorDraft, type EditorDraft } from '../storage/editorDrafts';
 import { mergeBrowserDrills } from '../storage/projectCatalog';
+import { useProjectShots } from '../hooks/useProjectShots';
+import { mergeBrowserShots } from '../storage/projectShots';
 
 const SetupScreen = lazy(() => import('../components/SetupScreen').then(module => ({ default: module.SetupScreen })));
 const RehearsalScreen = lazy(() => import('../components/RehearsalScreen').then(module => ({ default: module.RehearsalScreen })));
@@ -28,6 +30,7 @@ export function App() {
 }
 function AppRoutes({ appData }: { appData: ReturnType<typeof useAppData> }) {
   const project = useProjectDrills();
+  const projectShots = useProjectShots();
   const [drafts] = useState(() => {
     try { return createEditorDraftCache(window.localStorage); } catch { return createEditorDraftCache(); }
   });
@@ -46,6 +49,7 @@ function AppRoutes({ appData }: { appData: ReturnType<typeof useAppData> }) {
   const navigate = (next: AppRoute) => {
     drafts.flush();
     if (next === 'editor') {
+      void projectShots.refresh();
       const active = drafts.active();
       if (active) { const restored = reconcileEditorDraft(active, project.drills.find(drill => drill.id === active.drill.id)); drafts.put(restored); setEditorDrill(restored.drill); }
     }
@@ -84,7 +88,9 @@ function AppRoutes({ appData }: { appData: ReturnType<typeof useAppData> }) {
         onDelete={async id => { if (project.drills.some(drill => drill.id === id)) await project.remove(id); appData.deleteDrill(id); drafts.remove(id); }}/>
       : route === 'editor' ? <DrillEditorScreen key={editorDrill.id} route={route} initialDrill={editorDrill} initialPlayerHand={appData.data.drillPlayerHand} onPlayerHandChange={appData.saveDrillPlayerHand} surface={appData.data.preferences.surface}
         initialDraft={drafts.get(editorDrill.id)} onDraftChange={cacheDraft} writable={project.writable} projectStatus={project.status}
-        savedShots={appData.data.savedShots} onSaveShot={appData.saveShot} onDeleteShot={appData.deleteShot} onRoute={navigate}
+        savedShots={mergeBrowserShots(projectShots.shots, appData.data.savedShots)} shotsWritable={projectShots.writable} shotsStatus={projectShots.status}
+        projectShotIds={projectShots.shots.map(shot => shot.id)} onSaveShot={projectShots.save}
+        onDeleteShot={async id => { if (projectShots.shots.some(shot => shot.id === id)) await projectShots.remove(id); appData.deleteShot(id); }} onRoute={navigate}
         onSave={project.save} onTest={drill => { void drillLaunch(drill); }}/>
       : <SetupScreen route={route} cameraPositionPresets={appData.data.cameraPositionPresets} perspectivePresets={appData.data.perspectivePresets}
         initialPreferences={appData.data.preferences} onRoute={navigate} onStart={setLaunch} onSaveCameraPositionPreset={appData.saveCameraPositionPreset}

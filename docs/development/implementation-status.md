@@ -1,13 +1,30 @@
 # V1 implementation status
 
 - **Status:** Active
-- **Last updated:** 2026-09-10
+- **Last updated:** 2026-09-11
 - **Current implementation:** Drills save to a shared project JSON catalog, with direct editing, same-name overwrites and separate per-drill recovery across navigation, reload and test playback. The library uses a list and right inspector with bottom create/import actions. Player-first drills retain independently configurable camera movement, timing and focus, direct court editing, neutral-spin-first groundstroke fitting and independent bounce-contact timing. Six Blender-authored venues and twelve Quality/Performance GLBs remain active; audiences default to Half.
 - **Previous venue integration:** Source/assets `25e363b`, runtime `18141c5` and verification `d1a916a` were fast-forwarded into `main`, preserving separately committed local-motion work `b2a082e`. All twelve local feature tips were included at this integration checkpoint; see the [branch audit](feature-branch-integration-2026-09-05.md). No remote push or deployment.
 
 **Motion/model integration checkpoint (2026-09-07):** Local `main` includes all 17 motion/model feature commits plus delivery/documentation reconciliation through `a9ba202`: all 24 clips, the 1.88 m articulated model, recovery planning, crossovers and both serve rhythms. No local feature tip remains unmerged. The 237-test suite, production build, active-asset/cache guard, both-hand gameplay/crossover checks and actual production-browser practice review pass. The [current motion contract](local-motion-pipeline.md) replaces competing “latest” descriptions below; the [integration receipt](motion-main-integration-2026-09-07.md) records the exact merge, evidence and remaining owner/device gates. Older stage counts and asset hashes below are historical evidence, not active selectors. No public deployment occurred.
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
+
+## Project shot presets, including system defaults — 2026-09-11
+
+The reusable shot library now reads and writes `src/content/project-shots.json`.
+The update dialog includes every default/custom library slot and retains stable
+preset identity. New and overwrite saves wait for disk acknowledgment; stale or
+failed writes retain the modal and edits. Timeline additions use the latest project
+preset, while existing authored events remain independent. Unmatched browser-only
+presets remain recoverable for explicit project saving.
+
+All **559 tests / 52 files**, production build and active motion/cache guard pass.
+Rendered checks on an isolated production preview verify default overwrite, new
+shots, reload/reuse, explicit slot selection, duplicate-name rejection and stale
+save/retry. Desktop 1280×720 and mobile 390×844 modal geometry fit. The actual
+project catalog retains its seeded values; QA writes only a temporary catalog.
+See the [saving guide](project-shot-saving.md) and
+[ADR-0045](../decisions/0045-project-shot-catalog.md).
 
 ## Contact-anchored opponent reception — 2026-09-10
 
