@@ -20,6 +20,7 @@ import type { CameraConfiguration } from '../rendering/TennisScene';
 import { cameraTravelSeconds, DEFAULT_DRILL_CAMERA, interpolateCamera, type CameraTimeline, type CameraTransition } from './cameraTimeline';
 import { DEFAULT_RETURN_LANDING_ZONE } from './returnLandingZone';
 import { finishReturn, returnPlanCandidates, type RallyReturn } from './returnFlight';
+import { incomingContact } from './bounceContact';
 import type { Vec3 } from '../../domain/vector';
 import {
   RETURN_SERVE_PATTERN,
@@ -93,7 +94,7 @@ export type CompiledSession = Readonly<{
   /** Prepared off-thread so mounting a rally never performs a seam solve. */
   previewNext?: Readonly<{ last: CompiledRepetition; next: CompiledSession }>;
   solverVersion: 'ball-v9-neutral-contact-fit';
-  plannerVersion: 'gameplay-return-shots-v11' | 'gameplay-player-drills-v14';
+  plannerVersion: 'gameplay-return-shots-v12' | 'gameplay-player-drills-v15';
   contentVersion: '2026.09.09';
   drill: DrillDefinition;
   settings: SessionSettings;
@@ -310,6 +311,7 @@ export const compileSession = (
       const canMeet = (c: (typeof candidates)[number]) => {
         const a = { ...schedulingPrevious, motionRate: 3, movementRate: 3 };
         const b = withPreparedApproach(a, { ...draft, startTime: a.startTime + c.gap,
+          incomingContact: incomingContact(c.rally.trajectory, c.contact, a.startTime + c.rally.contactTime),
           shot: { ...draft.shot, source: c.source }, motionRate: 3, movementRate: 3 });
         const event = motionEvent(b), travel = mode === 'drill' ? cameraTravelSeconds(a.camera, b.camera, 3) : 0;
         return minimumMotionGap(a, b) <= c.gap + 1e-8
@@ -332,6 +334,7 @@ export const compileSession = (
         const trajectory = resolveTrajectory({ ...draft.trajectory.intent, source: position,
           aimDirectionDeg: aimDirectionToCourtPoint(position, shot.target) }, rally ? flight => acceptsPlayerReturn(flight, settings.rally!.shot) : undefined);
         draft = withPreparedApproach(schedulingPrevious, { ...draft, shot, trajectory, reachability: assessDrillReturn(trajectory),
+          incomingContact: candidate ? incomingContact(candidate.rally.trajectory, candidate.contact, previous.startTime + candidate.rally.contactTime) : undefined,
           startTime: previous.startTime + (candidate?.gap ?? requestedGap) });
       }
       if (candidate) {
@@ -350,6 +353,14 @@ export const compileSession = (
     // Rests are intentional pauses. Otherwise search rates before relaxing the
     // requested interval; speed/trajectory fitting stays outside this search.
     const solved=rest?null:solveShotInterval(schedulingPrevious,draft,contactGap,cameraRequirement);
+    if (plannedReturn && solved && solved.gap > contactGap + 1e-7) {
+      // A physical intercept is immutable. Never overwrite an infeasible motion
+      // budget with the earlier ball clock and let playback cut across a leg.
+      repetitions[index - 1] = { ...previous, returnStatus: 'infeasible' };
+      repetitions.splice(index);
+      planningIssues.push({ index: previous.index, phase: 'response', message: 'This return contact is outside the opponent’s movement limits.' });
+      break;
+    }
     const next=solved?.next??draft;
     if(solved) {
       if(solved.previous.motionRate!==previous.motionRate||solved.previous.movementRate!==previous.movementRate
@@ -395,7 +406,7 @@ export const compileSession = (
 
   return {
     solverVersion: 'ball-v9-neutral-contact-fit',
-    plannerVersion: 'gameplay-return-shots-v11',
+    plannerVersion: 'gameplay-return-shots-v12',
     contentVersion: '2026.09.09',
     drill,
     settings: { ...settings, rhythmPercent, shotIntervalSeconds: interval, movementPercent:movementRate*100, mode },

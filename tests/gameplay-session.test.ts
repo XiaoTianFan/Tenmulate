@@ -35,7 +35,9 @@ describe('mode-aware gameplay planning', () => {
       {id:'b',shotId:'bh-cross-deep',opponentPosition:{x:-3.7,z:12.8}}]};
     const slow=compileSession(drill,{...settings,rhythmPercent:100,shotIntervalSeconds:10});
     const fast=compileSession(drill,{...settings,rhythmPercent:100,shotIntervalSeconds:3});
-    expect(fast.repetitions[0]!.recoveryPolicy).toBe('direct');
+    expect(fast.repetitions[1]!.incomingContact?.phase).toBe('descent');
+    expect(planRecovery(motionEvent(fast.repetitions[0]!),motionEvent(fast.repetitions[1]!)).end)
+      .toBeCloseTo(motionEvent(fast.repetitions[1]!).start,7);
     expect(slow.repetitions[0]!.rallyReturn).toBeDefined();
     expect(slow.repetitions[0]!.timing!.actual).toBeLessThan(10);
     expect(slow.repetitions[0]!.timing!.limited).toBe(true);

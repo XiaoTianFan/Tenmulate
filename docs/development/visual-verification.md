@@ -3,6 +3,17 @@
 - **Purpose:** Record concept-to-browser inspection after every implementation stage
 - **Reference viewport:** 1920 × 1080 unless stated otherwise
 
+## Opponent reception and bounce-contact timing — 2026-09-10
+
+The actual Three.js scene and active rig were inspected at eighteen checkpoints:
+two hands × three contact phases × bounce/apex/contact. Early-descent contact
+occurred at 6.383 s, after the 6.267 s bounce apex, with a visibly lower ball and
+post-IK ball/racket agreement below 0.000002 m. The default receiving split spans
+the player's 4.600 s contact cue; the approach then finishes at prepared entry.
+Continuous-preview joins and backward seeks also pass actual GLTF/rig regressions.
+The rebuilt production preview was reloaded at 1280×720 with existing settings
+preserved. See the [evidence and limits](rally-contact-reception-2026-09-10.md).
+
 ## Project drill library and recovery — 2026-09-10
 
 Thirty-three production Edge checks cover direct editing, per-drill route/reload

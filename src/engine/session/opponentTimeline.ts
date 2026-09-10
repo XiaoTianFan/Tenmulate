@@ -4,6 +4,7 @@ export { MAX_OPPONENT_SPEED } from './opponentMovement';
 import library from '../../content/opponent-motion.json';
 import type { ShotDefinitionV1 } from '../../content/types';
 import type { Vec3 } from '../../domain/vector';
+import type { IncomingContact } from './bounceContact';
 
 export const OPPONENT_MOTION = library;
 export type StrokeId = 'forehand' | 'backhand' | 'forehand-slice' | 'backhand-slice' | 'forehand-volley' | 'backhand-volley' | 'backhand-overhead' | 'serve' | 'serve-compact';
@@ -21,9 +22,11 @@ export type MotionEvent = Readonly<{
   entryTime?: number;
   home?: Vec3; recoveryPolicy?: 'home' | 'auto' | 'recover' | 'direct';
   tossEnabled?: boolean;
+  incomingContact?: IncomingContact;
 }>;
 export type MotionRepetition = Readonly<{ index: number; startTime: number; shot: ShotDefinitionV1;
-  motionRate?: number; movementRate?: number; home?: Vec3; recoveryPolicy?: MotionEvent['recoveryPolicy']; preparedApproach?: boolean }>;
+  motionRate?: number; movementRate?: number; home?: Vec3; recoveryPolicy?: MotionEvent['recoveryPolicy']; preparedApproach?: boolean;
+  incomingContact?: IncomingContact }>;
 
 export const strokeForShot = (shot: ShotDefinitionV1, index: number): StrokeId => {
   if (shot.family === 'serve') return shot.serveRhythm === 'compact' ? 'serve-compact' : 'serve';
@@ -50,7 +53,8 @@ export const motionEvent = (repetition: MotionRepetition): MotionEvent => {
   return { index, clip, entryTime, contactTime: startTime, start: startTime - (metadata.contact! - entryTime) / rate,
     end: startTime + (metadata.duration - metadata.contact!) / rate, rate, yaw, hand: shot.opponentHand,
     root: { x: shot.source.x - local.x, y: 0, z: shot.source.z - local.z }, source: shot.source,
-    movementRate: repetition.movementRate, home: repetition.home, recoveryPolicy: repetition.recoveryPolicy, tossEnabled: shot.family === 'serve' };
+    movementRate: repetition.movementRate, home: repetition.home, recoveryPolicy: repetition.recoveryPolicy, tossEnabled: shot.family === 'serve',
+    incomingContact: repetition.incomingContact };
 };
 
 /** Select an entry only when the planned incoming leg actually travels. */

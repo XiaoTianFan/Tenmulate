@@ -14,10 +14,14 @@ launched practice still uses the finite compiled session. No motion asset change
 
 [ADR-0039](../decisions/0039-direct-court-editing-and-rally-contacts.md) extends
 Quick Rally with continuous physical pseudo-returns. `bounceContact.ts` supplies
-the seeded rise/apex/early-descent preference to both the Quick Rally connector
-and player-first drill planner. Legal contacts, shared recovery feasibility,
-source clocks and rigid contact anchors constrain that preference. A setup-only
-ready pose allows direct body-root placement without editing any source clip.
+the configured rise/apex/early-descent phase to both the Quick Rally connector
+and player-first drill planner. [ADR-0044](../decisions/0044-contact-anchored-opponent-reception.md)
+anchors connected-return recovery, split-step and approach to the player's release
+and the selected physical intercept. The shared planner adapts movement and stroke
+rates, allowing partial recovery or a continuing approach when required, without
+changing the selected phase. Source clocks and rigid contact anchors remain intact.
+A setup-only ready pose allows direct body-root placement without editing any
+source clip. See the [rendered reception receipt](rally-contact-reception-2026-09-10.md).
 
 [ADR-0036](../decisions/0036-independent-return-shot-and-spin.md) adds independently
 configured return styles and an incoming drop-shot family. The planner resolves

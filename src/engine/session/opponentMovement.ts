@@ -6,6 +6,10 @@ import { solveLocomotion } from './locomotion';
 export const MAX_OPPONENT_SPEED = 7.2;
 export const MAX_TRAVEL_ACCELERATION = 12;
 export const SPLIT_SECONDS = .6;
+// A return is read at the player's contact. Land the split just after that cue;
+// this time is independent of the walking cadence and stroke playback rates.
+export const RECEIVE_REACTION_SECONDS = .1;
+export const RECEIVE_SPLIT_SECONDS = .22;
 const clamp = (x:number) => Math.max(0,Math.min(1,x));
 const ease = (x:number) => { x=clamp(x);return x*x*(3-2*x); };
 const mix = (a:number,b:number,t:number) => a+(b-a)*t;
@@ -14,7 +18,8 @@ const distance = (a:Vec3,b:Vec3) => Math.hypot(a.x-b.x,a.z-b.z);
 const yawMix = (a:number,b:number,t:number) => a+Math.atan2(Math.sin(b-a),Math.cos(b-a))*t;
 export type MovementStage = 'recover'|'split'|'approach'|'ready'|'drill';
 export type TravelLeg = Readonly<{from:Vec3;to:Vec3;start:number;end:number;fromYaw:number;toYaw:number;stage:MovementStage;crossover?:boolean;clip?:MotionId;arrival?:MotionEvent}>;
-export type RecoveryPlan = Readonly<{kind:'recovery'|'direct';center:Vec3;recover:TravelLeg;approach:TravelLeg|null;splitStart:number;splitEnd:number;end:number;requiredDuration:number}>;
+export type RecoveryPlan = Readonly<{kind:'recovery'|'direct';center:Vec3;recover:TravelLeg;approach:TravelLeg|null;splitStart:number;splitEnd:number;end:number;requiredDuration:number;
+  reception?: 'react' | 'continue'}>;
 const entrySpec = (event?: MotionEvent) => event?.entryTime ? (library.clips[event.clip] as {preparedEntry?:{time:number;blendSeconds:number}}).preparedEntry : undefined;
 const entryCorrection = (event: MotionEvent, localTime=event.entryTime??0) => {
   const clip=library.clips[event.clip];
@@ -55,8 +60,54 @@ export function planRecovery(previous:MotionEvent,next?:MotionEvent):RecoveryPla
   };
   const serveApproach=next&&previous.clip.startsWith('serve')&&previous.tossEnabled!==false&&next.root.z<previous.root.z-3;
   const approachDuration=(from:Vec3,rate:number,fromYaw:number)=>next?Math.max(legTime(from,next.root,rate,fromYaw,next.yaw),(entrySpec(next)?.blendSeconds??0)/next.rate):0;
+  const canReact = (() => {
+    if (!next?.incomingContact) return false;
+    // Decide at the physical ceiling, not at the preferred walking pace. A
+    // preference must not bypass the reaction cue merely to avoid accelerating.
+    const earliestReady = previous.contactTime + (previous.end - previous.contactTime) * previous.rate / 3;
+    const splitEnd = Math.max(next.incomingContact.releaseTime + RECEIVE_REACTION_SECONDS, earliestReady + RECEIVE_SPLIT_SECONDS);
+    const clip = library.clips[next.clip] as { contact: number; preparedEntry?: { time: number; blendSeconds: number } };
+    const latestArrival = next.contactTime - (clip.contact - (clip.preparedEntry?.time ?? 0)) / 3;
+    for (let step = 20; step >= 0; step--) {
+      const fraction = step / 20, p = point(previous.root, center, fraction), yaw = yawMix(previous.yaw, Math.PI, fraction);
+      const recovery = step ? legTime(previous.root, p, 3, previous.yaw, yaw) : 0;
+      const approach = Math.max(legTime(p, next.root, 3, yaw, next.yaw), (clip.preparedEntry?.blendSeconds ?? 0) / 3);
+      if (recovery <= splitEnd - RECEIVE_SPLIT_SECONDS - earliestReady + 1e-8 && approach <= latestArrival - splitEnd + 1e-8) return true;
+    }
+    return false;
+  })();
+  if (next?.incomingContact && canReact) {
+    const cue = next.incomingContact.releaseTime;
+    const splitEnd = Math.max(cue + RECEIVE_REACTION_SECONDS, previous.end + RECEIVE_SPLIT_SECONDS);
+    const splitStart = splitEnd - RECEIVE_SPLIT_SECONDS;
+    // Recover only as far as the live exchange allows, then read the return.
+    // The old all-or-nothing route either anticipated the target or consumed the
+    // receiving window with a baseline detour. Never move the contact to fit it.
+    let selected = { center: previous.root, yaw: previous.yaw, recovery: 0,
+      approach: approachDuration(previous.root, approachRate, previous.yaw) };
+    for (let step = 20; step > 0; step--) {
+      const fraction = step / 20, p = point(previous.root, center, fraction);
+      const yaw = yawMix(previous.yaw, Math.PI, fraction);
+      const recovery = legTime(previous.root, p, rate, previous.yaw, yaw);
+      const approach = approachDuration(p, approachRate, yaw);
+      if (recovery <= splitStart - previous.end + 1e-8 && approach <= next.start - splitEnd + 1e-8) {
+        selected = { center: p, yaw, recovery, approach }; break;
+      }
+    }
+    const end = Math.max(next.start, splitEnd + selected.approach);
+    return { kind: 'recovery', reception: 'react', center: selected.center, splitStart, splitEnd, end,
+      requiredDuration: splitEnd - previous.end + selected.approach,
+      recover: { from: previous.root, to: selected.center, start: previous.end, end: previous.end + selected.recovery,
+        fromYaw: previous.yaw, toYaw: selected.yaw, stage: 'recover' },
+      approach: { from: selected.center, to: next.root, start: splitEnd, end,
+        fromYaw: selected.yaw, toYaw: next.yaw, stage: 'approach', arrival } };
+  }
   const fullDuration=legTime(previous.root,center,rate,previous.yaw,Math.PI)+splitSeconds+approachDuration(center,approachRate,Math.PI);
-  const direct=!!next&&(previous.recoveryPolicy==='direct'||previous.recoveryPolicy==='auto'&&(serveApproach||availableTime+1e-7<fullDuration));
+  // A very wide/short exchange can require continuing the approach before the
+  // cue even at maximum pace. Preserve that physical route and the selected
+  // contact phase rather than inventing extra flight time or a rising intercept.
+  const continuing = !!next?.incomingContact && !canReact;
+  const direct=!!next&&(continuing||previous.recoveryPolicy==='direct'||previous.recoveryPolicy==='auto'&&(serveApproach||availableTime+1e-7<fullDuration));
   const recoverTime=legTime(previous.root,center,rate,previous.yaw,Math.PI);
   const approachTime=approachDuration(center,approachRate,Math.PI);
   const requiredDuration=recoverTime+splitSeconds+approachTime;
@@ -66,7 +117,7 @@ export function planRecovery(previous:MotionEvent,next?:MotionEvent):RecoveryPla
     // Arrive exactly as the stroke starts. Serve-and-volley departs immediately;
     // other direct routes can wait in ready before the final approach.
     const leg:TravelLeg={from:previous.root,to:next.root,start:serveApproach?start:end-travel,end,fromYaw:previous.yaw,toYaw:next.yaw,stage:'approach',arrival};
-    return {kind:'direct',center:next.root,recover:leg,approach:null,splitStart:end,splitEnd:end,
+    return {kind:'direct',...(continuing?{reception:'continue' as const}:{}),center:next.root,recover:leg,approach:null,splitStart:end,splitEnd:end,
       end,requiredDuration:travel};
   }
   // Compilation must reserve this full duration before assigning contact times.
@@ -228,8 +279,8 @@ export function sampleRecovery(plan:RecoveryPlan,time:number,hand:'left'|'right'
   if(time<plan.recover.start)return rest(plan.recover.from,plan.recover.fromYaw,hand,'ready');
   if(time<plan.recover.end)return sampleTravel(plan.recover,time,hand);
   if(plan.kind==='direct')return arrivalRest(plan.recover,hand);
-  if(time<plan.splitStart)return rest(plan.center,Math.PI,hand,'ready');
-  if(time<plan.splitEnd)return rest(plan.center,Math.PI,hand,'split',(time-plan.splitStart)*SPLIT_SECONDS/(plan.splitEnd-plan.splitStart),true);
+  if(time<plan.splitStart)return rest(plan.center,plan.recover.toYaw,hand,'ready');
+  if(time<plan.splitEnd)return rest(plan.center,plan.recover.toYaw,hand,'split',(time-plan.splitStart)*SPLIT_SECONDS/(plan.splitEnd-plan.splitStart),true);
   if(plan.approach&&time<plan.approach.end)return sampleTravel(plan.approach,time,hand);
   return plan.approach?arrivalRest(plan.approach,hand):rest(plan.center,Math.PI,hand,'ready');
 }

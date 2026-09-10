@@ -9,6 +9,21 @@
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
+## Contact-anchored opponent reception — 2026-09-10
+
+Quick Rally and player-first drill responses now schedule recovery, split-step,
+approach and prepared stroke entry around the incoming physical contact. Preferred
+movement and stroke rates adapt to that receiving window. Partial neutral recovery
+and a continuing approach for otherwise unreachable reactive exchanges preserve
+the selected bounce phase and the physical ball clock.
+
+All **551 tests / 51 files**, production build and active motion/cache guard pass.
+Actual Three.js/GLTF review covered both hands, all three contact phases and
+post-IK ball/racket agreement. The rebuilt production preview preserves the live
+settings and reports resolved movement rates and the actual physical interval.
+See the [receipt](rally-contact-reception-2026-09-10.md) and
+[ADR-0044](../decisions/0044-contact-anchored-opponent-reception.md).
+
 ## Project drill saving and editor recovery — 2026-09-10
 
 The catalog/API stage `465bfe8` adds validated atomic project-file saves, stable

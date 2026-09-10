@@ -55,6 +55,8 @@ describe('player-owned drill clock and physical handoffs', () => {
       const playerFlight = session.scheduledFlights!.find(f => f.owner === 'player' && f.eventIndex === event.index)!;
       expect(playerFlight.trajectory.samples.at(-1)!.position).toEqual(response.shot.source);
       expect(playerFlight.endTime).toBeCloseTo(response.startTime, 8);
+      expect(response.incomingContact).toMatchObject({ releaseTime: event.startTime, contactTime: response.startTime, phase: 'descent' });
+      expect(response.incomingContact!.apexTime).toBeLessThan(response.startTime);
     }
     for (let i = 1; i < session.repetitions.length; i++) {
       const a = session.repetitions[i - 1]!, b = session.repetitions[i]!;

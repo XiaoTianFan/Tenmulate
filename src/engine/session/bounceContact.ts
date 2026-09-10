@@ -3,6 +3,21 @@ import type { FlightSample, ResolvedTrajectory } from '../trajectory/physics';
 
 export type BounceContactPhase = 'rise' | 'apex' | 'descent' | 'air';
 export type BounceContactPreference = Readonly<{ phase: BounceContactPhase; time: number }>;
+/** Absolute exchange clock shared by flight playback and the receiving motion.
+ * It is built before trimming, so the original bounce apex remains available. */
+export type IncomingContact = Readonly<{
+  releaseTime: number; contactTime: number; bounceTime?: number; apexTime?: number;
+  phase: BounceContactPhase;
+}>;
+
+export function incomingContact(flight: ResolvedTrajectory, contact: FlightSample, releaseTime: number): IncomingContact {
+  const bounce = flight.events.find(event => event.type === 'bounce');
+  const end = flight.events.find(event => event.type === 'second-bounce')?.time ?? Infinity;
+  const samples = flight.samples.filter(sample => sample.bounced && sample.time < end);
+  const apex = samples.length ? samples.reduce((a, b) => a.position.y > b.position.y ? a : b) : undefined;
+  return { releaseTime, contactTime: releaseTime + contact.time, phase: bounceContactPhase(contact),
+    ...(bounce ? { bounceTime: releaseTime + bounce.time } : {}), ...(apex ? { apexTime: releaseTime + apex.time } : {}) };
+}
 
 export const normalizeContactTiming = (value: unknown): ContactTiming => value === 'rise' || value === 'apex' ? value : 'descent';
 export const usesBounceContact = (family: ShotFamily): boolean => !['serve', 'volley', 'overhead'].includes(family);

@@ -14,7 +14,7 @@ import { planRecovery } from './opponentMovement';
 import { normalizeRhythm, normalizeShotInterval } from './rhythm';
 import { solveShotInterval } from './shotTiming';
 import { defaultReturnShot } from './returnShot';
-import { bounceContactCost, bounceContactPhase, bounceContactPreference, type BounceContactPhase } from './bounceContact';
+import { bounceContactCost, bounceContactPhase, bounceContactPreference, incomingContact, type BounceContactPhase } from './bounceContact';
 
 export type ScheduledDrillFlight = Readonly<{ owner: 'player' | 'opponent'; phase: 'opening' | 'player' | 'response';
   eventIndex: number; startTime: number; endTime: number; trajectory: ResolvedTrajectory }>;
@@ -215,7 +215,8 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
       const time = playerTime + contact.time;
       const shot = shotDefinition(contact.position, replyBall, replyTarget, `${event.label} — opponent return`);
       const ceiling = withPreparedApproach({ ...previous, motionRate: 3, movementRate: 3 },
-        { ...previous, index: repetitions.length, shot, startTime: time, motionRate: 3, movementRate: 3 });
+        { ...previous, index: repetitions.length, shot, startTime: time, motionRate: 3, movementRate: 3,
+          incomingContact: incomingContact(flight, contact, playerTime) });
       return minimumMotionGap({ ...previous, motionRate: 3, movementRate: 3 }, ceiling) <= time - previous.startTime + 1e-8;
     });
     const playerFlight = resolve(current.contact.position, ball, event.landingZone, target, ball.paceKmh,
@@ -253,7 +254,8 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
       const total = contact.time + (fit.contact?.time ?? 0);
       const postureCost = Math.max(0, contactHeight(replyBall.family) - contact.position.y) ** 2 * 8;
       const score = (receiver ? Math.abs(total - requested) + fit.score * .1 : Math.abs(contact.time - desired)) + postureCost + bounceContactCost(contact, preference);
-      if (!best || score < best.score) best = { contact, fit, rep: repetition(draftShot, fit.trajectory, time, event), score };
+      if (!best || score < best.score) best = { contact, fit, rep: { ...repetition(draftShot, fit.trajectory, time, event),
+        incomingContact: incomingContact(playerFlight, contact, playerTime) }, score };
     }
     if (!best) {
       addFlight('player', 'player', index, playerTime, playerFlight);
@@ -281,7 +283,7 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
     if (solved.previous.motionRate !== previous.motionRate || solved.next.motionRate !== best.rep.motionRate || Math.abs(actual - requested) > .01) motionTimingAdjusted = true;
   }
   const last = repetitions.at(-1);
-  return { solverVersion: 'ball-v9-neutral-contact-fit', plannerVersion: 'gameplay-player-drills-v14', contentVersion: '2026.09.09',
+  return { solverVersion: 'ball-v9-neutral-contact-fit', plannerVersion: 'gameplay-player-drills-v15', contentVersion: '2026.09.09',
     drill, settings: { ...settings, mode: 'drill', rhythmPercent: rhythm, movementPercent: movement, shotIntervalSeconds: interval, workBlockSize: workBlock },
     mode: 'drill', repetitions, restPeriods, duration: Math.max(endTime, last ? planRecovery(motionEvent(last)).end + .15 : 3),
     motionTimingAdjusted, rhythmPercent: rhythm, cameraTimeline: { initial: initialCamera ?? DEFAULT_DRILL_CAMERA,
