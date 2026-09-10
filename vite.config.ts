@@ -2,9 +2,11 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import opponentMotion from './src/content/opponent-motion.json' with { type: 'json' };
+import { projectDrillsPlugin } from './server/projectDrills';
 
 export default defineConfig({
   plugins: [
+    projectDrillsPlugin(),
     react(),
     VitePWA({
       registerType: 'autoUpdate',
@@ -55,7 +57,7 @@ export default defineConfig({
         // Review queries select client-side state, not a different HTML shell.
         ignoreURLParametersMatching: [/^utm_/, /^fbclid$/, /^(camera|version|venue|quality|audience)$/],
         navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/venue-review\.html/],
+        navigateFallbackDenylist: [/^\/venue-review\.html/, /^\/__tenmulate\//],
       },
     }),
   ],

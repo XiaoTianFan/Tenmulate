@@ -1,0 +1,3645 @@
+{
+  "schemaVersion": 1,
+  "drills": [
+    {
+      "schemaVersion": 2,
+      "id": "quick-rally",
+      "title": "Crosscourt Rhythm",
+      "description": "Play forehand and backhand crosscourt, recovering between your shots.",
+      "category": "Quick Rally",
+      "launch": {
+        "position": {
+          "x": 0,
+          "z": 12.4
+        },
+        "ball": {
+          "family": "groundstroke",
+          "stroke": "forehand",
+          "hand": "right",
+          "paceKmh": 70,
+          "spin": "topspin",
+          "spinRateRpm": 600,
+          "netClearanceM": 0.25,
+          "variationPercent": 0,
+          "bounceFactor": 1,
+          "trajectoryMode": "natural",
+          "serveRhythm": "normal",
+          "contactTiming": "descent"
+        },
+        "landingZone": {
+          "minX": -2.8222222222222224,
+          "maxX": -1.6222222222222222,
+          "minZ": -8.299999999999999,
+          "maxZ": -6.8999999999999995
+        }
+      },
+      "events": [
+        {
+          "id": "quick-rally-shot-1",
+          "presetId": "fh-cross-deep",
+          "label": "Forehand crosscourt deep",
+          "cue": "FOREHAND CROSSCOURT DEEP",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": 0.21499999999999986,
+            "lateral": -2.2,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "groundstroke",
+            "stroke": "forehand",
+            "hand": "right",
+            "paceKmh": 70,
+            "spin": "topspin",
+            "spinRateRpm": 600,
+            "netClearanceM": 0.25,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "descent"
+          },
+          "landingZone": {
+            "minX": 1.8,
+            "maxX": 3.4000000000000004,
+            "minZ": 8.3,
+            "maxZ": 10.3
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "groundstroke",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 70,
+              "spin": "topspin",
+              "spinRateRpm": 600,
+              "netClearanceM": 0.25,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": 2.0418947368421057,
+              "maxX": 3.241894736842106,
+              "minZ": -8.299999999999999,
+              "maxZ": -6.8999999999999995
+            }
+          }
+        },
+        {
+          "id": "quick-rally-shot-2",
+          "presetId": "bh-cross-deep",
+          "label": "Backhand crosscourt deep",
+          "cue": "BACKHAND CROSSCOURT DEEP",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": 0.21499999999999986,
+            "lateral": 2.2,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "groundstroke",
+            "stroke": "backhand",
+            "hand": "right",
+            "paceKmh": 70,
+            "spin": "topspin",
+            "spinRateRpm": 600,
+            "netClearanceM": 0.25,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "descent"
+          },
+          "landingZone": {
+            "minX": -3.4000000000000004,
+            "maxX": -1.8,
+            "minZ": 8.3,
+            "maxZ": 10.3
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "groundstroke",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 70,
+              "spin": "topspin",
+              "spinRateRpm": 600,
+              "netClearanceM": 0.25,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": -3.241894736842106,
+              "maxX": -2.0418947368421057,
+              "minZ": -8.299999999999999,
+              "maxZ": -6.8999999999999995
+            }
+          }
+        },
+        {
+          "id": "quick-rally-shot-3",
+          "presetId": "fh-cross-mid",
+          "label": "Forehand crosscourt medium",
+          "cue": "FOREHAND CROSSCOURT MEDIUM",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": 0.21499999999999986,
+            "lateral": -2.2,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "groundstroke",
+            "stroke": "forehand",
+            "hand": "right",
+            "paceKmh": 70,
+            "spin": "topspin",
+            "spinRateRpm": 600,
+            "netClearanceM": 0.25,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "descent"
+          },
+          "landingZone": {
+            "minX": 1.5999999999999999,
+            "maxX": 3.2,
+            "minZ": 6.4,
+            "maxZ": 8.4
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "groundstroke",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 70,
+              "spin": "topspin",
+              "spinRateRpm": 600,
+              "netClearanceM": 0.25,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": 2.0059496567505724,
+              "maxX": 3.2059496567505725,
+              "minZ": -8.299999999999999,
+              "maxZ": -6.8999999999999995
+            }
+          }
+        },
+        {
+          "id": "quick-rally-shot-4",
+          "presetId": "bh-cross-high",
+          "label": "Heavy backhand crosscourt",
+          "cue": "HEAVY BACKHAND CROSSCOURT",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": 0.21499999999999986,
+            "lateral": 2.2,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "groundstroke",
+            "stroke": "backhand",
+            "hand": "right",
+            "paceKmh": 70,
+            "spin": "topspin",
+            "spinRateRpm": 600,
+            "netClearanceM": 0.25,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "descent"
+          },
+          "landingZone": {
+            "minX": -3.2,
+            "maxX": -1.5999999999999999,
+            "minZ": 8,
+            "maxZ": 10
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "groundstroke",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 70,
+              "spin": "topspin",
+              "spinRateRpm": 600,
+              "netClearanceM": 0.25,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": -3.208955223880597,
+              "maxX": -2.008955223880597,
+              "minZ": -8.299999999999999,
+              "maxZ": -6.8999999999999995
+            }
+          }
+        }
+      ],
+      "defaultInterval": 4.5,
+      "defaultRhythmPercent": 100,
+      "defaultMovementPercent": 100,
+      "defaultRepetitions": 4
+    },
+    {
+      "schemaVersion": 2,
+      "id": "return-practice",
+      "title": "Crosscourt serve returns",
+      "description": "Read the opening serve and send your return deep crosscourt.",
+      "category": "Return Practice",
+      "launch": {
+        "position": {
+          "x": 1.25,
+          "z": 12.4
+        },
+        "ball": {
+          "family": "serve",
+          "stroke": "forehand",
+          "hand": "right",
+          "paceKmh": 140,
+          "spin": "flat",
+          "spinRateRpm": 900,
+          "netClearanceM": 0.18,
+          "variationPercent": 0,
+          "bounceFactor": 1,
+          "trajectoryMode": "natural",
+          "serveRhythm": "normal",
+          "contactTiming": "descent"
+        },
+        "landingZone": {
+          "minX": -2.25,
+          "maxX": -1.5499999999999998,
+          "minZ": -5.2,
+          "maxZ": -4.3999999999999995
+        }
+      },
+      "events": [
+        {
+          "id": "return-practice-shot-1",
+          "presetId": "return-fh-cross",
+          "label": "Forehand return crosscourt",
+          "cue": "FOREHAND RETURN CROSSCOURT",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": -0.3849999999999998,
+            "lateral": -2.4,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "groundstroke",
+            "stroke": "forehand",
+            "hand": "right",
+            "paceKmh": 70,
+            "spin": "topspin",
+            "spinRateRpm": 600,
+            "netClearanceM": 0.25,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "descent"
+          },
+          "landingZone": {
+            "minX": 1.4999999999999998,
+            "maxX": 3.0999999999999996,
+            "minZ": 8,
+            "maxZ": 10
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "groundstroke",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 70,
+              "spin": "topspin",
+              "spinRateRpm": 600,
+              "netClearanceM": 0.25,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": 2.1573304157549233,
+              "maxX": 3.3573304157549235,
+              "minZ": -7.7,
+              "maxZ": -6.3
+            }
+          }
+        },
+        {
+          "id": "return-practice-shot-2",
+          "presetId": "return-bh-cross",
+          "label": "Backhand return crosscourt",
+          "cue": "BACKHAND RETURN CROSSCOURT",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": -0.3849999999999998,
+            "lateral": 2.4,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "groundstroke",
+            "stroke": "backhand",
+            "hand": "right",
+            "paceKmh": 70,
+            "spin": "topspin",
+            "spinRateRpm": 600,
+            "netClearanceM": 0.25,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "descent"
+          },
+          "landingZone": {
+            "minX": -3.0999999999999996,
+            "maxX": -1.4999999999999998,
+            "minZ": 8,
+            "maxZ": 10
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "groundstroke",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 70,
+              "spin": "topspin",
+              "spinRateRpm": 600,
+              "netClearanceM": 0.25,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": -3.3573304157549235,
+              "maxX": -2.1573304157549233,
+              "minZ": -7.7,
+              "maxZ": -6.3
+            }
+          },
+          "openingFeed": {
+            "position": {
+              "x": -1.25,
+              "z": 12.4
+            },
+            "ball": {
+              "family": "serve",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 140,
+              "spin": "flat",
+              "spinRateRpm": 900,
+              "netClearanceM": 0.18,
+              "variationPercent": 0,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": 1.5499999999999998,
+              "maxX": 2.25,
+              "minZ": -5.2,
+              "maxZ": -4.3999999999999995
+            }
+          }
+        }
+      ],
+      "defaultInterval": 5,
+      "defaultRhythmPercent": 100,
+      "defaultMovementPercent": 100,
+      "defaultRepetitions": 2
+    },
+    {
+      "schemaVersion": 2,
+      "id": "tactical-pattern",
+      "title": "Two crosscourt, then line",
+      "description": "Build two forehands crosscourt, change down the line, then finish on the backhand.",
+      "category": "Tactical Pattern",
+      "launch": {
+        "position": {
+          "x": 0,
+          "z": 12.4
+        },
+        "ball": {
+          "family": "groundstroke",
+          "stroke": "forehand",
+          "hand": "right",
+          "paceKmh": 70,
+          "spin": "topspin",
+          "spinRateRpm": 600,
+          "netClearanceM": 0.25,
+          "variationPercent": 0,
+          "bounceFactor": 1,
+          "trajectoryMode": "natural",
+          "serveRhythm": "normal",
+          "contactTiming": "descent"
+        },
+        "landingZone": {
+          "minX": -2.8222222222222224,
+          "maxX": -1.6222222222222222,
+          "minZ": -8.299999999999999,
+          "maxZ": -6.8999999999999995
+        }
+      },
+      "events": [
+        {
+          "id": "tactical-pattern-shot-1",
+          "presetId": "fh-cross-deep",
+          "label": "Forehand crosscourt deep",
+          "cue": "FOREHAND CROSSCOURT DEEP",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": 0.21499999999999986,
+            "lateral": -2.2,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "groundstroke",
+            "stroke": "forehand",
+            "hand": "right",
+            "paceKmh": 70,
+            "spin": "topspin",
+            "spinRateRpm": 600,
+            "netClearanceM": 0.25,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "descent"
+          },
+          "landingZone": {
+            "minX": 1.8,
+            "maxX": 3.4000000000000004,
+            "minZ": 8.3,
+            "maxZ": 10.3
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "groundstroke",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 70,
+              "spin": "topspin",
+              "spinRateRpm": 600,
+              "netClearanceM": 0.25,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": -2.398947368421053,
+              "maxX": -1.1989473684210532,
+              "minZ": -8.299999999999999,
+              "maxZ": -6.8999999999999995
+            }
+          }
+        },
+        {
+          "id": "tactical-pattern-shot-2",
+          "presetId": "fh-cross-mid",
+          "label": "Forehand crosscourt medium",
+          "cue": "FOREHAND CROSSCOURT MEDIUM",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": 0.21499999999999986,
+            "lateral": -2.2,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "groundstroke",
+            "stroke": "forehand",
+            "hand": "right",
+            "paceKmh": 70,
+            "spin": "topspin",
+            "spinRateRpm": 600,
+            "netClearanceM": 0.25,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "descent"
+          },
+          "landingZone": {
+            "minX": 1.5999999999999999,
+            "maxX": 3.2,
+            "minZ": 6.4,
+            "maxZ": 8.4
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "groundstroke",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 70,
+              "spin": "topspin",
+              "spinRateRpm": 600,
+              "netClearanceM": 0.25,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": -2.3601830663615564,
+              "maxX": -1.1601830663615567,
+              "minZ": -8.299999999999999,
+              "maxZ": -6.8999999999999995
+            }
+          }
+        },
+        {
+          "id": "tactical-pattern-shot-3",
+          "presetId": "fh-line-deep",
+          "label": "Forehand down the line",
+          "cue": "FOREHAND DOWN THE LINE",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": 0.21499999999999986,
+            "lateral": -2.2,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "groundstroke",
+            "stroke": "forehand",
+            "hand": "right",
+            "paceKmh": 70,
+            "spin": "topspin",
+            "spinRateRpm": 600,
+            "netClearanceM": 0.25,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "descent"
+          },
+          "landingZone": {
+            "minX": -3.4000000000000004,
+            "maxX": -1.8,
+            "minZ": 8.3,
+            "maxZ": 10.3
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "groundstroke",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 70,
+              "spin": "topspin",
+              "spinRateRpm": 600,
+              "netClearanceM": 0.25,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": 1.1989473684210532,
+              "maxX": 2.398947368421053,
+              "minZ": -8.299999999999999,
+              "maxZ": -6.8999999999999995
+            }
+          }
+        },
+        {
+          "id": "tactical-pattern-shot-4",
+          "presetId": "bh-cross-deep",
+          "label": "Backhand crosscourt deep",
+          "cue": "BACKHAND CROSSCOURT DEEP",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": 0.21499999999999986,
+            "lateral": 2.2,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "groundstroke",
+            "stroke": "backhand",
+            "hand": "right",
+            "paceKmh": 70,
+            "spin": "topspin",
+            "spinRateRpm": 600,
+            "netClearanceM": 0.25,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "descent"
+          },
+          "landingZone": {
+            "minX": -3.4000000000000004,
+            "maxX": -1.8,
+            "minZ": 8.3,
+            "maxZ": 10.3
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "groundstroke",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 70,
+              "spin": "topspin",
+              "spinRateRpm": 600,
+              "netClearanceM": 0.25,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": 1.1989473684210532,
+              "maxX": 2.398947368421053,
+              "minZ": -8.299999999999999,
+              "maxZ": -6.8999999999999995
+            }
+          }
+        },
+        {
+          "id": "tactical-pattern-shot-5",
+          "presetId": "bh-line-deep",
+          "label": "Backhand down the line",
+          "cue": "BACKHAND DOWN THE LINE",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": 0.21499999999999986,
+            "lateral": 2.2,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "groundstroke",
+            "stroke": "backhand",
+            "hand": "right",
+            "paceKmh": 70,
+            "spin": "topspin",
+            "spinRateRpm": 600,
+            "netClearanceM": 0.25,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "descent"
+          },
+          "landingZone": {
+            "minX": 1.8,
+            "maxX": 3.4000000000000004,
+            "minZ": 8.3,
+            "maxZ": 10.3
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "groundstroke",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 70,
+              "spin": "topspin",
+              "spinRateRpm": 600,
+              "netClearanceM": 0.25,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": -2.398947368421053,
+              "maxX": -1.1989473684210532,
+              "minZ": -8.299999999999999,
+              "maxZ": -6.8999999999999995
+            }
+          }
+        }
+      ],
+      "defaultInterval": 4.5,
+      "defaultRhythmPercent": 100,
+      "defaultMovementPercent": 100,
+      "defaultRepetitions": 5
+    },
+    {
+      "schemaVersion": 2,
+      "id": "serve-volley",
+      "title": "Return and close",
+      "description": "Return the opening serve, approach, and close for a volley.",
+      "category": "Serve & Volley",
+      "launch": {
+        "position": {
+          "x": 1.25,
+          "z": 12.4
+        },
+        "ball": {
+          "family": "serve",
+          "stroke": "forehand",
+          "hand": "right",
+          "paceKmh": 140,
+          "spin": "flat",
+          "spinRateRpm": 900,
+          "netClearanceM": 0.18,
+          "variationPercent": 0,
+          "bounceFactor": 1,
+          "trajectoryMode": "natural",
+          "serveRhythm": "normal",
+          "contactTiming": "descent"
+        },
+        "landingZone": {
+          "minX": -2.25,
+          "maxX": -1.5499999999999998,
+          "minZ": -5.2,
+          "maxZ": -4.3999999999999995
+        }
+      },
+      "events": [
+        {
+          "id": "serve-volley-shot-1",
+          "presetId": "return-fh-cross",
+          "label": "Forehand return crosscourt",
+          "cue": "FOREHAND RETURN CROSSCOURT",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": -0.3849999999999998,
+            "lateral": -2.4,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "groundstroke",
+            "stroke": "forehand",
+            "hand": "right",
+            "paceKmh": 70,
+            "spin": "topspin",
+            "spinRateRpm": 600,
+            "netClearanceM": 0.25,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "descent"
+          },
+          "landingZone": {
+            "minX": 1.4999999999999998,
+            "maxX": 3.0999999999999996,
+            "minZ": 8,
+            "maxZ": 10
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "groundstroke",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 70,
+              "spin": "topspin",
+              "spinRateRpm": 600,
+              "netClearanceM": 0.25,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": -1.9447028423772612,
+              "maxX": -0.7447028423772611,
+              "minZ": -4.2,
+              "maxZ": -2.8
+            }
+          }
+        },
+        {
+          "id": "serve-volley-shot-2",
+          "presetId": "approach-feed",
+          "label": "Forehand approach down the line",
+          "cue": "FOREHAND APPROACH DOWN THE LINE",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": -3.885,
+            "lateral": -1.8,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "approach",
+            "stroke": "forehand",
+            "hand": "right",
+            "paceKmh": 72,
+            "spin": "topspin",
+            "spinRateRpm": 650,
+            "netClearanceM": 1,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "descent"
+          },
+          "landingZone": {
+            "minX": -3.2,
+            "maxX": -1.5999999999999999,
+            "minZ": 8.3,
+            "maxZ": 10.3
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "groundstroke",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 90,
+              "spin": "flat",
+              "spinRateRpm": 120,
+              "netClearanceM": 0.12,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": -3.0000000000000004,
+              "maxX": -1.8000000000000003,
+              "minZ": -9.2,
+              "maxZ": -7.8
+            }
+          }
+        },
+        {
+          "id": "serve-volley-shot-3",
+          "presetId": "volley-left",
+          "label": "Forehand volley crosscourt",
+          "cue": "FOREHAND VOLLEY CROSSCOURT",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": -7.585,
+            "lateral": -1.6,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "volley",
+            "stroke": "forehand",
+            "hand": "right",
+            "paceKmh": 45,
+            "spin": "slice",
+            "spinRateRpm": 650,
+            "netClearanceM": 0.25,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "descent"
+          },
+          "landingZone": {
+            "minX": 0,
+            "maxX": 1.6,
+            "minZ": 8.3,
+            "maxZ": 10.3
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "groundstroke",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 90,
+              "spin": "flat",
+              "spinRateRpm": 120,
+              "netClearanceM": 0.12,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": 1.8000000000000003,
+              "maxX": 3.0000000000000004,
+              "minZ": -9.2,
+              "maxZ": -7.8
+            }
+          }
+        },
+        {
+          "id": "serve-volley-shot-4",
+          "presetId": "volley-right",
+          "label": "Backhand volley crosscourt",
+          "cue": "BACKHAND VOLLEY CROSSCOURT",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": -8.085,
+            "lateral": 1.6,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "volley",
+            "stroke": "backhand",
+            "hand": "right",
+            "paceKmh": 45,
+            "spin": "slice",
+            "spinRateRpm": 650,
+            "netClearanceM": 0.25,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "descent"
+          },
+          "landingZone": {
+            "minX": -1.6,
+            "maxX": 0,
+            "minZ": 8.3,
+            "maxZ": 10.3
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "groundstroke",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 70,
+              "spin": "topspin",
+              "spinRateRpm": 600,
+              "netClearanceM": 0.25,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": -3.1090712742980564,
+              "maxX": -1.9090712742980562,
+              "minZ": -7.7,
+              "maxZ": -6.3
+            }
+          }
+        }
+      ],
+      "defaultInterval": 4.8,
+      "defaultRhythmPercent": 100,
+      "defaultMovementPercent": 100,
+      "defaultRepetitions": 4
+    },
+    {
+      "schemaVersion": 2,
+      "id": "net-overhead",
+      "title": "Two volleys and overhead",
+      "description": "Play two volleys, track the opponent’s lob and finish overhead.",
+      "category": "Net & Overhead",
+      "launch": {
+        "position": {
+          "x": 0,
+          "z": 12.4
+        },
+        "ball": {
+          "family": "groundstroke",
+          "stroke": "forehand",
+          "hand": "right",
+          "paceKmh": 90,
+          "spin": "flat",
+          "spinRateRpm": 120,
+          "netClearanceM": 0.12,
+          "variationPercent": 0,
+          "bounceFactor": 1,
+          "trajectoryMode": "natural",
+          "serveRhythm": "normal",
+          "contactTiming": "descent"
+        },
+        "landingZone": {
+          "minX": -3.0000000000000004,
+          "maxX": -1.8000000000000003,
+          "minZ": -9.2,
+          "maxZ": -7.8
+        }
+      },
+      "events": [
+        {
+          "id": "net-overhead-shot-1",
+          "presetId": "volley-left",
+          "label": "Forehand volley crosscourt",
+          "cue": "FOREHAND VOLLEY CROSSCOURT",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": -7.585,
+            "lateral": -1.6,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "volley",
+            "stroke": "forehand",
+            "hand": "right",
+            "paceKmh": 45,
+            "spin": "slice",
+            "spinRateRpm": 650,
+            "netClearanceM": 0.25,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "descent"
+          },
+          "landingZone": {
+            "minX": 0,
+            "maxX": 1.6,
+            "minZ": 8.3,
+            "maxZ": 10.3
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "groundstroke",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 90,
+              "spin": "flat",
+              "spinRateRpm": 120,
+              "netClearanceM": 0.12,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": 1.8000000000000003,
+              "maxX": 3.0000000000000004,
+              "minZ": -9.2,
+              "maxZ": -7.8
+            }
+          }
+        },
+        {
+          "id": "net-overhead-shot-2",
+          "presetId": "volley-right",
+          "label": "Backhand volley crosscourt",
+          "cue": "BACKHAND VOLLEY CROSSCOURT",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": -8.085,
+            "lateral": 1.6,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "volley",
+            "stroke": "backhand",
+            "hand": "right",
+            "paceKmh": 45,
+            "spin": "slice",
+            "spinRateRpm": 650,
+            "netClearanceM": 0.25,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "descent"
+          },
+          "landingZone": {
+            "minX": -1.6,
+            "maxX": 0,
+            "minZ": 8.3,
+            "maxZ": 10.3
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "lob",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 60,
+              "spin": "topspin",
+              "spinRateRpm": 1100,
+              "netClearanceM": 2.5,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": -1.4,
+              "maxX": -0.20000000000000007,
+              "minZ": -9.2,
+              "maxZ": -7.8
+            }
+          }
+        },
+        {
+          "id": "net-overhead-shot-3",
+          "presetId": "overhead-feed",
+          "label": "Overhead into the open court",
+          "cue": "OVERHEAD INTO THE OPEN COURT",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": -6.385,
+            "lateral": -0.8,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "overhead",
+            "stroke": "forehand",
+            "hand": "right",
+            "paceKmh": 95,
+            "spin": "flat",
+            "spinRateRpm": 120,
+            "netClearanceM": 0.15,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "descent"
+          },
+          "landingZone": {
+            "minX": 1.2,
+            "maxX": 2.8,
+            "minZ": 8,
+            "maxZ": 10
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "groundstroke",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 90,
+              "spin": "flat",
+              "spinRateRpm": 120,
+              "netClearanceM": 0.12,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": -3.0000000000000004,
+              "maxX": -1.8000000000000003,
+              "minZ": -9.2,
+              "maxZ": -7.8
+            }
+          }
+        }
+      ],
+      "defaultInterval": 4.8,
+      "defaultRhythmPercent": 100,
+      "defaultMovementPercent": 100,
+      "defaultRepetitions": 3
+    },
+    {
+      "schemaVersion": 2,
+      "id": "baseline-depth-ladder",
+      "title": "Depth ladder",
+      "description": "Vary your crosscourt placement from a short angle to a deep rally ball.",
+      "category": "Quick Rally",
+      "launch": {
+        "position": {
+          "x": 0,
+          "z": 12.4
+        },
+        "ball": {
+          "family": "groundstroke",
+          "stroke": "forehand",
+          "hand": "right",
+          "paceKmh": 70,
+          "spin": "topspin",
+          "spinRateRpm": 600,
+          "netClearanceM": 0.25,
+          "variationPercent": 0,
+          "bounceFactor": 1,
+          "trajectoryMode": "natural",
+          "serveRhythm": "normal",
+          "contactTiming": "descent"
+        },
+        "landingZone": {
+          "minX": -2.595421686746988,
+          "maxX": -1.395421686746988,
+          "minZ": -5.2,
+          "maxZ": -3.8
+        }
+      },
+      "events": [
+        {
+          "id": "baseline-depth-ladder-shot-1",
+          "presetId": "short-angle-left",
+          "label": "Short angle left",
+          "cue": "SHORT ANGLE LEFT",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": -2.885,
+            "lateral": -2,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "groundstroke",
+            "stroke": "forehand",
+            "hand": "right",
+            "paceKmh": 60,
+            "spin": "topspin",
+            "spinRateRpm": 600,
+            "netClearanceM": 0.85,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "descent"
+          },
+          "landingZone": {
+            "minX": 1.9000000000000001,
+            "maxX": 3.5,
+            "minZ": 4.3,
+            "maxZ": 6.3
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "groundstroke",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 70,
+              "spin": "topspin",
+              "spinRateRpm": 600,
+              "netClearanceM": 0.25,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": -2.207088607594937,
+              "maxX": -1.007088607594937,
+              "minZ": -8.299999999999999,
+              "maxZ": -6.8999999999999995
+            }
+          }
+        },
+        {
+          "id": "baseline-depth-ladder-shot-2",
+          "presetId": "fh-cross-mid",
+          "label": "Forehand crosscourt medium",
+          "cue": "FOREHAND CROSSCOURT MEDIUM",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": 0.21499999999999986,
+            "lateral": -2.2,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "groundstroke",
+            "stroke": "forehand",
+            "hand": "right",
+            "paceKmh": 70,
+            "spin": "topspin",
+            "spinRateRpm": 600,
+            "netClearanceM": 0.25,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "descent"
+          },
+          "landingZone": {
+            "minX": 1.5999999999999999,
+            "maxX": 3.2,
+            "minZ": 6.4,
+            "maxZ": 8.4
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "groundstroke",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 70,
+              "spin": "topspin",
+              "spinRateRpm": 600,
+              "netClearanceM": 0.25,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": 2.0059496567505724,
+              "maxX": 3.2059496567505725,
+              "minZ": -8.299999999999999,
+              "maxZ": -6.8999999999999995
+            }
+          }
+        },
+        {
+          "id": "baseline-depth-ladder-shot-3",
+          "presetId": "bh-cross-deep",
+          "label": "Backhand crosscourt deep",
+          "cue": "BACKHAND CROSSCOURT DEEP",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": 0.21499999999999986,
+            "lateral": 2.2,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "groundstroke",
+            "stroke": "backhand",
+            "hand": "right",
+            "paceKmh": 70,
+            "spin": "topspin",
+            "spinRateRpm": 600,
+            "netClearanceM": 0.25,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "descent"
+          },
+          "landingZone": {
+            "minX": -3.4000000000000004,
+            "maxX": -1.8,
+            "minZ": 8.3,
+            "maxZ": 10.3
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "groundstroke",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 70,
+              "spin": "topspin",
+              "spinRateRpm": 600,
+              "netClearanceM": 0.25,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": -3.494202898550725,
+              "maxX": -2.294202898550725,
+              "minZ": -8.7,
+              "maxZ": -7.3
+            }
+          }
+        },
+        {
+          "id": "baseline-depth-ladder-shot-4",
+          "presetId": "defensive-high-left",
+          "label": "High defensive crosscourt",
+          "cue": "HIGH DEFENSIVE CROSSCOURT",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": 0.6150000000000002,
+            "lateral": -2.5,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "groundstroke",
+            "stroke": "forehand",
+            "hand": "right",
+            "paceKmh": 70,
+            "spin": "topspin",
+            "spinRateRpm": 600,
+            "netClearanceM": 0.25,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "descent"
+          },
+          "landingZone": {
+            "minX": 1.7,
+            "maxX": 3.3,
+            "minZ": 8.7,
+            "maxZ": 10.7
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "groundstroke",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 70,
+              "spin": "topspin",
+              "spinRateRpm": 600,
+              "netClearanceM": 0.25,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": -2.1446555819477435,
+              "maxX": -0.9446555819477437,
+              "minZ": -5.2,
+              "maxZ": -3.8
+            }
+          }
+        }
+      ],
+      "defaultInterval": 4.5,
+      "defaultRhythmPercent": 100,
+      "defaultMovementPercent": 100,
+      "defaultRepetitions": 4
+    },
+    {
+      "schemaVersion": 2,
+      "id": "baseline-corner-switch",
+      "title": "Corner switch",
+      "description": "Move between your forehand and backhand corners, then play through the middle.",
+      "category": "Quick Rally",
+      "launch": {
+        "position": {
+          "x": 0,
+          "z": 12.4
+        },
+        "ball": {
+          "family": "groundstroke",
+          "stroke": "forehand",
+          "hand": "right",
+          "paceKmh": 70,
+          "spin": "topspin",
+          "spinRateRpm": 600,
+          "netClearanceM": 0.25,
+          "variationPercent": 0,
+          "bounceFactor": 1,
+          "trajectoryMode": "natural",
+          "serveRhythm": "normal",
+          "contactTiming": "descent"
+        },
+        "landingZone": {
+          "minX": -2.8222222222222224,
+          "maxX": -1.6222222222222222,
+          "minZ": -8.299999999999999,
+          "maxZ": -6.8999999999999995
+        }
+      },
+      "events": [
+        {
+          "id": "baseline-corner-switch-shot-1",
+          "presetId": "fh-cross-deep",
+          "label": "Forehand crosscourt deep",
+          "cue": "FOREHAND CROSSCOURT DEEP",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": 0.21499999999999986,
+            "lateral": -2.2,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "groundstroke",
+            "stroke": "forehand",
+            "hand": "right",
+            "paceKmh": 70,
+            "spin": "topspin",
+            "spinRateRpm": 600,
+            "netClearanceM": 0.25,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "descent"
+          },
+          "landingZone": {
+            "minX": 1.8,
+            "maxX": 3.4000000000000004,
+            "minZ": 8.3,
+            "maxZ": 10.3
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "groundstroke",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 70,
+              "spin": "topspin",
+              "spinRateRpm": 600,
+              "netClearanceM": 0.25,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": 2.0418947368421057,
+              "maxX": 3.241894736842106,
+              "minZ": -8.299999999999999,
+              "maxZ": -6.8999999999999995
+            }
+          }
+        },
+        {
+          "id": "baseline-corner-switch-shot-2",
+          "presetId": "bh-cross-deep",
+          "label": "Backhand crosscourt deep",
+          "cue": "BACKHAND CROSSCOURT DEEP",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": 0.21499999999999986,
+            "lateral": 2.2,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "groundstroke",
+            "stroke": "backhand",
+            "hand": "right",
+            "paceKmh": 70,
+            "spin": "topspin",
+            "spinRateRpm": 600,
+            "netClearanceM": 0.25,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "descent"
+          },
+          "landingZone": {
+            "minX": -3.4000000000000004,
+            "maxX": -1.8,
+            "minZ": 8.3,
+            "maxZ": 10.3
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "groundstroke",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 70,
+              "spin": "topspin",
+              "spinRateRpm": 600,
+              "netClearanceM": 0.25,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": -1.3985263157894736,
+              "maxX": -0.19852631578947366,
+              "minZ": -8.299999999999999,
+              "maxZ": -6.8999999999999995
+            }
+          }
+        },
+        {
+          "id": "baseline-corner-switch-shot-3",
+          "presetId": "body-neutral",
+          "label": "Neutral ball through the middle",
+          "cue": "NEUTRAL BALL THROUGH THE MIDDLE",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": 0.21499999999999986,
+            "lateral": 0,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "groundstroke",
+            "stroke": "forehand",
+            "hand": "right",
+            "paceKmh": 70,
+            "spin": "topspin",
+            "spinRateRpm": 600,
+            "netClearanceM": 0.25,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "descent"
+          },
+          "landingZone": {
+            "minX": -0.8,
+            "maxX": 0.8,
+            "minZ": 8,
+            "maxZ": 10
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "groundstroke",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 70,
+              "spin": "topspin",
+              "spinRateRpm": 600,
+              "netClearanceM": 0.25,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": -2.814925373134329,
+              "maxX": -1.6149253731343287,
+              "minZ": -8.299999999999999,
+              "maxZ": -6.8999999999999995
+            }
+          }
+        }
+      ],
+      "defaultInterval": 4.5,
+      "defaultRhythmPercent": 100,
+      "defaultMovementPercent": 100,
+      "defaultRepetitions": 3
+    },
+    {
+      "schemaVersion": 2,
+      "id": "baseline-short-deep",
+      "title": "Short angle and deep reply",
+      "description": "Create a short angle, recover, and send the next ball deep.",
+      "category": "Quick Rally",
+      "launch": {
+        "position": {
+          "x": 0,
+          "z": 12.4
+        },
+        "ball": {
+          "family": "groundstroke",
+          "stroke": "forehand",
+          "hand": "right",
+          "paceKmh": 70,
+          "spin": "topspin",
+          "spinRateRpm": 600,
+          "netClearanceM": 0.25,
+          "variationPercent": 0,
+          "bounceFactor": 1,
+          "trajectoryMode": "natural",
+          "serveRhythm": "normal",
+          "contactTiming": "descent"
+        },
+        "landingZone": {
+          "minX": 1.395421686746988,
+          "maxX": 2.595421686746988,
+          "minZ": -5.2,
+          "maxZ": -3.8
+        }
+      },
+      "events": [
+        {
+          "id": "baseline-short-deep-shot-1",
+          "presetId": "short-angle-right",
+          "label": "Short angle right",
+          "cue": "SHORT ANGLE RIGHT",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": -2.885,
+            "lateral": 2,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "groundstroke",
+            "stroke": "backhand",
+            "hand": "right",
+            "paceKmh": 60,
+            "spin": "topspin",
+            "spinRateRpm": 600,
+            "netClearanceM": 0.85,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "descent"
+          },
+          "landingZone": {
+            "minX": -3.5,
+            "maxX": -1.9000000000000001,
+            "minZ": 4.3,
+            "maxZ": 6.3
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "groundstroke",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 70,
+              "spin": "topspin",
+              "spinRateRpm": 600,
+              "netClearanceM": 0.25,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": -3.5022332506203475,
+              "maxX": -2.3022332506203473,
+              "minZ": -8.7,
+              "maxZ": -7.3
+            }
+          }
+        },
+        {
+          "id": "baseline-short-deep-shot-2",
+          "presetId": "defensive-high-left",
+          "label": "High defensive crosscourt",
+          "cue": "HIGH DEFENSIVE CROSSCOURT",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": 0.6150000000000002,
+            "lateral": -2.5,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "groundstroke",
+            "stroke": "forehand",
+            "hand": "right",
+            "paceKmh": 70,
+            "spin": "topspin",
+            "spinRateRpm": 600,
+            "netClearanceM": 0.25,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "descent"
+          },
+          "landingZone": {
+            "minX": 1.7,
+            "maxX": 3.3,
+            "minZ": 8.7,
+            "maxZ": 10.7
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "groundstroke",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 70,
+              "spin": "topspin",
+              "spinRateRpm": 600,
+              "netClearanceM": 0.25,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": -2.1446555819477435,
+              "maxX": -0.9446555819477437,
+              "minZ": -5.2,
+              "maxZ": -3.8
+            }
+          }
+        },
+        {
+          "id": "baseline-short-deep-shot-3",
+          "presetId": "short-angle-left",
+          "label": "Short angle left",
+          "cue": "SHORT ANGLE LEFT",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": -2.885,
+            "lateral": -2,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "groundstroke",
+            "stroke": "forehand",
+            "hand": "right",
+            "paceKmh": 60,
+            "spin": "topspin",
+            "spinRateRpm": 600,
+            "netClearanceM": 0.85,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "descent"
+          },
+          "landingZone": {
+            "minX": 1.9000000000000001,
+            "maxX": 3.5,
+            "minZ": 4.3,
+            "maxZ": 6.3
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "groundstroke",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 70,
+              "spin": "topspin",
+              "spinRateRpm": 600,
+              "netClearanceM": 0.25,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": 2.0597468354430384,
+              "maxX": 3.2597468354430386,
+              "minZ": -8.299999999999999,
+              "maxZ": -6.8999999999999995
+            }
+          }
+        },
+        {
+          "id": "baseline-short-deep-shot-4",
+          "presetId": "bh-cross-high",
+          "label": "Heavy backhand crosscourt",
+          "cue": "HEAVY BACKHAND CROSSCOURT",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": 0.21499999999999986,
+            "lateral": 2.2,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "groundstroke",
+            "stroke": "backhand",
+            "hand": "right",
+            "paceKmh": 70,
+            "spin": "topspin",
+            "spinRateRpm": 600,
+            "netClearanceM": 0.25,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "descent"
+          },
+          "landingZone": {
+            "minX": -3.2,
+            "maxX": -1.5999999999999999,
+            "minZ": 8,
+            "maxZ": 10
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "groundstroke",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 70,
+              "spin": "topspin",
+              "spinRateRpm": 600,
+              "netClearanceM": 0.25,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": 0.9324324324324328,
+              "maxX": 2.1324324324324326,
+              "minZ": -5.2,
+              "maxZ": -3.8
+            }
+          }
+        }
+      ],
+      "defaultInterval": 4.5,
+      "defaultRhythmPercent": 100,
+      "defaultMovementPercent": 100,
+      "defaultRepetitions": 4
+    },
+    {
+      "schemaVersion": 2,
+      "id": "return-rhythm-read",
+      "title": "Normal and compact serve returns",
+      "description": "Read different opening serve rhythms before your crosscourt return.",
+      "category": "Return Practice",
+      "launch": {
+        "position": {
+          "x": 1.25,
+          "z": 12.4
+        },
+        "ball": {
+          "family": "serve",
+          "stroke": "forehand",
+          "hand": "right",
+          "paceKmh": 140,
+          "spin": "flat",
+          "spinRateRpm": 900,
+          "netClearanceM": 0.18,
+          "variationPercent": 0,
+          "bounceFactor": 1,
+          "trajectoryMode": "natural",
+          "serveRhythm": "normal",
+          "contactTiming": "descent"
+        },
+        "landingZone": {
+          "minX": -2.25,
+          "maxX": -1.5499999999999998,
+          "minZ": -5.2,
+          "maxZ": -4.3999999999999995
+        }
+      },
+      "events": [
+        {
+          "id": "return-rhythm-read-shot-1",
+          "presetId": "return-fh-cross",
+          "label": "Forehand return crosscourt",
+          "cue": "FOREHAND RETURN CROSSCOURT",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": -0.3849999999999998,
+            "lateral": -2.4,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "groundstroke",
+            "stroke": "forehand",
+            "hand": "right",
+            "paceKmh": 70,
+            "spin": "topspin",
+            "spinRateRpm": 600,
+            "netClearanceM": 0.25,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "descent"
+          },
+          "landingZone": {
+            "minX": 1.4999999999999998,
+            "maxX": 3.0999999999999996,
+            "minZ": 8,
+            "maxZ": 10
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "groundstroke",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 70,
+              "spin": "topspin",
+              "spinRateRpm": 600,
+              "netClearanceM": 0.25,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": 2.1573304157549233,
+              "maxX": 3.3573304157549235,
+              "minZ": -7.7,
+              "maxZ": -6.3
+            }
+          }
+        },
+        {
+          "id": "return-rhythm-read-shot-2",
+          "presetId": "return-bh-cross",
+          "label": "Backhand return crosscourt",
+          "cue": "BACKHAND RETURN CROSSCOURT",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": -0.3849999999999998,
+            "lateral": 2.4,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "groundstroke",
+            "stroke": "backhand",
+            "hand": "right",
+            "paceKmh": 70,
+            "spin": "topspin",
+            "spinRateRpm": 600,
+            "netClearanceM": 0.25,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "descent"
+          },
+          "landingZone": {
+            "minX": -3.0999999999999996,
+            "maxX": -1.4999999999999998,
+            "minZ": 8,
+            "maxZ": 10
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "groundstroke",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 70,
+              "spin": "topspin",
+              "spinRateRpm": 600,
+              "netClearanceM": 0.25,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": -3.3573304157549235,
+              "maxX": -2.1573304157549233,
+              "minZ": -7.7,
+              "maxZ": -6.3
+            }
+          },
+          "openingFeed": {
+            "position": {
+              "x": -1.25,
+              "z": 12.4
+            },
+            "ball": {
+              "family": "serve",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 140,
+              "spin": "flat",
+              "spinRateRpm": 900,
+              "netClearanceM": 0.18,
+              "variationPercent": 0,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "compact",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": 1.5499999999999998,
+              "maxX": 2.25,
+              "minZ": -5.2,
+              "maxZ": -4.3999999999999995
+            }
+          }
+        }
+      ],
+      "defaultInterval": 5,
+      "defaultRhythmPercent": 100,
+      "defaultMovementPercent": 100,
+      "defaultRepetitions": 2
+    },
+    {
+      "schemaVersion": 2,
+      "id": "return-lefty-patterns",
+      "title": "Return a left-handed serve",
+      "description": "Read a left-handed opening serve and play your return to the opposite corner.",
+      "category": "Return Practice",
+      "launch": {
+        "position": {
+          "x": 1.25,
+          "z": 12.4
+        },
+        "ball": {
+          "family": "serve",
+          "stroke": "forehand",
+          "hand": "left",
+          "paceKmh": 140,
+          "spin": "slice",
+          "spinRateRpm": 1400,
+          "netClearanceM": 0.18,
+          "variationPercent": 0,
+          "bounceFactor": 1,
+          "trajectoryMode": "natural",
+          "serveRhythm": "normal",
+          "contactTiming": "descent"
+        },
+        "landingZone": {
+          "minX": -2.25,
+          "maxX": -1.5499999999999998,
+          "minZ": -5.2,
+          "maxZ": -4.3999999999999995
+        }
+      },
+      "events": [
+        {
+          "id": "return-lefty-patterns-shot-1",
+          "presetId": "return-fh-cross",
+          "label": "Forehand return crosscourt",
+          "cue": "FOREHAND RETURN CROSSCOURT",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": -0.3849999999999998,
+            "lateral": -2.4,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "groundstroke",
+            "stroke": "forehand",
+            "hand": "right",
+            "paceKmh": 70,
+            "spin": "topspin",
+            "spinRateRpm": 600,
+            "netClearanceM": 0.25,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "descent"
+          },
+          "landingZone": {
+            "minX": 1.4999999999999998,
+            "maxX": 3.0999999999999996,
+            "minZ": 8,
+            "maxZ": 10
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "groundstroke",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 70,
+              "spin": "topspin",
+              "spinRateRpm": 600,
+              "netClearanceM": 0.25,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": 2.1573304157549233,
+              "maxX": 3.3573304157549235,
+              "minZ": -7.7,
+              "maxZ": -6.3
+            }
+          }
+        },
+        {
+          "id": "return-lefty-patterns-shot-2",
+          "presetId": "return-bh-cross",
+          "label": "Backhand return crosscourt",
+          "cue": "BACKHAND RETURN CROSSCOURT",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": -0.3849999999999998,
+            "lateral": 2.4,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "groundstroke",
+            "stroke": "backhand",
+            "hand": "right",
+            "paceKmh": 70,
+            "spin": "topspin",
+            "spinRateRpm": 600,
+            "netClearanceM": 0.25,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "descent"
+          },
+          "landingZone": {
+            "minX": -3.0999999999999996,
+            "maxX": -1.4999999999999998,
+            "minZ": 8,
+            "maxZ": 10
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "groundstroke",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 70,
+              "spin": "topspin",
+              "spinRateRpm": 600,
+              "netClearanceM": 0.25,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": -3.3573304157549235,
+              "maxX": -2.1573304157549233,
+              "minZ": -7.7,
+              "maxZ": -6.3
+            }
+          },
+          "openingFeed": {
+            "position": {
+              "x": -1.25,
+              "z": 12.4
+            },
+            "ball": {
+              "family": "serve",
+              "stroke": "forehand",
+              "hand": "left",
+              "paceKmh": 140,
+              "spin": "slice",
+              "spinRateRpm": 1400,
+              "netClearanceM": 0.18,
+              "variationPercent": 0,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": 1.5499999999999998,
+              "maxX": 2.25,
+              "minZ": -5.2,
+              "maxZ": -4.3999999999999995
+            }
+          }
+        }
+      ],
+      "defaultInterval": 5,
+      "defaultRhythmPercent": 100,
+      "defaultMovementPercent": 100,
+      "defaultRepetitions": 2
+    },
+    {
+      "schemaVersion": 2,
+      "id": "return-second-serve",
+      "title": "Second-serve pressure",
+      "description": "Attack the second serve with a deep player-authored return.",
+      "category": "Return Practice",
+      "launch": {
+        "position": {
+          "x": -1.25,
+          "z": 12.4
+        },
+        "ball": {
+          "family": "serve",
+          "stroke": "forehand",
+          "hand": "right",
+          "paceKmh": 110,
+          "spin": "kick",
+          "spinRateRpm": 2300,
+          "netClearanceM": 0.18,
+          "variationPercent": 0,
+          "bounceFactor": 1,
+          "trajectoryMode": "natural",
+          "serveRhythm": "normal",
+          "contactTiming": "descent"
+        },
+        "landingZone": {
+          "minX": 1.5499999999999998,
+          "maxX": 2.25,
+          "minZ": -5.2,
+          "maxZ": -4.3999999999999995
+        }
+      },
+      "events": [
+        {
+          "id": "return-second-serve-shot-1",
+          "presetId": "return-bh-cross",
+          "label": "Backhand return crosscourt",
+          "cue": "BACKHAND RETURN CROSSCOURT",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": -0.3849999999999998,
+            "lateral": 2.4,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "groundstroke",
+            "stroke": "backhand",
+            "hand": "right",
+            "paceKmh": 70,
+            "spin": "topspin",
+            "spinRateRpm": 600,
+            "netClearanceM": 0.25,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "descent"
+          },
+          "landingZone": {
+            "minX": -3.0999999999999996,
+            "maxX": -1.4999999999999998,
+            "minZ": 8,
+            "maxZ": 10
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "groundstroke",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 70,
+              "spin": "topspin",
+              "spinRateRpm": 600,
+              "netClearanceM": 0.25,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": -3.3573304157549235,
+              "maxX": -2.1573304157549233,
+              "minZ": -7.7,
+              "maxZ": -6.3
+            }
+          }
+        },
+        {
+          "id": "return-second-serve-shot-2",
+          "presetId": "return-fh-cross",
+          "label": "Forehand return crosscourt",
+          "cue": "FOREHAND RETURN CROSSCOURT",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": -0.3849999999999998,
+            "lateral": -2.4,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "groundstroke",
+            "stroke": "forehand",
+            "hand": "right",
+            "paceKmh": 70,
+            "spin": "topspin",
+            "spinRateRpm": 600,
+            "netClearanceM": 0.25,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "descent"
+          },
+          "landingZone": {
+            "minX": 1.4999999999999998,
+            "maxX": 3.0999999999999996,
+            "minZ": 8,
+            "maxZ": 10
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "groundstroke",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 70,
+              "spin": "topspin",
+              "spinRateRpm": 600,
+              "netClearanceM": 0.25,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": 2.1573304157549233,
+              "maxX": 3.3573304157549235,
+              "minZ": -7.7,
+              "maxZ": -6.3
+            }
+          },
+          "openingFeed": {
+            "position": {
+              "x": 1.25,
+              "z": 12.4
+            },
+            "ball": {
+              "family": "serve",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 110,
+              "spin": "kick",
+              "spinRateRpm": 2300,
+              "netClearanceM": 0.18,
+              "variationPercent": 0,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": -2.25,
+              "maxX": -1.5499999999999998,
+              "minZ": -5.2,
+              "maxZ": -4.3999999999999995
+            }
+          }
+        }
+      ],
+      "defaultInterval": 5,
+      "defaultRhythmPercent": 100,
+      "defaultMovementPercent": 100,
+      "defaultRepetitions": 2
+    },
+    {
+      "schemaVersion": 2,
+      "id": "tactical-inside-out",
+      "title": "Inside-out escape",
+      "description": "Play through the middle, run around the backhand and change direction with a forehand.",
+      "category": "Tactical Pattern",
+      "launch": {
+        "position": {
+          "x": 0,
+          "z": 12.4
+        },
+        "ball": {
+          "family": "groundstroke",
+          "stroke": "forehand",
+          "hand": "right",
+          "paceKmh": 70,
+          "spin": "topspin",
+          "spinRateRpm": 600,
+          "netClearanceM": 0.25,
+          "variationPercent": 0,
+          "bounceFactor": 1,
+          "trajectoryMode": "natural",
+          "serveRhythm": "normal",
+          "contactTiming": "descent"
+        },
+        "landingZone": {
+          "minX": -0.9773584905660377,
+          "maxX": 0.22264150943396221,
+          "minZ": -8.299999999999999,
+          "maxZ": -6.8999999999999995
+        }
+      },
+      "events": [
+        {
+          "id": "tactical-inside-out-shot-1",
+          "presetId": "body-neutral",
+          "label": "Neutral ball through the middle",
+          "cue": "NEUTRAL BALL THROUGH THE MIDDLE",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": 0.21499999999999986,
+            "lateral": 0,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "groundstroke",
+            "stroke": "forehand",
+            "hand": "right",
+            "paceKmh": 70,
+            "spin": "topspin",
+            "spinRateRpm": 600,
+            "netClearanceM": 0.25,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "descent"
+          },
+          "landingZone": {
+            "minX": -0.8,
+            "maxX": 0.8,
+            "minZ": 8,
+            "maxZ": 10
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "groundstroke",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 70,
+              "spin": "topspin",
+              "spinRateRpm": 600,
+              "netClearanceM": 0.25,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": 0.7791044776119403,
+              "maxX": 1.9791044776119402,
+              "minZ": -8.299999999999999,
+              "maxZ": -6.8999999999999995
+            }
+          }
+        },
+        {
+          "id": "tactical-inside-out-shot-2",
+          "presetId": "fh-inside-out",
+          "label": "Inside-out forehand",
+          "cue": "INSIDE-OUT FOREHAND",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": 0.21499999999999986,
+            "lateral": 2.1,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "groundstroke",
+            "stroke": "forehand",
+            "hand": "right",
+            "paceKmh": 70,
+            "spin": "topspin",
+            "spinRateRpm": 600,
+            "netClearanceM": 0.25,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "descent"
+          },
+          "landingZone": {
+            "minX": -3.5,
+            "maxX": -1.9000000000000001,
+            "minZ": 8,
+            "maxZ": 10
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "groundstroke",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 70,
+              "spin": "topspin",
+              "spinRateRpm": 600,
+              "netClearanceM": 0.25,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": -3.258208955223881,
+              "maxX": -2.058208955223881,
+              "minZ": -8.299999999999999,
+              "maxZ": -6.8999999999999995
+            }
+          }
+        },
+        {
+          "id": "tactical-inside-out-shot-3",
+          "presetId": "fh-line-deep",
+          "label": "Forehand down the line",
+          "cue": "FOREHAND DOWN THE LINE",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": 0.21499999999999986,
+            "lateral": -2.2,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "groundstroke",
+            "stroke": "forehand",
+            "hand": "right",
+            "paceKmh": 70,
+            "spin": "topspin",
+            "spinRateRpm": 600,
+            "netClearanceM": 0.25,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "descent"
+          },
+          "landingZone": {
+            "minX": -3.4000000000000004,
+            "maxX": -1.8,
+            "minZ": 8.3,
+            "maxZ": 10.3
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "groundstroke",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 70,
+              "spin": "topspin",
+              "spinRateRpm": 600,
+              "netClearanceM": 0.25,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": 1.1989473684210532,
+              "maxX": 2.398947368421053,
+              "minZ": -8.299999999999999,
+              "maxZ": -6.8999999999999995
+            }
+          }
+        },
+        {
+          "id": "tactical-inside-out-shot-4",
+          "presetId": "bh-cross-deep",
+          "label": "Backhand crosscourt deep",
+          "cue": "BACKHAND CROSSCOURT DEEP",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": 0.21499999999999986,
+            "lateral": 2.2,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "groundstroke",
+            "stroke": "backhand",
+            "hand": "right",
+            "paceKmh": 70,
+            "spin": "topspin",
+            "spinRateRpm": 600,
+            "netClearanceM": 0.25,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "descent"
+          },
+          "landingZone": {
+            "minX": -3.4000000000000004,
+            "maxX": -1.8,
+            "minZ": 8.3,
+            "maxZ": 10.3
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "groundstroke",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 70,
+              "spin": "topspin",
+              "spinRateRpm": 600,
+              "netClearanceM": 0.25,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": -1.3985263157894736,
+              "maxX": -0.19852631578947366,
+              "minZ": -8.299999999999999,
+              "maxZ": -6.8999999999999995
+            }
+          }
+        }
+      ],
+      "defaultInterval": 4.5,
+      "defaultRhythmPercent": 100,
+      "defaultMovementPercent": 100,
+      "defaultRepetitions": 4
+    },
+    {
+      "schemaVersion": 2,
+      "id": "tactical-approach-close",
+      "title": "Approach and close",
+      "description": "Play your approach, move forward, then volley into alternating corners.",
+      "category": "Tactical Pattern",
+      "launch": {
+        "position": {
+          "x": 0,
+          "z": 12.4
+        },
+        "ball": {
+          "family": "groundstroke",
+          "stroke": "forehand",
+          "hand": "right",
+          "paceKmh": 70,
+          "spin": "topspin",
+          "spinRateRpm": 600,
+          "netClearanceM": 0.25,
+          "variationPercent": 0,
+          "bounceFactor": 1,
+          "trajectoryMode": "natural",
+          "serveRhythm": "normal",
+          "contactTiming": "descent"
+        },
+        "landingZone": {
+          "minX": -2.411392405063291,
+          "maxX": -1.2113924050632914,
+          "minZ": -4.2,
+          "maxZ": -2.8
+        }
+      },
+      "events": [
+        {
+          "id": "tactical-approach-close-shot-1",
+          "presetId": "approach-feed",
+          "label": "Forehand approach down the line",
+          "cue": "FOREHAND APPROACH DOWN THE LINE",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": -3.885,
+            "lateral": -1.8,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "approach",
+            "stroke": "forehand",
+            "hand": "right",
+            "paceKmh": 72,
+            "spin": "topspin",
+            "spinRateRpm": 650,
+            "netClearanceM": 1,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "descent"
+          },
+          "landingZone": {
+            "minX": -3.2,
+            "maxX": -1.5999999999999999,
+            "minZ": 8.3,
+            "maxZ": 10.3
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "groundstroke",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 90,
+              "spin": "flat",
+              "spinRateRpm": 120,
+              "netClearanceM": 0.12,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": -3.0000000000000004,
+              "maxX": -1.8000000000000003,
+              "minZ": -9.2,
+              "maxZ": -7.8
+            }
+          }
+        },
+        {
+          "id": "tactical-approach-close-shot-2",
+          "presetId": "volley-left",
+          "label": "Forehand volley crosscourt",
+          "cue": "FOREHAND VOLLEY CROSSCOURT",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": -7.585,
+            "lateral": -1.6,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "volley",
+            "stroke": "forehand",
+            "hand": "right",
+            "paceKmh": 45,
+            "spin": "slice",
+            "spinRateRpm": 650,
+            "netClearanceM": 0.25,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "descent"
+          },
+          "landingZone": {
+            "minX": 0,
+            "maxX": 1.6,
+            "minZ": 8.3,
+            "maxZ": 10.3
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "groundstroke",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 90,
+              "spin": "flat",
+              "spinRateRpm": 120,
+              "netClearanceM": 0.12,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": 1.8000000000000003,
+              "maxX": 3.0000000000000004,
+              "minZ": -9.2,
+              "maxZ": -7.8
+            }
+          }
+        },
+        {
+          "id": "tactical-approach-close-shot-3",
+          "presetId": "volley-right",
+          "label": "Backhand volley crosscourt",
+          "cue": "BACKHAND VOLLEY CROSSCOURT",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": -8.085,
+            "lateral": 1.6,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "volley",
+            "stroke": "backhand",
+            "hand": "right",
+            "paceKmh": 45,
+            "spin": "slice",
+            "spinRateRpm": 650,
+            "netClearanceM": 0.25,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "descent"
+          },
+          "landingZone": {
+            "minX": -1.6,
+            "maxX": 0,
+            "minZ": 8.3,
+            "maxZ": 10.3
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "groundstroke",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 70,
+              "spin": "topspin",
+              "spinRateRpm": 600,
+              "netClearanceM": 0.25,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": -2.565903307888041,
+              "maxX": -1.3659033078880407,
+              "minZ": -4.2,
+              "maxZ": -2.8
+            }
+          }
+        }
+      ],
+      "defaultInterval": 4.8,
+      "defaultRhythmPercent": 100,
+      "defaultMovementPercent": 100,
+      "defaultRepetitions": 3
+    },
+    {
+      "schemaVersion": 2,
+      "id": "tactical-defend-finish",
+      "title": "Defend then finish",
+      "description": "Use your defensive ball to recover before changing direction down the line.",
+      "category": "Tactical Pattern",
+      "launch": {
+        "position": {
+          "x": 0,
+          "z": 12.4
+        },
+        "ball": {
+          "family": "groundstroke",
+          "stroke": "forehand",
+          "hand": "right",
+          "paceKmh": 70,
+          "spin": "topspin",
+          "spinRateRpm": 600,
+          "netClearanceM": 0.25,
+          "variationPercent": 0,
+          "bounceFactor": 1,
+          "trajectoryMode": "natural",
+          "serveRhythm": "normal",
+          "contactTiming": "descent"
+        },
+        "landingZone": {
+          "minX": -3.081649484536083,
+          "maxX": -1.8816494845360827,
+          "minZ": -8.7,
+          "maxZ": -7.3
+        }
+      },
+      "events": [
+        {
+          "id": "tactical-defend-finish-shot-1",
+          "presetId": "defensive-high-left",
+          "label": "High defensive crosscourt",
+          "cue": "HIGH DEFENSIVE CROSSCOURT",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": 0.6150000000000002,
+            "lateral": -2.5,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "groundstroke",
+            "stroke": "forehand",
+            "hand": "right",
+            "paceKmh": 70,
+            "spin": "topspin",
+            "spinRateRpm": 600,
+            "netClearanceM": 0.25,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "descent"
+          },
+          "landingZone": {
+            "minX": 1.7,
+            "maxX": 3.3,
+            "minZ": 8.7,
+            "maxZ": 10.7
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "groundstroke",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 70,
+              "spin": "topspin",
+              "spinRateRpm": 600,
+              "netClearanceM": 0.25,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": -0.5797101449275363,
+              "maxX": 0.6202898550724637,
+              "minZ": -8.299999999999999,
+              "maxZ": -6.8999999999999995
+            }
+          }
+        },
+        {
+          "id": "tactical-defend-finish-shot-2",
+          "presetId": "body-neutral",
+          "label": "Neutral ball through the middle",
+          "cue": "NEUTRAL BALL THROUGH THE MIDDLE",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": 0.21499999999999986,
+            "lateral": 0,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "groundstroke",
+            "stroke": "forehand",
+            "hand": "right",
+            "paceKmh": 70,
+            "spin": "topspin",
+            "spinRateRpm": 600,
+            "netClearanceM": 0.25,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "descent"
+          },
+          "landingZone": {
+            "minX": -0.8,
+            "maxX": 0.8,
+            "minZ": 8,
+            "maxZ": 10
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "groundstroke",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 70,
+              "spin": "topspin",
+              "spinRateRpm": 600,
+              "netClearanceM": 0.25,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": 1.6149253731343287,
+              "maxX": 2.814925373134329,
+              "minZ": -8.299999999999999,
+              "maxZ": -6.8999999999999995
+            }
+          }
+        },
+        {
+          "id": "tactical-defend-finish-shot-3",
+          "presetId": "bh-cross-high",
+          "label": "Heavy backhand crosscourt",
+          "cue": "HEAVY BACKHAND CROSSCOURT",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": 0.21499999999999986,
+            "lateral": 2.2,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "groundstroke",
+            "stroke": "backhand",
+            "hand": "right",
+            "paceKmh": 70,
+            "spin": "topspin",
+            "spinRateRpm": 600,
+            "netClearanceM": 0.25,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "descent"
+          },
+          "landingZone": {
+            "minX": -3.2,
+            "maxX": -1.5999999999999999,
+            "minZ": 8,
+            "maxZ": 10
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "groundstroke",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 70,
+              "spin": "topspin",
+              "spinRateRpm": 600,
+              "netClearanceM": 0.25,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": -3.208955223880597,
+              "maxX": -2.008955223880597,
+              "minZ": -8.299999999999999,
+              "maxZ": -6.8999999999999995
+            }
+          }
+        },
+        {
+          "id": "tactical-defend-finish-shot-4",
+          "presetId": "fh-line-deep",
+          "label": "Forehand down the line",
+          "cue": "FOREHAND DOWN THE LINE",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": 0.21499999999999986,
+            "lateral": -2.2,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "groundstroke",
+            "stroke": "forehand",
+            "hand": "right",
+            "paceKmh": 70,
+            "spin": "topspin",
+            "spinRateRpm": 600,
+            "netClearanceM": 0.25,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "descent"
+          },
+          "landingZone": {
+            "minX": -3.4000000000000004,
+            "maxX": -1.8,
+            "minZ": 8.3,
+            "maxZ": 10.3
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "groundstroke",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 70,
+              "spin": "topspin",
+              "spinRateRpm": 600,
+              "netClearanceM": 0.25,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": -3.494202898550725,
+              "maxX": -2.294202898550725,
+              "minZ": -8.7,
+              "maxZ": -7.3
+            }
+          }
+        }
+      ],
+      "defaultInterval": 4.5,
+      "defaultRhythmPercent": 100,
+      "defaultMovementPercent": 100,
+      "defaultRepetitions": 4
+    },
+    {
+      "schemaVersion": 2,
+      "id": "net-half-volley",
+      "title": "Half-volley and close",
+      "description": "Take the ball just after the bounce, then close for two volleys.",
+      "category": "Net & Overhead",
+      "launch": {
+        "position": {
+          "x": 0,
+          "z": 12.4
+        },
+        "ball": {
+          "family": "groundstroke",
+          "stroke": "forehand",
+          "hand": "right",
+          "paceKmh": 70,
+          "spin": "topspin",
+          "spinRateRpm": 600,
+          "netClearanceM": 0.25,
+          "variationPercent": 0,
+          "bounceFactor": 1,
+          "trajectoryMode": "natural",
+          "serveRhythm": "normal",
+          "contactTiming": "descent"
+        },
+        "landingZone": {
+          "minX": -1.054931506849315,
+          "maxX": 0.14506849315068487,
+          "minZ": -6.75,
+          "maxZ": -5.35
+        }
+      },
+      "events": [
+        {
+          "id": "net-half-volley-shot-1",
+          "presetId": "half-volley-body",
+          "label": "Half-volley through the middle",
+          "cue": "HALF-VOLLEY THROUGH THE MIDDLE",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": -5.385,
+            "lateral": 0,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "half-volley",
+            "stroke": "forehand",
+            "hand": "right",
+            "paceKmh": 55,
+            "spin": "slice",
+            "spinRateRpm": 650,
+            "netClearanceM": 1,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "rise"
+          },
+          "landingZone": {
+            "minX": -0.8,
+            "maxX": 0.8,
+            "minZ": 7.5,
+            "maxZ": 9.5
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "groundstroke",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 90,
+              "spin": "flat",
+              "spinRateRpm": 120,
+              "netClearanceM": 0.12,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": -3.0000000000000004,
+              "maxX": -1.8000000000000003,
+              "minZ": -9.2,
+              "maxZ": -7.8
+            }
+          }
+        },
+        {
+          "id": "net-half-volley-shot-2",
+          "presetId": "volley-left",
+          "label": "Forehand volley crosscourt",
+          "cue": "FOREHAND VOLLEY CROSSCOURT",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": -7.585,
+            "lateral": -1.6,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "volley",
+            "stroke": "forehand",
+            "hand": "right",
+            "paceKmh": 45,
+            "spin": "slice",
+            "spinRateRpm": 650,
+            "netClearanceM": 0.25,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "descent"
+          },
+          "landingZone": {
+            "minX": 0,
+            "maxX": 1.6,
+            "minZ": 8.3,
+            "maxZ": 10.3
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "groundstroke",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 90,
+              "spin": "flat",
+              "spinRateRpm": 120,
+              "netClearanceM": 0.12,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": 1.8000000000000003,
+              "maxX": 3.0000000000000004,
+              "minZ": -9.2,
+              "maxZ": -7.8
+            }
+          }
+        },
+        {
+          "id": "net-half-volley-shot-3",
+          "presetId": "volley-right",
+          "label": "Backhand volley crosscourt",
+          "cue": "BACKHAND VOLLEY CROSSCOURT",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": -8.085,
+            "lateral": 1.6,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "volley",
+            "stroke": "backhand",
+            "hand": "right",
+            "paceKmh": 45,
+            "spin": "slice",
+            "spinRateRpm": 650,
+            "netClearanceM": 0.25,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "descent"
+          },
+          "landingZone": {
+            "minX": -1.6,
+            "maxX": 0,
+            "minZ": 8.3,
+            "maxZ": 10.3
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "groundstroke",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 70,
+              "spin": "topspin",
+              "spinRateRpm": 600,
+              "netClearanceM": 0.25,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": -1.0461432506887052,
+              "maxX": 0.15385674931129473,
+              "minZ": -6.75,
+              "maxZ": -5.35
+            }
+          }
+        }
+      ],
+      "defaultInterval": 4.8,
+      "defaultRhythmPercent": 100,
+      "defaultMovementPercent": 100,
+      "defaultRepetitions": 3
+    },
+    {
+      "schemaVersion": 2,
+      "id": "custom-starter",
+      "title": "Custom starter",
+      "description": "Assemble your own player shots, opponent responses and court movement.",
+      "category": "Custom",
+      "launch": {
+        "position": {
+          "x": 0,
+          "z": 12.4
+        },
+        "ball": {
+          "family": "groundstroke",
+          "stroke": "forehand",
+          "hand": "right",
+          "paceKmh": 70,
+          "spin": "topspin",
+          "spinRateRpm": 600,
+          "netClearanceM": 0.25,
+          "variationPercent": 0,
+          "bounceFactor": 1,
+          "trajectoryMode": "natural",
+          "serveRhythm": "normal",
+          "contactTiming": "descent"
+        },
+        "landingZone": {
+          "minX": -0.9773584905660377,
+          "maxX": 0.22264150943396221,
+          "minZ": -8.299999999999999,
+          "maxZ": -6.8999999999999995
+        }
+      },
+      "events": [
+        {
+          "id": "custom-starter-shot-1",
+          "presetId": "body-neutral",
+          "label": "Neutral ball through the middle",
+          "cue": "NEUTRAL BALL THROUGH THE MIDDLE",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": 0.21499999999999986,
+            "lateral": 0,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "groundstroke",
+            "stroke": "forehand",
+            "hand": "right",
+            "paceKmh": 70,
+            "spin": "topspin",
+            "spinRateRpm": 600,
+            "netClearanceM": 0.25,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "descent"
+          },
+          "landingZone": {
+            "minX": -0.8,
+            "maxX": 0.8,
+            "minZ": 8,
+            "maxZ": 10
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "groundstroke",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 70,
+              "spin": "topspin",
+              "spinRateRpm": 600,
+              "netClearanceM": 0.25,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": -2.814925373134329,
+              "maxX": -1.6149253731343287,
+              "minZ": -8.299999999999999,
+              "maxZ": -6.8999999999999995
+            }
+          }
+        },
+        {
+          "id": "custom-starter-shot-2",
+          "presetId": "fh-cross-deep",
+          "label": "Forehand crosscourt deep",
+          "cue": "FOREHAND CROSSCOURT DEEP",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": 0.21499999999999986,
+            "lateral": -2.2,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "groundstroke",
+            "stroke": "forehand",
+            "hand": "right",
+            "paceKmh": 70,
+            "spin": "topspin",
+            "spinRateRpm": 600,
+            "netClearanceM": 0.25,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "descent"
+          },
+          "landingZone": {
+            "minX": 1.8,
+            "maxX": 3.4000000000000004,
+            "minZ": 8.3,
+            "maxZ": 10.3
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "groundstroke",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 70,
+              "spin": "topspin",
+              "spinRateRpm": 600,
+              "netClearanceM": 0.25,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": 2.0418947368421057,
+              "maxX": 3.241894736842106,
+              "minZ": -8.299999999999999,
+              "maxZ": -6.8999999999999995
+            }
+          }
+        },
+        {
+          "id": "custom-starter-shot-3",
+          "presetId": "bh-cross-deep",
+          "label": "Backhand crosscourt deep",
+          "cue": "BACKHAND CROSSCOURT DEEP",
+          "camera": {
+            "eyeHeight": 1.7,
+            "behindBaseline": 0.21499999999999986,
+            "lateral": 2.2,
+            "yaw": 0,
+            "pitch": -1.7,
+            "fov": 70
+          },
+          "ball": {
+            "family": "groundstroke",
+            "stroke": "backhand",
+            "hand": "right",
+            "paceKmh": 70,
+            "spin": "topspin",
+            "spinRateRpm": 600,
+            "netClearanceM": 0.25,
+            "variationPercent": 8,
+            "bounceFactor": 1,
+            "trajectoryMode": "natural",
+            "serveRhythm": "normal",
+            "contactTiming": "descent"
+          },
+          "landingZone": {
+            "minX": -3.4000000000000004,
+            "maxX": -1.8,
+            "minZ": 8.3,
+            "maxZ": 10.3
+          },
+          "opponentReturn": {
+            "ball": {
+              "family": "groundstroke",
+              "stroke": "forehand",
+              "hand": "right",
+              "paceKmh": 70,
+              "spin": "topspin",
+              "spinRateRpm": 600,
+              "netClearanceM": 0.25,
+              "variationPercent": 8,
+              "bounceFactor": 1,
+              "trajectoryMode": "natural",
+              "serveRhythm": "normal",
+              "contactTiming": "descent"
+            },
+            "landingZone": {
+              "minX": -1.3985263157894736,
+              "maxX": -0.19852631578947366,
+              "minZ": -8.299999999999999,
+              "maxZ": -6.8999999999999995
+            }
+          }
+        }
+      ],
+      "defaultInterval": 4.5,
+      "defaultRhythmPercent": 100,
+      "defaultMovementPercent": 100,
+      "defaultRepetitions": 3
+    }
+  ]
+}
