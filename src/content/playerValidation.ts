@@ -51,14 +51,45 @@ function response(v: unknown, launch: boolean, path: string, errors: string[]) {
     }
   }
 }
+function cameraTransition(v: unknown, path: string, errors: string[]) {
+  if (!object(v, 'movement focus', path, errors)) return;
+  if (v.movement !== undefined && object(v.movement, 'destination start delaySeconds resume resumeDelaySeconds pacePercent waypoint', `${path} movement`, errors)) {
+    const m = v.movement;
+    if (!['auto', 'neutral', 'next-shot', 'waypoint'].includes(String(m.destination))) errors.push(`${path} movement destination is invalid.`);
+    for (const key of ['start', 'resume']) if (m[key] !== undefined && !['auto', 'player-hit', 'opponent-hit', 'after-split'].includes(String(m[key]))) errors.push(`${path} ${key} is invalid.`);
+    for (const key of ['delaySeconds', 'resumeDelaySeconds']) if (m[key] !== undefined && !range(m[key], 0, 2)) errors.push(`${path} ${key} must be 0–2 seconds.`);
+    if (m.pacePercent !== undefined && !range(m.pacePercent, 50, 200)) errors.push(`${path} pace must be 50–200%.`);
+    if (m.waypoint !== undefined || m.destination === 'waypoint') {
+      if (object(m.waypoint, 'lateral behindBaseline eyeHeight', `${path} waypoint`, errors))
+        for (const key of ['lateral', 'behindBaseline', 'eyeHeight'] as const)
+          if (!range(m.waypoint[key], SHOT_CAMERA_RANGES[key][0], SHOT_CAMERA_RANGES[key][1])) errors.push(`${path} waypoint ${key} is invalid.`);
+    }
+  }
+  if (v.focus !== undefined && object(v.focus, 'beforeReturn afterReturn', `${path} focus`, errors)) {
+    for (const phase of ['beforeReturn', 'afterReturn']) {
+      const f = v.focus[phase]; if (f === undefined) continue;
+      if (!object(f, 'mode direction point', `${path} ${phase}`, errors)) continue;
+      if (!['auto', 'ball', 'opponent', 'next-shot', 'direction', 'point'].includes(String(f.mode))) errors.push(`${path} focus mode is invalid.`);
+      if (f.direction !== undefined || f.mode === 'direction') {
+        if (object(f.direction, 'yaw pitch', `${path} direction`, errors)
+          && (!range(f.direction.yaw, -180, 180) || !range(f.direction.pitch, -85, 85))) errors.push(`${path} direction is invalid.`);
+      }
+      if (f.point !== undefined || f.mode === 'point') {
+        if (object(f.point, 'x y z', `${path} focus point`, errors)
+          && (!range(f.point.x, -12, 12) || !range(f.point.y, 0, 8) || !range(f.point.z, -20, 20))) errors.push(`${path} focus point is outside court bounds.`);
+      }
+    }
+  }
+}
 export function validatePlayerEvent(v: unknown, path: string, errors: string[]) {
-  if (!object(v, 'id presetId label cue camera ball landingZone opponentReturn intervalSeconds rhythmPercent movementPercent openingFeed', path, errors)) return;
+  if (!object(v, 'id presetId label cue camera cameraTransition ball landingZone opponentReturn intervalSeconds rhythmPercent movementPercent openingFeed', path, errors)) return;
   if (!id(v.id)) errors.push(`${path} needs a valid id.`);
   if (v.presetId !== undefined && !id(v.presetId)) errors.push(`${path} preset id is invalid.`);
   if (!text(v.label, 60) || !text(v.cue, 60, false)) errors.push(`${path} label/cue must be 60 characters or fewer.`);
   if (object(v.camera, Object.keys(SHOT_CAMERA_RANGES).join(' '), `${path} camera`, errors)) {
     for (const [key, limits] of Object.entries(SHOT_CAMERA_RANGES)) if (!range(v.camera[key], limits[0], limits[1])) errors.push(`${path} camera ${key} is invalid.`);
   }
+  if (v.cameraTransition !== undefined) cameraTransition(v.cameraTransition, `${path} camera transition`, errors);
   ball(v.ball, 'rally', `${path} player ball`, errors);
   zone(v.landingZone, 'far', `${path} player landing zone`, errors);
   response(v.opponentReturn, false, `${path} opponent return`, errors);

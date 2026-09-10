@@ -5,24 +5,28 @@ import { cameraLookAtCourtPoint, wrapCameraAngle } from '../../domain/camera';
 import { cameraEase, interpolateCamera } from './cameraMotion';
 import type { CameraTransition } from './cameraTimeline';
 import { sampleTrajectoryAt, type ResolvedTrajectory } from '../trajectory/physics';
+import type { CameraFocusTarget, CameraMoveMoment, DrillCameraTransition } from '../../content/types';
 
 /** Presentation calibration, not measured universal human reaction constants. */
 export const TENNIS_CAMERA = Object.freeze({ release: .12, settle: .12, reaction: .15, serveReaction: .11,
   splitLead: .09, splitCompression: .018, maxSpeed: 7, maxAcceleration: 18, turnSpeed: 110 });
-export type TennisCameraPhase = 'stroke' | 'recover' | 'approach' | 'watch' | 'split' | 'receive' | 'settle' | 'reset';
+export type TennisCameraPhase = 'stroke' | 'recover' | 'approach' | 'watch' | 'split' | 'receive' | 'settle' | 'reset' | 'move' | 'hold';
 export type TennisCameraExchange = Readonly<{
   start: number; end: number; opponentContact: number; reactAt: number; settleAt: number;
   from: CameraConfiguration; to: CameraConfiguration; ready: CameraConfiguration;
-  strategy: 'recover' | 'approach' | 'opening'; legs: readonly CameraTransition[];
+  strategy: 'recover' | 'approach' | 'opening' | 'custom'; legs: readonly CameraTransition[];
   feasible: boolean; requiredSeconds: number; availableSeconds: number;
   advance?: Readonly<{ start: number; end: number; from: number; to: number }>;
   incoming?: ResolvedTrajectory;
+  outgoing?: ResolvedTrajectory;
+  configuration?: DrillCameraTransition;
 }>;
 export type TennisCameraTrack = Readonly<{ exchanges: readonly TennisCameraExchange[]; motionScale: number }>;
 export type TennisCameraPlanInput = Readonly<{
   start: number; opponentContact: number; end: number; from: CameraConfiguration; to: CameraConfiguration;
   playerTarget: Readonly<{ x: number; z: number }>; currentFamily: string; nextFamily: string;
   opponentFamily?: string; movementRate?: number; opening?: boolean;
+  configuration?: DrillCameraTransition;
 }>;
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
 const distance = (a: CameraConfiguration, b: CameraConfiguration) => Math.hypot(a.lateral - b.lateral, a.behindBaseline - b.behindBaseline, a.eyeHeight - b.eyeHeight);
@@ -79,11 +83,55 @@ export function planTennisCamera(input: TennisCameraPlanInput): TennisCameraExch
   const feasible = settleAt >= reactAt && requiredSeconds <= availableSeconds + 1e-7 && (!advance || advance.end <= settleAt + 1e-7);
   const ready = advance ? { ...lateralReady, behindBaseline: advanceDepth(advance, reactAt) } : lateralReady;
   if (distance(ready, to) > 1e-7 || advance) legs.push({ start: reactAt, end: settleAt, from: ready, to });
-  return { start, end, opponentContact, reactAt, settleAt, from, to, ready, strategy, legs, feasible, requiredSeconds, availableSeconds, advance };
+  const automatic: TennisCameraExchange = { start, end, opponentContact, reactAt, settleAt, from, to, ready, strategy, legs, feasible,
+    requiredSeconds, availableSeconds, advance, configuration: input.configuration };
+  return configuredMovement(automatic, input);
+}
+
+/** Explicit authoring may anticipate a return. Automatic keeps its causal path.
+ * Waypoints are real stops; an infeasible detour is never silently skipped. */
+function configuredMovement(automatic: TennisCameraExchange, input: TennisCameraPlanInput): TennisCameraExchange {
+  const m = input.configuration?.movement;
+  if (!m || m.destination === 'auto' || input.opening) return automatic;
+  const { from, to, start, opponentContact, reactAt, settleAt } = automatic;
+  const moment = (when: CameraMoveMoment | undefined, fallback: CameraMoveMoment) => {
+    const key = !when || when === 'auto' ? fallback : when;
+    return key === 'player-hit' ? start + TENNIS_CAMERA.release : key === 'opponent-hit' ? opponentContact : reactAt;
+  };
+  const begin = moment(m.start, m.destination === 'next-shot' ? 'after-split' : 'player-hit') + (m.delaySeconds ?? 0);
+  const rate = Math.sqrt(clamp(m.pacePercent === undefined ? input.movementRate ?? 1 : m.pacePercent / 100, .5, 2));
+  const preferred = (a: CameraConfiguration, b: CameraConfiguration) => duration(distance(a, b), Math.min(5.5, 3.6 * rate), Math.min(9, 6 * rate));
+  const minimum = (a: CameraConfiguration, b: CameraConfiguration) => duration(distance(a, b), TENNIS_CAMERA.maxSpeed, TENNIS_CAMERA.maxAcceleration);
+  const legs: CameraTransition[] = [];
+  let feasible: boolean, requiredSeconds: number, availableSeconds: number;
+  let ready = from;
+  if (m.destination === 'next-shot') {
+    requiredSeconds = minimum(from, to); availableSeconds = Math.max(0, settleAt - begin);
+    const travel = Math.min(preferred(from, to), availableSeconds);
+    feasible = begin <= settleAt && travel >= requiredSeconds - 1e-7;
+    if (travel > 0) legs.push({ start: begin, end: begin + travel, from, to });
+  } else {
+    ready = m.destination === 'waypoint' && m.waypoint ? { ...from, ...m.waypoint } : neutralCamera(from, input.playerTarget);
+    const firstMinimum = minimum(from, ready), finalMinimum = minimum(ready, to);
+    const firstTime = Math.min(preferred(from, ready), Math.max(0, settleAt - begin - finalMinimum - .06));
+    const arrive = begin + firstTime;
+    const resume = Math.max(arrive + .06, moment(m.resume, 'after-split') + (m.resumeDelaySeconds ?? 0));
+    requiredSeconds = firstMinimum + .06 + finalMinimum; availableSeconds = Math.max(0, settleAt - begin);
+    feasible = firstTime >= firstMinimum - 1e-7 && settleAt - resume >= finalMinimum - 1e-7;
+    if (firstTime > 0) legs.push({ start: begin, end: arrive, from, to: ready });
+    const finalTime = Math.min(preferred(ready, to), Math.max(0, settleAt - resume));
+    if (finalTime > 0) legs.push({ start: resume, end: resume + finalTime, from: ready, to });
+  }
+  return { ...automatic, strategy: 'custom', legs, advance: undefined, ready, feasible, requiredSeconds, availableSeconds };
 }
 
 export function tennisCameraPhase(exchange: TennisCameraExchange, time: number): TennisCameraPhase {
   if (time >= exchange.settleAt) return 'settle';
+  if (exchange.strategy === 'custom') {
+    if (time < exchange.start + TENNIS_CAMERA.release) return 'stroke';
+    if (exchange.legs.some(leg => time >= leg.start && time < leg.end)) return 'move';
+    return time >= exchange.opponentContact - TENNIS_CAMERA.splitLead && time <= exchange.reactAt ? 'split' : 'hold';
+  }
   if (time >= exchange.reactAt) return 'receive';
   if (time >= exchange.opponentContact - TENNIS_CAMERA.splitLead) return 'split';
   if (exchange.strategy !== 'opening' && time < exchange.start + TENNIS_CAMERA.release) return 'stroke';
@@ -124,8 +172,10 @@ export function sampleTennisCamera(initial: CameraConfiguration, transitions: re
       const u = (time - splitStart) / (reactAt - splitStart);
       pose.eyeHeight -= TENNIS_CAMERA.splitCompression * Math.sin(Math.PI * u) ** 4;
     }
-    if (opponent && phase !== 'settle' && phase !== 'stroke') {
-      const look = cameraLookAtCourtPoint(pose, { ...opponent, y: 1.35 });
+    const focus = exchange.configuration?.focus;
+    const customFocus = focus && [focus.beforeReturn, focus.afterReturn].some(target => target && target.mode !== 'auto');
+    if ((opponent || customFocus) && phase !== 'settle' && phase !== 'stroke') {
+      const look = cameraLookAtCourtPoint(pose, { x: opponent?.x ?? 0, y: 1.35, z: opponent?.z ?? COURT.halfLength });
       let yaw = look.yaw, pitch = look.pitch;
       const age = time - opponentContact;
       if (age > 0 && exchange.incoming) {
@@ -140,6 +190,29 @@ export function sampleTennisCamera(initial: CameraConfiguration, transitions: re
         // avoid whipping sideways after a near ball and retain court context.
         yaw += softLimit(wrapCameraAngle(ballLook.yaw - look.yaw), h) * weight;
         pitch += softLimit(ballLook.pitch - look.pitch, v) * weight;
+      }
+      if (customFocus) {
+        const target = (choice: CameraFocusTarget | undefined, incoming: boolean) => {
+          switch (choice?.mode) {
+            case 'opponent': return look;
+            case 'next-shot': return { yaw: to.yaw, pitch: to.pitch };
+            case 'direction': return choice.direction ?? look;
+            case 'point': return choice.point ? cameraLookAtCourtPoint(pose, choice.point) : look;
+            case 'ball': {
+              const flight = incoming ? exchange.incoming : exchange.outgoing;
+              const elapsed = incoming ? Math.max(0, age) : clamp(time - start, 0, opponentContact - start);
+              return flight ? cameraLookAtCourtPoint(pose, sampleTrajectoryAt(flight, elapsed, false)) : look;
+            }
+            default: return incoming ? { yaw, pitch } : look;
+          }
+        };
+        const before = target(focus.beforeReturn, false), after = target(focus.afterReturn, true);
+        // Blend at the physical opponent contact, never at a frame or event index.
+        // Explicit ball tracking can leave the opponent outside the fixed frame.
+        const turn = Math.max(Math.abs(wrapCameraAngle(after.yaw - before.yaw)), Math.abs(after.pitch - before.pitch));
+        const change = cameraEase(age / Math.max(.32, 1.875 * turn / TENNIS_CAMERA.turnSpeed));
+        yaw = before.yaw + wrapCameraAngle(after.yaw - before.yaw) * change;
+        pitch = before.pitch + (after.pitch - before.pitch) * change;
       }
       const anchor = cameraLookAtCourtPoint(from, { x: 0, y: 1.35, z: COURT.halfLength });
       const unwrappedLook = from.yaw + wrapCameraAngle(anchor.yaw - from.yaw) + wrapCameraAngle(yaw - anchor.yaw);

@@ -117,7 +117,7 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
     const restStart = endTime, restSeconds = index > 0 && index % workBlock === 0 ? Math.max(0, settings.restSeconds) : 0;
     const travel = cameraTravelSeconds(lastCamera, event.camera, movement / 100);
     const departure = index === 0 ? 0 : (playerEvents.at(-1)?.startTime ?? endTime) + TENNIS_CAMERA.release;
-    if (travel > 0) transitions.push({ start: departure, end: departure + travel, from: lastCamera, to: event.camera });
+    const reset = { start: departure, end: departure + travel, from: lastCamera, to: event.camera };
     let time = Math.max(3, endTime + restSeconds + lead + .15, departure + travel);
     if (previous) {
       rep = withPreparedApproach(previous, { ...rep, startTime: time });
@@ -127,6 +127,24 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
     }
     if (restSeconds) restPeriods.push({ afterIndex: index - 1, startTime: restStart, endTime: restStart + restSeconds });
     rep = { ...rep, startTime: time }; repetitions.push(rep); incomingIndex = rep.index; incoming = fit;
+    const previousPlayer = playerEvents.at(-1), configuration = previousPlayer?.event.cameraTransition;
+    const custom = configuration && (configuration.movement && configuration.movement.destination !== 'auto'
+      || Object.values(configuration.focus ?? {}).some(target => target.mode !== 'auto'));
+    if (custom && previousPlayer && fit.contact) {
+      const plan = planTennisCamera({ start: previousPlayer.startTime, end: time + fit.contact.time, opponentContact: time,
+        from: lastCamera, to: event.camera, playerTarget: previousPlayer.trajectory.intent.target,
+        currentFamily: previousPlayer.event.ball.family, nextFamily: event.ball.family, opponentFamily: ball.family,
+        movementRate: movement / 100, configuration });
+      // Between points, Automatic movement keeps the existing reset before the
+      // feed. Focus can still be authored without changing that movement clock.
+      const authored = !configuration.movement || configuration.movement.destination === 'auto'
+        ? { ...plan, strategy: 'custom' as const, legs: travel > 0 ? [reset] : [], advance: undefined,
+          ready: event.camera, feasible: true, requiredSeconds: travel, availableSeconds: time - departure }
+        : plan;
+      if (!authored.feasible) issues.push({ index, phase: 'opening', message: `Camera before shot ${index + 1}: this route needs more travel time. Start earlier, shorten the delay or move the intermediate position closer.` });
+      else transitions.push(...authored.legs);
+      cameraExchanges.push({ ...authored, outgoing: previousPlayer.trajectory, incoming: fit.trajectory });
+    } else if (travel > 0) transitions.push(reset);
     addFlight('opponent', 'opening', index, time, fit.trajectory, fit.contact);
     lastCamera = event.camera;
   };
@@ -183,7 +201,7 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
       break;
     }
     const arrival = repetitions[incomingIndex]!, playerTime = arrival.startTime + current.contact.time;
-    if (newPoint) cameraExchanges.push({ ...planTennisCamera({ start: transitions.at(-1)?.end ?? 0, end: playerTime,
+    if (newPoint && cameraExchanges.at(-1)?.end !== playerTime) cameraExchanges.push({ ...planTennisCamera({ start: transitions.at(-1)?.end ?? 0, end: playerTime,
       opponentContact: arrival.startTime, from: { ...event.camera, fov: initialCamera.fov }, to: event.camera, opening: true,
       playerTarget: current.trajectory.intent.target, currentFamily: event.ball.family, nextFamily: event.ball.family,
       opponentFamily: arrival.shot.family }), incoming: current.trajectory });
@@ -225,7 +243,7 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
     const cameraPlan = (opponentTime: number, nextContact: number) => planTennisCamera({ start: playerTime, opponentContact: opponentTime,
       end: nextContact, from: { ...event.camera, fov: initialCamera.fov }, to: next.camera, playerTarget: target,
       currentFamily: event.ball.family, nextFamily: next.ball.family, opponentFamily: replyBall.family,
-      movementRate: normalizeRhythm(next.movementPercent ?? movement) / 100 });
+      movementRate: normalizeRhythm(next.movementPercent ?? movement) / 100, configuration: event.cameraTransition });
     for (const contact of selected) {
       const time = playerTime + contact.time;
       const draftShot = shotDefinition(contact.position, replyBall, replyTarget, `${event.label} — opponent return`);
@@ -239,7 +257,7 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
     }
     if (!best) {
       addFlight('player', 'player', index, playerTime, playerFlight);
-      issues.push({ index, phase: 'response', message: `Shot ${index + 1}: the opponent cannot connect this landing, response and next player position. Adjust the return zone, shot type, pace, contact timing or next camera.` }); break;
+      issues.push({ index, phase: 'response', message: `Shot ${index + 1}: the opponent cannot connect this landing, response and next player position. Adjust the return zone, shot type, pace, contact timing or next camera.${event.cameraTransition?.movement && event.cameraTransition.movement.destination !== 'auto' ? ' The custom camera route must also fit: try starting earlier, shortening delays or moving the intermediate position closer.' : ''}` }); break;
     }
     const gap = best.rep.startTime - previous.startTime, solved = solveShotInterval(previous, best.rep, gap);
     if (solved.gap > gap + 1e-7) {
@@ -257,13 +275,13 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
     if (receiver && best.fit.contact) {
       const plan = cameraPlan(best.rep.startTime, playerTime + actual);
       transitions.push(...plan.legs);
-      cameraExchanges.push({ ...plan, incoming: best.fit.trajectory });
+      cameraExchanges.push({ ...plan, outgoing: playerFlight, incoming: best.fit.trajectory });
     }
     incoming = best.fit; incomingIndex = best.rep.index; lastCamera = receiver?.camera ?? event.camera;
     if (solved.previous.motionRate !== previous.motionRate || solved.next.motionRate !== best.rep.motionRate || Math.abs(actual - requested) > .01) motionTimingAdjusted = true;
   }
   const last = repetitions.at(-1);
-  return { solverVersion: 'ball-v9-neutral-contact-fit', plannerVersion: 'gameplay-player-drills-v13', contentVersion: '2026.09.09',
+  return { solverVersion: 'ball-v9-neutral-contact-fit', plannerVersion: 'gameplay-player-drills-v14', contentVersion: '2026.09.09',
     drill, settings: { ...settings, mode: 'drill', rhythmPercent: rhythm, movementPercent: movement, shotIntervalSeconds: interval, workBlockSize: workBlock },
     mode: 'drill', repetitions, restPeriods, duration: Math.max(endTime, last ? planRecovery(motionEvent(last)).end + .15 : 3),
     motionTimingAdjusted, rhythmPercent: rhythm, cameraTimeline: { initial: initialCamera ?? DEFAULT_DRILL_CAMERA,

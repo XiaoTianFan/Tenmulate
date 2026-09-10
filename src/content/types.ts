@@ -118,12 +118,32 @@ export type DrillBall = Readonly<{
 }>;
 export type OpponentResponse = Readonly<{ ball: DrillBall; landingZone: LandingZone }>;
 export type OpeningFeed = OpponentResponse & Readonly<{ position: Readonly<{ x: number; z: number }> }>;
+export type CameraMoveMoment = 'auto' | 'player-hit' | 'opponent-hit' | 'after-split';
+export type CameraFocusTarget = Readonly<{
+  mode: 'auto' | 'ball' | 'opponent' | 'next-shot' | 'direction' | 'point';
+  direction?: Readonly<{ yaw: number; pitch: number }>;
+  point?: Readonly<{ x: number; y: number; z: number }>;
+}>;
+/** Outgoing transition; absent fields retain the automatic tennis camera. */
+export type DrillCameraTransition = Readonly<{
+  movement?: Readonly<{
+    destination: 'auto' | 'neutral' | 'next-shot' | 'waypoint';
+    start?: CameraMoveMoment;
+    delaySeconds?: number;
+    resume?: CameraMoveMoment;
+    resumeDelaySeconds?: number;
+    pacePercent?: number;
+    waypoint?: Pick<CameraConfiguration, 'lateral' | 'behindBaseline' | 'eyeHeight'>;
+  }>;
+  focus?: Readonly<{ beforeReturn?: CameraFocusTarget; afterReturn?: CameraFocusTarget }>;
+}>;
 export type PlayerShotEventV2 = Readonly<{
   id: string;
   presetId?: string;
   label: string;
   cue: string;
   camera: CameraConfiguration;
+  cameraTransition?: DrillCameraTransition;
   ball: DrillBall;
   landingZone: LandingZone;
   opponentReturn: OpponentResponse;
