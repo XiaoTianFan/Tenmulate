@@ -109,6 +109,8 @@ receiving contact, so compare that whole exchange separately.
   after the apex. Review uses the shipped rig, blending and IK, not a clip viewer.
 - Rebuilt production Quick Practice completes the retained deep-zone rally setup
   at factor 1 with no console errors or connection warning.
+- Rebuilt production Crosscourt Rhythm drill completes all four player events
+  at factor 1 in 20 seconds, also with no console errors.
 
 Ball wear, pressure, temperature, court moisture and location-dependent surface
 variation are not modelled. Empirical impact parameters remain an approximation;
