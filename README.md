@@ -20,7 +20,17 @@ iOS Safari; connecting to an existing receiver still requires Control Center.
 The app cannot verify that connection. See the
 [capture contract and remaining transport gate](docs/decisions/0034-persistent-court-capture.md).
 
-The drill editor plans **your shots**. An opponent opening feed or serve starts
+The drill editor plans **your shots**. **Edit drill** opens an existing library
+entry; copying is optional.
+**Save to project** writes `src/content/project-drills.json` through the local
+development or preview server. A matching drill name updates the existing entry.
+Unfinished editor work is recovered separately when switching pages or reloading;
+it does not update the project until saved. Create/import actions are at the bottom
+of the library's right panel. Static/offline copies can rehearse the bundled catalog,
+but project saves require the local server. See the
+[project saving guide](docs/development/project-drill-saving-2026-09-10.md).
+
+An opponent opening feed or serve starts
 each point; player presets then assemble the tactical sequence. **Top-down zones**
 edits your blue landing zone on the far court and the opponent's yellow return
 zone for your next shot. Each event owns both balls' settings and your camera

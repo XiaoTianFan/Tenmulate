@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Copy, Play, Save, Trash2 } from 'lucide-react';
 import { newPlayerEvent, openingFor, PLAYER_SHOTS, PLAYER_SHOT_BY_ID } from '../content/playerShots';
 import { snapshotPlayerShot } from '../content/playerMigration';
@@ -21,29 +21,36 @@ import { ShotLibrary } from './ShotLibrary';
 import { DrillTimeline } from './DrillTimeline';
 import { CameraTransitionControls } from './CameraTransitionControls';
 import { CourtViewport } from './SharedCourt';
+import type { EditorDraft } from '../storage/editorDrafts';
 
 type Props = {
   route: AppRoute; initialDrill: DrillDefinitionV2; surface: SurfaceId;
   initialPlayerHand: OpponentHand; onPlayerHandChange: (hand: OpponentHand) => void;
-  onRoute: (route: AppRoute) => void; onSave: (drill: DrillDefinitionV2) => void; onTest: (drill: DrillDefinitionV2) => void;
+  onRoute: (route: AppRoute) => void; onSave: (drill: DrillDefinitionV2) => Promise<DrillDefinitionV2>; onTest: (drill: DrillDefinitionV2) => void;
+  initialDraft?: EditorDraft; onDraftChange: (draft: EditorDraft, previousId?: string) => void;
+  writable: boolean; projectStatus: string;
   savedShots: readonly SavedShotV2[]; onSaveShot: (shot: SavedShotV2) => void; onDeleteShot: (id: string) => void;
 };
 const cloneEvent = (event: PlayerShotEventV2) => ({ ...structuredClone(event), id: `event-${crypto.randomUUID()}` });
 const noMetrics = () => undefined;
 
-export function DrillEditorScreen({ route, initialDrill, initialPlayerHand, onPlayerHandChange, surface, onRoute, onSave, onTest, savedShots, onSaveShot, onDeleteShot }: Props) {
+export function DrillEditorScreen({ route, initialDrill, initialDraft, onDraftChange, writable, projectStatus, initialPlayerHand, onPlayerHandChange, surface, onRoute, onSave, onTest, savedShots, onSaveShot, onDeleteShot }: Props) {
   const [drill, setDrill] = useState<DrillDefinitionV2>(() => {
-    const copy = structuredClone(playerDrillForHand(initialDrill, initialPlayerHand));
+    const copy = structuredClone(playerDrillForHand(initialDraft?.drill ?? initialDrill, initialPlayerHand));
     const fov = copy.events[0]?.camera.fov ?? DEFAULT_CAMERA.fov;
     return { ...copy, events: copy.events.map(event => ({ ...event, camera: { ...event.camera, fov } })),
       defaultRepetitions: Math.max(1, copy.events.length) };
   });
-  const [selectedId, setSelectedId] = useState('launch');
+  const savedDrill = useRef(initialDraft?.savedDrill ?? drill);
+  const [selectedId, setSelectedId] = useState(initialDraft?.selectedId ?? 'launch');
   const [viewDraft, setViewDraft] = useState<{ id: string; camera: CameraConfiguration } | null>(null);
-  const [transitionCamera, setTransitionCamera] = useState<CameraConfiguration | null>(null);
+  const [transitionCamera, setTransitionCamera] = useState<CameraConfiguration | null>(() =>
+    (initialDrill.playerHand ?? 'right') === initialPlayerHand ? initialDraft?.transitionCamera ?? null : null);
   const [sequenceRange, setSequenceRange] = useState<{ start: number; end: number } | null>(null);
   const [zoneDraft, setZoneDraft] = useState<{ role: 'player' | 'opponent'; zone: LandingZone } | null>(null);
-  const [overview, setOverview] = useState(false), [sequence, setSequence] = useState(false);
+  const [overview, setOverview] = useState(initialDraft?.overview ?? false), [sequence, setSequence] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const root = useRef<HTMLElement>(null), sections = useRef(initialDraft?.sections ?? {});
   const [previewIndex, setPreviewIndex] = useState(0);
   const [shotDraft, setShotDraft] = useState<{ mode: 'new' | 'update'; event: PlayerShotEventV2 } | null>(null);
   const [shotNotice, setShotNotice] = useState(''), [message, setMessage] = useState<string | null>(null);
@@ -58,7 +65,7 @@ export function DrillEditorScreen({ route, initialDrill, initialPlayerHand, onPl
   const isOpening = selectedId === 'launch' || !!openingId && !!selected?.openingFeed;
   const feed = openingId && selected?.openingFeed ? selected.openingFeed : drill.launch;
   const previewCamera = isTransition ? transitionCamera ?? { ...(selected?.camera ?? DEFAULT_CAMERA), ...selected?.cameraTransition?.movement?.waypoint }
-    : viewDraft?.id === selected?.id ? viewDraft.camera : selected?.camera ?? DEFAULT_CAMERA;
+    : viewDraft && viewDraft.id === selected?.id ? viewDraft.camera : selected?.camera ?? DEFAULT_CAMERA;
   const workingDrill = viewDraft ? { ...drill, events: events.map(event => ({ ...event,
     camera: event.id === viewDraft.id ? viewDraft.camera : { ...event.camera, fov: viewDraft.camera.fov } })) } : drill;
   const preview = usePlayerDrillPreview(drill, surface);
@@ -72,6 +79,35 @@ export function DrillEditorScreen({ route, initialDrill, initialPlayerHand, onPl
       ...(zoneDraft?.role === 'opponent' && openingId && event.openingFeed ? { openingFeed: { ...event.openingFeed, landingZone: zoneDraft.zone } } : {}),
     }),
   }), [drill, zoneDraft, viewDraft, selected?.id, selectedId, isOpening, openingId]);
+  const latestDraft = useRef<EditorDraft>(null!);
+  latestDraft.current = { drill: viewDraft ? { ...shotDrill, events: shotDrill.events.map(event => ({ ...event, camera: { ...event.camera, fov: viewDraft.camera.fov } })) } : shotDrill,
+    selectedId, overview, transitionCamera, sections: sections.current, savedDrill: savedDrill.current };
+  const captureDraft = useCallback(() => {
+    const inspector = root.current?.querySelector('.event-inspector');
+    if (inspector) latestDraft.current.inspectorScroll = inspector.scrollTop;
+    onDraftChange(latestDraft.current);
+  }, [onDraftChange]);
+  useLayoutEffect(() => {
+    const inspector = root.current?.querySelector('.event-inspector');
+    root.current?.querySelectorAll('details').forEach(detail => {
+      const key = detail.querySelector('summary')?.textContent ?? '';
+      if (Object.hasOwn(sections.current, key)) detail.open = sections.current[key]!;
+    });
+    if (inspector) inspector.scrollTop = initialDraft?.inspectorScroll ?? 0;
+  // Restore the selection's sections only on mount, preserving subsequent user toggles.
+  }, []);
+  useLayoutEffect(() => { captureDraft(); }, [shotDrill, selectedId, overview, transitionCamera, captureDraft]);
+  useLayoutEffect(() => () => { captureDraft(); }, [captureDraft]);
+  useEffect(() => {
+    const element = root.current;
+    const toggle = (event: Event) => {
+      if (event.target instanceof HTMLDetailsElement) {
+        sections.current[event.target.querySelector('summary')?.textContent ?? ''] = event.target.open; captureDraft();
+      }
+    };
+    element?.addEventListener('toggle', toggle, true);
+    return () => element?.removeEventListener('toggle', toggle, true);
+  }, [captureDraft]);
   const shotPreview = usePlayerDrillPreview(shotDrill, surface, selection, !!zoneDraft || !!viewDraft);
   const session = sequence ? preview.session : shotPreview.session;
   const compiled = preview.current ? preview.session?.playerEvents?.find(item => item.event.id === selected?.id) : undefined;
@@ -162,7 +198,20 @@ export function DrillEditorScreen({ route, initialDrill, initialPlayerHand, onPl
   const issues = preview.current ? preview.session?.planningIssues ?? [] : [];
   const shotIssues = shotPreview.current ? shotPreview.session?.planningIssues ?? [] : [];
 
-  return <main className="app-shell editor-shell">
+  const saveProject = async () => {
+    setSaving(true); captureDraft();
+    try {
+      const saved = await onSave(workingDrill);
+      const previousId = drill.id;
+      savedDrill.current = saved;
+      setViewDraft(null); commit(saved);
+      latestDraft.current = { ...latestDraft.current, drill: saved, savedDrill: saved };
+      onDraftChange(latestDraft.current, previousId);
+      setMessage(`Saved “${saved.title}” to the project. The drill library is updated.`);
+    } catch (error) { setMessage(error instanceof Error ? error.message : 'Project save failed. Your draft is retained.'); }
+    finally { setSaving(false); }
+  };
+  return <main ref={root} className="app-shell editor-shell">
     <AppHeader route={route} onRoute={onRoute}/>
     <section className="editor-workspace">
       <ShotLibrary savedShots={savedShots} notice={shotNotice} onAdd={addEvent}/>
@@ -193,7 +242,7 @@ export function DrillEditorScreen({ route, initialDrill, initialPlayerHand, onPl
         <PlayerHandControls hand={playerHand} onChange={changePlayerHand}/>
         <details className="editor-section"><summary>Drill configuration</summary>
           <label className="stack-field"><span>Drill title</span><input value={drill.title} maxLength={100} onChange={e => updateDrill({ title: e.target.value })}/></label>
-          <label className="stack-field"><span>Description</span><textarea value={drill.description} maxLength={400} rows={3} onChange={e => updateDrill({ description: e.target.value })}/></label>
+          <label className="stack-field"><span>Description</span><textarea aria-label="Description" value={drill.description} maxLength={400} rows={3} onChange={e => updateDrill({ description: e.target.value })}/></label>
           <EditorNumber label="Default player interval (s)" value={drill.defaultInterval} min={1} max={30} step={.1} onChange={defaultInterval => updateDrill({ defaultInterval })}/>
           <EditorNumber label="Default movement pace (%)" value={drill.defaultMovementPercent ?? 100} min={50} max={300} step={5} onChange={defaultMovementPercent => updateDrill({ defaultMovementPercent })}/>
           <EditorNumber label="Default stroke rhythm (%)" value={drill.defaultRhythmPercent ?? 100} min={50} max={300} step={5} onChange={defaultRhythmPercent => updateDrill({ defaultRhythmPercent })}/>
@@ -210,7 +259,7 @@ export function DrillEditorScreen({ route, initialDrill, initialPlayerHand, onPl
           <button className="secondary-button full-width save-shot-button" type="button" onClick={() => setShotDraft({ mode: 'update', event: snapshotPlayerShot({ ...selected, camera: isTransition ? selected.camera : previewCamera }, workingDrill) })}><Save size={16}/> Update existing saved shot</button>
         </> : null}
         {[...validation.errors, ...issues.map(issue => issue.message), ...shotIssues.map(issue => issue.message), ...(preview.error ? [preview.error] : [])].length ? <ul className="validation-errors">{[...new Set([...validation.errors, ...issues.map(issue => issue.message), ...shotIssues.map(issue => issue.message), ...(preview.error ? [preview.error] : [])])].map(error => <li key={error}>{error}</li>)}</ul> : null}
-        <div className="editor-primary-actions"><button className="primary-button" type="button" disabled={!validation.valid} onClick={() => { onSave(workingDrill); setMessage('Saved to this browser.'); }}><Save size={17}/> Save locally</button>
+        <div className="editor-primary-actions"><small className="project-save-status">{writable ? 'Draft retained here. Save to update the project; matching drill names overwrite.' : projectStatus}</small><button className="primary-button" type="button" disabled={!validation.valid || !writable || saving} onClick={() => void saveProject()}><Save size={17}/> {saving ? 'Saving…' : 'Save to project'}</button>
           <button className="secondary-button full-width" type="button" disabled={!validation.valid || preview.pending || !!issues.length || !!preview.error} onClick={() => onTest(workingDrill)}><Play size={16}/> Test drill</button></div>
       </aside>
     </section>

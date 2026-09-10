@@ -3,6 +3,19 @@
 - **Purpose:** Record concept-to-browser inspection after every implementation stage
 - **Reference viewport:** 1920 × 1080 unless stated otherwise
 
+## Project drill library and recovery — 2026-09-10
+
+Thirty-three production Edge checks cover direct editing, per-drill route/reload
+recovery, selected shot and camera state, project-file readback from fresh browser
+contexts, same-name overwrite/rekey, failed saves, JSON import, empty drill creation,
+return from gameplay, and clean-versus-unfinished recovery after an external save.
+Desktop 1680×1000, intermediate 1080×898 and mobile 390×844 layouts fit. The redundant
+left sidebar is removed and create/import actions stay in the right inspector's
+bottom area. Representative library and rendered editor screenshots were inspected.
+No uncaught browser errors occurred in passing production workflows. Tests write a
+temporary catalog only; the live 5173 preview's real catalog was checked read-only.
+See the [guide and evidence receipt](project-drill-saving-2026-09-10.md).
+
 ## Configurable camera transition editor — 2026-09-10
 
 Thirty isolated production Edge checks verify narrow timeline events, independent
