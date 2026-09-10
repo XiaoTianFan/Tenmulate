@@ -166,6 +166,14 @@ new feeds. No motion asset or public deployment is part of this change.
 
 ## Verification
 
+The subsequent [camera transition update](camera-transitions-2026-09-10.md) adds
+narrow events between player shots, independent movement/focus, custom waypoint
+capture and before/after-opponent-contact targets. It preserves physical contact
+anchors and fixed FOV. Optional transition data belongs to the preceding shot,
+including in presets, reorder operations and handedness mirroring. Automatic
+retains the staged policy described in ADR-0041; ADR-0042 defines explicit overrides.
+The counts below are the original player-first migration checkpoint.
+
 - 428 tests across 43 files pass, including 36 session tests for player-first
   continuity, camera travel, timing, determinism and invalid-link reporting.
   All 16 bundled drills complete two sets with seed 18427; a separate browser

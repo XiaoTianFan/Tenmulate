@@ -69,7 +69,7 @@ export function SavedShotModal({ mode: initialMode, event, playerHand, savedShot
           </select>
         </label> : null}
         <label className="stack-field"><span>Preset name</span><input maxLength={60} disabled={mode === 'update' && !slot} value={name} onChange={e => setName(e.target.value)}/></label>
-        <p>{slot ? <>Replace “{slot.name}” with the current shot's settings.</> : 'Save the current shot and its settings.'} Includes both balls, landing zones, camera, timing and opponent settings.</p>
+        <p>{slot ? <>Replace “{slot.name}” with the current shot's settings.</> : 'Save the current shot and its settings.'} Includes both balls, landing zones, contact camera, camera transition, timing and opponent settings.</p>
         {slot ? <button type="button" className="secondary-button" onClick={() => onDelete(slot.id)}>Delete saved shot</button> : null}
       </>}
       {errors.length ? <ul className="validation-errors" role="alert">{errors.map(error => <li key={error}>{error}</li>)}</ul> : null}

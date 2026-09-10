@@ -2,12 +2,31 @@
 
 - **Status:** Active
 - **Last updated:** 2026-09-10
-- **Current implementation:** Player-first drills use staged recovery/approach, contact reaction, ball tracking and authored contact framing with fixed zoom. Direct court editing, neutral-spin-first groundstroke fitting and physical Quick Rally returns retain independent player/opponent bounce-contact timing, defaulting to early descent. Six Blender-authored venues and twelve Quality/Performance GLBs remain active; audiences default to Half.
+- **Current implementation:** Player-first drills have narrow camera transition events with independent movement, timing and focus controls, canvas capture and single-transition preview. Automatic retains staged recovery/approach, contact reaction and ball tracking; zoom stays fixed. Direct court editing, neutral-spin-first groundstroke fitting and physical Quick Rally returns retain independent player/opponent bounce-contact timing, defaulting to early descent. Six Blender-authored venues and twelve Quality/Performance GLBs remain active; audiences default to Half.
 - **Previous venue integration:** Source/assets `25e363b`, runtime `18141c5` and verification `d1a916a` were fast-forwarded into `main`, preserving separately committed local-motion work `b2a082e`. All twelve local feature tips were included at this integration checkpoint; see the [branch audit](feature-branch-integration-2026-09-05.md). No remote push or deployment.
 
 **Motion/model integration checkpoint (2026-09-07):** Local `main` includes all 17 motion/model feature commits plus delivery/documentation reconciliation through `a9ba202`: all 24 clips, the 1.88 m articulated model, recovery planning, crossovers and both serve rhythms. No local feature tip remains unmerged. The 237-test suite, production build, active-asset/cache guard, both-hand gameplay/crossover checks and actual production-browser practice review pass. The [current motion contract](local-motion-pipeline.md) replaces competing “latest” descriptions below; the [integration receipt](motion-main-integration-2026-09-07.md) records the exact merge, evidence and remaining owner/device gates. Older stage counts and asset hashes below are historical evidence, not active selectors. No public deployment occurred.
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
+
+## Configurable camera transitions — 2026-09-10
+
+The planner stage `6ec6250` adds optional camera transition records to player
+events, validated storage/preset support, mirrored custom coordinates, independent
+before/after-contact focus and bounded custom routes. The editor exposes narrow
+selectable camera columns, route/timing/pace controls and temporary canvas capture.
+Position capture and direction capture are independent of shot contact cameras.
+Both full-sequence and selected-transition previews use the gameplay track.
+Separate new-point openings are supported as well as continuous rally links.
+All **530 tests / 48 files**, production build and motion/cache guard pass. Thirty
+production browser checks cover editing, capture, persistence and gameplay;
+twenty actual Three.js frames match the compiled poses, with zero WebGL errors.
+Final desktop, intermediate-width and mobile layout checks pass without canvas
+label/tool overlap or horizontal page overflow. Local verification only.
+
+See the [guide and verification receipt](camera-transitions-2026-09-10.md) and
+[ADR-0042](../decisions/0042-configurable-camera-transitions.md). Automatic remains
+the prior tennis policy; custom choices intentionally permit anticipation.
 
 ## Contact-driven drill camera — 2026-09-10
 

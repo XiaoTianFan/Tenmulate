@@ -101,6 +101,17 @@ describe('independent focus targets', () => {
     const a = sample(plan, 3 - 1e-5), b = sample(plan, 3 + 1e-5);
     expect(Math.abs(wrapCameraAngle(a.yaw - b.yaw))).toBeLessThan(.01);
   });
+  it('does not cut when a custom focus pan crosses the +/-180 degree boundary', () => {
+    const plan = configured({ focus: { beforeReturn: { mode: 'direction', direction: { yaw: 179, pitch: -3 } },
+      afterReturn: { mode: 'direction', direction: { yaw: -179, pitch: -3 } } } });
+    let previous = sample(plan, 0);
+    for (let time = 1 / 240; time <= 6; time += 1 / 240) {
+      const pose = sample(plan, time);
+      expect(Math.abs(wrapCameraAngle(pose.yaw - previous.yaw))).toBeLessThan(1);
+      previous = pose;
+    }
+    expect(sample(plan, 6)).toEqual(plan.to);
+  });
 });
 
 describe('drill, preset and handedness contracts', () => {
@@ -155,5 +166,14 @@ describe('drill, preset and handedness contracts', () => {
     expect(transition.strategy).toBe('custom'); expect(transition.configuration).toEqual(drill.events[0]!.cameraTransition);
     expect(transition.outgoing).toBeDefined(); expect(transition.incoming).toBeDefined();
     expect(sampleCameraTimeline(session.cameraTimeline, transition.end, root)).toEqual(drill.events[1]!.camera);
+  });
+  it('keeps the reset route and physical timing when only new-point focus is customized', () => {
+    const base = PLAYER_DRILLS.find(drill => drill.id === 'return-practice')!;
+    const settings = { ...defaultDrillSettings(base), repetitions: base.events.length, restSeconds: 0 };
+    const original = compileSession(base, settings);
+    const changed = compileSession({ ...base, events: base.events.map(event => ({ ...event, cameraTransition: { focus: fixture.focus } })) }, settings);
+    expect(changed.planningIssues).toEqual([]);
+    expect(changed.cameraTimeline.transitions).toEqual(original.cameraTimeline.transitions);
+    expect(changed.playerEvents!.map(e => e.startTime)).toEqual(original.playerEvents!.map(e => e.startTime));
   });
 });

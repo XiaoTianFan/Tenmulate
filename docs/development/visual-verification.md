@@ -3,6 +3,21 @@
 - **Purpose:** Record concept-to-browser inspection after every implementation stage
 - **Reference viewport:** 1920 × 1080 unless stated otherwise
 
+## Configurable camera transition editor — 2026-09-10
+
+Thirty isolated production Edge checks verify narrow timeline events, independent
+position/direction capture using WASD and pan, shared zoom, before/after-contact
+focus, selected-transition and full preview, gameplay, persistent court identity,
+save/reload/overwrite, mirrored coordinates with unchanged opponent hand, reorder,
+shot removal and mobile overflow. Twenty actual Three.js frames across both-hand
+waypoints, direct movement with ball focus and new-point point/direction focus
+match the compiled camera exactly with no WebGL errors. No browser runtime/console
+errors were observed. Final 1680×1000, 1080×898 and 390×844 checks verify labels,
+tools and controls fit. Representative control and scene images were inspected.
+The [guide and evidence receipt](camera-transitions-2026-09-10.md) links the local
+scripts and measurements. This is local verification, not owner comfort acceptance
+or deployment; the owner's 5173 browser tab was preserved.
+
 ## Player handedness mirroring — 2026-09-09
 
 Production Edge at `http://127.0.0.1:5173/` passes 22 browser checks at 1680×1000

@@ -262,9 +262,9 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .editor-stage { min-width: 0; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(350px, 1fr) 285px; }
 .editor-scene { position: relative; min-height: 0; }
 .editor-scene > .scene-viewport-slot { position: absolute; inset: 0; }
-.editor-scene-label { position: absolute; left: 18px; top: 18px; display: grid; gap: 4px; padding: 9px 12px; border: 1px solid rgb(255 255 255 / 18%); border-radius: 6px; background: rgb(5 12 17 / 80%); backdrop-filter: blur(8px); }
+.editor-scene-label { position: absolute; left: 18px; top: 18px; display: grid; gap: 4px; min-width: 0; max-width: calc(100% - 215px); padding: 9px 12px; border: 1px solid rgb(255 255 255 / 18%); border-radius: 6px; background: rgb(5 12 17 / 80%); backdrop-filter: blur(8px); }
 .editor-scene-label span { color: var(--accent); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; }
-.editor-scene-label strong { font-size: 12px; }
+.editor-scene-label strong { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .timeline { min-width: 0; min-height: 0; overflow: hidden; border-top: 1px solid var(--divider); background: #080d10; display: grid; grid-template-rows: 42px minmax(0,1fr) 27px; }
 .timeline-toolbar { height: 42px; display: flex; align-items: center; gap: 18px; padding: 0 16px; border-bottom: 1px solid var(--divider); font-size: 11px; }
 .timeline-toolbar > strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
@@ -287,6 +287,18 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .timeline-track:nth-child(4) .timeline-clip { border-color: #665727; background: #302914; }
 .timeline-track:nth-child(5) .timeline-clip { border-color: #4b4b4b; background: #1b2023; }
 .timeline-clip.selected { border-color: var(--accent); color: white; box-shadow: inset 0 -2px var(--accent); }
+.timeline-transition-slot { position: relative; min-width: 0; }
+.timeline-camera-transition { position: absolute; inset: 0 0 auto; height: 195px; z-index: 1; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 12px; border: 1px solid #39606c; border-radius: 4px; background: #142c34; color: #b2d8e2; cursor: pointer; }
+.timeline-camera-transition span { writing-mode: vertical-rl; font-size: 10px; letter-spacing: .06em; }
+.timeline-camera-transition:hover { background: #20404b; }
+.timeline-camera-transition.selected { border-color: var(--accent); color: var(--accent); }
+.timeline-camera-transition:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.camera-authoring-hint, .camera-capture-value { display: block; color: var(--muted); font-size: 11px; line-height: 1.6; margin: 12px 0; }
+.camera-transition-controls { min-width: 0; grid-column: 1 / -1; }
+.camera-capture-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.camera-capture-actions .secondary-button { flex: 1 1 125px; font-size: 12px; padding: 10px; }
+.camera-focus-phase + .camera-focus-phase { margin-top: 18px; padding-top: 10px; border-top: 1px solid var(--divider); }
+.camera-auto-pace { display: flex; align-items: center; gap: 8px; margin: 14px 0; font-size: 12px; color: var(--muted); }
 .event-inspector { border-left: 1px solid var(--divider); padding: 14px 20px 92px; overflow-y: auto; position: relative; }
 .editor-actions { display: flex; gap: 5px; padding-bottom: 12px; border-bottom: 1px solid var(--divider); margin-bottom: 12px; }
 .editor-actions button, .inspector-divider button { display: grid; place-items: center; width: 34px; height: 32px; border: 1px solid var(--divider); border-radius: 4px; background: #0d151a; color: #c9d2d6; cursor: pointer; }
@@ -460,10 +472,14 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
   .shot-controls > .stack-field { grid-column: 1 / -1; }
   .shot-controls > .editor-section:last-child { grid-column: 1 / -1; }
 }
+@media (max-width: 1180px) and (min-width: 821px) {
+  .camera-transition-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 20px; }
+  .camera-transition-controls > .camera-authoring-hint, .camera-transition-controls > .camera-capture-actions { grid-column: 1 / -1; }
+}
 @media (max-width: 600px) {
   .editor-scene-label { max-width: calc(100% - 155px); left: 10px; top: 10px; }
   .editor-scene-label strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .editor-view-tools { right: 10px; top: 10px; }
+  .editor-view-tools { right: 10px; top: 10px; row-gap: 22px; }
   .editor-view-tools button { font-size: 11px; padding: 8px; }
 }
 .player-hand-controls { min-width: 0; margin: 0 0 18px; padding: 0; border: 0; }

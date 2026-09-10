@@ -177,6 +177,9 @@ export function sampleTennisCamera(initial: CameraConfiguration, transitions: re
     if ((opponent || customFocus) && phase !== 'settle' && phase !== 'stroke') {
       const look = cameraLookAtCourtPoint(pose, { x: opponent?.x ?? 0, y: 1.35, z: opponent?.z ?? COURT.halfLength });
       let yaw = look.yaw, pitch = look.pitch;
+      let customYaw: number | undefined;
+      let departureLook: Readonly<{ yaw: number; pitch: number }> | undefined;
+      let arrivalLook: Readonly<{ yaw: number; pitch: number }> | undefined;
       const age = time - opponentContact;
       if (age > 0 && exchange.incoming) {
         // Trailing samples soften bounce tracking without looking ahead in time.
@@ -207,19 +210,37 @@ export function sampleTennisCamera(initial: CameraConfiguration, transitions: re
           }
         };
         const before = target(focus.beforeReturn, false), after = target(focus.afterReturn, true);
+        const reference = (choice: CameraFocusTarget | undefined, incoming: boolean, at: CameraConfiguration) => {
+          if (choice?.mode === 'direction') return choice.direction ?? look;
+          if (choice?.mode === 'next-shot') return to;
+          const flight = incoming ? exchange.incoming : exchange.outgoing;
+          const point = choice?.mode === 'point' ? choice.point : choice?.mode === 'ball' ? flight?.intent.source : undefined;
+          return cameraLookAtCourtPoint(at, point ?? { x: opponent?.x ?? 0, y: 1.35, z: opponent?.z ?? COURT.halfLength });
+        };
+        departureLook = reference(focus.beforeReturn, false, from);
+        const afterReference = reference(focus.afterReturn, true, from);
+        arrivalLook = reference(focus.afterReturn, true, to);
         // Blend at the physical opponent contact, never at a frame or event index.
         // Explicit ball tracking can leave the opponent outside the fixed frame.
         const turn = Math.max(Math.abs(wrapCameraAngle(after.yaw - before.yaw)), Math.abs(after.pitch - before.pitch));
         const change = cameraEase(age / Math.max(.32, 1.875 * turn / TENNIS_CAMERA.turnSpeed));
         yaw = before.yaw + wrapCameraAngle(after.yaw - before.yaw) * change;
         pitch = before.pitch + (after.pitch - before.pitch) * change;
+        // Keep a stable angular branch when an authored pan crosses +/-180.
+        // Re-wrapping that blended direction each frame would produce a cut.
+        const branch = from.yaw + wrapCameraAngle(departureLook.yaw - from.yaw);
+        const beforeYaw = branch + wrapCameraAngle(before.yaw - departureLook.yaw);
+        const afterYaw = branch + wrapCameraAngle(afterReference.yaw - departureLook.yaw) + wrapCameraAngle(after.yaw - afterReference.yaw);
+        customYaw = beforeYaw + (afterYaw - beforeYaw) * change;
       }
       const anchor = cameraLookAtCourtPoint(from, { x: 0, y: 1.35, z: COURT.halfLength });
-      const unwrappedLook = from.yaw + wrapCameraAngle(anchor.yaw - from.yaw) + wrapCameraAngle(yaw - anchor.yaw);
+      const unwrappedLook = customYaw ?? from.yaw + wrapCameraAngle(anchor.yaw - from.yaw) + wrapCameraAngle(yaw - anchor.yaw);
       const unwrappedAuthored = from.yaw + wrapCameraAngle(to.yaw - from.yaw) * cameraEase((time - reactAt) / Math.max(.001, settleAt - reactAt));
-      const fadeInTime = Math.max(.35, 1.875 * Math.max(Math.abs(wrapCameraAngle(anchor.yaw - from.yaw)), Math.abs(anchor.pitch - from.pitch)) / TENNIS_CAMERA.turnSpeed);
+      const departure = departureLook ?? anchor;
+      const fadeInTime = Math.max(.35, 1.875 * Math.max(Math.abs(wrapCameraAngle(departure.yaw - from.yaw)), Math.abs(departure.pitch - from.pitch)) / TENNIS_CAMERA.turnSpeed);
       const toAnchor = cameraLookAtCourtPoint(to, { x: 0, y: 1.35, z: COURT.halfLength });
-      const fadeOutTime = Math.min(settleAt - reactAt, Math.max(.65, 1.875 * Math.max(Math.abs(wrapCameraAngle(toAnchor.yaw - to.yaw)), Math.abs(toAnchor.pitch - to.pitch)) / TENNIS_CAMERA.turnSpeed));
+      const arrival = arrivalLook ?? toAnchor;
+      const fadeOutTime = Math.min(settleAt - reactAt, Math.max(.65, 1.875 * Math.max(Math.abs(wrapCameraAngle(arrival.yaw - to.yaw)), Math.abs(arrival.pitch - to.pitch)) / TENNIS_CAMERA.turnSpeed));
       const release = exchange.strategy === 'opening' ? start : start + TENNIS_CAMERA.release;
       const weight = cameraEase((time - release) / fadeInTime) * (time <= reactAt ? 1 : cameraEase((settleAt - time) / Math.max(.001, fadeOutTime)));
       pose.yaw = wrapCameraAngle(unwrappedAuthored + (unwrappedLook - unwrappedAuthored) * weight);

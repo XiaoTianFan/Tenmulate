@@ -28,6 +28,14 @@ position; the opponent meets the physical player flight automatically.
 Drop shots, volleys and overheads are available; kick/sidespin are serve-only.
 New/update presets retain both balls, zones, camera and timing. Playback follows
 the opponent while accelerating and braking between your configured shot views.
+Select the narrow **camera event between shots** to configure movement and focus
+independently. Keep Automatic, recover to neutral, travel directly, or stop at a
+custom position. Choose departure/continuation timing and separate focus targets
+before and after opponent contact. WASD and dragging frame an intermediate view;
+**Capture position** and **Capture direction** save it without changing the shot's
+contact camera. Preview a single transition or the full sequence. Camera transitions
+travel with saved shots, survive reload and mirror for left-handed play; zoom
+remains shared across the drill. See the [camera transition guide](docs/development/camera-transitions-2026-09-10.md).
 Quick Rally and drill shots independently choose player/opponent contact timing:
 on the rise, at the apex, or early descent (the default). The interval solver fits
 within that phase; it does not switch to a quick rebound to meet a short interval.
