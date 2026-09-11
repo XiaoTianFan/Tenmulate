@@ -56,9 +56,10 @@ describe('shared opponent stroke selection and economical footwork', () => {
   });
 
   it.each(['right', 'left'] as const)('uses the same automatic reception in a player-authored corner drill (%s)', hand => {
-    const drill = structuredClone(PLAYER_DRILLS.find(d => d.id === 'baseline-corner-switch')!);
-    drill.launch.ball.hand = hand;
-    for (const event of drill.events) event.opponentReturn.ball.hand = hand;
+    const source = PLAYER_DRILLS.find(d => d.id === 'baseline-corner-switch')!;
+    const drill = { ...source, launch: { ...source.launch, ball: { ...source.launch.ball, hand } },
+      events: source.events.map(event => ({ ...event, opponentReturn: { ...event.opponentReturn,
+        ball: { ...event.opponentReturn.ball, hand } } })) };
     const session = compileSession(drill, { ...settings, mode: 'drill', rally: undefined, repetitions: drill.events.length });
     expect(session.planningIssues ?? []).toEqual([]);
     expect(session.repetitions.slice(1).map(r => r.shot.stroke)).toEqual(hand === 'right'
