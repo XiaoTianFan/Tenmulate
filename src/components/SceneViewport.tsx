@@ -22,6 +22,7 @@ export type SceneViewportProps = Readonly<{
   onCaptureSource?: (canvas: HTMLCanvasElement | null) => void;
   captureActive?: boolean;
   camera: CameraConfiguration;
+  courtOverview?: boolean;
   trajectory: ResolvedTrajectory;
   surface: SurfaceId;
   environment?: EnvironmentConfiguration;
@@ -80,6 +81,7 @@ export function SceneViewport({
   onCaptureSource,
   captureActive = false,
   camera,
+  courtOverview = false,
   trajectory,
   surface,
   environment = DEFAULT_ENVIRONMENT,
@@ -199,6 +201,7 @@ export function SceneViewport({
   }, [active]);
 
   useEffect(() => sceneRef.current?.setCamera(camera), [camera, followSessionCamera]);
+  useEffect(() => sceneRef.current?.setCourtOverview(courtOverview), [courtOverview]);
   useEffect(() => sceneRef.current?.opponentPositionControl.configure(opponentPlacement ?? null, onOpponentPositionChange ?? null), [opponentPlacement, onOpponentPositionChange]);
   useEffect(() => sceneRef.current?.setBallFocus(ballFocus), [ballFocus]);
   useEffect(() => sceneRef.current?.setReturnLandingZone(returnLandingZone ?? null, onReturnLandingZoneChange ?? null), [returnLandingZone, onReturnLandingZoneChange]);

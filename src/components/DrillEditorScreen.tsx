@@ -218,7 +218,7 @@ export function DrillEditorScreen({ route, initialDrill, initialDraft, onDraftCh
       <ShotLibrary savedShots={savedShots} projectShotIds={projectShotIds} notice={shotNotice} onAdd={addEvent}/>
       <section className="editor-stage">
         <div className="editor-scene" ref={sceneContainer}>
-          {trajectory && events.length ? <CourtViewport camera={displayCamera} trajectory={trajectory} surface={surface} running resetToken={0} showTrajectory session={session!} sessionClock={clock} followSessionCamera={sequence && !overview}
+          {trajectory && events.length ? <CourtViewport camera={displayCamera} courtOverview={overview} trajectory={trajectory} surface={surface} running resetToken={0} showTrajectory session={session!} sessionClock={clock} followSessionCamera={sequence && !overview}
             shotPreviewPending={sequence ? !preview.current : !shotPreview.current}
             nearLandingZone={sequence ? session?.repetitions[previewIndex]?.trajectory.intent.landingZone : nearZone} nearLandingZoneLimits={nearLimits} returnLandingZone={!sequence && zoneDraft?.role === 'player' ? zoneDraft.zone : (sequence ? playingEvent : selected)?.landingZone}
             onLandingZoneDraft={sequence || isTransition ? undefined : zone => setZoneDraft(zone ? { role: 'opponent', zone } : null)}

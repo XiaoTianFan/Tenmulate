@@ -147,6 +147,8 @@ export class TennisScene {
   private readonly audience = new AudienceSystem();
   private surface: SurfaceId = 'hard';
   private venueReview = false;
+  private reviewRoofVisible = true;
+  private courtOverview = false;
   private readonly setCourtSurface: (surface: SurfaceId) => void;
   private readonly materialBundle: SceneMaterialBundle;
   private readonly skySystem: DynamicSkySystem;
@@ -512,7 +514,21 @@ export class TennisScene {
   /** Inspection-only cutaway; never changes gameplay or the exported master. */
   setVenueReview(roofVisible: boolean): void {
     this.venueReview = true;
-    for (const arena of Object.values(this.authoredArenas)) arena.setRoofVisible(roofVisible);
+    this.reviewRoofVisible = roofVisible;
+    this.syncRoofVisibility();
+  }
+
+  /** Temporary editing cutaway, independent of the saved player camera. */
+  setCourtOverview(enabled: boolean): void {
+    this.courtOverview = enabled;
+    this.canvas.dataset.courtOverview = String(enabled);
+    this.syncRoofVisibility();
+  }
+
+  private syncRoofVisibility(): void {
+    // Apply to inactive managers too: asynchronous loads and quality/venue
+    // switches must inherit the cutaway before their first visible frame.
+    for (const arena of Object.values(this.authoredArenas)) arena.setRoofVisible(this.reviewRoofVisible && !this.courtOverview);
     this.syncArenaPresentation();
   }
 

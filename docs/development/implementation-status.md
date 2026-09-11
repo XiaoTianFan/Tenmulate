@@ -9,6 +9,16 @@
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
+## Unobstructed top-down court views — 2026-09-11
+
+Practice and Editor overview controls now activate a shared temporary roof cutaway,
+including across asynchronous venue loading and Quality/Performance changes.
+Normal views restore the roof. All six venues and both asset qualities passed
+108 camera-height/FOV combinations, plus actual Practice/Editor exit and handoff
+checks. **580 tests / 54 files**, production build and active asset/cache guard
+pass. See the [verification receipt](top-down-venue-cutaway-2026-09-11.md).
+Local only; no public deployment or owner acceptance claim.
+
 ## Automatic opponent strokes and natural footwork — 2026-09-11
 
 Quick Practice and player-first drills now share contact-based automatic stroke

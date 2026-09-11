@@ -12,6 +12,7 @@ vi.mock('three/addons/loaders/GLTFLoader.js', () => ({
 }));
 import { COURT_ASSET_ANCHORS, VenueAssetManager, validateCourtRegistration, validateVenueManifest } from '../src/engine/rendering/VenueAssetManager';
 import { createSceneMaterialBundle } from '../src/engine/rendering/sceneMaterials';
+import { VENUE_IDS } from '../src/domain/environment';
 
 const bytes = new Uint8Array([1, 2, 3]);
 const manifest = {
@@ -46,6 +47,30 @@ function serve(m = manifest, data = bytes) {
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); parse.mockReset(); });
 
 describe('authored venue boundary', () => {
+  it.each(VENUE_IDS)('retains top-down cutaway across async loads and quality switches in %s', async id => {
+    const catalog = { ...manifest, id, url: `/assets/venues/${id}/${id}.abcdef123456.glb`,
+      performance: { ...manifest, id, url: `/assets/venues/${id}/${id}.performance.abcdef123456.glb` } };
+    serve(catalog);
+    const roofs: THREE.Group[] = [];
+    parse.mockImplementation(async () => {
+      const scene = registeredScene(), roof = new THREE.Group();
+      roof.userData.arenaPart = 'roof';
+      roof.add(new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshStandardMaterial()));
+      scene.add(roof); roofs.push(roof); return { scene };
+    });
+    const manager = new VenueAssetManager(vi.fn(), id);
+    manager.setRoofVisible(false); manager.setActive(true);
+    await vi.waitFor(() => expect(manager.state.status).toBe('ready'));
+    expect(roofs[0]!.visible).toBe(false);
+    manager.setVariant('performance');
+    await vi.waitFor(() => expect(manager.renderedVariant).toBe('performance'));
+    expect(roofs[1]!.visible).toBe(false);
+    const surfaces: THREE.Object3D[] = [];
+    manager.group.traverseVisible(o => { if (o.userData.surfaceRole) surfaces.push(o); });
+    expect(surfaces).toHaveLength(2);
+    manager.setRoofVisible(true); expect(roofs[1]!.visible).toBe(true);
+    manager.dispose();
+  });
   it.each(['timber-hall', 'clay-stadium', 'covered-grass-arena'] as const)(
     'explains an HTML manifest response for %s and recovers on retry', async venueId => {
       vi.spyOn(console, 'warn').mockImplementation(() => {});
