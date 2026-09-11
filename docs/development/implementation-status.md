@@ -9,6 +9,22 @@
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
+## Automatic opponent strokes and natural footwork — 2026-09-11
+
+Quick Practice and player-first drills now share contact-based automatic stroke
+selection. Legacy Alternate sides maps to Automatic; fixed choices and authored
+player shot identities remain intact. Unmodified default opponent responses use
+Automatic. Nearby contacts avoid unnecessary neutral detours and use finite
+adjustments in any direction, moderate lateral travel can cross over, and urgent
+travel runs. Spare receiving time is spent ready before a concise prepared approach.
+
+**574 tests / 54 files**, production build and active motion/cache guard pass.
+Actual post-blend renderer checks cover both hands, nearby backward adjustment,
+wide drill running, crossover and descending racket/ball agreement. The active
+25-clip asset and ball physics are unchanged. See the [receipt](opponent-footwork-2026-09-11.md)
+and [ADR-0047](../decisions/0047-automatic-opponent-stroke-and-footwork.md).
+Local implementation and verification; no owner acceptance or deployment claim.
+
 ## Calibrated natural bounce — 2026-09-11
 
 Player and opponent balls now share an impact-speed/angle dependent bounce model

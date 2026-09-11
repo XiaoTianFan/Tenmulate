@@ -1,6 +1,6 @@
 # Local opponent motion pipeline
 
-Current runtime contract, reconciled 2026-09-08. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) establishes the local production boundary; [ADR-0014](../decisions/0014-articulated-player-and-complete-motion-library.md) records the current model and library. The [integration receipt](motion-main-integration-2026-09-07.md) separates merge, automated checks, live review and remaining release gates.
+Current runtime contract, reconciled 2026-09-11. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) establishes the local production boundary; [ADR-0014](../decisions/0014-articulated-player-and-complete-motion-library.md) records the current model and library. The [integration receipt](motion-main-integration-2026-09-07.md) separates merge, automated checks, live review and remaining release gates.
 
 ## Authority and ownership
 
@@ -81,7 +81,16 @@ Ready, split and movement share a two-hand belly/chest carry and forward athleti
 
 `strokeForShot` resolves serve rhythm, then stroke side and family before spin. Backhand overhead uses its distinct generic authored one-handed clip at its natural contact height (about 2.26 m). Forehand overhead retains the normal-serve proxy without a self-toss. Half-volley and one-handed-backhand labels still use core-motion proxies. Slices select their own clips.
 
-[ADR-0015](../decisions/0015-mode-aware-gameplay-rhythm.md) and [ADR-0016](../decisions/0016-bounded-rally-arcs-and-drill-pace.md) replace mandatory recovery with a shared mode-aware planner. Quick Practice uses the selected point as the body recovery center and returns there after every shot. The body moves 0.7–0.9 m to the selected stroke side; contact follows its racket anchor and the desired landing stays fixed. Serve roots remain at the service start. Drills recover toward baseline center 1.5 m behind the line with a small shot-side bias when time allows. Fast drills travel directly; serve-and-volley approaches the net directly. Short net sequences keep recovery near the net. Full recovery reserves a split-step, approach and preparation; short rests cannot override its movement budget. Final shots recover, and the initial practice approach starts at home.
+[ADR-0047](../decisions/0047-automatic-opponent-stroke-and-footwork.md) supersedes
+the forced alternating-side/sidestep behavior in ADR-0015/0016. Quick Practice and
+player-first drills share `resolveOpponentStroke`: Automatic compares feasible
+forehand/backhand body roots at the immutable incoming ball contact, minimizing
+travel and unnecessary switching. Explicit sides remain binding. Independent feeds
+stay at the selected root; connected rallies derive subsequent roots from the
+physical return. Neutral is an area, so already-balanced nearby roots avoid a
+centre excursion. Wider/shorter exchanges retain partial recovery or direct travel.
+Reactive approaches spend spare time ready, then move at the resolved pace and
+finish preparation at arrival. Serve roots remain at their configured starts.
 
 [ADR-0029](../decisions/0029-interval-first-motion.md) makes the requested shot
 interval (1–30 s) primary. Stroke rhythm and movement pace (50–300%) are secondary
@@ -104,6 +113,12 @@ exact start/end anchors. The pattern blends into ordinary cyclic travel outside
 the short-route/rate envelope. Torso acceleration lean preserves
 pelvis and fixed-length foot IK. Slides/crossovers retain their authored poses;
 near-zero-distance legs reserve a smooth turn. These envelopes are product calibrations.
+
+ADR-0047 extends finite placements to small nudges in all directions and blends
+heading turns out for unhurried corrections. Moderate lateral recovery can begin
+with a front/back crossover; urgent travel recruits running. Source-rate budgets,
+physical limits and the authored bundle remain unchanged. See the
+[current rendered footwork receipt](opponent-footwork-2026-09-11.md).
 
 Setup, editor preview and rehearsal consume compiled sessions. The quick-practice camera stays at the chosen position. Drill receiver coverage follows the rendered scripted camera, including its intensity setting; changing that intensity restarts and recompiles the set. The coverage model and its explicit 12% screen allowance are documented in [player coverage](../research/player-coverage.md). Quick Practice records reachability without altering the incoming ball. Drills link accepted returns through the physical solver, with distinct outgoing/return handoffs and matching contact/bounce audio. A return must arrive within 2.5 cm of the next racket contact and keep launch speed within 0.65–1.35 of the incoming launch. Ordinary return arcs are capped at 6 m, volley feeds at 4.5 m, and overhead lob feeds at 10 m. Natural target mode follows the low-angle range branch and may adjust speed by ±15% and spin by ±20%; resolved values and unreachable targets are reported. Exact mode retains requested speed/spin. Failed links, rest boundaries and new serves start a new feed.
 

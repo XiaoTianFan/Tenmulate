@@ -150,8 +150,11 @@ are preferences: a bounded search adjusts them to fit the interval and displays
 the resolved rates. If motion or camera travel cannot fit, the required longer
 interval is shown. Ball speed remains independent. See
 [interval-first motion timing](docs/development/interval-first-motion-2026-09-08.md).
-Quick Practice returns to its selected home; drills recover or move directly as
-space and time permit, with physical return flights for valid rally links.
+Quick Practice and drills share **Automatic** opponent stroke selection, choosing
+the convenient feasible forehand/backhand for the incoming ball. Fixed sides remain
+available. Nearby balls use small adjustments; moderate side travel can cross over,
+and urgent travel runs. Recovery avoids unnecessary detours near neutral. See the
+[footwork upgrade](docs/development/opponent-footwork-2026-09-11.md).
 Quick Practice uses a body recovery center and directly movable/resizable landing
 zones. Natural groundstrokes fit speed and spin together to favor lower arcs,
 with a soft 3.5 m clearance preference above the net. Resolved values remain
