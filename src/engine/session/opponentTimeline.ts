@@ -28,10 +28,10 @@ export type MotionRepetition = Readonly<{ index: number; startTime: number; shot
   motionRate?: number; movementRate?: number; home?: Vec3; recoveryPolicy?: MotionEvent['recoveryPolicy']; preparedApproach?: boolean;
   incomingContact?: IncomingContact }>;
 
-export const strokeForShot = (shot: ShotDefinitionV1, index: number): StrokeId => {
+export const strokeForShot = (shot: ShotDefinitionV1, _index: number): StrokeId => {
   if (shot.family === 'serve') return shot.serveRhythm === 'compact' ? 'serve-compact' : 'serve';
   const relativeSide = shot.source.x * (shot.opponentHand === 'left' ? -1 : 1);
-  const side = shot.stroke ?? (shot.backhandStyle ? 'backhand' : Math.abs(relativeSide) > 0.4 ? relativeSide < 0 ? 'backhand' : 'forehand' : index % 2 ? 'backhand' : 'forehand');
+  const side = shot.stroke ?? (shot.backhandStyle ? 'backhand' : relativeSide < -.4 ? 'backhand' : 'forehand');
   if (shot.family === 'overhead') return side === 'backhand' ? 'backhand-overhead' : 'serve';
   if (shot.family === 'volley') return `${side}-volley`;
   return shot.spin === 'slice' ? `${side}-slice` : side;

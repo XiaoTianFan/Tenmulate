@@ -1,6 +1,6 @@
 import { COURT } from '../../domain/court';
 import type { Vec3 } from '../../domain/vector';
-import type { DrillBall, PlayerShotEventV2, ShotFamily } from '../../content/types';
+import type { OpponentBall, PlayerShotEventV2, ShotFamily } from '../../content/types';
 import { aimDirectionToCourtPoint, netHeightAt, resolveTrajectory, type FlightSample, type ResolvedTrajectory, type ShotIntent } from '../trajectory/physics';
 import type { LandingZone } from '../trajectory/landingZone';
 import { cameraPlayerPosition, legalReturnContacts } from './playerCoverage';
@@ -62,7 +62,7 @@ export function playerContacts(flight: ResolvedTrajectory, event: Pick<PlayerSho
   return contactsForTiming(flight, event.ball.family, legalReturnContacts(flight).filter(sample => familyContact(sample, event.ball.family, true)
     && contactDistance(sample, event) <= PLAYER_CONTACT_RADIUS_M), event.ball.contactTiming);
 }
-export function opponentContacts(flight: ResolvedTrajectory, ball: DrillBall): readonly FlightSample[] {
+export function opponentContacts(flight: ResolvedTrajectory, ball: OpponentBall): readonly FlightSample[] {
   const rotated = rotateCourtFlight(flight);
   // The visible opponent uses a real clip and rigid legs. A late ankle-height
   // contact would lower its pelvis through the court just to extend the interval.

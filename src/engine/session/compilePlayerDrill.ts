@@ -1,4 +1,5 @@
-import type { DrillBall, DrillDefinitionV2, OpeningFeed, PlayerShotEventV2, ShotDefinitionV1 } from '../../content/types';
+import { resolveOpponentStroke } from './opponentStroke';
+import type { OpponentBall, DrillDefinitionV2, OpeningFeed, PlayerShotEventV2, ShotDefinitionV1 } from '../../content/types';
 import type { CompiledRepetition, CompiledSession, SessionSettings } from './compileSession';
 import type { Vec3 } from '../../domain/vector';
 import type { CameraConfiguration } from '../rendering/TennisScene';
@@ -56,15 +57,15 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
     let axis = 0;
     return sampleLandingZone(zone, () => axis++ === 0 ? drill.playerHand === 'left' ? 1 - x : x : z);
   };
-  const sampleBall = (ball: DrillBall, role: string, index: number): DrillBall => ({ ...ball,
+  const sampleBall = (ball: OpponentBall, role: string, index: number): OpponentBall => ({ ...ball,
     paceKmh: sampleParameter(ball.paceKmh, ball.variationPercent / 100, 20, 260, random(role, index, 'speed')),
     spinRateRpm: sampleParameter(ball.spinRateRpm, ball.variationPercent / 100, 0, 6000, random(role, index, 'spin')) });
-  const resolve = (source: Vec3, ball: DrillBall, zone: LandingZone, target: { x: number; z: number }, pace = ball.paceKmh,
+  const resolve = (source: Vec3, ball: OpponentBall, zone: LandingZone, target: { x: number; z: number }, pace = ball.paceKmh,
     accepts?: (flight: ResolvedTrajectory) => boolean) =>
     resolveCourtFlight({ source, target, landingZone: zone, family: ball.family, opponentHand: ball.hand,
       launchSpeedKmh: pace, spin: ball.spin, spinRateRpm: ball.spinRateRpm, surface: settings.surface,
       minimumNetClearanceM: ball.netClearanceM, bounceFactor: ball.bounceFactor, trajectoryMode: ball.trajectoryMode, windVelocity: settings.windVelocity }, accepts);
-  const fitIncoming = (source: Vec3, ball: DrillBall, zone: LandingZone, target: { x: number; z: number }, receiver?: PlayerShotEventV2, desired?: number,
+  const fitIncoming = (source: Vec3, ball: OpponentBall, zone: LandingZone, target: { x: number; z: number }, receiver?: PlayerShotEventV2, desired?: number,
     canReceive?: (contact: FlightSample) => boolean): IncomingFit => {
     let best: IncomingFit | undefined;
     const receivingContacts = (flight: ResolvedTrajectory) => receiver ? playerContacts(flight, receiver).filter(contact => !canReceive || canReceive(contact)) : [];
@@ -82,9 +83,9 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
     }
     return best!;
   };
-  const shotDefinition = (source: Vec3, ball: DrillBall, target: { x: number; z: number }, label: string): ShotDefinitionV1 => ({
+  const shotDefinition = (source: Vec3, ball: OpponentBall, target: { x: number; z: number }, label: string): ShotDefinitionV1 => ({
     schemaVersion: 1, id: 'resolved-opponent-contact', label, cue: label, family: ball.family, source, target,
-    paceKmh: ball.paceKmh, spin: ball.spin, opponentHand: ball.hand, stroke: ball.stroke, surface: settings.surface,
+    paceKmh: ball.paceKmh, spin: ball.spin, opponentHand: ball.hand, stroke: ball.stroke === 'auto' ? 'forehand' : ball.stroke, surface: settings.surface,
     direction: Math.abs(target.x) < .5 ? 'Body' : target.x > 0 ? 'Near left' : 'Near right',
     depth: ball.family === 'serve' ? 'Service box' : Math.abs(target.z) > 8 ? 'Deep' : Math.abs(target.z) > 4.5 ? 'Mid' : 'Short',
     serveRhythm: ball.serveRhythm, netClearanceM: ball.netClearanceM });
@@ -182,7 +183,7 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
       addFlight('player', 'player', index, playerTime, playerFlight, reply?.contact);
       if (reply) {
         const time = playerTime + reply.contact.time;
-        repetitions.push(repetition(shotDefinition(reply.contact.position, replyBall, replyTarget, `${event.label} — opponent return`), reply.trajectory, time, event));
+        repetitions.push(resolveOpponentStroke(null, repetition(shotDefinition(reply.contact.position, replyBall, replyTarget, `${event.label} — opponent return`), reply.trajectory, time, event), replyBall.stroke));
         addFlight('opponent', 'response', index, time, reply.trajectory);
         shotPreview = { player: playerFlight, opponent: reply.trajectory };
       } else issues.push({ index, phase: landsInZone(playerFlight) ? 'response' : 'player', message: landsInZone(playerFlight)
@@ -214,9 +215,9 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
     const reachableOpponentContacts = (flight: ResolvedTrajectory) => opponentContacts(flight, replyBall).filter(contact => {
       const time = playerTime + contact.time;
       const shot = shotDefinition(contact.position, replyBall, replyTarget, `${event.label} — opponent return`);
-      const ceiling = withPreparedApproach({ ...previous, motionRate: 3, movementRate: 3 },
+      const ceiling = resolveOpponentStroke({ ...previous, motionRate: 3, movementRate: 3 },
         { ...previous, index: repetitions.length, shot, startTime: time, motionRate: 3, movementRate: 3,
-          incomingContact: incomingContact(flight, contact, playerTime) });
+          incomingContact: incomingContact(flight, contact, playerTime) }, replyBall.stroke);
       return minimumMotionGap({ ...previous, motionRate: 3, movementRate: 3 }, ceiling) <= time - previous.startTime + 1e-8;
     });
     const playerFlight = resolve(current.contact.position, ball, event.landingZone, target, ball.paceKmh,
@@ -254,8 +255,8 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
       const total = contact.time + (fit.contact?.time ?? 0);
       const postureCost = Math.max(0, contactHeight(replyBall.family) - contact.position.y) ** 2 * 8;
       const score = (receiver ? Math.abs(total - requested) + fit.score * .1 : Math.abs(contact.time - desired)) + postureCost + bounceContactCost(contact, preference);
-      if (!best || score < best.score) best = { contact, fit, rep: { ...repetition(draftShot, fit.trajectory, time, event),
-        incomingContact: incomingContact(playerFlight, contact, playerTime) }, score };
+      if (!best || score < best.score) best = { contact, fit, rep: resolveOpponentStroke(previous, { ...repetition(draftShot, fit.trajectory, time, event),
+        incomingContact: incomingContact(playerFlight, contact, playerTime) }, replyBall.stroke), score };
     }
     if (!best) {
       addFlight('player', 'player', index, playerTime, playerFlight);
@@ -283,7 +284,7 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
     if (solved.previous.motionRate !== previous.motionRate || solved.next.motionRate !== best.rep.motionRate || Math.abs(actual - requested) > .01) motionTimingAdjusted = true;
   }
   const last = repetitions.at(-1);
-  return { solverVersion: 'ball-v10-court-bounce', plannerVersion: 'gameplay-player-drills-v15', contentVersion: '2026.09.09',
+  return { solverVersion: 'ball-v10-court-bounce', plannerVersion: 'gameplay-player-drills-v16', contentVersion: '2026.09.09',
     drill, settings: { ...settings, mode: 'drill', rhythmPercent: rhythm, movementPercent: movement, shotIntervalSeconds: interval, workBlockSize: workBlock },
     mode: 'drill', repetitions, restPeriods, duration: Math.max(endTime, last ? planRecovery(motionEvent(last)).end + .15 : 3),
     motionTimingAdjusted, rhythmPercent: rhythm, cameraTimeline: { initial: initialCamera ?? DEFAULT_DRILL_CAMERA,

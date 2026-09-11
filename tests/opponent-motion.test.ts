@@ -445,7 +445,7 @@ describe('local motion asset and shared contact clock', () => {
     expect(strokeForShot({...base,source:{x:1.2,y:1.32,z:3.7},opponentHand:'right'},0)).toBe('forehand-volley');
     expect(strokeForShot({...base,source:{x:1.2,y:1.32,z:3.7},opponentHand:'left'},0)).toBe('backhand-volley');
     expect(strokeForShot(base,0)).toBe('forehand-volley');
-    expect(strokeForShot(base,1)).toBe('backhand-volley');
+    expect(strokeForShot(base,1)).toBe('forehand-volley');
     expect(strokeForShot({...base,family:'half-volley',stroke:'forehand',spin:'slice'},0)).toBe('forehand-slice');
   });
   it('compiles real volley presets and practice controls into complete reachable volley events',()=>{

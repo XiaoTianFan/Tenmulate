@@ -14,13 +14,13 @@ function object(v: unknown, keys: string, path: string, errors: string[]): v is 
   if (unknown.length) errors.push(`${path} contains unsupported fields: ${unknown.join(', ')}.`);
   return true;
 }
-function ball(v: unknown, role: 'launch' | 'rally', path: string, errors: string[]) {
+function ball(v: unknown, role: 'launch' | 'rally', path: string, errors: string[], opponent = false) {
   if (!object(v, 'family stroke hand paceKmh spin spinRateRpm variationPercent bounceFactor trajectoryMode netClearanceM serveRhythm contactTiming', path, errors)) return;
   if (v.contactTiming !== undefined && !['rise', 'apex', 'descent'].includes(v.contactTiming as string)) errors.push(`${path} contact timing is invalid.`);
   const family = v.family;
   if (typeof family !== 'string' || !Object.hasOwn(SHOT_TYPE_LABELS, family)
     || (role === 'launch' ? !['serve', 'groundstroke'].includes(family) : family === 'serve')) errors.push(`${path} shot type is not valid for this phase.`);
-  if (!['forehand', 'backhand'].includes(String(v.stroke)) || !['left', 'right'].includes(String(v.hand))) errors.push(`${path} hand or stroke is invalid.`);
+  if (!(opponent ? ['auto', 'forehand', 'backhand'] : ['forehand', 'backhand']).includes(String(v.stroke)) || !['left', 'right'].includes(String(v.hand))) errors.push(`${path} hand or stroke is invalid.`);
   if (!spinsForShot(String(family)).includes(v.spin as never)) errors.push(`${path} spin is invalid; kick/sidespin require a serve.`);
   for (const [key, limits] of Object.entries({ paceKmh: [20, 260], spinRateRpm: [0, 6000], variationPercent: [0, 25], bounceFactor: [.6, 1.4], netClearanceM: [.08, 6] })) {
     if (!range(v[key], limits[0]!, limits[1]!)) errors.push(`${path} ${key} is outside ${limits.join('–')}.`);
@@ -36,7 +36,7 @@ function zone(v: unknown, side: 'near' | 'far', path: string, errors: string[]) 
 }
 function response(v: unknown, launch: boolean, path: string, errors: string[]) {
   if (!object(v, launch ? 'ball landingZone position' : 'ball landingZone', path, errors)) return;
-  ball(v.ball, launch ? 'launch' : 'rally', `${path} ball`, errors);
+  ball(v.ball, launch ? 'launch' : 'rally', `${path} ball`, errors, true);
   zone(v.landingZone, 'near', `${path} landing zone`, errors);
   if (launch) {
     if (object(v.position, 'x z', `${path} position`, errors)) {

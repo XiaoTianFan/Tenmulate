@@ -1,3 +1,5 @@
+import { defaultReturnShot } from '../src/engine/session/returnShot';
+import { DEFAULT_RETURN_LANDING_ZONE } from '../src/engine/session/returnLandingZone';
 import {afterEach,describe,expect,it,vi} from 'vitest';
 import {readFile} from 'node:fs/promises';
 import * as T from 'three';
@@ -68,7 +70,7 @@ describe('prepared stroke entries after travel',()=>{
   expect(sampleTravel(leg,1,'right').layers.filter(l=>l.weight>0)).toEqual([{clip:event.clip,time:event.entryTime,weight:1}]);
  });
  it.each(['quick-practice','drill'] as const)('the %s compiler reserves and plays the same prepared approach',mode=>{
-  const session=compileSession(DRILLS[0]!,{mode,repetitions:3,shotIntervalSeconds:4,rhythmPercent:100,movementPercent:100,
+  const session=compileSession(DRILLS[0]!,{mode,...(mode==='quick-practice'?{practiceShotType:'groundstroke' as const,rally:{landingZone:DEFAULT_RETURN_LANDING_ZONE,shot:defaultReturnShot('groundstroke')}}:{}),repetitions:3,shotIntervalSeconds:4,rhythmPercent:100,movementPercent:100,
    variationPercent:0,timingVariationPercent:0,launchSpeedKmh:70,surface:'hard',seed:'prepared',spin:'topspin',opponentHand:'right',workBlockSize:3,restSeconds:0,serveRhythm:'normal'});
   const events=session.repetitions.map(motionEvent);expect(events.some(e=>(e.entryTime??0)>0)).toBe(true);
   for(let i=1;i<events.length;i++){const plan=planRecovery(events[i-1]!,events[i]!);expect(plan.end).toBeLessThanOrEqual(events[i]!.start+1e-6);}

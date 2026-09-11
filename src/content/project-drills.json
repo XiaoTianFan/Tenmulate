@@ -70,7 +70,7 @@
           "opponentReturn": {
             "ball": {
               "family": "groundstroke",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 70,
               "spin": "topspin",
@@ -126,7 +126,7 @@
           "opponentReturn": {
             "ball": {
               "family": "groundstroke",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 70,
               "spin": "topspin",
@@ -182,7 +182,7 @@
           "opponentReturn": {
             "ball": {
               "family": "groundstroke",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 70,
               "spin": "topspin",
@@ -238,7 +238,7 @@
           "opponentReturn": {
             "ball": {
               "family": "groundstroke",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 70,
               "spin": "topspin",
@@ -333,7 +333,7 @@
           "opponentReturn": {
             "ball": {
               "family": "groundstroke",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 70,
               "spin": "topspin",
@@ -389,7 +389,7 @@
           "opponentReturn": {
             "ball": {
               "family": "groundstroke",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 70,
               "spin": "topspin",
@@ -510,7 +510,7 @@
           "opponentReturn": {
             "ball": {
               "family": "groundstroke",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 70,
               "spin": "topspin",
@@ -566,7 +566,7 @@
           "opponentReturn": {
             "ball": {
               "family": "groundstroke",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 70,
               "spin": "topspin",
@@ -622,7 +622,7 @@
           "opponentReturn": {
             "ball": {
               "family": "groundstroke",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 70,
               "spin": "topspin",
@@ -678,7 +678,7 @@
           "opponentReturn": {
             "ball": {
               "family": "groundstroke",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 70,
               "spin": "topspin",
@@ -734,7 +734,7 @@
           "opponentReturn": {
             "ball": {
               "family": "groundstroke",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 70,
               "spin": "topspin",
@@ -829,7 +829,7 @@
           "opponentReturn": {
             "ball": {
               "family": "groundstroke",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 70,
               "spin": "topspin",
@@ -885,7 +885,7 @@
           "opponentReturn": {
             "ball": {
               "family": "groundstroke",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 90,
               "spin": "flat",
@@ -941,7 +941,7 @@
           "opponentReturn": {
             "ball": {
               "family": "groundstroke",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 90,
               "spin": "flat",
@@ -997,7 +997,7 @@
           "opponentReturn": {
             "ball": {
               "family": "groundstroke",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 70,
               "spin": "topspin",
@@ -1092,7 +1092,7 @@
           "opponentReturn": {
             "ball": {
               "family": "groundstroke",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 90,
               "spin": "flat",
@@ -1148,7 +1148,7 @@
           "opponentReturn": {
             "ball": {
               "family": "lob",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 60,
               "spin": "topspin",
@@ -1204,7 +1204,7 @@
           "opponentReturn": {
             "ball": {
               "family": "groundstroke",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 90,
               "spin": "flat",
@@ -1299,7 +1299,7 @@
           "opponentReturn": {
             "ball": {
               "family": "groundstroke",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 70,
               "spin": "topspin",
@@ -1355,7 +1355,7 @@
           "opponentReturn": {
             "ball": {
               "family": "groundstroke",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 70,
               "spin": "topspin",
@@ -1411,7 +1411,7 @@
           "opponentReturn": {
             "ball": {
               "family": "groundstroke",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 70,
               "spin": "topspin",
@@ -1467,7 +1467,7 @@
           "opponentReturn": {
             "ball": {
               "family": "groundstroke",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 70,
               "spin": "topspin",
@@ -1562,7 +1562,7 @@
           "opponentReturn": {
             "ball": {
               "family": "groundstroke",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 70,
               "spin": "topspin",
@@ -1618,7 +1618,7 @@
           "opponentReturn": {
             "ball": {
               "family": "groundstroke",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 70,
               "spin": "topspin",
@@ -1674,7 +1674,7 @@
           "opponentReturn": {
             "ball": {
               "family": "groundstroke",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 70,
               "spin": "topspin",
@@ -1769,7 +1769,7 @@
           "opponentReturn": {
             "ball": {
               "family": "groundstroke",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 70,
               "spin": "topspin",
@@ -1825,7 +1825,7 @@
           "opponentReturn": {
             "ball": {
               "family": "groundstroke",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 70,
               "spin": "topspin",
@@ -1881,7 +1881,7 @@
           "opponentReturn": {
             "ball": {
               "family": "groundstroke",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 70,
               "spin": "topspin",
@@ -1937,7 +1937,7 @@
           "opponentReturn": {
             "ball": {
               "family": "groundstroke",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 70,
               "spin": "topspin",
@@ -2032,7 +2032,7 @@
           "opponentReturn": {
             "ball": {
               "family": "groundstroke",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 70,
               "spin": "topspin",
@@ -2088,7 +2088,7 @@
           "opponentReturn": {
             "ball": {
               "family": "groundstroke",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 70,
               "spin": "topspin",
@@ -2209,7 +2209,7 @@
           "opponentReturn": {
             "ball": {
               "family": "groundstroke",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 70,
               "spin": "topspin",
@@ -2265,7 +2265,7 @@
           "opponentReturn": {
             "ball": {
               "family": "groundstroke",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 70,
               "spin": "topspin",
@@ -2386,7 +2386,7 @@
           "opponentReturn": {
             "ball": {
               "family": "groundstroke",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 70,
               "spin": "topspin",
@@ -2442,7 +2442,7 @@
           "opponentReturn": {
             "ball": {
               "family": "groundstroke",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 70,
               "spin": "topspin",
@@ -2563,7 +2563,7 @@
           "opponentReturn": {
             "ball": {
               "family": "groundstroke",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 70,
               "spin": "topspin",
@@ -2619,7 +2619,7 @@
           "opponentReturn": {
             "ball": {
               "family": "groundstroke",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 70,
               "spin": "topspin",
@@ -2675,7 +2675,7 @@
           "opponentReturn": {
             "ball": {
               "family": "groundstroke",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 70,
               "spin": "topspin",
@@ -2731,7 +2731,7 @@
           "opponentReturn": {
             "ball": {
               "family": "groundstroke",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 70,
               "spin": "topspin",
@@ -2826,7 +2826,7 @@
           "opponentReturn": {
             "ball": {
               "family": "groundstroke",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 90,
               "spin": "flat",
@@ -2882,7 +2882,7 @@
           "opponentReturn": {
             "ball": {
               "family": "groundstroke",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 90,
               "spin": "flat",
@@ -2938,7 +2938,7 @@
           "opponentReturn": {
             "ball": {
               "family": "groundstroke",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 70,
               "spin": "topspin",
@@ -3033,7 +3033,7 @@
           "opponentReturn": {
             "ball": {
               "family": "groundstroke",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 70,
               "spin": "topspin",
@@ -3089,7 +3089,7 @@
           "opponentReturn": {
             "ball": {
               "family": "groundstroke",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 70,
               "spin": "topspin",
@@ -3145,7 +3145,7 @@
           "opponentReturn": {
             "ball": {
               "family": "groundstroke",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 70,
               "spin": "topspin",
@@ -3201,7 +3201,7 @@
           "opponentReturn": {
             "ball": {
               "family": "groundstroke",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 70,
               "spin": "topspin",
@@ -3296,7 +3296,7 @@
           "opponentReturn": {
             "ball": {
               "family": "groundstroke",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 90,
               "spin": "flat",
@@ -3352,7 +3352,7 @@
           "opponentReturn": {
             "ball": {
               "family": "groundstroke",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 90,
               "spin": "flat",
@@ -3408,7 +3408,7 @@
           "opponentReturn": {
             "ball": {
               "family": "groundstroke",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 70,
               "spin": "topspin",
@@ -3503,7 +3503,7 @@
           "opponentReturn": {
             "ball": {
               "family": "groundstroke",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 70,
               "spin": "topspin",
@@ -3559,7 +3559,7 @@
           "opponentReturn": {
             "ball": {
               "family": "groundstroke",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 70,
               "spin": "topspin",
@@ -3615,7 +3615,7 @@
           "opponentReturn": {
             "ball": {
               "family": "groundstroke",
-              "stroke": "forehand",
+              "stroke": "auto",
               "hand": "right",
               "paceKmh": 70,
               "spin": "topspin",

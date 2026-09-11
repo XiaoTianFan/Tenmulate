@@ -103,8 +103,11 @@ describe('local application data', () => {
       spinRateRpm: 1103,
       landingDepthM: 8.5,
       interval: 5,
-      movementPercent:100,practiceStroke:'alternate',trajectoryMode:'natural',
+      movementPercent:100,practiceStroke:'auto',trajectoryMode:'natural',
     });
+    localStorage.setItem('tenmulate.appData.v2', JSON.stringify({schemaVersion: 1,
+      preferences: {...DEFAULT_PREFERENCES, practiceStroke: 'alternate'}}));
+    expect(loadAppData().preferences.practiceStroke).toBe('auto');
   });
 
   it('round-trips custom drills, split presets, and practice preferences', () => {

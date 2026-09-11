@@ -1,7 +1,7 @@
 import { RangeField } from './RangeField';
 import { ContactTimingControl } from './ContactTimingControl';
 import { BallFocusControls } from './BallFocusControls';
-import type { DrillBall, DrillDefinitionV2, OpeningFeed, PlayerShotEventV2, ShotFamily } from '../content/types';
+import type { DrillBall, StrokeChoice, DrillDefinitionV2, OpeningFeed, PlayerShotEventV2, ShotFamily } from '../content/types';
 import { changeBallFamily, openingFor, receivingZone } from '../content/playerShots';
 import { openingZoneSource } from '../content/playerHandedness';
 import type { CameraConfiguration } from '../engine/rendering/TennisScene';
@@ -18,8 +18,8 @@ export function EditorNumber({ label, value, min, max, step = 1, onChange }: {
   return <RangeField commitOnRelease label={label} value={value ?? min} min={min} max={max} step={step} unit="" onChange={onChange}/>;
 }
 
-export function BallIdentity({ ball, label, opening = false, showHand = true, onChange }: {
-  ball: DrillBall; label: string; opening?: boolean; showHand?: boolean; onChange: (ball: DrillBall) => void;
+export function BallIdentity<Side extends StrokeChoice>({ ball, label, opening = false, showHand = true, onChange }: {
+  ball: DrillBall<Side>; label: string; opening?: boolean; showHand?: boolean; onChange: (ball: DrillBall<Side>) => void;
 }) {
   return <>
     <label className="stack-field"><span>Shot type</span><select aria-label={`${label} shot type`} value={ball.family} onChange={e => onChange(changeBallFamily(ball, e.target.value as ShotFamily))}>
@@ -30,12 +30,12 @@ export function BallIdentity({ ball, label, opening = false, showHand = true, on
     </select></label>
     <div className="paired-fields">
       {showHand ? <label className="stack-field"><span>Playing hand</span><select aria-label={`${label} playing hand`} value={ball.hand} onChange={e => onChange({ ...ball, hand: e.target.value as DrillBall['hand'] })}><option value="right">Right</option><option value="left">Left</option></select></label> : null}
-      {ball.family !== 'serve' ? <label className="stack-field"><span>Stroke side</span><select aria-label={`${label} stroke side`} value={ball.stroke} onChange={e => onChange({ ...ball, stroke: e.target.value as DrillBall['stroke'] })}><option value="forehand">Forehand</option><option value="backhand">Backhand</option></select></label> : null}
+      {ball.family !== 'serve' ? <label className="stack-field"><span>Stroke side</span><select aria-label={`${label} stroke side`} value={ball.stroke} onChange={e => onChange({ ...ball, stroke: e.target.value as Side })}>{showHand ? <option value="auto">Automatic</option> : null}<option value="forehand">Forehand</option><option value="backhand">Backhand</option></select></label> : null}
     </div>
   </>;
 }
 
-function BallParameters({ ball, prefix = '', onChange }: { ball: DrillBall; prefix?: string; onChange: (ball: DrillBall) => void }) {
+function BallParameters<Side extends StrokeChoice>({ ball, prefix = '', onChange }: { ball: DrillBall<Side>; prefix?: string; onChange: (ball: DrillBall<Side>) => void }) {
   return <>
     <RangeField commitOnRelease label={`${prefix}Launch speed`} value={ball.paceKmh} min={20} max={260} step={1} unit="km/h" onChange={paceKmh => onChange({ ...ball, paceKmh })}/>
     <RangeField commitOnRelease label={`${prefix}Spin rate`} value={ball.spinRateRpm} min={0} max={6000} step={50} unit="rpm" onChange={spinRateRpm => onChange({ ...ball, spinRateRpm })}/>

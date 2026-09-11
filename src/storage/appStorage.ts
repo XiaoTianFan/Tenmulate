@@ -64,7 +64,7 @@ export type PracticePreferencesV1 = Readonly<{
   interval: number;
   rhythmPercent: number;
   movementPercent: number;
-  practiceStroke: 'forehand' | 'backhand' | 'alternate';
+  practiceStroke: 'forehand' | 'backhand' | 'auto';
   trajectoryMode: 'natural' | 'exact';
   returnTargetMode: 'pattern' | 'custom';
   repetitions: number;
@@ -96,7 +96,7 @@ export type PracticePreferencesV1 = Readonly<{
 
 export const DEFAULT_PREFERENCES: PracticePreferencesV1 = {
   ballFocus: DEFAULT_BALL_FOCUS,
-  sessionCategory: 'Quick Rally', trajectoryEnabled: true, launchSpeedKmh: 70, interval: 5, rhythmPercent: 100, movementPercent: 100, practiceStroke: 'alternate', trajectoryMode: 'natural', returnTargetMode: 'pattern', repetitions: 12, variation: 8, timingVariation: 0,
+  sessionCategory: 'Quick Rally', trajectoryEnabled: true, launchSpeedKmh: 70, interval: 5, rhythmPercent: 100, movementPercent: 100, practiceStroke: 'auto', trajectoryMode: 'natural', returnTargetMode: 'pattern', repetitions: 12, variation: 8, timingVariation: 0,
   workBlockSize: 4, restSeconds: 20, surface: 'hard', shotType: 'groundstroke', spin: 'topspin', spinRateRpm: 1103, bounceFactor: 1,
   opponentHand: 'right', serveRhythm: 'normal', landingDepthM: 8.5,
   landingZone: { width: 1.6, depth: 2 },
@@ -224,7 +224,7 @@ export const loadAppData = (): AppDataV2 => {
       rhythmPercent: normalizeRhythm(candidate.rhythmPercent ?? rhythmFromLegacyInterval(candidate.interval)),
       interval: normalizeShotInterval(candidate.interval),
       movementPercent: normalizeRhythm(candidate.movementPercent),
-      practiceStroke: candidate.practiceStroke === 'forehand' || candidate.practiceStroke === 'backhand' ? candidate.practiceStroke : 'alternate',
+      practiceStroke: candidate.practiceStroke === 'forehand' || candidate.practiceStroke === 'backhand' ? candidate.practiceStroke : 'auto',
       trajectoryMode: candidate.trajectoryMode === 'exact' ? 'exact' : 'natural',
       returnTargetMode: candidate.returnTargetMode === 'custom' ? 'custom' : 'pattern',
       shotType,

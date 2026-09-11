@@ -1,3 +1,4 @@
+import { resolveOpponentStroke } from './opponentStroke';
 import { planRecovery } from './opponentMovement';
 import { acceptsPlayerReturn, resolveReturnShot } from './returnShot';
 import { normalizeShotSpin } from '../../domain/shotKinds';
@@ -45,7 +46,7 @@ export type SessionSettings = Readonly<{
   rhythmPercent?: number;
   shotIntervalSeconds?: number;
   movementPercent?: number;
-  practiceStroke?: 'forehand' | 'backhand' | 'alternate';
+  practiceStroke?: 'forehand' | 'backhand' | 'auto' | 'alternate';
   trajectoryMode?: 'natural' | 'exact';
   landingZone?: LandingZoneSize;
   mode?: 'quick-practice' | 'drill';
@@ -94,7 +95,7 @@ export type CompiledSession = Readonly<{
   /** Prepared off-thread so mounting a rally never performs a seam solve. */
   previewNext?: Readonly<{ last: CompiledRepetition; next: CompiledSession }>;
   solverVersion: 'ball-v10-court-bounce';
-  plannerVersion: 'gameplay-return-shots-v12' | 'gameplay-player-drills-v15';
+  plannerVersion: 'gameplay-opponent-footwork-v13' | 'gameplay-player-drills-v16';
   contentVersion: '2026.09.09';
   drill: DrillDefinition;
   settings: SessionSettings;
@@ -210,7 +211,7 @@ export const compileSession = (
       family,
       source,
       stroke: mode === 'quick-practice' && practiceType && practiceType !== 'serve'
-        ? settings.practiceStroke === 'alternate' || !settings.practiceStroke ? index % 2 ? 'backhand' : 'forehand' : settings.practiceStroke
+        ? settings.practiceStroke === 'forehand' || settings.practiceStroke === 'backhand' ? settings.practiceStroke : 'forehand'
         : sourceEvent?.stroke ?? sourceShot.stroke ?? (mode === 'drill' && family !== 'serve'
           ? strokeForShot({ ...sourceShot, opponentHand: sourceEvent?.opponentHand ?? settings.opponentHand }, index).startsWith('backhand') ? 'backhand' : 'forehand'
           : undefined),
@@ -238,10 +239,8 @@ export const compileSession = (
     };
     if (mode === 'quick-practice') {
       const clipId = strokeForShot(shot,index), clip = motionClip(clipId);
-      const side = (shot.stroke === 'backhand' ? -1 : 1) * (settings.opponentHand === 'left' ? -1 : 1);
       // The selected point is the body recovery center, not the ball emitter.
-      const step = rally || shot.family === 'serve' ? 0 : .7 + (index % 3) * .1;
-      const root = { x:quickOrigin.x + side*step, z:quickOrigin.z };
+      const root = quickOrigin;
       let yaw = Math.atan2(target.x-root.x,target.z-root.z);
       for(let iteration=0;iteration<8;iteration++){
         const offset=rotateMotionPoint(clip.contactLocal!,yaw,settings.opponentHand);
@@ -308,11 +307,13 @@ export const compileSession = (
       let candidates = returnPlanCandidates(previous.trajectory, draft.shot.family, previous.returnLandingZone, target, requestedGap, previous.returnShot, settings.rally?.opponentContactTiming);
       // Cheap ceiling check first. The full rhythm search runs only on the chosen
       // intercept, not inside the physics candidate search.
+      const choose = (c: (typeof candidates)[number], a = schedulingPrevious) => resolveOpponentStroke(a, { ...draft,
+        startTime: a.startTime + c.gap, shot: { ...draft.shot, source: c.source },
+        incomingContact: incomingContact(c.rally.trajectory, c.contact, a.startTime + c.rally.contactTime) },
+        mode === 'quick-practice' ? settings.practiceStroke === 'forehand' || settings.practiceStroke === 'backhand' ? settings.practiceStroke : 'auto' : draft.shot.stroke ?? 'auto');
       const canMeet = (c: (typeof candidates)[number]) => {
         const a = { ...schedulingPrevious, motionRate: 3, movementRate: 3 };
-        const b = withPreparedApproach(a, { ...draft, startTime: a.startTime + c.gap,
-          incomingContact: incomingContact(c.rally.trajectory, c.contact, a.startTime + c.rally.contactTime),
-          shot: { ...draft.shot, source: c.source }, motionRate: 3, movementRate: 3 });
+        const b = withPreparedApproach(a, { ...choose(c, a), motionRate: 3, movementRate: 3 });
         const event = motionEvent(b), travel = mode === 'drill' ? cameraTravelSeconds(a.camera, b.camera, 3) : 0;
         return minimumMotionGap(a, b) <= c.gap + 1e-8
           && (!travel || c.rally.contactTime + travel + event.contactTime - event.start <= c.gap + 1e-8);
@@ -330,6 +331,7 @@ export const compileSession = (
         break;
       }
       if (position) {
+        if (candidate) draft = choose(candidate);
         const shot = { ...draft.shot, source: position };
         const trajectory = resolveTrajectory({ ...draft.trajectory.intent, source: position,
           aimDirectionDeg: aimDirectionToCourtPoint(position, shot.target) }, rally ? flight => acceptsPlayerReturn(flight, settings.rally!.shot) : undefined);
@@ -406,7 +408,7 @@ export const compileSession = (
 
   return {
     solverVersion: 'ball-v10-court-bounce',
-    plannerVersion: 'gameplay-return-shots-v12',
+    plannerVersion: 'gameplay-opponent-footwork-v13',
     contentVersion: '2026.09.09',
     drill,
     settings: { ...settings, rhythmPercent, shotIntervalSeconds: interval, movementPercent:movementRate*100, mode },

@@ -24,18 +24,17 @@ describe('recovery-centered practice and independent clocks',()=>{
         const bounce=rep.trajectory.events.find(e=>e.type==='bounce')!.position;
         expect(Math.hypot(bounce.x-rep.shot.target.x,bounce.z-rep.shot.target.z)).toBeLessThan(.18);
       }
-      if(practiceShotType==='overhead')expect(motionEvent(session.repetitions[1]!).clip).toBe('backhand-overhead');
+      if(practiceShotType==='overhead')expect(motionEvent(session.repetitions[1]!).clip).toBe('serve');
     }
   });
-  it.each(['right','left'] as const)('steps the body to each side, moving contact while retaining the landing zone (%s)',opponentHand=>{
+  it.each(['right','left'] as const)('keeps independent feeds at the placed body root instead of inventing alternating steps (%s)',opponentHand=>{
     for(const practiceShotType of ['groundstroke','volley','overhead'] as const){
       const session=compileSession(DRILLS[0]!,{...settings,practiceShotType,opponentHand});
       const [a,b]=session.repetitions.map(motionEvent);
       expect(a!.home).toEqual({x:0,y:0,z:12.885});
-      expect(a!.root.x*b!.root.x).toBeLessThan(0);
-      expect(Math.abs(a!.root.x)).toBeCloseTo(.7,5);
-      expect(Math.abs(b!.root.x)).toBeCloseTo(.8,5);
-      expect(Math.abs(a!.source.x-b!.source.x)).toBeGreaterThan(1);
+      expect(a!.root.x).toBeCloseTo(0,5);
+      expect(b!.root.x).toBeCloseTo(0,5);
+      expect(a!.clip).toBe(b!.clip);
       expect(session.repetitions[0]!.trajectory.intent.landingZone).toEqual(session.repetitions[1]!.trajectory.intent.landingZone);
       expect(session.repetitions[0]!.shot.target).not.toEqual(session.repetitions[1]!.shot.target);
       expect(sampleOpponentTimeline(session.repetitions.map(motionEvent),session.duration)!.root).toEqual(a!.home);
@@ -51,7 +50,7 @@ describe('recovery-centered practice and independent clocks',()=>{
     expect(fast.repetitions[0]!.motionRate).toBeGreaterThan(slow.repetitions[0]!.motionRate!);
     expect(fast.repetitions[1]!.startTime-fast.repetitions[0]!.startTime).toBeCloseTo(4,6);
     expect(fast.repetitions[0]!.trajectory).toEqual(slow.repetitions[0]!.trajectory);
-    expect(fastPlan.recover.end-fastPlan.recover.start).toBeLessThan(slowPlan.recover.end-slowPlan.recover.start);
+    expect(fastPlan.requiredDuration).toBeLessThanOrEqual(slowPlan.requiredDuration);
     const quickStroke=compileSession(DRILLS[0]!,{...settings,rhythmPercent:150,shotIntervalSeconds:12});
     expect(quickStroke.repetitions[1]!.startTime-quickStroke.repetitions[0]!.startTime).toBeCloseTo(12,6);
     expect(motionEvent(quickStroke.repetitions[0]!).rate).toBe(1.5);

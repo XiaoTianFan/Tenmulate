@@ -5,6 +5,8 @@ import type { LandingZone, LandingZoneSize } from '../engine/trajectory/landingZ
 import type { ReturnZone } from '../engine/session/returnZone';
 
 export type OpponentHand = 'left' | 'right';
+export type StrokeSide = 'forehand' | 'backhand';
+export type StrokeChoice = StrokeSide | 'auto';
 export type ServeRhythm = 'normal' | 'compact';
 export type ContactTiming = 'rise' | 'apex' | 'descent';
 export type ShotFamily = 'groundstroke' | 'serve' | 'approach' | 'volley' | 'half-volley' | 'lob' | 'overhead' | 'drop-shot';
@@ -101,11 +103,11 @@ export type SavedShotV1 = Readonly<{id:string;name:string;event:DrillEventV1}>;
 
 /** Canonical drill authoring. V1 remains the legacy import/Quick Practice contract. */
 export type RallyShotFamily = Exclude<ShotFamily, 'serve'>;
-export type DrillBall = Readonly<{
+export type DrillBall<Side extends StrokeChoice = StrokeSide> = Readonly<{
   /** When this hitter meets the incoming bounce; absent legacy values mean early descent. */
   contactTiming?: ContactTiming;
   family: ShotFamily;
-  stroke: 'forehand' | 'backhand';
+  stroke: Side;
   hand: OpponentHand;
   paceKmh: number;
   spin: SpinKind;
@@ -116,7 +118,8 @@ export type DrillBall = Readonly<{
   netClearanceM: number;
   serveRhythm: ServeRhythm;
 }>;
-export type OpponentResponse = Readonly<{ ball: DrillBall; landingZone: LandingZone }>;
+export type OpponentBall = DrillBall<StrokeChoice>;
+export type OpponentResponse = Readonly<{ ball: OpponentBall; landingZone: LandingZone }>;
 export type OpeningFeed = OpponentResponse & Readonly<{ position: Readonly<{ x: number; z: number }> }>;
 export type CameraMoveMoment = 'auto' | 'player-hit' | 'opponent-hit' | 'after-split';
 export type CameraFocusTarget = Readonly<{

@@ -45,7 +45,11 @@ export function recoveryCenter(event:MotionEvent):Vec3 {
   if(event.home)return event.home;
   const baseline=event.root.z>=11.5;
   const side=Math.abs(event.source.x)>.4?Math.sign(event.source.x):(event.hand==='right'?1:-1);
-  return {x:side*.55,y:0,z:baseline?13.385:Math.max(3.2,event.root.z)};
+  const neutral={x:side*.55,y:0,z:baseline?13.385:Math.max(3.2,event.root.z)};
+  // Neutral is an area, not a mandatory mark. Avoid a centre excursion and
+  // reversal when already balanced nearby; retain full recovery from wide balls.
+  const d=distance(event.root,neutral);
+  return d<=1.25?event.root:d>=1.8?neutral:point(event.root,neutral,ease((d-1.25)/.55));
 }
 export function planRecovery(previous:MotionEvent,next?:MotionEvent):RecoveryPlan {
   const center=recoveryCenter(previous);
@@ -99,7 +103,7 @@ export function planRecovery(previous:MotionEvent,next?:MotionEvent):RecoveryPla
       requiredDuration: splitEnd - previous.end + selected.approach,
       recover: { from: previous.root, to: selected.center, start: previous.end, end: previous.end + selected.recovery,
         fromYaw: previous.yaw, toYaw: selected.yaw, stage: 'recover' },
-      approach: { from: selected.center, to: next.root, start: splitEnd, end,
+      approach: { from: selected.center, to: next.root, start: end-selected.approach, end,
         fromYaw: selected.yaw, toYaw: next.yaw, stage: 'approach', arrival } };
   }
   const fullDuration=legTime(previous.root,center,rate,previous.yaw,Math.PI)+splitSeconds+approachDuration(center,approachRate,Math.PI);
@@ -163,7 +167,12 @@ export function sampleTravel(leg:TravelLeg,time:number,hand:'left'|'right'):Moti
   const headingWeight=gait?.headingWeight??(running||walking?1:0);
   const travelTurn=headingWeight>0;
   const elapsed=time-leg.start,remaining=leg.end-time;
-  const cross=!!leg.crossover&&duration>1.2;
+  // Moderate side travel can cross while keeping the chest toward play. Urgent
+  // legs turn and run; small adjustments never borrow a full crossover cycle.
+  const localForward=(leg.to.x-leg.from.x)*Math.sin(leg.fromYaw)+(leg.to.z-leg.from.z)*Math.cos(leg.fromYaw);
+  const lateral=Math.abs(Math.sin(heading-leg.fromYaw));
+  const autoCross=!leg.clip&&lateral>.8&&d>1.2&&d<3.2&&gait!.peakSpeed<2.5&&duration>1.1;
+  const cross=(!!leg.crossover||autoCross)&&duration>1.1&&d>1.2&&(!gait||gait.peakSpeed<2.5);
   const turnIn=cross?.45:0,turnDuration=Math.min(.48,duration*.26);
   const travelYaw=yawMix(yawMix(leg.fromYaw,heading,ease((elapsed-turnIn)/turnDuration)),leg.toYaw,ease((turnDuration-remaining)/turnDuration));
   const yaw=yawMix(yawMix(leg.fromYaw,leg.toYaw,progress),travelYaw,headingWeight);
@@ -176,19 +185,18 @@ export function sampleTravel(leg:TravelLeg,time:number,hand:'left'|'right'):Moti
     ? `cross-${leg.clip.includes('-back-')?'back':'front'}-${crossDirection}` as MotionId : leg.clip;
   // Choose adjustment direction in the initial body frame. Choosing it from the
   // turning torso each frame could flip clips midway through a single footstep.
-  const localForward=(leg.to.x-leg.from.x)*Math.sin(leg.fromYaw)+(leg.to.z-leg.from.z)*Math.cos(leg.fromYaw);
   const adjustment:MotionId=Math.abs(localRight)>Math.abs(localForward)?localRight*mirror<0?'move-right':'move-left':localForward>0?'move-forward':'move-backward';
   const clip:MotionId=requestedClip??(gait!.run>=.5?'run-forward':gait!.walk>gait!.adjust?'walk-forward':adjustment);
   const spec=library.clips[clip] as {duration:number;locomotion?:{cycleDistance?:number;stanceFraction?:number;footLift?:number}};
   const stride=gait?.stride??spec.locomotion?.cycleDistance??(running?2.15:walking?.95:.72);
-  const shortRun=gait?.shortRun??0,blendSeconds=mix(.22,.1,shortRun);
+  const shortRun=gait?.shortRun??0,placement=gait?.placement??shortRun,blendSeconds=mix(.22,.1,shortRun);
   const phase=covered/stride,blend=ease(elapsed/blendSeconds)*ease(remaining/blendSeconds);
   const swingFirst=localRight*mirror>=0?'right':'left';
   // run-forward begins with the right foot in swing. Shift half a cycle when
   // the finite placement action brings the anatomical left foot through first.
   const sourcePhase=phase+(swingFirst==='left'?.5*shortRun:0);
   const crossWeight=cross?1-ease((elapsed-.55)/.35):0;
-  const crossClip=('cross-front-'+crossDirection) as MotionId;
+  const crossClip=(`cross-${localForward<-.25?'back':'front'}-`+crossDirection) as MotionId;
   const crossSpec=library.clips[crossClip] as {duration:number}|undefined;
   const isSpecial=clip.startsWith('slide-')||clip.startsWith('cross-');
   const runWeight=gait?.run??(running?1:0);
@@ -222,8 +230,8 @@ export function sampleTravel(leg:TravelLeg,time:number,hand:'left'|'right'):Moti
     const moving={x:mix(a.x,b.x,t),y:mix(a.y,b.y,t)+(v>stance?lift:0),z:mix(a.z,b.z,t)};
     const local=rotated([side==='left'?.26:-.26,.087,side==='left'?.05:-.025],yaw);
     const cyclic={x:mix(root.x+local.x,moving.x,blend),y:mix(local.y,moving.y,blend),z:mix(root.z+local.z,moving.z,blend)};
-    if(shortRun<=0)return cyclic;
-    // Exactly two purposeful placements for a short run. Each foot starts at
+    if(placement<=0)return cyclic;
+    // Finite placements for short runs and nudges. Each foot starts at
     // its actual ready anchor, swings once, then stays planted at the finish.
     // The shared distance phase survives seeks and dropped frames. Unlike a
     // clamped repeating stride it cannot create a partial extra shuffle.
@@ -235,7 +243,7 @@ export function sampleTravel(leg:TravelLeg,time:number,hand:'left'|'right'):Moti
     const endAnchor=rotated([side==='left'?.26:-.26,.087,side==='left'?.05:-.025],leg.toYaw);
     const placed={x:mix(leg.from.x+startAnchor.x,leg.to.x+endAnchor.x,w),y:mix(startAnchor.y,endAnchor.y,w)+Math.sin(Math.PI*w)*gait!.lift,
       z:mix(leg.from.z+startAnchor.z,leg.to.z+endAnchor.z,w)};
-    return {x:mix(cyclic.x,placed.x,shortRun),y:mix(cyclic.y,placed.y,shortRun),z:mix(cyclic.z,placed.z,shortRun)};
+    return {x:mix(cyclic.x,placed.x,placement),y:mix(cyclic.y,placed.y,placement),z:mix(cyclic.z,placed.z,placement)};
   };
   const crossingTargets=(endRoot:Vec3,v:number,name:string)=>{
     const leading=name.endsWith('left')?'left':'right';
@@ -281,6 +289,7 @@ export function sampleRecovery(plan:RecoveryPlan,time:number,hand:'left'|'right'
   if(plan.kind==='direct')return arrivalRest(plan.recover,hand);
   if(time<plan.splitStart)return rest(plan.center,plan.recover.toYaw,hand,'ready');
   if(time<plan.splitEnd)return rest(plan.center,plan.recover.toYaw,hand,'split',(time-plan.splitStart)*SPLIT_SECONDS/(plan.splitEnd-plan.splitStart),true);
+  if(plan.approach&&time<plan.approach.start)return rest(plan.center,plan.approach.fromYaw,hand,'ready');
   if(plan.approach&&time<plan.approach.end)return sampleTravel(plan.approach,time,hand);
   return plan.approach?arrivalRest(plan.approach,hand):rest(plan.center,Math.PI,hand,'ready');
 }

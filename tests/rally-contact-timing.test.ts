@@ -53,7 +53,7 @@ describe('contact-anchored opponent reception', () => {
         expect(plan.end).toBeCloseTo(event.start, 7);
         if (plan.reception === 'react') {
           expect(plan.splitEnd).toBeGreaterThanOrEqual(contact.releaseTime + RECEIVE_REACTION_SECONDS - 1e-8);
-          expect(plan.approach!.start).toBe(plan.splitEnd);
+          expect(plan.approach!.start).toBeGreaterThanOrEqual(plan.splitEnd - 1e-8);
           expect(plan.recover.end).toBeLessThanOrEqual(plan.splitStart + 1e-8);
         }
         let last = sampleOpponentTimeline(events, events[i - 1]!.end)!;
@@ -67,13 +67,14 @@ describe('contact-anchored opponent reception', () => {
     }
   }, 20000);
 
-  it('accelerates to read a normal return instead of using the slow anticipatory route', () => {
+  it('reads a normal return without an anticipatory route or artificial movement demand', () => {
     const session = compileSession(drill, settings), a = motionEvent(session.repetitions[0]!), b = motionEvent(session.repetitions[1]!);
     const plan = planRecovery(a, b);
     expect(plan.reception).toBe('react');
     expect(plan.splitStart).toBeLessThan(b.incomingContact!.releaseTime);
     expect(plan.splitEnd).toBeGreaterThan(b.incomingContact!.releaseTime);
-    expect(b.movementRate).toBeGreaterThan(1.3);
+    expect(b.movementRate).toBeGreaterThanOrEqual(1);
+    expect(plan.approach!.start).toBeGreaterThanOrEqual(plan.splitEnd - 1e-8);
     expect(plan.approach!.end).toBeCloseTo(b.start, 8);
     const later = { ...b, start: a.end + 5, contactTime: a.end + 5.3,
       incomingContact: { ...b.incomingContact!, releaseTime: a.end + 2.5, contactTime: a.end + 5.3 } };

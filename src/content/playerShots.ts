@@ -4,7 +4,7 @@ import { normalizeShotSpin } from '../domain/shotKinds';
 import { normalizeContactTiming } from '../engine/session/bounceContact';
 import type { CameraConfiguration } from '../engine/rendering/TennisScene';
 import { resolveLandingZone, type LandingZone } from '../engine/trajectory/landingZone';
-import type { DrillBall, OpeningFeed, PlayerShotEventV2, RallyShotFamily, ShotFamily } from './types';
+import type { DrillBall, OpeningFeed, PlayerShotEventV2, RallyShotFamily, ShotFamily, StrokeChoice } from './types';
 
 export const ballDefaults = (family: ShotFamily = 'groundstroke'): DrillBall => {
   const profile = {
@@ -17,10 +17,10 @@ export const ballDefaults = (family: ShotFamily = 'groundstroke'): DrillBall => 
     spinRateRpm: profile[1]!, netClearanceM: profile[2]!, variationPercent: 8,
     bounceFactor: 1, trajectoryMode: 'natural', serveRhythm: 'normal', contactTiming: family === 'half-volley' ? 'rise' : 'descent' };
 };
-export const changeBallFamily = (ball: DrillBall, family: ShotFamily): DrillBall => ({
+export const changeBallFamily = <Side extends StrokeChoice>(ball: DrillBall<Side>, family: ShotFamily): DrillBall<Side> => ({
   ...ballDefaults(family), hand: ball.hand, stroke: ball.stroke, variationPercent: ball.variationPercent, contactTiming: normalizeContactTiming(ball.contactTiming),
 });
-export const normalizeDrillBall = (ball: DrillBall): DrillBall => ({ ...ball, spin: normalizeShotSpin(ball.family, ball.spin), contactTiming: normalizeContactTiming(ball.contactTiming) });
+export const normalizeDrillBall = <Side extends StrokeChoice>(ball: DrillBall<Side>): DrillBall<Side> => ({ ...ball, spin: normalizeShotSpin(ball.family, ball.spin), contactTiming: normalizeContactTiming(ball.contactTiming) });
 export const farZone = (x: number, z: number, width = 1.6, depth = 2): LandingZone => {
   const near = resolveLandingZone({ x: -x, z: -z }, { width, depth }, 'groundstroke', { x: 0 });
   return { minX: 0 - near.maxX, maxX: 0 - near.minX, minZ: 0 - near.maxZ, maxZ: 0 - near.minZ };
@@ -86,7 +86,7 @@ export const PLAYER_SHOTS: readonly PlayerShotPreset[] = specs.map(([id, name, f
   return { id, name, event: { id: `preset-${id}`, presetId: id, label: name, cue: name.toUpperCase(), camera,
     ball: id === 'slice-low-right' ? { ...ball, spin: 'slice', spinRateRpm: 1253 }
       : id.startsWith('short-angle') ? { ...ball, paceKmh: 60, netClearanceM: .85 } : ball,
-    landingZone: farZone(targetX, targetZ), opponentReturn: { ball: ballDefaults(), landingZone: receivingZone(camera, family, ball) } } };
+    landingZone: farZone(targetX, targetZ), opponentReturn: { ball: { ...ballDefaults(), stroke: 'auto' }, landingZone: receivingZone(camera, family, ball) } } };
 });
 export const PLAYER_SHOT_BY_ID = new Map(PLAYER_SHOTS.map(shot => [shot.id, shot]));
 export function newPlayerEvent(presetId = PLAYER_SHOTS[0]!.id): PlayerShotEventV2 {
