@@ -9,7 +9,10 @@ import { upsertProjectDrill, drillNameKey } from '../storage/projectCatalog';
 export const useAppData = () => {
   const [stored, setStored] = useState<AppDataV2>(() => typeof window === 'undefined' ? DEFAULT_APP_DATA : loadAppData());
   const current = useRef(stored);
-  const [preferences, setPreferences] = useState(stored.preferences);
+  // Reloads start in Rally; saved modes remain available when selected. Keep
+  // this separate from storage so startup never overwrites another mode's save.
+  const [preferences, setPreferences] = useState(() => stored.practiceConfigs?.['Quick Rally']
+    ?? (stored.preferences.sessionCategory === 'Quick Rally' ? stored.preferences : DEFAULT_APP_DATA.preferences));
   // Acknowledge durable storage before state changes. Unrelated saves must not
   // accidentally publish the live Quick Practice form.
   const commit = useCallback((update: (data: AppDataV2) => AppDataV2) => {

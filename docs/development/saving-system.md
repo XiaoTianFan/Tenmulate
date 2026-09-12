@@ -24,7 +24,10 @@ now installs those endpoints.
 ## Code paths
 
 Quick Practice places full-width **Save config** and **Start practice** actions
-in a spaced footer. Below the court, each preset group has a visible **Save
+in a spaced footer. Page reloads always open Rally using its saved browser config
+or project default. Other mode saves remain available when selected; switching
+pages during the current visit retains the live selection.
+Below the court, each preset group has a visible **Save
 preset** button beside its scrollable list. Camera positions save location and
 eye height; Perspectives save viewing direction and field of view. The dialog
 names the preset before invoking the shared destination flow. Right-clicking an
@@ -56,6 +59,9 @@ destination chooser is shown for every explicit save, including when project
 storage is unavailable; its browser option remains usable.
 
 ## Verification receipt
+
+- Rally startup follow-up: production build passes. Actual Edge saved Overhead,
+  reloaded into Rally without changing stored bytes, and reopened Overhead.
 
 - Save-action polish: production build passes; actual Edge desktop (1600 px) and
   narrow (760 px) layouts show equal-width footer actions separated by 10 px.
