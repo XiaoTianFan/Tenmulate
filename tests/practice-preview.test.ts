@@ -29,7 +29,9 @@ describe('continuous practice preview',()=>{
     expect(asyncPreview.frame(time)).toEqual(serial.frame(time));
     expect(asyncPreview.preparation.cacheHits).toBe(5);
     expect(asyncPreview.preparation.cacheMisses).toBe(0);
-  });
+    // Serial, cloned-worker and rewind paths now compare both incoming and player
+    // flights across five batches; allow that larger workload in the parallel suite.
+  }, 10_000);
 
   it('ignores stale async results after a seek and preserves deterministic synchronous recovery', async () => {
     const initial = compilePracticePreview(DRILLS[0]!, settings);

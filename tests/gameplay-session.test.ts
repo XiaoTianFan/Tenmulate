@@ -28,7 +28,7 @@ describe('mode-aware gameplay planning', () => {
       previous=current;
     }
     expect(previous.root).toEqual(events[0]!.home);
-    expect(session.repetitions.every(r=>!r.rallyReturn)).toBe(true);
+    expect(session.repetitions.every(r=>r.rallyReturn && r.returnStatus === 'quick-practice')).toBe(true);
   });
   it('plans recovery against the real contact clock rather than stretching the ball to fill a long interval',()=>{
     const drill={...DRILLS[0]!,events:[{id:'a',shotId:'fh-cross-deep',opponentPosition:{x:3.7,z:12.8}},

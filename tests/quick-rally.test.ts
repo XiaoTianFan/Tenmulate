@@ -46,7 +46,7 @@ describe('physical Quick Rally returns', () => {
       expect(a.startTime + r.contactTime + r.duration).toBeCloseTo(b.startTime, 8);
       expect(a.recoveryPolicy).not.toBe('home');
     }
-    const phases = new Set(reps.flatMap(r => r.rallyReturn ? [bounceContactPhase(r.rallyReturn.trajectory.samples.at(-1)!)] : []));
+    const phases = new Set(reps.flatMap(r => r.rallyReturn && r.returnStatus === 'linked' ? [bounceContactPhase(r.rallyReturn.trajectory.samples.at(-1)!)] : []));
     expect([...phases]).toEqual(['descent']);
     for (const rep of reps) if (rep.rallyReturn) expect(bounceContactPhase(rep.reachability.contact!)).toBe('descent');
   });
@@ -70,7 +70,7 @@ describe('physical Quick Rally returns', () => {
   });
   it('keeps other Quick Practice modes as independent feeds', () => {
     const other = compileSession(DRILL_BY_CATEGORY.get('Return Practice')!, { ...settings, practiceShotType: 'serve' });
-    expect(other.repetitions.every(r => !r.rallyReturn && r.returnStatus === 'quick-practice')).toBe(true);
+    expect(other.repetitions.every(r => r.rallyReturn && r.returnStatus === 'quick-practice')).toBe(true);
   });
   it('uses a serve only to open a rally, then returns from the player ball', () => {
     const session = compileSession(drill, { ...settings, practiceShotType: 'serve', spin: 'flat', launchSpeedKmh: 150, landingDepthM: 5.2, opponentPosition: { x: -1, z: 12.4 }, repetitions: 3 });

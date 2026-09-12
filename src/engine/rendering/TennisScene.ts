@@ -18,6 +18,7 @@ import { AudienceSystem, type AudienceState } from './AudienceSystem';
 import type { CompiledSession } from '../session/compileSession';
 import { motionEvent, sampleOpponentTimeline, type MotionEvent, type MotionSample } from '../session/opponentTimeline';
 import { sampleCameraTimeline } from '../session/cameraTimeline';
+import { overheadPracticeCamera } from '../session/practiceReturn';
 import { cameraExchangeAt, tennisCameraPhase } from '../session/tennisCamera';
 import { RETURN_LANDING_LIMITS } from '../session/returnLandingZone';
 import { planRecovery } from '../session/opponentMovement';
@@ -327,6 +328,7 @@ export class TennisScene {
 
   private setTrajectoryLine(trajectory: ResolvedTrajectory): void {
     trajectory = this.session?.shotPreview?.opponent ?? this.session?.shotPreview?.player ?? trajectory;
+    if (this.session?.mode === 'quick-practice' && trajectory.intent.source.z < 0) return;
     if(this.lineTrajectory===trajectory)return;
     this.lineTrajectory=trajectory;
     (this.trajectoryLine.material as THREE.LineBasicMaterial).color.setHex(this.session?.shotPreview && trajectory.intent.source.z < 0 ? 0x48b8ff : BALL_PRESENTATION.trajectoryColor);
@@ -356,7 +358,8 @@ export class TennisScene {
     const player = session?.shotPreview?.opponent && session.shotPreview.player;
     this.playerPreviewLine.geometry = new THREE.BufferGeometry().setFromPoints(player?.samples.map(sample => new THREE.Vector3(sample.position.x, sample.position.y, sample.position.z)) ?? []);
     this.lineTrajectory = null;
-    const path = session?.shotPreview?.opponent ?? session?.shotPreview?.player ?? this.trajectory;
+    const path = session?.mode === 'quick-practice' ? session.repetitions[0]?.trajectory
+      : session?.shotPreview?.opponent ?? session?.shotPreview?.player ?? this.trajectory;
     if (path) this.setTrajectoryLine(path);
     this.setShotPreviewPending(this.shotPreviewPending);
     this.sessionClock = clock;
@@ -414,8 +417,8 @@ export class TennisScene {
 
   setShotPreviewPending(pending: boolean): void {
     this.shotPreviewPending = pending;
-    this.trajectoryLine.visible = this.trajectoryVisible && !pending;
-    this.playerPreviewLine.visible = this.trajectoryVisible && !pending && !!this.session?.shotPreview?.player && !!this.session.shotPreview.opponent;
+    this.trajectoryLine.visible = this.trajectoryVisible && !pending && !(this.session?.mode === 'quick-practice' && (this.lineTrajectory?.intent.source.z ?? 0) < 0);
+    this.playerPreviewLine.visible = this.session?.mode !== 'quick-practice' && this.trajectoryVisible && !pending && !!this.session?.shotPreview?.player && !!this.session.shotPreview.opponent;
     this.updateBounceMarkers();
     this.canvas.dataset.shotPreviewPending = String(pending);
   }
@@ -739,6 +742,7 @@ export class TennisScene {
     );
     this.profiler?.mark('environment');
     let opponentRoot: MotionSample['root'] | undefined;
+    let practiceRepetition: CompiledRepetition | undefined;
     if (this.trajectory) {
       const duration = this.trajectory.samples.at(-1)?.time ?? 0;
       let events = this.motionEvents;
@@ -754,11 +758,12 @@ export class TennisScene {
         this.canvas.dataset.ballPhase=flights[0]?.phase??'none';
         this.canvas.dataset.sessionTime=this.elapsed.toFixed(4);
         const repetition=frame?.repetition ?? this.session.repetitions.reduce((active,rep)=>motionTime>=rep.startTime?rep:active,this.session.repetitions[0]!);
+        practiceRepetition = repetition;
         if (repetition) {
           const index=repetition.index, cycle=frame?.cycle??0;
           if(index!==this.sessionIndex || cycle!==this.previewCycle){this.sessionIndex=index;this.previewCycle=cycle;this.onSessionIndex?.(index,repetition);}
         }
-        const path = flights[0]?.trajectory ?? repetition?.trajectory;
+        const path = this.session.mode === 'quick-practice' ? repetition?.trajectory : flights[0]?.trajectory ?? repetition?.trajectory;
         if (path) this.setTrajectoryLine(path);
       } else if (this.previewEvent) {
         const interval = Math.max(this.previewEvent.end-this.previewEvent.start+planRecovery(this.previewEvent,this.previewEvent).requiredDuration, this.trajectoryInterval ?? duration + .5);
@@ -807,7 +812,8 @@ export class TennisScene {
       }
       const cycleTime = visibleFlights[0]?.time ?? 0;
       const ballActive = visibleFlights.length > 0;
-      this.ballTrail.visible = this.showBallTrail && ballActive && !this.shotPreviewPending;
+      this.ballTrail.visible = this.showBallTrail && ballActive && !this.shotPreviewPending
+        && !(this.session?.mode === 'quick-practice' && (visibleFlights[0]?.trajectory.intent.source.z ?? 0) < 0);
       if (this.showBallTrail && ballActive) {
         for (let index = 9; index >= 0; index -= 1) {
           const trailPosition = sampleTrajectoryAt(visibleFlights[0]!.trajectory, Math.max(0, cycleTime - index * 0.018), false);
@@ -826,6 +832,11 @@ export class TennisScene {
       const track = this.session.cameraTimeline.tennis, exchange = track && cameraExchangeAt(track, this.elapsed);
       this.canvas.dataset.cameraPhase = exchange ? tennisCameraPhase(exchange, this.elapsed) : 'reset';
       if(camera!==this.cameraConfiguration){this.cameraConfiguration=camera;this.applyCamera();}
+    } else if (this.sessionCameraEnabled && !this.courtOverview && this.session?.mode === 'quick-practice'
+      && this.session.settings.followPracticeBall && practiceRepetition && this.baseCameraConfiguration) {
+      this.cameraConfiguration = overheadPracticeCamera(this.baseCameraConfiguration, practiceRepetition.trajectory,
+        this.elapsed - practiceRepetition.startTime, practiceRepetition.rallyReturn?.contactTime ?? practiceRepetition.reachability.contact?.time ?? practiceRepetition.trajectory.samples.at(-1)!.time);
+      this.applyCamera();
     } else if (this.cameraMotion) {
       const delay = this.cameraMotion.delay ?? 0;
       const currentContact = this.session ? [...this.session.repetitions].reverse().find(repetition => repetition.startTime <= this.elapsed)?.startTime ?? 3 : 3;

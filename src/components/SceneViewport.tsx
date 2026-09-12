@@ -259,14 +259,14 @@ export function SceneViewport({
       sceneRef.current.landingZoneControl.leave(); sceneRef.current.returnLandingZoneControl.leave();
       setTrajectoryTooltip(null); return;
     }
-    if (!showTrajectory) return;
-    const landingHover = sceneRef.current?.landingZoneControl.hover(event.clientX, event.clientY);
+    const landingHover = showTrajectory && sceneRef.current?.landingZoneControl.hover(event.clientX, event.clientY);
     const returnHover = sceneRef.current?.returnLandingZoneControl.hover(event.clientX, event.clientY);
     if (landingHover || returnHover) {
       keyboardZone.current = returnHover ? 'returnLandingZoneControl' : 'landingZoneControl';
       setTrajectoryTooltip(null);
       return;
     }
+    if (!showTrajectory) return;
     const hit = sceneRef.current?.getDisplayedTrajectories().map(path => ({ path, sample: sceneRef.current?.trajectorySampleFromClientPoint(event.clientX, event.clientY, 11, path) })).find(hit => hit.sample);
     if (!hit?.sample) {
       setTrajectoryTooltip(null);

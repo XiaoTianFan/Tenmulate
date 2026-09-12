@@ -1,7 +1,8 @@
 import { resolveOpponentStroke } from './opponentStroke';
 import { groundedOpponentShot, opponentContactCeiling } from './opponentContact';
+import { practiceReturnType, resolvePracticeReturn, type PracticeReturn } from './practiceReturn';
 import { planRecovery } from './opponentMovement';
-import { acceptsPlayerReturn, resolveReturnShot } from './returnShot';
+import { acceptsPlayerReturn, defaultReturnShot, resolveReturnShot } from './returnShot';
 import { normalizeShotSpin } from '../../domain/shotKinds';
 import type { ContactTiming, ReturnShotConfiguration } from '../../content/types';
 import type { DrillDefinition, DrillEventV1, ShotDefinitionV1 } from '../../content/types';
@@ -71,8 +72,10 @@ export type SessionSettings = Readonly<{
   opponentPosition?: Readonly<{ x: number; z: number }>;
   returnReceiverSide?: ReturnReceiverSide;
   windVelocity?: Vec3;
-  /** Only Quick Rally enables a physical player return between opponent feeds. */
+  /** Quick Rally connects each player response to the next opponent hit. */
   rally?: Readonly<{ landingZone: LandingZone; shot: ReturnShotConfiguration; opponentContactTiming?: ContactTiming }>;
+  practiceReturn?: PracticeReturn;
+  followPracticeBall?: boolean;
 }>;
 
 export type CompiledRepetition = MotionRepetition & Readonly<{
@@ -96,7 +99,7 @@ export type CompiledSession = Readonly<{
   /** Prepared off-thread so mounting a rally never performs a seam solve. */
   previewNext?: Readonly<{ last: CompiledRepetition; next: CompiledSession }>;
   solverVersion: 'ball-v11-net-shots';
-  plannerVersion: 'gameplay-opponent-footwork-v14' | 'gameplay-player-drills-v20';
+  plannerVersion: 'gameplay-opponent-footwork-v15' | 'gameplay-player-drills-v20';
   contentVersion: '2026.09.09';
   drill: DrillDefinition;
   settings: SessionSettings;
@@ -135,6 +138,7 @@ export const compileSession = (
   const spinRandom = createSeededRandom(`${settings.seed}:spin`);
   const timingRandom = createSeededRandom(`${settings.seed}:timing`);
   const returnRandom = createSeededRandom(`${settings.seed}:return-landing`);
+  const practiceReturnRandom = createSeededRandom(`${settings.seed}:practice-return-landing`);
   const repetitions: CompiledRepetition[] = [];
   const planningIssues: DrillPlanningIssue[] = [];
   const restPeriods: { afterIndex: number; startTime: number; endTime: number }[] = [];
@@ -146,6 +150,14 @@ export const compileSession = (
   const startTime = 3;
   const mode = settings.mode ?? (settings.practiceShotType ? 'quick-practice' : 'drill');
   const rally = mode === 'quick-practice' && drill.category === 'Quick Rally' && !!settings.rally;
+  const practiceReturn = mode === 'quick-practice' ? settings.practiceReturn ?? {
+    type: practiceReturnType(drill.category), landingZone: settings.rally?.landingZone ?? DEFAULT_RETURN_LANDING_ZONE } : undefined;
+  const addPracticeReturn = (rep: CompiledRepetition): CompiledRepetition => {
+    if (!practiceReturn) return rep;
+    const response = resolvePracticeReturn(rep.trajectory, practiceReturn, rep.camera,
+      sampleLandingZone(practiceReturn.landingZone, practiceReturnRandom));
+    return { ...rep, rallyReturn: response?.rally, reachability: response ? { ...rep.reachability, reachable: true, reason: 'reachable', contact: response.contact } : rep.reachability };
+  };
   if (continuation) repetitions.push(continuation);
   const rhythmPercent = normalizeRhythm(settings.rhythmPercent ?? (settings.interval !== undefined
     ? rhythmFromLegacyInterval(settings.interval)
@@ -271,7 +283,7 @@ export const compileSession = (
     // preceding view instead of resetting to the session launch camera.
     authoredCamera = sourceEvent?.camera ?? (shot.cameraMotion ? { ...authoredCamera, ...shot.cameraMotion.to } : authoredCamera);
     const camera = interpolateCamera(baseCamera, authoredCamera, cameraScale);
-    repetitions.push({
+    repetitions.push(addPracticeReturn({
       index,
       shot,
       trajectory,
@@ -284,10 +296,10 @@ export const compileSession = (
       recoveryPolicy: mode === 'quick-practice' && !rally ? 'home' : 'auto',
       home: mode === 'quick-practice' && !rally ? { x: quickOrigin.x, y: 0, z: quickOrigin.z } : undefined,
       reachability: mode === 'drill' ? assessDrillReturn(trajectory) : assessReachability(trajectory, { ...cameraPlayerPosition(camera), yaw: camera.yaw }),
-      returnLandingZone: rally ? settings.rally!.landingZone : sourceEvent?.returnLandingZone ?? DEFAULT_RETURN_LANDING_ZONE,
-      returnShot: resolveReturnShot(rally ? settings.rally!.shot : sourceEvent?.returnShot, SHOT_BY_ID.get(sourceEvents[(index + 1) % sourceEvents.length]!.shotId)?.family),
+      returnLandingZone: rally ? settings.rally!.landingZone : practiceReturn?.landingZone ?? sourceEvent?.returnLandingZone ?? DEFAULT_RETURN_LANDING_ZONE,
+      returnShot: resolveReturnShot(rally ? settings.rally!.shot : practiceReturn ? defaultReturnShot(practiceReturn.type) : sourceEvent?.returnShot, SHOT_BY_ID.get(sourceEvents[(index + 1) % sourceEvents.length]!.shotId)?.family),
       returnStatus: mode === 'quick-practice' ? 'quick-practice' : 'end',
-    });
+    }));
   }
 
   let motionTimingAdjusted = false;
@@ -344,9 +356,9 @@ export const compileSession = (
         const shot = { ...draft.shot, source: position };
         const trajectory = resolveTrajectory({ ...draft.trajectory.intent, source: position,
           aimDirectionDeg: aimDirectionToCourtPoint(position, shot.target) }, rally ? flight => acceptsPlayerReturn(flight, settings.rally!.shot) : undefined);
-        draft = withPreparedApproach(schedulingPrevious, { ...draft, shot, trajectory, reachability: assessDrillReturn(trajectory),
+        draft = withPreparedApproach(schedulingPrevious, addPracticeReturn({ ...draft, shot, trajectory, reachability: assessDrillReturn(trajectory),
           incomingContact: candidate ? incomingContact(candidate.rally.trajectory, candidate.contact, previous.startTime + candidate.rally.contactTime) : undefined,
-          startTime: previous.startTime + (candidate?.gap ?? requestedGap) });
+          startTime: previous.startTime + (candidate?.gap ?? requestedGap) }));
       }
       if (candidate) {
         plannedReturn = finishReturn(candidate); contactGap = candidate.gap;
@@ -393,7 +405,7 @@ export const compileSession = (
       repetitions[index-1] = { ...previous, returnStatus: rest ? 'rest' : next.shot.family==='serve' ? 'new-serve' : 'unreachable' };
     }
     if (rest) {
-      const restStart=previous.startTime+Math.max(previous.trajectory.samples.at(-1)!.time,motionEvent(previous).end-previous.startTime);
+      const restStart=previous.startTime+Math.max(previous.rallyReturn ? previous.rallyReturn.contactTime + previous.rallyReturn.duration : previous.trajectory.samples.at(-1)!.time,motionEvent(previous).end-previous.startTime);
       const restEnd=restStart+restSeconds;
       restPeriods.push({afterIndex:index-1,startTime:restStart,endTime:restEnd});
       gap=Math.max(gap,restEnd-previous.startTime+motionEvent(next).contactTime-motionEvent(next).start);
@@ -413,11 +425,11 @@ export const compileSession = (
   }
   const last = repetitions.at(-1);
   const duration = last ? Math.max(planRecovery(motionEvent(last)).end + .15,
-    last.startTime + (last.trajectory.samples.at(-1)?.time ?? 0)) : startTime;
+    last.startTime + (last.rallyReturn ? last.rallyReturn.contactTime + last.rallyReturn.duration : last.trajectory.samples.at(-1)?.time ?? 0)) : startTime;
 
   return {
     solverVersion: 'ball-v11-net-shots',
-    plannerVersion: 'gameplay-opponent-footwork-v14',
+    plannerVersion: 'gameplay-opponent-footwork-v15',
     contentVersion: '2026.09.09',
     drill,
     settings: { ...settings, rhythmPercent, shotIntervalSeconds: interval, movementPercent:movementRate*100, mode },

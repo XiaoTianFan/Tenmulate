@@ -13,6 +13,15 @@ parks it without rendering. Setup previews stream fresh feeds continuously;
 launched sets honor their chosen repetitions and rests. See the
 [shared-court verification receipt](docs/development/shared-court-and-zone-resize-2026-09-08.md).
 
+All four Quick Practice modes animate your response. Configure its destination
+with the blue landing zone; player return trajectory lines and trails stay hidden,
+including in top-down view and playback settings. Rally connects exchanges;
+Return, Volley and Overhead retain independent feeds. Overhead starts at the T,
+looking upward and gently tracking the lob, with the opponent at 0.1 m sideways
+and 9.8 m from the net. Volley starts halfway between the T and net. **Reset view**
+restores those mode-specific positions. See the
+[Quick Practice return and camera contract](docs/decisions/0051-quick-practice-returns-and-views.md).
+
 **Cast** opens iOS Screen Mirroring instructions and an optional local court capture
 preview. Capture keeps the same canvas/video/audio tracks across setup and practice,
 with up to 720p at 30 fps. Direct AirPlay of that live capture is unavailable in
@@ -64,9 +73,11 @@ before and after opponent contact. WASD and dragging frame an intermediate view;
 contact camera. Preview a single transition or the full sequence. Camera transitions
 travel with saved shots, survive reload and mirror for left-handed play; zoom
 remains shared across the drill. See the [camera transition guide](docs/development/camera-transitions-2026-09-10.md).
-Quick Rally and drill shots independently choose player/opponent contact timing:
+Drill shots independently choose player/opponent contact timing:
 on the rise, at the apex, or early descent (the default). The interval solver fits
 within that phase; it does not switch to a quick rebound to meet a short interval.
+Quick Rally retains its opponent timing preference; Quick Practice player returns
+choose their shot family and contact automatically.
 Volleys/overheads stay in the air and half-volleys stay just after the bounce.
 Player volley and half-volley contact-height preferences follow **Eye height**;
 actual playback still meets the incoming ball. Both sides use direct net-shot
