@@ -9,6 +9,28 @@
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
+## Quick Practice returns and starting views — 2026-09-12
+
+All four modes animate physical player returns, with only the blue destination
+zone exposed as player-return configuration. Player trajectories and trails stay
+hidden in setup, top-down inspection and playback diagnostics. Rally keeps its
+connected exchanges; Return, Volley and Overhead keep independent feed timing.
+Responses finish at the second bounce, including before rest/final completion.
+
+Overhead defaults to opponent (0.1, 9.8) m and a T-position camera with +18 degree
+pitch and gentle lob tracking. A forward focus limit prevents a turn-around as
+the ball passes overhead. Volley defaults halfway between the T and net.
+Reset view restores these mode-specific views; custom presets remain independent.
+
+**627 tests / 59 files**, production build and motion/precache checks pass.
+Playwright/Edge verified the UI defaults, zone dragging and zone-only controls in
+all four modes, plus 384 rendered frames across eight both-handed sessions with
+trajectory/overview combinations. Player returns remained visible while their
+paths and trails remained hidden. An actual Overhead launch also reached the
+player-return phase. See [ADR-0051](../decisions/0051-quick-practice-returns-and-views.md)
+for behavior, performance-test scope and evidence. Implementation: `32338ee`.
+Local only; no deployment.
+
 ## Grounded opponent contacts — 2026-09-12
 
 Opponent contact selection now respects the selected clip's supported racket
