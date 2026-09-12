@@ -9,6 +9,50 @@
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
+## Camera-relative volleys and lower net-shot arcs — 2026-09-12
+
+Player volley contact preferences now follow eye height minus 0.10 m
+(0.65–2.05 m); half-volleys use eye height minus 1.20 m (0.25–0.80 m).
+Isolated previews use those anchors; sequence compilation seeks real incoming
+contacts near the preferred height and retains a playable feed when that height
+is unavailable. Actual contact timing, airborne/rising phases and camera footwork
+remain physical. Opponent volley contact defaults to 1.50 m and half-volley to
+0.65 m, within the existing motion constraints.
+
+The shared natural solver now scores volleys and half-volleys as low net shots.
+High volleys favor flat/downward departures; low contacts retain necessary lift.
+When a faster volley would break the next camera/return link, a bounded second
+search checks the complete exchange. Its feasibility pass stops after finding a
+valid contact; height refinement and full scoring run on the selected link.
+New volley presets use 60 km/h and 0.12 m clearance; half-volley defaults also
+use 0.12 m clearance. Saved clearance and Exact-mode speed/spin remain authored.
+
+Controlled hard-court, 650-rpm slice comparisons to a nine-metre-deep target:
+
+| Contact | Previous launch / peak | New launch / peak |
+| --- | --- | --- |
+| Volley, 1.60 m high, 3.70 m from net | +15.60° / 2.29 m | −0.23° / 1.60 m |
+| Half-volley, 0.50 m high, 6.00 m from net | +21.76° / 2.06 m | +10.67° / 1.18 m |
+
+These are product-calibration examples, not measured professional trajectories.
+Versions: `ball-v11-net-shots`, `gameplay-player-drills-v19`. See
+[ADR-0049](../decisions/0049-camera-relative-net-shot-planning.md).
+
+**612 tests / 56 files**, production build and active motion/precache guard pass.
+The complete corpus includes both-handed repetitions of all 16 shipped drills,
+240 Hz camera continuity and the new height/flight regressions. An initial
+camera-test timeout led to removing repeated preferred-height searches from
+feasibility-only probes; the unchanged test timeout then passed in the full run.
+Playwright/Edge rendered 14 player net shots across three drills in both hands,
+checked the preceding opponent contacts, and rendered both-handed Quick Practice
+volleys at 1.50 m with downward launch. Racket/ball contact error rounded to
+0.00000 m in the renderer diagnostics. Actual editor keyboard changes from
+1.70 to 1.71 m eye height updated volley contact 1.60→1.61 m and half-volley
+contact 0.50→0.51 m. Screenshots were inspected and no runtime errors recorded.
+Evidence: `C:/Users/20378/.codex/visualizations/2026/09/12/01a09414-f625-7dd2-ba82-d570264839e1/net-shots/`.
+Implementation: `38f06bf`. Local implementation and verification only; owner
+acceptance and public deployment remain separate.
+
 ## Unreturned final-shot previews — 2026-09-12
 
 Isolated editor previews now use gameplay's point-ending rule. The final player
