@@ -1,5 +1,11 @@
 # Camera transition editor — 2026-09-10
 
+**2026-09-12 update:** [ADR-0048](../decisions/0048-player-contact-footwork-camera.md)
+supersedes the exact contact-position endpoint described below. Gameplay retains
+the authored direction and resolves final footwork within the shot's contact
+neighborhood. **Preview actual shot** shows the selected shot on that sequence
+track; isolated editing is explicitly labelled as an estimated contact.
+
 ## Using the editor
 
 Select a narrow camera column between two shots. The inspector edits that interval;

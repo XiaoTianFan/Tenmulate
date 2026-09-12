@@ -61,6 +61,10 @@ This folder is the project record for product discovery, design, architecture, a
 
 ## Decision index
 
+Latest player camera contract: [ADR-0048](decisions/0048-player-contact-footwork-camera.md)
+and [Crosscourt Rhythm investigation](development/player-contact-camera-2026-09-12.md).
+Physical contact resolves final footwork while authored direction remains intact.
+
 | ADR | Status | Decision |
 | --- | --- | --- |
 | [0001](decisions/0001-web-rendering-and-simulation-architecture.md) | Accepted for V1 runtime | React/Vite shell, direct Three.js WebGL 2 runtime, and tennis-specific ball solver |

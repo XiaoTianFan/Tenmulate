@@ -112,7 +112,7 @@ export function DrillEditorScreen({ route, initialDrill, initialDraft, onDraftCh
   const shotPreview = usePlayerDrillPreview(shotDrill, surface, selection, !!zoneDraft || !!viewDraft);
   const session = sequence ? preview.session : shotPreview.session;
   const compiled = preview.current ? preview.session?.playerEvents?.find(item => item.event.id === selected?.id) : undefined;
-  const nextCompiled = preview.current && preview.session?.playerEvents?.find(item => item.event.id === nextEvent?.id);
+  const nextCompiled = preview.current ? preview.session?.playerEvents?.find(item => item.event.id === nextEvent?.id) : undefined;
   const transitionWindow = compiled && nextCompiled ? { start: compiled.startTime, end: nextCompiled.startTime } : undefined;
   const playingEvent = session?.playerEvents?.find(item => item.incomingIndex === previewIndex)?.event ?? events[0];
   const trajectory = session?.shotPreview?.opponent ?? session?.shotPreview?.player ?? session?.repetitions[0]?.trajectory;
@@ -232,8 +232,13 @@ export function DrillEditorScreen({ route, initialDrill, initialDraft, onDraftCh
             onCameraFovChange={overview ? zoomOverview : lookEnabled ? fov => draftCamera({ ...previewCamera, fov }) : undefined}
             onCameraViewCommit={lookEnabled ? commitCamera : undefined} onMetrics={noMetrics}/> : <div className="editor-preview-loading">{events.length ? 'Preparing drill preview…' : 'Add your first shot from the library.'}</div>}
           <div className="editor-scene-label"><span>{isOpening ? 'Opening shot' : isTransition ? `Camera ${events.indexOf(selected!) + 1} → ${events.indexOf(selected!) + 2}` : `Your shot ${events.indexOf(selected!) + 1}`}</span><strong>{isOpening ? 'Opponent initiates the rally' : isTransition ? `${selected.label} → ${nextEvent.label}` : selected?.label ?? 'Add a player shot'}</strong></div>
-          <div className="editor-view-tools"><button type="button" aria-pressed={overview} onClick={() => { setSequence(false); setOverview(value => !value); }}>{overview ? 'Back to shot view' : 'Top-down zones'}</button><span><i className="return-swatch"/>Your landing <i className="landing-swatch"/>{isOpening ? 'Opening landing' : 'Opponent return'}</span></div>
-          <div className="editor-preview-status" role="status">{shotPreview.pending ? 'Updating shot…' : shotPreview.error || (shotIssues.length ? 'Shot needs adjustment' : issues.length ? 'Shot preview · Sequence needs adjustment' : 'Preview ready')}</div>
+          <div className="editor-view-tools"><button type="button" aria-pressed={overview} onClick={() => { setSequence(false); setOverview(value => !value); }}>{overview ? 'Back to shot view' : 'Top-down zones'}</button>
+            {!isOpening && !isTransition && compiled ? <button type="button" disabled={sequence || !!viewDraft || !!zoneDraft || !preview.current || !!issues.length}
+              onClick={() => { setSequenceRange({ start: Math.max(0, compiled.startTime - 1.5), end: Math.min(nextCompiled?.startTime ?? preview.session!.duration, compiled.startTime + 1.2) }); setOverview(false); setSequence(true); }}>
+              Preview actual shot
+            </button> : null}
+            <span><i className="return-swatch"/>Your landing <i className="landing-swatch"/>{isOpening ? 'Opening landing' : 'Opponent return'}</span></div>
+          <div className="editor-preview-status" role="status">{sequence ? 'Actual sequence' : shotPreview.pending ? 'Updating shot…' : shotPreview.error || (shotIssues.length ? 'Shot needs adjustment' : issues.length ? 'Isolated shot · Sequence needs adjustment' : isOpening ? 'Opening preview' : 'Isolated shot · Estimated contact')}</div>
         </div>
         <DrillTimeline drill={drill} selectedId={isOpening || isTransition ? selectedId : selected?.id ?? ''} onSelect={selectEvent} onInsert={addEvent} onMove={reorder} onRemove={remove}
           playing={sequence} previewDisabled={!session || preview.pending || !!preview.error || !validation.valid || !!issues.length}

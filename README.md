@@ -44,6 +44,11 @@ known. Later timeline additions use the updated project preset; events already
 placed in drills retain their own settings. Older browser-only presets remain
 available to save into the project. See the [shot saving guide](docs/development/project-shot-saving.md).
 Playback follows the opponent while accelerating and braking between your configured shot views.
+Final footwork adjusts each view within its contact neighborhood to meet the real
+incoming ball on the configured racket side, retaining your viewing direction.
+The editor labels isolated contact estimates; **Preview actual shot** shows the
+selected shot with its gameplay movement and contact. See the
+[contact-camera investigation](docs/development/player-contact-camera-2026-09-12.md).
 Select the narrow **camera event between shots** to configure movement and focus
 independently. Keep Automatic, recover to neutral, travel directly, or stop at a
 custom position. Choose departure/continuation timing and separate focus targets
