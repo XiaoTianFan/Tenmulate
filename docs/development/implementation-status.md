@@ -9,6 +9,30 @@
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
+## Unified save destinations — 2026-09-12
+
+Save drill, Save shot, Save config and Save preset now share one destination
+coordinator. Every explicit development save opens a Project default / This
+browser chooser. Production writes directly to localStorage, makes no project API
+requests and exposes no project endpoints through Vite preview. Browser versions
+override defaults locally. Project promotion clears the matching browser override.
+
+Quick Practice saves independently per mode, including camera, ball, landing
+zones, environment, display settings and seed. Its live form remains separate
+from durable saves. Camera/perspective presets use the same destination flow;
+editor draft recovery remains automatic and independent of the saved library.
+Atomic project writes and revision conflicts are retained; browser quota/access
+errors report failure before changing saved state. Labels are destination-neutral.
+
+**638 tests / 61 files**, production build and motion/precache checks pass.
+Actual Edge development and production flows verified saves, reloads, four mode
+configs, presets, project promotion, cancellation, quota failure and conflict
+retry. The production run made zero project-storage API requests and had no
+browser errors. See the [architecture audit and receipt](saving-system.md) and
+[ADR-0053](../decisions/0053-unified-save-destinations.md). Implementation: `4eae421`.
+Verification used isolated browser profiles and copied project catalogs. Local
+implementation and production-build verification only; no public deployment.
+
 ## Opening serve speed and fixed return view — 2026-09-12
 
 Opening serves retain their configured speed after shot variation. The first
