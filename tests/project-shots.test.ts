@@ -4,10 +4,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createServer } from 'node:http';
 import { createProjectShotStore, projectShotMiddleware } from '../server/projectShots';
-import { PLAYER_SHOTS } from '../src/content/playerShots';
+import { createPlayerShot, PLAYER_SHOTS } from '../src/content/playerShots';
 import { playerEventForHand } from '../src/content/playerHandedness';
 import type { SavedShotV2 } from '../src/content/types';
-import { mergeBrowserShots, PROJECT_SHOTS_ENDPOINT, upsertProjectShot, validateProjectShots } from '../src/storage/projectShots';
+import { mergeBrowserShots, removeBrowserShot, PROJECT_SHOTS_ENDPOINT, upsertProjectShot, validateProjectShots } from '../src/storage/projectShots';
 import packaged from '../src/content/project-shots.json';
 
 const shots: SavedShotV2[] = PLAYER_SHOTS.map(shot => ({ schemaVersion: 2, playerHand: 'right', ...shot }));
@@ -22,6 +22,24 @@ async function fixture() {
 }
 
 describe('project shot library', () => {
+  it('creates an independent named preset with fresh family defaults and handedness', async () => {
+    const { store, file } = await fixture(), initial = await store.read();
+    const fresh = createPlayerShot('My new volley', 'left', 'volley', 'backhand');
+    const saved = await store.mutate('save', { revision: initial.revision, shot: fresh });
+    expect(saved.shots).toHaveLength(shots.length + 1);
+    expect(saved.shots.slice(0, shots.length)).toEqual(shots);
+    const reopened = (await createProjectShotStore(file).read()).shots.at(-1)!;
+    expect(reopened).toEqual(fresh);
+    expect(reopened.event.ball).toMatchObject({ family: 'volley', stroke: 'backhand', hand: 'left', paceKmh: 45 });
+    expect(reopened.event.camera.lateral).toBe(0);
+    expect(reopened.event.cameraTransition).toBeUndefined();
+  });
+  it('removes hidden browser aliases when a project preset is deleted', () => {
+    const target = shots[0]!, alias = { ...target, id: 'legacy-alias', name: ` ${target.name.toUpperCase()} ` };
+    const browser = removeBrowserShot([target, alias, shots[1]!], target.id, target.name);
+    expect(browser).toEqual([shots[1]]);
+    expect(mergeBrowserShots(shots.slice(1), browser)).toEqual(shots.slice(1));
+  });
   it('packages a valid editable catalog and rejects duplicate slots and malformed shots', () => {
     expect(() => validateProjectShots(packaged)).not.toThrow();
     expect(() => validateProjectShots({ schemaVersion: 1, shots: [shots[0], shots[0]] })).toThrow('unique');

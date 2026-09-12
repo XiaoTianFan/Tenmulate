@@ -7,6 +7,12 @@ export type ProjectShotsSnapshot = ProjectShots & { revision: string };
 export const PROJECT_SHOTS_ENDPOINT = '/__tenmulate/project/shots';
 export const shotNameKey = drillNameKey;
 
+/** Remove hidden legacy aliases too, so deleting a project slot cannot reveal
+ * the same preset under an old browser ID on the next merge or reload. */
+export function removeBrowserShot(shots: readonly SavedShotV2[], id: string, name?: string) {
+  return shots.filter(shot => shot.id !== id && (name === undefined || shotNameKey(shot.name) !== shotNameKey(name)));
+}
+
 export function validateProjectShots(value: unknown): ProjectShots {
   const catalog = value as ProjectShots | null;
   if (!catalog || catalog.schemaVersion !== 1 || !Array.isArray(catalog.shots) || catalog.shots.length > 2000)

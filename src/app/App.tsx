@@ -90,7 +90,8 @@ function AppRoutes({ appData }: { appData: ReturnType<typeof useAppData> }) {
         initialDraft={drafts.get(editorDrill.id)} onDraftChange={cacheDraft} writable={project.writable} projectStatus={project.status}
         savedShots={mergeBrowserShots(projectShots.shots, appData.data.savedShots)} shotsWritable={projectShots.writable} shotsStatus={projectShots.status}
         projectShotIds={projectShots.shots.map(shot => shot.id)} onSaveShot={projectShots.save}
-        onDeleteShot={async id => { if (projectShots.shots.some(shot => shot.id === id)) await projectShots.remove(id); appData.deleteShot(id); }} onRoute={navigate}
+        onDeleteShot={async id => { const shot = projectShots.shots.find(shot => shot.id === id) ?? appData.data.savedShots.find(shot => shot.id === id);
+          if (projectShots.shots.some(shot => shot.id === id)) await projectShots.remove(id); appData.deleteShot(id, shot?.name); }} onRoute={navigate}
         onSave={project.save} onTest={drill => { void drillLaunch(drill); }}/>
       : <SetupScreen route={route} cameraPositionPresets={appData.data.cameraPositionPresets} perspectivePresets={appData.data.perspectivePresets}
         initialPreferences={appData.data.preferences} onRoute={navigate} onStart={setLaunch} onSaveCameraPositionPreset={appData.saveCameraPositionPreset}

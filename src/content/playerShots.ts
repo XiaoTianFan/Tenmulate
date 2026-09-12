@@ -94,3 +94,17 @@ export function newPlayerEvent(presetId = PLAYER_SHOTS[0]!.id): PlayerShotEventV
   if (!preset) throw new Error(`Unknown player shot preset: ${presetId}`);
   return { ...structuredClone(preset.event), id: `event-${crypto.randomUUID()}` };
 }
+
+/** A fresh preset starts from family defaults, never the selected drill event. */
+export function createPlayerShot(name: string, hand: 'right' | 'left', family: RallyShotFamily, stroke: 'forehand' | 'backhand') {
+  const id = `shot-${crypto.randomUUID()}`;
+  const depth = family === 'volley' ? -4.3 : family === 'overhead' ? -5.5 : family === 'half-volley' ? -6.5
+    : family === 'approach' || family === 'drop-shot' ? -8 : -12.1;
+  const camera = cameraForShot(0, depth), ball = { ...ballDefaults(family), hand, stroke };
+  return { schemaVersion: 2 as const, id, name: name.trim(), playerHand: hand, event: {
+    id: `preset-${id}`, presetId: id, label: name.trim(), cue: name.trim().toUpperCase(), camera, ball,
+    landingZone: farZone(0, family === 'drop-shot' ? 2.8 : 8.5),
+    opponentReturn: { ball: { ...ballDefaults(), stroke: 'auto' as const }, landingZone: receivingZone(camera, family, ball) },
+    intervalSeconds: 5, rhythmPercent: 100, movementPercent: 100,
+  } };
+}
