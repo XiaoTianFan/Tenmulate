@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createServer } from 'node:http';
 import { createProjectShotStore, projectShotMiddleware } from '../server/projectShots';
-import { createPlayerShot, PLAYER_SHOTS } from '../src/content/playerShots';
+import { ballDefaults, createPlayerShot, PLAYER_SHOTS } from '../src/content/playerShots';
 import { playerEventForHand } from '../src/content/playerHandedness';
 import type { SavedShotV2 } from '../src/content/types';
 import { mergeBrowserShots, removeBrowserShot, PROJECT_SHOTS_ENDPOINT, upsertProjectShot, validateProjectShots } from '../src/storage/projectShots';
@@ -30,7 +30,7 @@ describe('project shot library', () => {
     expect(saved.shots.slice(0, shots.length)).toEqual(shots);
     const reopened = (await createProjectShotStore(file).read()).shots.at(-1)!;
     expect(reopened).toEqual(fresh);
-    expect(reopened.event.ball).toMatchObject({ family: 'volley', stroke: 'backhand', hand: 'left', paceKmh: 45 });
+    expect(reopened.event.ball).toMatchObject({ ...ballDefaults('volley'), stroke: 'backhand', hand: 'left' });
     expect(reopened.event.camera.lateral).toBe(0);
     expect(reopened.event.cameraTransition).toBeUndefined();
   });

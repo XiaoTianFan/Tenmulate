@@ -8,8 +8,8 @@ import type { DrillBall, OpeningFeed, PlayerShotEventV2, RallyShotFamily, ShotFa
 
 export const ballDefaults = (family: ShotFamily = 'groundstroke'): DrillBall => {
   const profile = {
-    groundstroke: [70, 600, .25], approach: [72, 650, 1], 'half-volley': [55, 650, 1],
-    volley: [45, 650, .25], overhead: [95, 120, .15], lob: [60, 1100, 2.5],
+    groundstroke: [70, 600, .25], approach: [72, 650, 1], 'half-volley': [55, 650, .12],
+    volley: [60, 650, .12], overhead: [95, 120, .15], lob: [60, 1100, 2.5],
     'drop-shot': [38, 1400, .12], serve: [140, 900, .18],
   }[family];
   return { family, stroke: 'forehand', hand: 'right', paceKmh: profile[0]!,

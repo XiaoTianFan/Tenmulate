@@ -64,6 +64,11 @@ Quick Rally and drill shots independently choose player/opponent contact timing:
 on the rise, at the apex, or early descent (the default). The interval solver fits
 within that phase; it does not switch to a quick rebound to meet a short interval.
 Volleys/overheads stay in the air and half-volleys stay just after the bounce.
+Player volley and half-volley contact-height preferences follow **Eye height**;
+actual playback still meets the incoming ball. Both sides use direct net-shot
+arcs, with flat/downward high volleys and necessary lift on low contacts.
+Saved higher net clearance and **Exact speed & spin** still apply. See the
+[net-shot planning contract](docs/decisions/0049-camera-relative-net-shot-planning.md).
 Bounce factor **1.0** uses the shared calibrated court response for both players:
 the hard reference passes the standard ball-drop range, and angled impacts retain
 more rebound height while accounting for court grip and spin. See the

@@ -9,7 +9,7 @@ import { createSeededRandom } from '../random/seeded';
 import { cameraTravelSeconds, DEFAULT_DRILL_CAMERA, type CameraTransition } from './cameraTimeline';
 import { planTennisCamera, TENNIS_CAMERA, type TennisCameraExchange } from './tennisCamera';
 import { cameraPlayerPosition, type Reachability } from './playerCoverage';
-import { contactDistance, contactHeight, landsInZone, opponentContacts, playerContacts, playerContactAnchor, playerContactCamera, resolveCourtFlight, trimFlight } from './courtFlight';
+import { contactDistance, contactHeight, landsInZone, opponentContacts, playerContacts, playerContactAnchor, playerContactCamera, playerContactHeight, playerContactHeightCost, resolveCourtFlight, trimFlight } from './courtFlight';
 import { minimumMotionGap, motionClip, motionEvent, rotateMotionPoint, strokeForShot, withPreparedApproach } from './opponentTimeline';
 import { planRecovery } from './opponentMovement';
 import { normalizeRhythm, normalizeShotInterval } from './rhythm';
@@ -69,16 +69,26 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
       launchSpeedKmh: pace, spin: ball.spin, spinRateRpm: ball.spinRateRpm, surface: settings.surface,
       minimumNetClearanceM: ball.netClearanceM, bounceFactor: ball.bounceFactor, trajectoryMode: ball.trajectoryMode, windVelocity: settings.windVelocity }, accepts);
   const fitIncoming = (source: Vec3, ball: OpponentBall, zone: LandingZone, target: { x: number; z: number }, receiver?: PlayerShotEventV2, desired?: number,
-    canReceive?: (contact: FlightSample) => boolean): IncomingFit => {
+    canReceive?: (contact: FlightSample) => boolean, preferHeight = true): IncomingFit => {
     let best: IncomingFit | undefined;
     const receivingContacts = (flight: ResolvedTrajectory) => receiver ? playerContacts(flight, receiver).filter(contact => !canReceive || canReceive(contact)) : [];
+    const netReceiver = receiver && ['volley', 'half-volley'].includes(receiver.ball.family);
+    const matchesHeight = (contact: FlightSample) => !netReceiver || Math.abs(contact.position.y - playerContactHeight(receiver!)) <= .15;
     for (const factor of ball.trajectoryMode === 'exact' || ['groundstroke', 'approach', 'half-volley'].includes(ball.family) ? [1] : [1, .85, 1.15]) {
-      const trajectory = resolve(source, ball, zone, target, ball.paceKmh * factor,
+      let trajectory = resolve(source, ball, zone, target, ball.paceKmh * factor,
         receiver ? flight => receivingContacts(flight).length > 0 : undefined);
-      const contacts = receiver && landsInZone(trajectory) ? receivingContacts(trajectory) : [];
+      if (preferHeight && netReceiver && ball.trajectoryMode === 'natural' && !receivingContacts(trajectory).some(matchesHeight)) {
+        const preferred = resolve(source, ball, zone, target, ball.paceKmh * factor,
+          flight => receivingContacts(flight).some(matchesHeight));
+        // Eye height is a preference, not permission to discard an otherwise
+        // playable feed when no physical contact reaches that height.
+        if (landsInZone(preferred) && receivingContacts(preferred).some(matchesHeight)) trajectory = preferred;
+      }
+      const eligible = receiver && landsInZone(trajectory) ? receivingContacts(trajectory) : [];
+      const comfortable = eligible.filter(matchesHeight), contacts = comfortable.length ? comfortable : eligible;
       const preference = receiver ? bounceContactPreference(trajectory, receiver.ball.family, receiver.ball.contactTiming) : null;
       const scoreContact = (contact: FlightSample) => (desired === undefined ? 0 : Math.abs(contact.time - desired))
-        + bounceContactCost(contact, preference) + contactDistance(contact, receiver!) * .24 + Math.abs(contact.position.y - contactHeight(receiver!.ball.family)) * .1;
+        + bounceContactCost(contact, preference) + contactDistance(contact, receiver!) * .24 + playerContactHeightCost(contact, receiver!);
       const contact = [...contacts].sort((a, b) => scoreContact(a) - scoreContact(b))[0] ?? null;
       const score = (receiver ? contact ? scoreContact(contact) : 1000 : landsInZone(trajectory) ? 0 : 1000) + Math.abs(1 - factor) * .15;
       if (!best || score < best.score) best = { trajectory, contact, score };
@@ -236,7 +246,7 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
           incomingContact: incomingContact(flight, contact, playerTime) }, replyBall.stroke);
       return minimumMotionGap({ ...previous, motionRate: 3, movementRate: 3 }, ceiling) <= time - previous.startTime + 1e-8;
     });
-    const playerFlight = resolve(current.contact.position, ball, event.landingZone, target, ball.paceKmh,
+    let playerFlight = resolve(current.contact.position, ball, event.landingZone, target, ball.paceKmh,
       continues ? flight => reachableOpponentContacts(flight).length > 0 : undefined);
     playerEvents.push({ index, event, contactCamera, setIndex, startTime: playerTime, incomingIndex, trajectory: playerFlight });
     if (!landsInZone(playerFlight)) {
@@ -248,31 +258,45 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
     if (!continues) { addFlight('player', 'player', index, playerTime, playerFlight); continue; }
     const requested = normalizeShotInterval(event.intervalSeconds ?? interval);
     const receiver = continues ? next : undefined;
-    // Filter motion feasibility before reducing the physics search. A short
-    // legal window near the end of a bounce must not disappear in downsampling.
-    const eligible = reachableOpponentContacts(playerFlight);
-    const desired = requested / 2;
-    const preference = bounceContactPreference(playerFlight, replyBall.family, replyBall.contactTiming);
-    const rank = (c: FlightSample) => bounceContactCost(c, preference) + Math.abs(c.time - desired) * .25 + Math.abs(c.position.y - contactHeight(replyBall.family)) * .4;
-    const ranked = [...eligible].sort((a, b) => rank(a) - rank(b));
-    const selected: FlightSample[] = [];
-    for (const c of [eligible.at(-1), eligible[0], ...ranked]) if (c && selected.length < 8 && selected.every(s => Math.abs(s.time - c.time) > .07)) selected.push(c);
-    let best: { contact: FlightSample; fit: IncomingFit; rep: CompiledRepetition; score: number } | undefined;
     const cameraPlan = (opponentTime: number, nextContact: FlightSample) => planTennisCamera({ start: playerTime, opponentContact: opponentTime,
       end: opponentTime + nextContact.time, from: contactCamera, to: playerContactCamera(next, nextContact.position), playerTarget: target,
       currentFamily: event.ball.family, nextFamily: next.ball.family, opponentFamily: replyBall.family,
       movementRate: normalizeRhythm(next.movementPercent ?? movement) / 100, configuration: event.cameraTransition });
-    for (const contact of selected) {
-      const time = playerTime + contact.time;
-      const draftShot = shotDefinition(contact.position, replyBall, replyTarget, `${event.label} — opponent return`);
-      const fit = fitIncoming(contact.position, replyBall, response.landingZone, replyTarget, receiver, requested - contact.time,
-        sample => cameraPlan(time, sample).feasible);
-      if (!landsInZone(fit.trajectory) || receiver && !fit.contact) continue;
-      const total = contact.time + (fit.contact?.time ?? 0);
-      const postureCost = Math.max(0, contactHeight(replyBall.family) - contact.position.y) ** 2 * 8;
-      const score = (receiver ? Math.abs(total - requested) + fit.score * .1 : Math.abs(contact.time - desired)) + postureCost + bounceContactCost(contact, preference);
-      if (!best || score < best.score) best = { contact, fit, rep: resolveOpponentStroke(previous, { ...repetition(draftShot, fit.trajectory, time, event),
-        incomingContact: incomingContact(playerFlight, contact, playerTime) }, replyBall.stroke), score };
+    const fitResponse = (flight: ResolvedTrajectory, feasibilityOnly = false) => {
+      // Filter motion feasibility before reducing the physics search. A short
+      // legal window near the end of a bounce must not disappear in downsampling.
+      const eligible = reachableOpponentContacts(flight);
+      const desired = requested / 2;
+      const preference = bounceContactPreference(flight, replyBall.family, replyBall.contactTiming);
+      const rank = (c: FlightSample) => bounceContactCost(c, preference) + Math.abs(c.time - desired) * .25 + Math.abs(c.position.y - contactHeight(replyBall.family)) * .4;
+      const ranked = [...eligible].sort((a, b) => rank(a) - rank(b));
+      const selected: FlightSample[] = [];
+      for (const c of [eligible.at(-1), eligible[0], ...ranked]) if (c && selected.length < 8 && selected.every(s => Math.abs(s.time - c.time) > .07)) selected.push(c);
+      let best: { contact: FlightSample; fit: IncomingFit; rep: CompiledRepetition; score: number } | undefined;
+      for (const contact of selected) {
+        const time = playerTime + contact.time;
+        const draftShot = shotDefinition(contact.position, replyBall, replyTarget, `${event.label} — opponent return`);
+        const fit = fitIncoming(contact.position, replyBall, response.landingZone, replyTarget, receiver, requested - contact.time,
+          sample => cameraPlan(time, sample).feasible, !feasibilityOnly);
+        if (!landsInZone(fit.trajectory) || receiver && !fit.contact) continue;
+        const total = contact.time + (fit.contact?.time ?? 0);
+        const postureCost = Math.max(0, contactHeight(replyBall.family) - contact.position.y) ** 2 * 8;
+        const score = (receiver ? Math.abs(total - requested) + fit.score * .1 : Math.abs(contact.time - desired)) + postureCost + bounceContactCost(contact, preference);
+        if (!best || score < best.score) best = { contact, fit, rep: resolveOpponentStroke(previous, { ...repetition(draftShot, fit.trajectory, time, event),
+          incomingContact: incomingContact(flight, contact, playerTime) }, replyBall.stroke), score };
+        if (feasibilityOnly) break;
+      }
+      return best;
+    };
+    let best = fitResponse(playerFlight);
+    if (!best && ball.trajectoryMode === 'natural' && ['volley', 'half-volley'].includes(ball.family)) {
+      // A flatter volley shortens the exchange. If its first fit cannot feed the
+      // next player, select physical speed/spin candidates with that whole link
+      // in view; do not slow the clock or lift the ball after it has been hit.
+      playerFlight = resolve(current.contact.position, ball, event.landingZone, target, ball.paceKmh,
+        flight => !!fitResponse(flight, true));
+      best = fitResponse(playerFlight);
+      playerEvents[index] = { ...playerEvents[index]!, trajectory: playerFlight };
     }
     if (!best) {
       addFlight('player', 'player', index, playerTime, playerFlight);
@@ -301,7 +325,7 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
     if (solved.previous.motionRate !== previous.motionRate || solved.next.motionRate !== best.rep.motionRate || Math.abs(actual - requested) > .01) motionTimingAdjusted = true;
   }
   const last = repetitions.at(-1);
-  return { solverVersion: 'ball-v10-court-bounce', plannerVersion: 'gameplay-player-drills-v18', contentVersion: '2026.09.09',
+  return { solverVersion: 'ball-v11-net-shots', plannerVersion: 'gameplay-player-drills-v19', contentVersion: '2026.09.09',
     drill, settings: { ...settings, mode: 'drill', rhythmPercent: rhythm, movementPercent: movement, shotIntervalSeconds: interval, workBlockSize: workBlock },
     mode: 'drill', repetitions, restPeriods, duration: Math.max(endTime, last ? planRecovery(motionEvent(last)).end + .15 : 3),
     motionTimingAdjusted, rhythmPercent: rhythm, cameraTimeline: { initial: initialCamera ?? DEFAULT_DRILL_CAMERA,

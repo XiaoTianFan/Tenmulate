@@ -8,7 +8,7 @@ export const RETURN_SHOT_PROFILES: Readonly<Record<ReturnShotType, {
 }>> = {
   groundstroke: { spin: 'topspin', rpm: 600, pace: 70, clearance: .25, height: 1.05 },
   'drop-shot': { spin: 'slice', rpm: 1400, pace: 38, clearance: .12, height: .9 },
-  volley: { spin: 'slice', rpm: 650, pace: 60, clearance: .12, height: 1.3 },
+  volley: { spin: 'slice', rpm: 650, pace: 60, clearance: .12, height: 1.5 },
   overhead: { spin: 'flat', rpm: 760, pace: 95, clearance: .12, height: 2.3 },
   lob: { spin: 'topspin', rpm: 1100, pace: 60, clearance: 2.5, height: 1.05 },
 };

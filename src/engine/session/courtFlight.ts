@@ -46,13 +46,21 @@ function familyContact(sample: FlightSample, family: ShotFamily, player = false)
       : family === 'half-volley' ? sample.bounced && height >= .25 && height <= .8
         : sample.bounced && height >= (family === 'drop-shot' ? .25 : .35) && height <= 1.5;
 }
-export const contactHeight = (family: ShotFamily): number => family === 'serve' ? 2.55 : family === 'overhead' ? 2.3 : family === 'volley' ? 1.3 : family === 'half-volley' ? .5 : 1.05;
-/** Racket contact is anchored to the camera's court position, independent of yaw
- * and eye height. Its small envelope accommodates a natural reach, not a run. */
+export const contactHeight = (family: ShotFamily): number => family === 'serve' ? 2.55 : family === 'overhead' ? 2.3 : family === 'volley' ? 1.5 : family === 'half-volley' ? .65 : 1.05;
+/** Net-shot posture follows eye height within a playable reach. Half-volleys
+ * remain low rising contacts; raising the view cannot turn them into volleys. */
+export const playerContactHeight = (event: Pick<PlayerShotEventV2, 'camera' | 'ball'>): number =>
+  event.ball.family === 'volley' ? Math.max(.65, Math.min(2.05, event.camera.eyeHeight - .1))
+    : event.ball.family === 'half-volley' ? Math.max(.25, Math.min(.8, event.camera.eyeHeight - 1.2))
+      : contactHeight(event.ball.family);
+export const playerContactHeightCost = (sample: FlightSample, event: Pick<PlayerShotEventV2, 'camera' | 'ball'>): number =>
+  Math.abs(sample.position.y - playerContactHeight(event)) * (['volley', 'half-volley'].includes(event.ball.family) ? 4 : .1);
+/** Racket contact is anchored to the camera's court position, independent of yaw.
+ * Its small envelope accommodates a natural reach, not a run. */
 export const PLAYER_CONTACT_RADIUS_M = 1.4;
 export function playerContactAnchor(event: Pick<PlayerShotEventV2, 'camera' | 'ball'>): Vec3 {
   const feet = cameraPlayerPosition(event.camera), side = (event.ball.stroke === 'forehand' ? -1 : 1) * (event.ball.hand === 'left' ? -1 : 1);
-  return { x: feet.x + side * .45, y: contactHeight(event.ball.family), z: feet.z + .65 };
+  return { x: feet.x + side * .45, y: playerContactHeight(event), z: feet.z + .65 };
 }
 export const contactDistance = (sample: FlightSample, event: Pick<PlayerShotEventV2, 'camera' | 'ball'>): number => {
   const anchor = playerContactAnchor(event);
@@ -64,7 +72,7 @@ export function playerContacts(flight: ResolvedTrajectory, event: Pick<PlayerSho
 }
 /** Resolve the last footwork adjustment inside the authored reach envelope.
  * Keep the real ball contact .65 m in front and .45 m on the racket side;
- * neither gaze nor eye height changes the physical ball's source. */
+ * preserve authored gaze and eye height without moving the physical ball. */
 export function playerContactCamera(event: Pick<PlayerShotEventV2, 'camera' | 'ball'>, contact: Vec3) {
   const anchor = playerContactAnchor(event);
   return { ...event.camera, lateral: event.camera.lateral + contact.x - anchor.x,

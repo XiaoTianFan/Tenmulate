@@ -483,7 +483,8 @@ const targetAdjustedVelocity = (intent: ShotIntent): Vec3 => {
 
 /** Search pace and spin together, measuring the actual height at the net rather
  * than using launch angle as a proxy. Keep the sampled landing fixed. */
-const resolveNaturalGroundstroke = (intent: ShotIntent, accepts?: (flight: ResolvedTrajectory) => boolean): ResolvedTrajectory => {
+const resolveNaturalRallyShot = (intent: ShotIntent, accepts?: (flight: ResolvedTrajectory) => boolean): ResolvedTrajectory => {
+  const volley = trajectoryShotType(intent) === 'volley', netShot = volley || intent.family === 'half-volley';
   const baseSpeed = Math.max(28.8, intent.launchSpeedKmh);
   const baseSpin = intent.spinRateRpm ?? defaultSpinRateRpm(intent);
   // Explore neutral spin before pace changes. Flat includes a genuine zero-spin
@@ -494,9 +495,12 @@ const resolveNaturalGroundstroke = (intent: ShotIntent, accepts?: (flight: Resol
   // ball. A percentage-only ceiling turns very slow requests into compulsory lobs.
   const maximumSpeedFactor = intent.landingZone ? Math.max(1.5, 110 / baseSpeed) : 1.15;
   const minimumClearance = Math.max(.04, intent.minimumNetClearanceM ?? .12);
-  const preferredClearance = Math.max(1, minimumClearance);
-  const comfortableClearance = Math.max(1.7, minimumClearance);
-  const softClearance = Math.max(GROUNDSTROKE_SOFT_NET_CLEARANCE_M, minimumClearance);
+  const netFraction = intent.source.z / Math.max(.1, intent.source.z - intent.target.z);
+  const directNetHeight = intent.source.y * (1 - netFraction) + COURT.ballRadius * netFraction;
+  const preferredClearance = netShot ? Math.max(minimumClearance + .12, directNetHeight - netHeightAt(0) + .2) : Math.max(1, minimumClearance);
+  const comfortableClearance = netShot ? preferredClearance + .2 : Math.max(1.7, minimumClearance);
+  const softClearance = netShot ? comfortableClearance : Math.max(GROUNDSTROKE_SOFT_NET_CLEARANCE_M, minimumClearance);
+  const highVolley = volley && intent.source.y > netHeightAt(0) + minimumClearance + .25;
   const candidates = new Map<string, ReturnType<typeof evaluateUncached>>();
   let accepted: ReturnType<typeof evaluateUncached> | undefined;
 
@@ -519,14 +523,18 @@ const resolveNaturalGroundstroke = (intent: ShotIntent, accepts?: (flight: Resol
     const legal = bounce.bounced && !!net && net.time < bounce.time && clearance >= minimumClearance - .015;
     const speedFactor = speed / baseSpeed, spinFactor = baseSpin ? spin / baseSpin : 1;
     const speedChange = Math.abs(speedFactor - 1), spinChange = Math.abs(spinFactor - 1);
+    const angle = Math.atan2(velocity.y, Math.hypot(velocity.x, velocity.z)) * 180 / Math.PI;
     // Landing and net legality take priority. Tiny integration errors must not
     // outweigh arc comfort. Above 3.5 m the cost rises steeply but stays finite.
     const score = legal && error <= .18
-      ? 8 * Math.max(0, clearance - preferredClearance) ** 2
+      ? (netShot ? 45 : 8) * Math.max(0, clearance - preferredClearance) ** 2
         + 8 * Math.max(0, clearance - softClearance) ** 2
-        + 3 * speedChange + 8 * speedChange ** 2 + spinChange * .2 + error * .1
+        // High volleys drive through/down; low contacts retain the lift needed
+        // to clear the net. Never flatten samples or override an authored clearance.
+        + (highVolley ? Math.max(0, angle - 2) ** 2 * .8 : 0)
+        + (netShot ? 1 : 3) * speedChange + (netShot ? 2 : 8) * speedChange ** 2 + spinChange * .2 + error * .1
       : 10000 + (legal ? 0 : 10000) + error * 100;
-    return { candidateIntent, velocity, error, legal, clearance, score, speedFactor, spinFactor };
+    return { candidateIntent, velocity, error, legal, clearance, angle, score, speedFactor, spinFactor };
   }
   const evaluate = (speedFactor: number, spinFactor: number) => {
     const speed = Math.max(28.8, baseSpeed * Math.max(minimumSpeedFactor, Math.min(maximumSpeedFactor, speedFactor)));
@@ -541,7 +549,7 @@ const resolveNaturalGroundstroke = (intent: ShotIntent, accepts?: (flight: Resol
     return candidate;
   };
   let best = evaluate(1, 1);
-  if (!best.legal || best.error > .08 || best.clearance > preferredClearance + .25 || accepts && !accepted) {
+  if (!best.legal || best.error > .08 || best.clearance > preferredClearance + .25 || highVolley && best.angle > 1 || accepts && !accepted) {
     const spins = [1, .5, .2, 0, 1.2];
     const consider = (speed: number, spin: number) => {
       const candidate = evaluate(speed, spin);
@@ -551,7 +559,7 @@ const resolveNaturalGroundstroke = (intent: ShotIntent, accepts?: (flight: Resol
     const needsPaceSearch = () => {
       const receivingCandidate = accepted ?? best;
       return !receivingCandidate.legal || receivingCandidate.error > .18
-        || receivingCandidate.clearance > comfortableClearance || !!accepts && !accepted;
+        || receivingCandidate.clearance > comfortableClearance || highVolley && receivingCandidate.angle > 1 || !!accepts && !accepted;
     };
     if (needsPaceSearch()) {
       for (const speed of [.85, 1.15]) for (const spin of spins) consider(speed, spin);
@@ -600,9 +608,9 @@ export const resolveTrajectory = (intent: ShotIntent, accepts?: (flight: Resolve
     return {...result,solution:{mode:'exact',status:legal&&error<=.18?'matched':'unreachable',targetErrorM:error}};
   }
   const type = trajectoryShotType(intent);
-  if (type === 'groundstroke') return resolveNaturalGroundstroke(intent, accepts);
+  if (type === 'groundstroke' || type === 'volley') return resolveNaturalRallyShot(intent, accepts);
   const baseSpin = intent.spinRateRpm ?? defaultSpinRateRpm(intent);
-  const desiredAngle = type === 'lob' ? 78 : type === 'serve' ? 12 : type === 'overhead' ? 12 : type === 'volley' ? 18 : 22;
+  const desiredAngle = type === 'lob' ? 78 : type === 'serve' ? 12 : type === 'overhead' ? 12 : 22;
   const evaluate = (speedFactor: number, spinFactor: number) => {
     const candidateIntent = { ...intent, launchSpeedKmh: intent.launchSpeedKmh * speedFactor,
       spinRateRpm: baseSpin * spinFactor, aimDirectionDeg: aimDirectionToCourtPoint(intent.source, intent.target) };

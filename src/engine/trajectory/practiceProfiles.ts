@@ -81,7 +81,7 @@ export const PRACTICE_SHOT_PROFILES: Readonly<Record<PracticeShotType, PracticeS
   },
   volley: {
     label: 'Volley',
-    contactHeight: 1.32,
+    contactHeight: 1.5,
     opponentPosition: { x: 0, z: 3.7 },
     defaultLaunchSpeedKmh: 62,
     launchSpeedRangeKmh: { min: 30, max: 105 },

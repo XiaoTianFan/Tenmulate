@@ -94,8 +94,8 @@ export type CompiledSession = Readonly<{
   previewLoop?: true;
   /** Prepared off-thread so mounting a rally never performs a seam solve. */
   previewNext?: Readonly<{ last: CompiledRepetition; next: CompiledSession }>;
-  solverVersion: 'ball-v10-court-bounce';
-  plannerVersion: 'gameplay-opponent-footwork-v13' | 'gameplay-player-drills-v18';
+  solverVersion: 'ball-v11-net-shots';
+  plannerVersion: 'gameplay-opponent-footwork-v13' | 'gameplay-player-drills-v19';
   contentVersion: '2026.09.09';
   drill: DrillDefinition;
   settings: SessionSettings;
@@ -409,7 +409,7 @@ export const compileSession = (
     last.startTime + (last.trajectory.samples.at(-1)?.time ?? 0)) : startTime;
 
   return {
-    solverVersion: 'ball-v10-court-bounce',
+    solverVersion: 'ball-v11-net-shots',
     plannerVersion: 'gameplay-opponent-footwork-v13',
     contentVersion: '2026.09.09',
     drill,
