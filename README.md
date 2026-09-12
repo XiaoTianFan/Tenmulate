@@ -43,6 +43,9 @@ overwrite dialog lists every library shot and selects the current preset when
 known. Later timeline additions use the updated project preset; events already
 placed in drills retain their own settings. Older browser-only presets remain
 available to save into the project. See the [shot saving guide](docs/development/project-shot-saving.md).
+Use **Add New Shot** at the bottom of the left library to create a fresh preset.
+Right-click a library row, or use its three-dot menu, to delete it from the
+library permanently, including a system default.
 Playback follows the opponent while accelerating and braking between your configured shot views.
 Final footwork adjusts each view within its contact neighborhood to meet the real
 incoming ball on the configured racket side, retaining your viewing direction.

@@ -13,6 +13,7 @@ import type { CameraConfiguration } from '../engine/rendering/TennisScene';
 import { AppHeader, type AppRoute } from './AppHeader';
 import { Modal } from './Modal';
 import { SavedShotModal } from './SavedShotModal';
+import { NewShotModal } from './NewShotModal';
 import { DrillShotControls, EditorNumber, OpeningShotControls } from './DrillShotControls';
 import { useEditorCameraMovement } from '../hooks/useEditorCameraMovement';
 import { useCourtOverview } from '../hooks/useCourtOverview';
@@ -55,6 +56,7 @@ export function DrillEditorScreen({ route, initialDrill, initialDraft, onDraftCh
   const [previewIndex, setPreviewIndex] = useState(0);
   const [shotDraft, setShotDraft] = useState<{ mode: 'new' | 'update'; event: PlayerShotEventV2 } | null>(null);
   const [shotNotice, setShotNotice] = useState(''), [message, setMessage] = useState<string | null>(null);
+  const [creatingShot, setCreatingShot] = useState(false), [libraryMenuOpen, setLibraryMenuOpen] = useState(false);
   const clock = useRef(0);
   const events = drill.events;
   const playerHand = drill.playerHand ?? 'right';
@@ -190,7 +192,7 @@ export function DrillEditorScreen({ route, initialDrill, initialDraft, onDraftCh
     const next = [...workingDrill.events], from = next.findIndex(event => event.id === id); if (from < 0) return;
     const [event] = next.splice(from, 1); next.splice(insertion > from ? insertion - 1 : insertion, 0, event!); replaceEvents(next);
   };
-  useEditorCameraMovement(previewCamera, !!selected && !overview && !sequence && !shotDraft && !message,
+  useEditorCameraMovement(previewCamera, !!selected && !overview && !sequence && !shotDraft && !message && !creatingShot && !libraryMenuOpen,
     draftCamera, commitCamera);
   const draftLook = useCallback((look: Pick<CameraConfiguration, 'yaw' | 'pitch'>) => {
     draftCamera({ ...previewCamera, ...look, pitch: Math.max(-85, Math.min(85, look.pitch)) });
@@ -215,7 +217,9 @@ export function DrillEditorScreen({ route, initialDrill, initialDraft, onDraftCh
   return <main ref={root} className="app-shell editor-shell">
     <AppHeader route={route} onRoute={onRoute}/>
     <section className="editor-workspace">
-      <ShotLibrary savedShots={savedShots} projectShotIds={projectShotIds} notice={shotNotice} onAdd={addEvent}/>
+      <ShotLibrary savedShots={savedShots} projectShotIds={projectShotIds} notice={shotNotice} writable={shotsWritable} onAdd={addEvent}
+        onCreate={() => setCreatingShot(true)} onMenuChange={setLibraryMenuOpen}
+        onDelete={async id => { const name = savedShots.find(shot => shot.id === id)?.name; await onDeleteShot(id); setShotNotice(`Deleted “${name}” from the shot library.`); }}/>
       <section className="editor-stage">
         <div className="editor-scene" ref={sceneContainer}>
           {trajectory && events.length ? <CourtViewport camera={displayCamera} courtOverview={overview} trajectory={trajectory} surface={surface} running resetToken={0} showTrajectory session={session!} sessionClock={clock} followSessionCamera={sequence && !overview}
@@ -269,6 +273,8 @@ export function DrillEditorScreen({ route, initialDrill, initialDraft, onDraftCh
           <button className="secondary-button full-width" type="button" disabled={!validation.valid || preview.pending || !!issues.length || !!preview.error} onClick={() => onTest(workingDrill)}><Play size={16}/> Test drill</button></div>
       </aside>
     </section>
+    {creatingShot ? <NewShotModal hand={playerHand} savedShots={savedShots} writable={shotsWritable} status={shotsStatus} onClose={() => setCreatingShot(false)}
+      onSave={async shot => { const saved = await onSaveShot(shot); setShotNotice(`Created “${saved.name}”. Click or drag it onto the timeline.`); setCreatingShot(false); }}/> : null}
     {shotDraft ? <SavedShotModal {...shotDraft} playerHand={playerHand} savedShots={savedShots} writable={shotsWritable} projectStatus={shotsStatus} projectShotIds={projectShotIds} onClose={() => setShotDraft(null)}
       onSave={async (shot, targetId) => { const saved = await onSaveShot(shot, targetId); updateEvent({ presetId: saved.id, label: saved.name }); setShotNotice(`Saved “${saved.name}” to the project.`); setShotDraft(null); }}
       onDelete={async id => { await onDeleteShot(id); setShotNotice('Shot removed from the library.'); setShotDraft(null); }}/>

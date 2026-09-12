@@ -9,6 +9,26 @@
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
+## Shot library creation and deletion — 2026-09-12
+
+The editor's left library now provides right-click/three-dot deletion and a fixed
+**Add New Shot** footer. Fresh presets use named family defaults independent of
+the selected timeline shot; same-name creation is blocked. Deleting a project
+preset also removes matching legacy aliases in the current browser. Existing
+drill event snapshots retain their settings. See the
+[shot library guide](project-shot-saving.md).
+
+**584 tests / 55 files**, production build and the active motion/precache guard
+pass. Isolated Playwright/Edge at 1600×940 and 390×844 verified creation, timeline
+insertion, custom/default deletion, reload, hidden alias removal, keyboard/outside
+dismissal, failed-delete retry, fixed footer and viewport-contained touch menus.
+Temporary disk catalogs and a fresh browser profile kept owner data intact;
+the QA server disabled service-worker registration. No application runtime errors
+were recorded. Evidence is under
+`C:/Users/20378/.codex/visualizations/2026/09/12/01a09414-f625-7dd2-ba82-d570264839e1/shot-library/`.
+Local implementation and browser verification; physical touch-device acceptance
+and public deployment remain open.
+
 ## Contact-relative player camera — 2026-09-12
 
 Player-first drills resolve final camera footwork from the actual incoming ball

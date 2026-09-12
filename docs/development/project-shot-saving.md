@@ -7,6 +7,13 @@ server. The next production build includes the updated catalog for offline use.
 
 ## Save or update
 
+**Add New Shot** is fixed at the bottom of the left library, outside its scrolling
+rows. Enter a unique preset name, choose shot type and stroke side, then select
+**Create shot**. It starts from fresh family defaults in the current player hand,
+including both balls, zones and a contact view; it does not copy the selected
+timeline event or add an event automatically. Click or drag the resulting library
+entry onto a timeline to customize it. Duplicate names are blocked in this flow.
+
 1. Select a player shot in the timeline and edit its settings.
 2. Choose **Update existing saved shot**. The dialog selects the associated preset
    when known, and lets you choose any other library shot, including a default.
@@ -24,6 +31,19 @@ handedness is recorded so reuse mirrors the shot exactly once. Existing events i
 saved drills are independent snapshots: changing a preset does not silently rewrite
 their authored settings. Saving a shot and saving the containing drill are separate
 actions.
+
+## Delete from the library
+
+Right-click a library row and choose **Delete shot from library**. The three-dot
+button offers the same menu on touch screens; a focused row also supports
+Shift+F10. This removes the project preset, including system defaults, through the
+atomic project API. Matching browser copies (same ID or normalized name) are
+removed from the current browser too, so an old alias cannot reappear on reload.
+Existing drill events are independent snapshots and retain their settings.
+
+The menu closes on Escape, outside interaction or actual row movement. A failed
+delete keeps the row and shows the error for retry. Project operations require
+the local server; browser-only presets can still be removed locally.
 
 ## Persistence and recovery
 

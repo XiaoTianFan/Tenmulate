@@ -249,7 +249,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .editor-shell { grid-template-columns: minmax(0, 1fr); grid-template-rows: 58px minmax(0, 1fr); }
 .editor-workspace { min-width: 0; min-height: 0; display: grid; grid-template-columns: 250px minmax(450px, 1fr) 360px; }
 .event-library, .event-inspector { min-height: 0; background: linear-gradient(180deg, #0b1115, #080d10); }
-.event-library { display: grid; grid-template-rows: 62px auto auto minmax(0, 1fr); border-right: 1px solid var(--divider); }
+.event-library { display: grid; grid-template-rows: 62px auto auto minmax(0, 1fr) auto; border-right: 1px solid var(--divider); }
 .event-library header { display: flex; align-items: center; padding: 0 18px; border-bottom: 1px solid var(--divider); }
 .event-library header h1 { margin: 0; font-size: 17px; }
 .event-library header > span { margin-left: auto; color: var(--muted); font-size: 12px; }
@@ -264,6 +264,18 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .event-library header button { margin-left: auto; display: grid; place-items: center; width: 32px; height: 32px; border: 1px solid var(--divider); border-radius: 5px; background: #0d171d; color: var(--accent); cursor: pointer; }
 .event-library > select { margin: 8px 12px; border: 1px solid var(--divider); border-radius: 5px; background: #080d10; color: var(--text); padding: 0 9px; font-size: 12px; }
 .event-list { min-height: 0; overflow-y: auto; }
+.shot-library-row { display: flex; align-items: stretch; border-bottom: 1px solid var(--divider); }
+.shot-library-row .shot-library-card { min-width: 0; border-bottom: 0; padding-right: 2px; }
+.shot-library-options { flex: 0 0 40px; display: grid; place-items: center; padding: 0; border: 0; background: transparent; color: var(--muted); cursor: pointer; }
+.shot-library-options:hover, .shot-library-options:focus-visible, .shot-library-options[aria-expanded="true"] { background: var(--selected); color: var(--text); }
+.shot-library-footer { padding: 12px; border-top: 1px solid var(--divider); }
+.shot-library-footer button { min-height: 42px; }
+.shot-library-footer button:active { transform: scale(.96); }
+.shot-library-menu { position: fixed; z-index: 1000; width: min(260px, calc(100vw - 16px)); padding: 5px; border: 1px solid var(--divider); border-radius: 7px; background: #101a20; box-shadow: 0 8px 28px #0008; }
+.shot-library-menu button { display: flex; align-items: center; gap: 9px; width: 100%; min-height: 42px; padding: 10px; border: 0; border-radius: 3px; background: transparent; color: #ff9696; cursor: pointer; text-align: left; }
+.shot-library-menu button:hover, .shot-library-menu button:focus-visible { background: #ff969614; }
+.shot-library-menu button:disabled { opacity: .5; cursor: default; }
+.shot-library-menu p { margin: 6px 10px; font-size: 12px; color: #ff9696; }
 .event-row { display: grid; grid-template-columns: 20px 26px 1fr; align-items: center; gap: 6px; width: 100%; min-height: 52px; padding: 0 13px; border: 0; border-bottom: 1px solid var(--divider); background: transparent; color: var(--muted); text-align: left; cursor: grab; }
 .event-row strong { overflow: hidden; color: #d6dee1; font-size: 12px; font-weight: 520; text-overflow: ellipsis; white-space: nowrap; }
 .event-row > span { font-size: 10px; font-variant-numeric: tabular-nums; }
