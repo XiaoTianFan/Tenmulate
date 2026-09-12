@@ -1,8 +1,17 @@
 # Local opponent motion pipeline
 
-Current runtime contract, reconciled 2026-09-11. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) establishes the local production boundary; [ADR-0014](../decisions/0014-articulated-player-and-complete-motion-library.md) records the current model and library. The [integration receipt](motion-main-integration-2026-09-07.md) separates merge, automated checks, live review and remaining release gates.
+Current runtime contract, reconciled 2026-09-12. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) establishes the local production boundary; [ADR-0014](../decisions/0014-articulated-player-and-complete-motion-library.md) records the current model and library. The [integration receipt](motion-main-integration-2026-09-07.md) separates merge, automated checks, live review and remaining release gates.
 
 ## Authority and ownership
+
+[ADR-0050](../decisions/0050-grounded-opponent-contacts.md) makes supported opponent
+contact height take precedence over phase preference. If a selected phase would
+require raising the pelvis beyond the clip's anchor, wait for a later descending
+physical intercept; keep the half-volley and volley bounce rules. Refit the whole
+exchange around that clock. This narrows the unconditional phase-preservation
+statements in earlier records below. Player phases remain unchanged. A renderer
+guard keeps non-serve foot anchors reachable for invalid legacy poses; authored
+service jumps remain motion, without a new jump to meet an incoming ball.
 
 The current landing and setup-preview contract is
 [ADR-0018](../decisions/0018-uniform-landing-zones-and-continuous-preview.md).

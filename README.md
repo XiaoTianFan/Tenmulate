@@ -47,6 +47,10 @@ Use **Add New Shot** at the bottom of the left library to create a fresh preset.
 Right-click a library row, or use its three-dot menu, to delete it from the
 library permanently, including a system default.
 Playback follows the opponent while accelerating and braking between your configured shot views.
+Opponent returns wait for a supported contact height instead of lifting the model.
+If an apex is too high, contact moves to descent along the same ball flight, with
+movement and swing timing fitted to that later hit. See the
+[grounded contact contract](docs/decisions/0050-grounded-opponent-contacts.md).
 Final footwork adjusts each view within its contact neighborhood to meet the real
 incoming ball on the configured racket side, retaining your viewing direction.
 The editor labels isolated contact estimates; **Preview actual shot** shows the

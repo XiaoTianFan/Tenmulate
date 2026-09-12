@@ -9,6 +9,26 @@
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
+## Grounded opponent contacts — 2026-09-12
+
+Opponent contact selection now respects the selected clip's supported racket
+height. When the configured phase is too high, the planner waits for a later
+descending sample of the same ball flight and refits reception, outgoing flight
+and rhythm around that contact. Half-volleys retain their rising phase; volleys
+remain before the bounce. Opening feeds start at a supported height. The renderer
+also caps positive pelvis correction at rigid-leg reach for non-serve clips,
+preventing invalid legacy poses from pulling their feet off the court.
+
+**619 tests / 58 files**, production build and motion/precache checks pass.
+Playwright/Edge verified 48 sessions (all 16 shipped drills in both hands plus
+16 saved drills), 780 contact-window frames, no planning issues/browser errors,
+foot-anchor deviation below 0.000001 m and contact error rounded to 0.00000 m.
+A Quick Rally example delayed an unreachable 1.51 m apex by 0.283 s to hit at
+1.09–1.10 m. Source animation, authored service jumps and saved catalogs remain.
+See [ADR-0050](../decisions/0050-grounded-opponent-contacts.md) for the bounded
+exception to opponent phase preference, evidence and planner versions.
+Implementation: `9e3a772`. Local implementation and rendered verification; no deployment.
+
 ## Vite config compatibility and physics updates — 2026-09-12
 
 The project catalog plugins imported camera validation through `cameraTimeline`,
