@@ -36,6 +36,8 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
   const movement = normalizeRhythm(settings.movementPercent ?? drill.defaultMovementPercent ?? 100);
   const interval = normalizeShotInterval(settings.shotIntervalSeconds ?? settings.interval ?? drill.defaultInterval);
   const workBlock = Math.max(1, Math.min(drill.events.length, Math.floor(settings.workBlockSize)));
+  const continuesPoint = (sequence: readonly PlayerShotEventV2[], index: number) =>
+    !!sequence[index + 1] && (index + 1) % workBlock !== 0 && !sequence[index + 1]!.openingFeed;
   const cameraScale = Math.max(0, Math.min(1, settings.cameraMotionScale ?? 1));
   let initialCamera = drill.events[0]!.camera;
   const events = Array.from({ length: count }, (_, index) => {
@@ -154,10 +156,11 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
   };
 
   let shotPreview: ShotPreviewTrajectories | undefined;
+  let opponentIdle: CompiledSession['opponentIdle'];
   if (selection) {
     // Editing a shot must not depend on an earlier/next camera being reachable.
     // Use the same seeded physics and real bounce contacts as gameplay, but start
-    // at this player's configured racket anchor and include even a final response.
+    // at this player's configured racket anchor. Point endings match gameplay.
     const index = drill.events.findIndex(event => event.id === selection.eventId);
     const event = drill.events[index];
     if (!event) throw new Error('The selected shot no longer exists.');
@@ -167,31 +170,40 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
       shotPreview = { opponent: trajectory };
       if (!landsInZone(trajectory)) issues.push({ index, phase: 'opening', message: 'The opening ball cannot reach its landing zone with these settings.' });
     } else {
+      const continues = continuesPoint(drill.events, index);
       const ball = sampleBall(event.ball, 'player', index), target = sampleZone(event.landingZone, 'player', index);
       const playerFlight = resolve(playerContactAnchor(event), ball, event.landingZone, target, ball.paceKmh,
-        flight => opponentContacts(flight, event.opponentReturn.ball).length > 0);
+        continues ? flight => opponentContacts(flight, event.opponentReturn.ball).length > 0 : undefined);
       shotPreview = { player: playerFlight };
       const playerTime = 3;
-      const response = event.opponentReturn, replyBall = sampleBall(response.ball, 'response', index);
-      const replyTarget = sampleZone(response.landingZone, 'response', index);
-      const preference = bounceContactPreference(playerFlight, replyBall.family, replyBall.contactTiming);
-      const rank = (contact: FlightSample) => bounceContactCost(contact, preference)
-        + Math.abs(contact.position.y - contactHeight(replyBall.family)) * .4;
-      const contacts = landsInZone(playerFlight) ? [...opponentContacts(playerFlight, replyBall)].sort((a, b) => rank(a) - rank(b)) : [];
-      let reply: { contact: FlightSample; trajectory: ResolvedTrajectory } | undefined;
-      for (const contact of contacts.slice(0, 8)) {
-        const fit = fitIncoming(contact.position, replyBall, response.landingZone, replyTarget);
-        if (landsInZone(fit.trajectory)) { reply = { contact, trajectory: fit.trajectory }; break; }
+      if (!continues) {
+        // A winner keeps its complete flight and never schedules a return swing.
+        const feed = drill.events.slice(0, index + 1).reverse().find(candidate => candidate.openingFeed)?.openingFeed ?? drill.launch;
+        opponentIdle = { ...feed.position, hand: feed.ball.hand };
+        addFlight('player', 'player', index, playerTime, playerFlight);
+        if (!landsInZone(playerFlight)) issues.push({ index, phase: 'player', message: 'The player ball cannot reach its landing zone with these settings.' });
+      } else {
+        const response = event.opponentReturn, replyBall = sampleBall(response.ball, 'response', index);
+        const replyTarget = sampleZone(response.landingZone, 'response', index);
+        const preference = bounceContactPreference(playerFlight, replyBall.family, replyBall.contactTiming);
+        const rank = (contact: FlightSample) => bounceContactCost(contact, preference)
+          + Math.abs(contact.position.y - contactHeight(replyBall.family)) * .4;
+        const contacts = landsInZone(playerFlight) ? [...opponentContacts(playerFlight, replyBall)].sort((a, b) => rank(a) - rank(b)) : [];
+        let reply: { contact: FlightSample; trajectory: ResolvedTrajectory } | undefined;
+        for (const contact of contacts.slice(0, 8)) {
+          const fit = fitIncoming(contact.position, replyBall, response.landingZone, replyTarget);
+          if (landsInZone(fit.trajectory)) { reply = { contact, trajectory: fit.trajectory }; break; }
+        }
+        addFlight('player', 'player', index, playerTime, playerFlight, reply?.contact);
+        if (reply) {
+          const time = playerTime + reply.contact.time;
+          repetitions.push(resolveOpponentStroke(null, repetition(shotDefinition(reply.contact.position, replyBall, replyTarget, `${event.label} — opponent return`), reply.trajectory, time, event), replyBall.stroke));
+          addFlight('opponent', 'response', index, time, reply.trajectory);
+          shotPreview = { player: playerFlight, opponent: reply.trajectory };
+        } else issues.push({ index, phase: landsInZone(playerFlight) ? 'response' : 'player', message: landsInZone(playerFlight)
+          ? 'The opponent cannot return this ball with the selected shot type and contact timing. Adjust the player ball or opponent contact timing.'
+          : 'The player ball cannot reach its landing zone with these settings.' });
       }
-      addFlight('player', 'player', index, playerTime, playerFlight, reply?.contact);
-      if (reply) {
-        const time = playerTime + reply.contact.time;
-        repetitions.push(resolveOpponentStroke(null, repetition(shotDefinition(reply.contact.position, replyBall, replyTarget, `${event.label} — opponent return`), reply.trajectory, time, event), replyBall.stroke));
-        addFlight('opponent', 'response', index, time, reply.trajectory);
-        shotPreview = { player: playerFlight, opponent: reply.trajectory };
-      } else issues.push({ index, phase: landsInZone(playerFlight) ? 'response' : 'player', message: landsInZone(playerFlight)
-        ? 'The opponent cannot return this ball with the selected shot type and contact timing. Adjust the player ball or opponent contact timing.'
-        : 'The player ball cannot reach its landing zone with these settings.' });
     }
   }
 
@@ -212,7 +224,7 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
       opponentFamily: arrival.shot.family }), incoming: current.trajectory });
     repetitions[incomingIndex] = { ...arrival, reachability: { ...arrival.reachability, reachable: true, reason: 'reachable', contact: current.contact } };
     const ball = sampleBall(event.ball, 'player', index), target = sampleZone(event.landingZone, 'player', index);
-    const continues = !!next && (index + 1) % workBlock !== 0 && !next.openingFeed;
+    const continues = continuesPoint(events, index);
     const response = event.opponentReturn, replyBall = sampleBall(response.ball, 'response', index);
     const replyTarget = sampleZone(response.landingZone, 'response', index);
     const previous = repetitions.at(-1)!;
@@ -289,10 +301,10 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
     if (solved.previous.motionRate !== previous.motionRate || solved.next.motionRate !== best.rep.motionRate || Math.abs(actual - requested) > .01) motionTimingAdjusted = true;
   }
   const last = repetitions.at(-1);
-  return { solverVersion: 'ball-v10-court-bounce', plannerVersion: 'gameplay-player-drills-v17', contentVersion: '2026.09.09',
+  return { solverVersion: 'ball-v10-court-bounce', plannerVersion: 'gameplay-player-drills-v18', contentVersion: '2026.09.09',
     drill, settings: { ...settings, mode: 'drill', rhythmPercent: rhythm, movementPercent: movement, shotIntervalSeconds: interval, workBlockSize: workBlock },
     mode: 'drill', repetitions, restPeriods, duration: Math.max(endTime, last ? planRecovery(motionEvent(last)).end + .15 : 3),
     motionTimingAdjusted, rhythmPercent: rhythm, cameraTimeline: { initial: initialCamera ?? DEFAULT_DRILL_CAMERA,
       transitions, ...(!selection ? { tennis: { exchanges: cameraExchanges, motionScale: cameraScale } } : {}) },
-    playerEvents, scheduledFlights: flights, planningIssues: issues, ...(shotPreview ? { shotPreview } : {}) };
+    playerEvents, scheduledFlights: flights, planningIssues: issues, ...(shotPreview ? { shotPreview } : {}), ...(opponentIdle ? { opponentIdle } : {}) };
 }

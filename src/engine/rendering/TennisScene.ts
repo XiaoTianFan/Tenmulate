@@ -776,7 +776,7 @@ export class TennisScene {
         }
       }
       this.profiler?.mark('session');
-      const placement = this.opponentPositionControl.position;
+      const placement = this.opponentPositionControl.position ?? this.session?.opponentIdle;
       const motion: MotionSample | null = placement ? { root: { x: placement.x, y: 0, z: placement.z }, yaw: Math.PI, hand: placement.hand,
         layers: [{ clip: 'ready', time: 0, weight: 1 }], event: null, verticalCorrection: 0, toss: null }
         : this.motionPreview ? this.motionPreview(motionTime) : sampleOpponentTimeline(events, motionTime);

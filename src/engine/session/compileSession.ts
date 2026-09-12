@@ -95,7 +95,7 @@ export type CompiledSession = Readonly<{
   /** Prepared off-thread so mounting a rally never performs a seam solve. */
   previewNext?: Readonly<{ last: CompiledRepetition; next: CompiledSession }>;
   solverVersion: 'ball-v10-court-bounce';
-  plannerVersion: 'gameplay-opponent-footwork-v13' | 'gameplay-player-drills-v17';
+  plannerVersion: 'gameplay-opponent-footwork-v13' | 'gameplay-player-drills-v18';
   contentVersion: '2026.09.09';
   drill: DrillDefinition;
   settings: SessionSettings;
@@ -110,6 +110,8 @@ export type CompiledSession = Readonly<{
   scheduledFlights?: readonly ScheduledDrillFlight[];
   /** Isolated editor paths; never used by full drill playback. */
   shotPreview?: import('./compilePlayerDrill').ShotPreviewTrajectories;
+  /** Waiting opponent for isolated winners, which have no opponent stroke events. */
+  opponentIdle?: Readonly<{ x: number; z: number; hand: 'left' | 'right' }>;
   planningIssues?: readonly DrillPlanningIssue[];
 }>;
 

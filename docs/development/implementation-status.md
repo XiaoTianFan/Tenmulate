@@ -9,6 +9,28 @@
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
+## Unreturned final-shot previews — 2026-09-12
+
+Isolated editor previews now use gameplay's point-ending rule. The final player
+ball completes its flight without a return ball, opponent swing or return-contact
+cue. This also covers work-block boundaries and shots before a new opening.
+Previously the isolated editor deliberately played the saved reusable response
+even when the timeline said **Point ends**; full sequence playback already omitted
+it. A ready-pose placement keeps the opponent visible when an isolated winner has
+no stroke events. **Preview actual shot** now watches point endings through the
+complete flight. Planner version: `gameplay-player-drills-v18`.
+
+**601 tests / 55 files**, production build and active motion/precache guard pass.
+Playwright/Edge rendered all 16 shipped drills in full and isolated modes, checking
+128 frames across player contact, landing and the remaining flight. All final
+flights stayed visible without subsequent opponent contacts; isolated opponents
+remained ready. Actual editor playback of the saved Crosscourt Rhythm final shot
+showed over four seconds of outgoing flight, then returned to isolated editing.
+Screenshots were inspected; no application runtime errors occurred. Evidence:
+`C:/Users/20378/.codex/visualizations/2026/09/12/01a09414-f625-7dd2-ba82-d570264839e1/winner-ending/`.
+Local implementation and browser verification; no public deployment or owner
+acceptance claim. See the [drill behavior guide](player-first-drills-2026-09-09.md).
+
 ## Shot library creation and deletion — 2026-09-12
 
 The editor's left library now provides right-click/three-dot deletion and a fixed

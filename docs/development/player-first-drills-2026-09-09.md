@@ -112,8 +112,14 @@ Selected-shot editing uses an isolated compilation mode: the player starts at th
 configured racket anchor, and the opponent meets that physical flight at a legal
 bounce/contact phase. Both paths stay visible in their zone colors throughout the
 local animation. The preceding incoming shot is not shown beside the selected
-event's future response zone. Even a final event previews its reusable response;
-full sequence playback still ends at the final player action.
+event's future response zone. As of 2026-09-12, point-ending previews match full
+playback: the player's complete flight plays without an opponent response,
+return swing or return-contact cue. This includes the last event, work-block
+boundaries and the shot before another opening. Return settings remain saved for
+reuse if a following player action is added. Isolated winners show the opponent
+waiting at the point's opening position; full playback retains natural recovery
+from the preceding stroke. **Preview actual shot** plays these endings through the
+complete ball flight rather than stopping 1.2 seconds after the player contact.
 
 This editing preview is independent of reachability elsewhere in the drill. The
 full sequence compiler remains authoritative for actual incoming-contact positions,

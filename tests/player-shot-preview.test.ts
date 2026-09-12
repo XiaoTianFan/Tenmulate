@@ -5,6 +5,7 @@ import { compilePlayerDrill } from '../src/engine/session/compilePlayerDrill';
 import { landsInZone, playerContactAnchor } from '../src/engine/session/courtFlight';
 import { playerDrillForHand } from '../src/content/playerHandedness';
 import type { DrillDefinitionV2 } from '../src/content/types';
+import { sessionCues } from '../src/engine/audio/sessionCues';
 
 const original = PLAYER_DRILLS.find(drill => drill.id === 'tactical-pattern')!;
 function preview(drill = original, index = 0, surface: 'hard' | 'clay' = 'hard', opening = false) {
@@ -58,14 +59,43 @@ describe('selected shot physics independent of sequence validation', () => {
     expect(clay.player!.samples).not.toEqual(paths.player!.samples);
   });
 
-  it('previews a final shot and its reusable response despite an unreachable preceding opening', () => {
+  it('previews a final winner despite an unreachable opening and unusable return settings', () => {
     const drill = edit();
     drill.launch = { ...drill.launch, landingZone: { minX: 1, maxX: 3, minZ: -3, maxZ: -1 } };
+    const last = drill.events.at(-1)!;
+    drill.events[drill.events.length - 1] = { ...last, opponentReturn: { ...last.opponentReturn,
+      ball: { ...last.opponentReturn.ball, family: 'overhead', trajectoryMode: 'exact', paceKmh: 20 } } };
     const result = preview(drill, drill.events.length - 1);
     expect(result.planningIssues).toEqual([]);
     expect(result.shotPreview!.player).toBeDefined();
-    expect(result.shotPreview!.opponent).toBeDefined();
-    expect(result.scheduledFlights!.map(flight => flight.phase)).toEqual(['player', 'response']);
+    expect(result.shotPreview!.opponent).toBeUndefined();
+    expect(result.scheduledFlights!.map(flight => flight.phase)).toEqual(['player']);
+    expect(result.repetitions).toEqual([]);
+    expect(sessionCues(result).filter(cue => cue.kind === 'contact')).toEqual([{ time: 3, kind: 'contact' }]);
+  });
+
+  it.each(PLAYER_DRILLS.map(drill => [drill.id, drill] as const))('lets the isolated final ball finish without a return in %s', (_id, drill) => {
+    const result = preview(drill, drill.events.length - 1), player = result.shotPreview!.player!;
+    expect(result.planningIssues).toEqual([]);
+    expect(landsInZone(player)).toBe(true);
+    expect(result.repetitions).toEqual([]);
+    expect(result.shotPreview!.opponent).toBeUndefined();
+    expect(result.opponentIdle).toBeDefined();
+    expect(result.scheduledFlights).toHaveLength(1);
+    expect(result.scheduledFlights![0]!.trajectory.samples).toEqual(player.samples);
+    expect(result.duration).toBe(3 + player.samples.at(-1)!.time);
+  });
+
+  it('ends a one-shot drill, a work block and the shot before a new opening', () => {
+    const drill = edit();
+    expect(preview({ ...drill, events: [drill.events[0]!] }).repetitions).toEqual([]);
+    const block = compilePlayerDrill(drill, { ...defaultDrillSettings(drill), workBlockSize: 1 },
+      { eventId: drill.events[0]!.id, opening: false });
+    expect(block.repetitions).toEqual([]);
+    drill.events[1] = { ...drill.events[1]!, openingFeed: { ...drill.launch, position: { x: 2, z: 12 },
+      ball: { ...drill.launch.ball, hand: 'left' } } };
+    expect(preview(drill).repetitions).toEqual([]);
+    expect(preview(drill, drill.events.length - 1).opponentIdle).toEqual({ x: 2, z: 12, hand: 'left' });
   });
 
   it('refreshes an opening independently and mirrors target quantiles deterministically', () => {

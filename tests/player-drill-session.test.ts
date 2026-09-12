@@ -70,6 +70,13 @@ describe('player-owned drill clock and physical handoffs', () => {
     const session = compileSession(drill, { ...settings, repetitions: drill.events.length });
     expect(session.planningIssues).toEqual([]);
     expect(session.playerEvents).toHaveLength(drill.events.length);
+    const last = session.playerEvents!.at(-1)!, winner = session.scheduledFlights!.at(-1)!;
+    expect(last.responseIndex).toBeUndefined();
+    expect(winner).toMatchObject({ phase: 'player', eventIndex: last.index, startTime: last.startTime });
+    expect(winner.trajectory.samples).toEqual(last.trajectory.samples);
+    expect(session.duration).toBeGreaterThanOrEqual(winner.endTime);
+    expect(session.repetitions.every(rep => rep.startTime < last.startTime)).toBe(true);
+    expect(sessionCues(session).filter(cue => cue.kind === 'contact' && cue.time > last.startTime)).toEqual([]);
   });
   it.each(PLAYER_DRILLS.map(drill => [drill.id, drill] as const))('runs two sets with the application seed for %s', (_id, drill) => {
     const session = compileSession(drill, { ...settings, seed: '18427', repetitions: drill.defaultRepetitions,
@@ -81,6 +88,17 @@ describe('player-owned drill clock and physical handoffs', () => {
     for (let i = 1; i < session.cameraTimeline.transitions.length; i++) expect(session.cameraTimeline.transitions[i]!.start)
       .toBeGreaterThanOrEqual(session.cameraTimeline.transitions[i - 1]!.end - 1e-7);
     expect(session.scheduledFlights!.filter(f => f.phase === 'opening').length).toBeGreaterThanOrEqual(2);
+    for (const event of session.playerEvents!.filter(event => event.responseIndex === undefined)) {
+      const winner = session.scheduledFlights!.find(flight => flight.phase === 'player' && flight.eventIndex === event.index)!;
+      expect(winner.trajectory.samples).toEqual(event.trajectory.samples);
+      expect(session.repetitions.filter(rep => rep.startTime >= winner.startTime && rep.startTime < winner.endTime)).toEqual([]);
+      const next = session.scheduledFlights!.find(flight => flight.startTime >= winner.endTime);
+      if (next) {
+        expect(next.phase).toBe('opening');
+        const rep = session.repetitions.find(rep => rep.startTime === next.startTime)!;
+        expect(motionEvent(rep).start).toBeGreaterThan(winner.endTime);
+      }
+    }
     for (let i = 1; i < session.scheduledFlights!.length; i++) expect(session.scheduledFlights![i]!.startTime)
       .toBeGreaterThanOrEqual(session.scheduledFlights![i - 1]!.endTime - 1e-7);
   }, 15000);

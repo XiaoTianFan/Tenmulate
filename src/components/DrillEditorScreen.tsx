@@ -238,7 +238,9 @@ export function DrillEditorScreen({ route, initialDrill, initialDraft, onDraftCh
           <div className="editor-scene-label"><span>{isOpening ? 'Opening shot' : isTransition ? `Camera ${events.indexOf(selected!) + 1} → ${events.indexOf(selected!) + 2}` : `Your shot ${events.indexOf(selected!) + 1}`}</span><strong>{isOpening ? 'Opponent initiates the rally' : isTransition ? `${selected.label} → ${nextEvent.label}` : selected?.label ?? 'Add a player shot'}</strong></div>
           <div className="editor-view-tools"><button type="button" aria-pressed={overview} onClick={() => { setSequence(false); setOverview(value => !value); }}>{overview ? 'Back to shot view' : 'Top-down zones'}</button>
             {!isOpening && !isTransition && compiled ? <button type="button" disabled={sequence || !!viewDraft || !!zoneDraft || !preview.current || !!issues.length}
-              onClick={() => { setSequenceRange({ start: Math.max(0, compiled.startTime - 1.5), end: Math.min(nextCompiled?.startTime ?? preview.session!.duration, compiled.startTime + 1.2) }); setOverview(false); setSequence(true); }}>
+              onClick={() => { setSequenceRange({ start: Math.max(0, compiled.startTime - 1.5), end: compiled.responseIndex === undefined
+                ? preview.session!.scheduledFlights!.find(flight => flight.phase === 'player' && flight.eventIndex === compiled.index)!.endTime
+                : Math.min(nextCompiled?.startTime ?? preview.session!.duration, compiled.startTime + 1.2) }); setOverview(false); setSequence(true); }}>
               Preview actual shot
             </button> : null}
             <span><i className="return-swatch"/>Your landing <i className="landing-swatch"/>{isOpening ? 'Opening landing' : 'Opponent return'}</span></div>
