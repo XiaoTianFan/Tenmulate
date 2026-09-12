@@ -1,6 +1,6 @@
-import type { SavedShotV2 } from '../content/types';
-import { isPlayerSavedShot } from '../content/playerValidation';
-import { drillNameKey } from './projectCatalog';
+import type { SavedShotV2 } from '../content/types.ts';
+import { isPlayerSavedShot } from '../content/playerValidation.ts';
+import { drillNameKey } from './projectCatalog.ts';
 
 export type ProjectShots = { schemaVersion: 1; shots: SavedShotV2[] };
 export type ProjectShotsSnapshot = ProjectShots & { revision: string };

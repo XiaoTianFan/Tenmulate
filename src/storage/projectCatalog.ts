@@ -1,5 +1,5 @@
-import type { DrillDefinitionV2 } from '../content/types';
-import { validatePlayerDrill } from '../content/playerValidation';
+import type { DrillDefinitionV2 } from '../content/types.ts';
+import { validatePlayerDrill } from '../content/playerValidation.ts';
 
 export type ProjectCatalog = { schemaVersion: 1; drills: DrillDefinitionV2[] };
 export type ProjectCatalogSnapshot = ProjectCatalog & { revision: string };

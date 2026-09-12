@@ -1,5 +1,5 @@
-import { PROJECT_SHOTS_ENDPOINT, upsertProjectShot, validateProjectShots, type ProjectShots } from '../src/storage/projectShots';
-import { createProjectStore, projectCatalogPlugin, projectMiddleware, RequestError } from './projectStore';
+import { PROJECT_SHOTS_ENDPOINT, upsertProjectShot, validateProjectShots, type ProjectShots } from '../src/storage/projectShots.ts';
+import { createProjectStore, projectCatalogPlugin, projectMiddleware, RequestError } from './projectStore.ts';
 
 const adapter = {
   endpoint: PROJECT_SHOTS_ENDPOINT, validate: validateProjectShots,

@@ -156,6 +156,11 @@ Install with `npm ci`, then `npm run dev` (default `http://127.0.0.1:4173/`).
 For this motion review use `npm run dev -- --host 127.0.0.1 --port 5173 --strictPort`.
 Run `npm test` and `npm run build`; the build also verifies the selected motion asset and offline cache.
 
+The Vite project-saving plugins share pure domain validation with the app. Keep
+their runtime imports independent of the gameplay engine so physics edits update
+the client without restarting the server. Local imports in the config dependency
+graph use explicit `.ts` extensions for native-loader compatibility.
+
 Use **Return → Opponent → Serve rhythm** to choose Normal or Compact.
 Groundstroke/slice/volley/overhead selection uses the same mannequin and movement controller.
 **Shot interval** is primary. **Stroke rhythm** and **Movement pace** (50–300%)

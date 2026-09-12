@@ -5,7 +5,11 @@ import { resolve } from 'node:path';
 import type { Plugin } from 'vite';
 
 export class RequestError extends Error {
-  constructor(public status: number, message: string) { super(message); }
+  public status: number;
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
+  }
 }
 const revisionOf = (bytes: string) => createHash('sha256').update(bytes).digest('hex');
 

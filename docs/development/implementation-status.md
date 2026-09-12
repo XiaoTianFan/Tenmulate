@@ -9,6 +9,29 @@
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
+## Vite config compatibility and physics updates — 2026-09-12
+
+The project catalog plugins imported camera validation through `cameraTimeline`,
+which pulled the gameplay camera and physics into Vite's config dependency graph.
+A physics edit therefore restarted the development server. Camera bounds now
+live in a dependency-free domain module shared with gameplay. Config dependencies
+retain catalog validation but exclude the gameplay engine.
+
+The config's local imports use explicit `.ts` extensions, and the shared request
+error uses erasable TypeScript syntax. Both the default bundled config loader and
+Node's native loader start without the reported compatibility warnings; no warning
+suppression or loader-default change is used.
+
+**54 focused tests / 6 files**, production build and active motion/precache guard
+pass. A new config-loader regression checks warnings and excludes engine modules
+from config dependencies. Live ephemeral servers with both loaders returned valid
+drill/shot catalogs; a physics file-change event produced a client reload with
+zero server restarts and the API still available. This exercises Vite's watcher
+handler without writing the physics file. The existing build chunk-size advisory
+remains unrelated. Evidence:
+`C:/Users/20378/.codex/visualizations/2026/09/12/01a09414-f625-7dd2-ba82-d570264839e1/vite-config/`.
+Local verification only; no deployment.
+
 ## Camera-relative volleys and lower net-shot arcs — 2026-09-12
 
 Player volley contact preferences now follow eye height minus 0.10 m

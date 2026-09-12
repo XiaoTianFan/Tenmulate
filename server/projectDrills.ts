@@ -1,5 +1,5 @@
-import { PROJECT_DRILLS_ENDPOINT, upsertProjectDrill, validateProjectCatalog, type ProjectCatalog } from '../src/storage/projectCatalog';
-import { createProjectStore, projectCatalogPlugin, projectMiddleware, RequestError } from './projectStore';
+import { PROJECT_DRILLS_ENDPOINT, upsertProjectDrill, validateProjectCatalog, type ProjectCatalog } from '../src/storage/projectCatalog.ts';
+import { createProjectStore, projectCatalogPlugin, projectMiddleware, RequestError } from './projectStore.ts';
 
 const adapter = {
   endpoint: PROJECT_DRILLS_ENDPOINT, validate: validateProjectCatalog,

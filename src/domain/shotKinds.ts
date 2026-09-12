@@ -1,4 +1,4 @@
-import type { SpinKind } from '../engine/trajectory/physics';
+import type { SpinKind } from '../engine/trajectory/physics.ts';
 
 export const SHOT_TYPE_LABELS = {
   groundstroke: 'Groundstroke', serve: 'Serve', 'drop-shot': 'Drop shot',

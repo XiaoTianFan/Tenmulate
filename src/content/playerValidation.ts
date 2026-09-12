@@ -1,8 +1,8 @@
-import { COURT, OPPONENT_POSITION_LIMITS } from '../domain/court';
-import { spinsForShot, SHOT_TYPE_LABELS } from '../domain/shotKinds';
-import { SHOT_CAMERA_RANGES } from '../engine/session/cameraTimeline';
-import type { DrillDefinitionV2, SavedShotV2 } from './types';
-import type { ValidationResult } from './validation';
+import { COURT, OPPONENT_POSITION_LIMITS } from '../domain/court.ts';
+import { spinsForShot, SHOT_TYPE_LABELS } from '../domain/shotKinds.ts';
+import { SHOT_CAMERA_RANGES } from '../domain/cameraRanges.ts';
+import type { DrillDefinitionV2, SavedShotV2 } from './types.ts';
+import type { ValidationResult } from './validation.ts';
 
 const record = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 const range = (v: unknown, low: number, high: number) => typeof v === 'number' && Number.isFinite(v) && v >= low - 1e-8 && v <= high + 1e-8;

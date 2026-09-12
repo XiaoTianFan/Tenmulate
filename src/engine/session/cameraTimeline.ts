@@ -7,7 +7,7 @@ import { sampleTennisCamera, type TennisCameraTrack } from './tennisCamera';
 export { cameraEase, interpolateCamera } from './cameraMotion';
 
 export const DEFAULT_DRILL_CAMERA: CameraConfiguration = Object.freeze({eyeHeight:1.7,behindBaseline:1.5,lateral:0,yaw:0,pitch:-1.7,fov:70});
-export const SHOT_CAMERA_RANGES = {eyeHeight:[1,2.4],behindBaseline:[-10,6],lateral:[-7,7],yaw:[-180,180],pitch:[-85,85],fov:[5,160]} as const;
+export { SHOT_CAMERA_RANGES } from '../../domain/cameraRanges';
 export type CameraTransition = Readonly<{start:number;end:number;from:CameraConfiguration;to:CameraConfiguration}>;
 export type CameraTimeline = Readonly<{initial:CameraConfiguration;transitions:readonly CameraTransition[];tennis?:TennisCameraTrack}>;
 export function scaleCameraTimeline(timeline:CameraTimeline,scale:number):CameraTimeline {
