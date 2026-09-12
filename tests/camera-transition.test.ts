@@ -165,7 +165,7 @@ describe('drill, preset and handedness contracts', () => {
     const transition = session.cameraTimeline.tennis!.exchanges.find(exchange => exchange.start === session.playerEvents![0]!.startTime)!;
     expect(transition.strategy).toBe('custom'); expect(transition.configuration).toEqual(drill.events[0]!.cameraTransition);
     expect(transition.outgoing).toBeDefined(); expect(transition.incoming).toBeDefined();
-    expect(sampleCameraTimeline(session.cameraTimeline, transition.end, root)).toEqual(drill.events[1]!.camera);
+    expect(sampleCameraTimeline(session.cameraTimeline, transition.end, root)).toEqual(session.playerEvents![1]!.contactCamera);
   });
   it('keeps the reset route and physical timing when only new-point focus is customized', () => {
     const base = PLAYER_DRILLS.find(drill => drill.id === 'return-practice')!;

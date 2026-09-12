@@ -4,7 +4,7 @@ import { compileSession, type SessionSettings } from '../src/engine/session/comp
 import { sessionFlights } from '../src/engine/session/sessionFlights';
 import { cameraEase, sampleCameraTimeline } from '../src/engine/session/cameraTimeline';
 import { motionEvent, minimumMotionGap } from '../src/engine/session/opponentTimeline';
-import { PLAYER_CONTACT_RADIUS_M, contactDistance } from '../src/engine/session/courtFlight';
+import { PLAYER_CONTACT_RADIUS_M, contactDistance, playerContactAnchor } from '../src/engine/session/courtFlight';
 import { sessionCues } from '../src/engine/audio/sessionCues';
 import { bounceContactPhase } from '../src/engine/session/bounceContact';
 import { receivingZone } from '../src/content/playerShots';
@@ -92,7 +92,14 @@ describe('player-owned drill clock and physical handoffs', () => {
       expect(sampleCameraTimeline(session.cameraTimeline, stage.end).lateral).toBeCloseTo(stage.to.lateral, 7);
     }
     expect(cameraEase(.1)).toBeLessThan(.1);
-    for (const event of session.playerEvents!) expect(sampleCameraTimeline(session.cameraTimeline, event.startTime)).toEqual(event.event.camera);
+    for (const event of session.playerEvents!) {
+      const pose = sampleCameraTimeline(session.cameraTimeline, event.startTime);
+      expect(pose).toEqual(event.contactCamera);
+      expect(pose).toMatchObject({ yaw: event.event.camera.yaw, pitch: event.event.camera.pitch, eyeHeight: event.event.camera.eyeHeight });
+      const anchor = playerContactAnchor({ ...event.event, camera: pose });
+      expect(anchor.x).toBeCloseTo(event.trajectory.intent.source.x, 8);
+      expect(anchor.z).toBeCloseTo(event.trajectory.intent.source.z, 8);
+    }
   });
   it('reports a camera/contact mismatch instead of creating a ball at an unrelated position', () => {
     const drill = PLAYER_DRILLS[0]!, event = drill.events[0]!;

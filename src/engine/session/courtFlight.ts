@@ -62,6 +62,14 @@ export function playerContacts(flight: ResolvedTrajectory, event: Pick<PlayerSho
   return contactsForTiming(flight, event.ball.family, legalReturnContacts(flight).filter(sample => familyContact(sample, event.ball.family, true)
     && contactDistance(sample, event) <= PLAYER_CONTACT_RADIUS_M), event.ball.contactTiming);
 }
+/** Resolve the last footwork adjustment inside the authored reach envelope.
+ * Keep the real ball contact .65 m in front and .45 m on the racket side;
+ * neither gaze nor eye height changes the physical ball's source. */
+export function playerContactCamera(event: Pick<PlayerShotEventV2, 'camera' | 'ball'>, contact: Vec3) {
+  const anchor = playerContactAnchor(event);
+  return { ...event.camera, lateral: event.camera.lateral + contact.x - anchor.x,
+    behindBaseline: event.camera.behindBaseline - (contact.z - anchor.z) };
+}
 export function opponentContacts(flight: ResolvedTrajectory, ball: OpponentBall): readonly FlightSample[] {
   const rotated = rotateCourtFlight(flight);
   // The visible opponent uses a real clip and rigid legs. A late ankle-height
