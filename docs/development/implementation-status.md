@@ -9,6 +9,30 @@
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
+## Opening serve speed and fixed return view — 2026-09-12
+
+Opening serves retain their configured speed after shot variation. The first
+illustrative player return adapts to the legal incoming flight instead of forcing
+the serve into its preferred phase or camera neighborhood. In Crosscourt serve
+returns, the reproduced 173 km/h setting previously resolved to 102.935 km/h;
+it now resolves to 173 km/h with variation off. Impossible speed/zone combinations
+produce a planning issue instead of silently lowering speed.
+
+The authored camera position, eye height, yaw, pitch and FOV stay fixed through
+the toss, serve and first return contact. Contact stance correction, automatic
+attention and eye compression do not apply during opening serve reception.
+Custom between-point routes and focus remain, finishing before the next toss.
+Opening controls show resolved launch speed. Normal rally footwork is retained.
+
+**631 tests / 60 files**, production build and active motion/precache checks pass.
+Both-handed 240 Hz regression sampling covers opening camera invariance, speed
+response, real return contact, preview parity, variation and invalid serves.
+Actual Edge UI changes from 130 to 173 km/h matched the resolved launch speeds;
+Preview Sequence and launched Test drill both preserved every authored camera
+component through the serve and return, with no browser errors. See
+[ADR-0052](../decisions/0052-opening-serve-authority.md) for the scoped contract
+and evidence directory. Implementation: `e064fcb`. Local only; no deployment.
+
 ## Quick Practice returns and starting views — 2026-09-12
 
 All four modes animate physical player returns, with only the blue destination
