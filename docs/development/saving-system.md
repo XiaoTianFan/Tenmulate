@@ -23,6 +23,13 @@ now installs those endpoints.
 
 ## Code paths
 
+Quick Practice places full-width **Save config** and **Start practice** actions
+in a spaced footer. Below the court, each preset group has a visible **Save
+preset** button beside its scrollable list. Camera positions save location and
+eye height; Perspectives save viewing direction and field of view. The dialog
+names the preset before invoking the shared destination flow. Right-clicking an
+existing preset updates it from the current view.
+
 `App.tsx` connects the shared `useSaveSystem` destination coordinator to typed
 operations. `useProjectDrills`, `useProjectShots` and `useProjectConfigs` read
 bundled defaults and use development-only HTTP adapters. The three adapters share
@@ -49,6 +56,11 @@ destination chooser is shown for every explicit save, including when project
 storage is unavailable; its browser option remains usable.
 
 ## Verification receipt
+
+- Save-action polish: production build passes; actual Edge desktop (1600 px) and
+  narrow (760 px) layouts show equal-width footer actions separated by 10 px.
+  Both visible preset buttons open the correct descriptive dialog and cancel
+  without saving. This styling follow-up did not rerun the full suite below.
 
 - Full automated suite: **638 tests / 61 files**. Production build, TypeScript and
   active motion/precache guard pass. Existing chunk-size advisory remains.

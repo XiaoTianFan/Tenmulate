@@ -11,6 +11,12 @@ This is the evidence ledger for the code-backed V1. “Implemented” means runn
 
 ## Unified save destinations — 2026-09-12
 
+Quick Practice's Save config and Start practice now share a full-width, spaced
+footer. Visible Save preset buttons beside Camera positions and Perspectives
+remain available as their lists scroll; each dialog explains what it captures.
+The UI follow-up passed the production build and actual Edge checks at desktop
+and narrow widths, including opening and cancelling both preset dialogs.
+
 Save drill, Save shot, Save config and Save preset now share one destination
 coordinator. Every explicit development save opens a Project default / This
 browser chooser. Production writes directly to localStorage, makes no project API
