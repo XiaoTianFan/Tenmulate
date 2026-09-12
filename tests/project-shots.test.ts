@@ -92,11 +92,12 @@ describe('project shot library', () => {
     await expect(store.read()).rejects.toThrow();
     expect(await readFile(file, 'utf8')).toBe('damaged');
   });
-  it('keeps browser-only presets recoverable and uses the project copy after promotion', () => {
+  it('keeps browser overrides until explicitly cleared after project promotion', () => {
     const legacy = { ...shots[0]!, id: 'legacy', name: 'Legacy shot' };
     expect(mergeBrowserShots(shots, [shots[0]!, legacy])).toHaveLength(shots.length + 1);
     const promoted = upsertProjectShot({ schemaVersion: 1, shots }, legacy);
-    expect(mergeBrowserShots(promoted.catalog.shots, [legacy])).toEqual(promoted.catalog.shots);
+    expect(mergeBrowserShots(promoted.catalog.shots, [legacy]).at(-1)).toEqual(legacy);
+    expect(mergeBrowserShots(promoted.catalog.shots, [])).toEqual(promoted.catalog.shots);
   });
   it('shares disk updates across HTTP clients and rejects foreign or unframed mutations', async () => {
     const { file } = await fixture(), middleware = projectShotMiddleware(file);

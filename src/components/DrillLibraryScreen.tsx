@@ -1,3 +1,4 @@
+import { SaveCancelled } from '../storage/savePolicy';
 import { useMemo, useRef, useState } from 'react';
 import { Copy, Download, FileUp, PencilLine, Play, Trash2 } from 'lucide-react';
 import { rhythmFromLegacyInterval } from '../engine/session/rhythm';
@@ -52,15 +53,15 @@ export function DrillLibraryScreen({ route, drills, projectIds, writable, projec
     setBusy(true);
     try {
       const saved = await onSave(parsePlayerDrillJson(await file.text()));
-      setSelectedId(saved.id); setMessage('Saved “' + saved.title + '” to the project.');
-    } catch (error) { setMessage(error instanceof Error ? error.message : 'Import failed.'); }
+      setSelectedId(saved.id);
+    } catch (error) { if (error instanceof SaveCancelled) return; setMessage(error instanceof Error ? error.message : 'Import failed.'); }
     finally { setBusy(false); if (inputRef.current) inputRef.current.value = ''; }
   };
   const remove = async () => {
     if (!selected) return;
     setBusy(true);
     try { await onDelete(selected.id); setSelectedId(''); }
-    catch (error) { setMessage(error instanceof Error ? error.message : 'Delete failed.'); }
+    catch (error) { if (error instanceof SaveCancelled) return; setMessage(error instanceof Error ? error.message : 'Delete failed.'); }
     finally { setBusy(false); }
   };
 
@@ -79,11 +80,11 @@ export function DrillLibraryScreen({ route, drills, projectIds, writable, projec
       <aside className="library-inspector">
         <div className="library-inspector-body">
           {selected ? <>
-            <span className="eyebrow">{inProject ? 'Project drill' : 'Browser recovery'}</span>
+            <span className="eyebrow">{inProject ? 'Default drill' : 'Browser drill'}</span>
             <h2>{selected.title}</h2><p>{selected.description}</p>
             <dl><div><dt>Category</dt><dd>{selected.category}</dd></div>
               <div><dt>Sequence</dt><dd>{selected.events.length} player shots</dd></div>
-              <div><dt>Storage</dt><dd>{inProject ? 'Project' : 'Browser · save to project'}</dd></div></dl>
+              <div><dt>Storage</dt><dd>{inProject ? 'Project default' : 'This browser'}</dd></div></dl>
             <PlayerHandControls hand={playerHand} onChange={onPlayerHandChange}/>
             <RangeField label="Stroke rhythm" value={rhythm} min={50} max={300} step={5} unit="%" onChange={setRhythmOverride}/>
             <RangeField label="Shot interval" value={interval} min={1} max={30} step={.1} unit="s" onChange={setIntervalOverride}/>
@@ -101,11 +102,11 @@ export function DrillLibraryScreen({ route, drills, projectIds, writable, projec
           <button className="primary-button" type="button" disabled={busy} onClick={createNew}><PencilLine size={17}/> Create new drill</button>
           <button className="secondary-button full-width" type="button" disabled={busy || !writable} onClick={() => inputRef.current?.click()}><FileUp size={16}/> Import JSON</button>
           <input ref={inputRef} hidden type="file" accept="application/json,.json" onChange={event => void importFile(event.target.files?.[0])}/>
-          <small role="status">{busy ? 'Updating project…' : projectStatus}</small>
+          <small role="status">{busy ? 'Saving…' : projectStatus}</small>
         </div>
       </aside>
     </section>
-    <footer className="safety-footer">Project drill library · Same-name saves update the existing drill</footer>
+    <footer className="safety-footer">Drill library · Same-name saves update the existing drill</footer>
     {message ? <Modal title="Drill library" onClose={() => setMessage(null)} actions={<button className="primary-button inline" type="button" onClick={() => setMessage(null)}>Close</button>}><p>{message}</p></Modal> : null}
   </main>;
 }

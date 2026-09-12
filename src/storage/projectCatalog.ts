@@ -36,12 +36,13 @@ export function upsertProjectDrill(catalog: ProjectCatalog, value: unknown) {
   return { catalog: validateProjectCatalog({ schemaVersion: 1, drills }), drill };
 }
 
-/** Retain old browser saves for recovery until a project entry supersedes them. */
+/** Browser overrides take precedence; defaults remain available in other browsers. */
 export function mergeBrowserDrills(project: readonly DrillDefinitionV2[], browser: readonly DrillDefinitionV2[]) {
-  const ids = new Set(project.map(drill => drill.id)), names = new Set(project.map(drill => drillNameKey(drill.title)));
-  return [...project, ...browser.filter(drill => {
-    const name = drillNameKey(drill.title);
-    if (ids.has(drill.id) || names.has(name)) return false;
-    ids.add(drill.id); names.add(name); return true;
-  })];
+  const ids = new Set<string>(), names = new Set<string>();
+  return [...project.map(item => browser.find(value => value.id === item.id)
+    ?? browser.find(value => drillNameKey(value.title) === drillNameKey(item.title)) ?? item), ...browser].filter(item => {
+      const name = drillNameKey(item.title);
+      if (ids.has(item.id) || names.has(name)) return false;
+      ids.add(item.id); names.add(name); return true;
+    });
 }

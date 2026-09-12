@@ -1,3 +1,4 @@
+import { SaveCancelled } from '../storage/savePolicy';
 import { useEffect, useRef, useState } from 'react';
 import { Modal } from './Modal';
 import { createPlayerShot } from '../content/playerShots';
@@ -34,12 +35,12 @@ export function NewShotModal({ hand, savedShots, writable, status, onSave, onClo
     if (pending.current || !writable || !name.trim() || duplicate) return;
     pending.current = true; setBusy(true); setError('');
     try { await onSave(createPlayerShot(name, hand, family, stroke)); }
-    catch (failure) { setError(failure instanceof Error ? failure.message : 'Unable to create shot.'); }
+    catch (failure) { if (failure instanceof SaveCancelled) return; setError(failure instanceof Error ? failure.message : 'Unable to create shot.'); }
     finally { pending.current = false; setBusy(false); }
   };
   return <Modal title="Add New Shot" onClose={busy ? undefined : onClose} actions={<>
     <button type="button" className="secondary-button" disabled={busy} onClick={onClose}>Cancel</button>
-    <button type="button" className="primary-button inline" disabled={busy || !writable || !name.trim() || duplicate} onClick={() => void save()}>{busy ? 'Creating…' : 'Create shot'}</button>
+    <button type="button" className="primary-button inline" disabled={busy || !writable || !name.trim() || duplicate} onClick={() => void save()}>{busy ? 'Creating…' : 'Save shot'}</button>
   </>}><div ref={body}>
     <label className="stack-field"><span>Preset name</span><input maxLength={60} disabled={busy} value={name} onChange={e => setName(e.target.value)}/></label>
     <label className="stack-field"><span>Shot type</span><select aria-label="Shot type" disabled={busy} value={family} onChange={e => setFamily(e.target.value as RallyShotFamily)}>

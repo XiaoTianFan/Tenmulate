@@ -89,7 +89,6 @@ export function projectCatalogPlugin<T>(name: string, catalogFile: string, adapt
   return {
     name,
     configureServer(server) { server.middlewares.use(projectMiddleware(file, adapter)); },
-    configurePreviewServer(server) { server.middlewares.use(projectMiddleware(file, adapter)); },
     // The API response refreshes the catalog. A full reload would discard live UI state.
     handleHotUpdate(context) { if (resolve(context.file) === file) return []; },
   };

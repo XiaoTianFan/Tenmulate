@@ -1,5 +1,7 @@
 # Project shot presets
 
+> Current save behavior is defined by the [unified saving system](saving-system.md) and ADR-0053. The project-only workflow below is the earlier implementation record.
+
 The editor's shot library is stored in `src/content/project-shots.json`. It starts
 with the 21 system defaults; they are editable entries, not a separate read-only
 list. Explicit saves write this file through the local development or preview

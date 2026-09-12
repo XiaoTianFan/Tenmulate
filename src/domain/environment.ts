@@ -1,4 +1,4 @@
-import type { SurfaceId } from './court';
+import type { SurfaceId } from './court.ts';
 
 export const VENUE_IDS = [
   'hard-open-arena',

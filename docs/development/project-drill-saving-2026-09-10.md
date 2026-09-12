@@ -1,5 +1,7 @@
 # Project drill saving and editor recovery
 
+> Current save behavior is defined by the [unified saving system](saving-system.md) and ADR-0053. The project-only workflow below is the earlier implementation record.
+
 Date: 2026-09-10. Decision: [ADR-0043](../decisions/0043-project-drill-catalog-and-editor-drafts.md).
 
 ## User workflow

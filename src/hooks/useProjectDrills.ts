@@ -15,6 +15,7 @@ export function useProjectDrills() {
     current.current = value; setSnapshot(value); setWritable(true); setStatus('Project catalog');
   }, []);
   const refresh = useCallback(async () => {
+    if (!import.meta.env.DEV) return;
     const token = ++request.current;
     try {
       const response = await fetch(PROJECT_DRILLS_ENDPOINT, { cache: 'no-store' });
@@ -27,7 +28,7 @@ export function useProjectDrills() {
   }, [accept]);
   useEffect(() => { void refresh(); window.addEventListener('focus', refresh); return () => { window.removeEventListener('focus', refresh); }; }, [refresh]);
   const mutate = async (method: 'PUT' | 'DELETE', data: { drill: DrillDefinitionV2 } | { id: string }) => {
-    if (!current.current.revision) throw new Error('Project saving is unavailable. Your editor draft is retained.');
+    if (!import.meta.env.DEV || !current.current.revision) throw new Error('Project saving is unavailable. Your editor draft is retained.');
     ++request.current;
     const response = await fetch(PROJECT_DRILLS_ENDPOINT, { method, headers: { 'Content-Type': 'application/json', 'X-Tenmulate-Project': '1' },
       body: JSON.stringify({ ...data, revision: current.current.revision }) });

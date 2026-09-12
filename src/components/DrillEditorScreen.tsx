@@ -1,3 +1,4 @@
+import { SaveCancelled } from '../storage/savePolicy';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Copy, Play, Save, Trash2 } from 'lucide-react';
 import { openingFor } from '../content/playerShots';
@@ -201,7 +202,7 @@ export function DrillEditorScreen({ route, initialDrill, initialDraft, onDraftCh
   const issues = preview.current ? preview.session?.planningIssues ?? [] : [];
   const shotIssues = shotPreview.current ? shotPreview.session?.planningIssues ?? [] : [];
 
-  const saveProject = async () => {
+  const saveDrill = async () => {
     setSaving(true); captureDraft();
     try {
       const saved = await onSave(workingDrill);
@@ -210,8 +211,7 @@ export function DrillEditorScreen({ route, initialDrill, initialDraft, onDraftCh
       setViewDraft(null); commit(saved);
       latestDraft.current = { ...latestDraft.current, drill: saved, savedDrill: saved };
       onDraftChange(latestDraft.current, previousId);
-      setMessage(`Saved “${saved.title}” to the project. The drill library is updated.`);
-    } catch (error) { setMessage(error instanceof Error ? error.message : 'Project save failed. Your draft is retained.'); }
+    } catch (error) { if (error instanceof SaveCancelled) return; setMessage(error instanceof Error ? error.message : 'Save failed. Your draft is retained.'); }
     finally { setSaving(false); }
   };
   return <main ref={root} className="app-shell editor-shell">
@@ -267,18 +267,17 @@ export function DrillEditorScreen({ route, initialDrill, initialDraft, onDraftCh
             onPreview={() => { if (!transitionWindow) return; setOverview(false); setSequenceRange({ start: transitionWindow.start, end: transitionWindow.end }); setSequence(true); }}/>
             : <DrillShotControls event={selected} drill={drill} camera={previewCamera} onChange={updateEvent} onCameraChange={commitCamera} onEditOpening={() => selectEvent(`opening:${selected.id}`)}/>}
           {compiled?.timing && !preview.pending ? <p className="saved-shot-count">Player contacts {compiled.timing.actual.toFixed(2)} s apart{compiled.timing.limited ? ` · requested ${compiled.timing.requested.toFixed(2)} s` : ''}.</p> : null}
-          <button className="secondary-button full-width save-shot-button" type="button" onClick={() => setShotDraft({ mode: 'new', event: snapshotPlayerShot({ ...selected, camera: isTransition ? selected.camera : previewCamera }, workingDrill) })}><Save size={16}/> Save new shot</button>
-          <button className="secondary-button full-width save-shot-button" type="button" onClick={() => setShotDraft({ mode: 'update', event: snapshotPlayerShot({ ...selected, camera: isTransition ? selected.camera : previewCamera }, workingDrill) })}><Save size={16}/> Update existing saved shot</button>
+          <button className="secondary-button full-width save-shot-button" type="button" onClick={() => setShotDraft({ mode: selected.presetId ? 'update' : 'new', event: snapshotPlayerShot({ ...selected, camera: isTransition ? selected.camera : previewCamera }, workingDrill) })}><Save size={16}/> Save shot</button>
         </> : null}
         {[...validation.errors, ...issues.map(issue => issue.message), ...shotIssues.map(issue => issue.message), ...(preview.error ? [preview.error] : [])].length ? <ul className="validation-errors">{[...new Set([...validation.errors, ...issues.map(issue => issue.message), ...shotIssues.map(issue => issue.message), ...(preview.error ? [preview.error] : [])])].map(error => <li key={error}>{error}</li>)}</ul> : null}
-        <div className="editor-primary-actions"><small className="project-save-status">{writable ? 'Draft retained here. Save to update the project; matching drill names overwrite.' : projectStatus}</small><button className="primary-button" type="button" disabled={!validation.valid || !writable || saving} onClick={() => void saveProject()}><Save size={17}/> {saving ? 'Saving…' : 'Save to project'}</button>
+        <div className="editor-primary-actions"><small className="project-save-status">{writable ? 'Draft retained here. Save drill to keep a library version.' : projectStatus}</small><button className="primary-button" type="button" disabled={!validation.valid || !writable || saving} onClick={() => void saveDrill()}><Save size={17}/> {saving ? 'Saving…' : 'Save drill'}</button>
           <button className="secondary-button full-width" type="button" disabled={!validation.valid || preview.pending || !!issues.length || !!preview.error} onClick={() => onTest(workingDrill)}><Play size={16}/> Test drill</button></div>
       </aside>
     </section>
     {creatingShot ? <NewShotModal hand={playerHand} savedShots={savedShots} writable={shotsWritable} status={shotsStatus} onClose={() => setCreatingShot(false)}
       onSave={async shot => { const saved = await onSaveShot(shot); setShotNotice(`Created “${saved.name}”. Click or drag it onto the timeline.`); setCreatingShot(false); }}/> : null}
     {shotDraft ? <SavedShotModal {...shotDraft} playerHand={playerHand} savedShots={savedShots} writable={shotsWritable} projectStatus={shotsStatus} projectShotIds={projectShotIds} onClose={() => setShotDraft(null)}
-      onSave={async (shot, targetId) => { const saved = await onSaveShot(shot, targetId); updateEvent({ presetId: saved.id, label: saved.name }); setShotNotice(`Saved “${saved.name}” to the project.`); setShotDraft(null); }}
+      onSave={async (shot, targetId) => { const saved = await onSaveShot(shot, targetId); updateEvent({ presetId: saved.id, label: saved.name }); setShotNotice(`Saved “${saved.name}”.`); setShotDraft(null); }}
       onDelete={async id => { await onDeleteShot(id); setShotNotice('Shot removed from the library.'); setShotDraft(null); }}/>
       : null}
     {message ? <Modal title="Drill editor" onClose={() => setMessage(null)} actions={<button className="primary-button inline" type="button" onClick={() => setMessage(null)}>Close</button>}><p>{message}</p></Modal> : null}

@@ -1,3 +1,6 @@
+import bundledConfigs from '../content/project-configs.json';
+import { validateProjectConfigs, validatePracticeConfig } from './projectConfigs';
+import { writeBrowserData } from './savePolicy';
 import { normalizeLandingZone, type LandingZone, type LandingZoneSize } from '../engine/trajectory/landingZone';
 import { DEFAULT_RETURN_LANDING_ZONE, isReturnLandingZone } from '../engine/session/returnLandingZone';
 import { defaultReturnShot, normalizeReturnShot } from '../engine/session/returnShot';
@@ -54,9 +57,15 @@ export type AppDataV2 = Readonly<{
   cameraPositionPresets: readonly CameraPositionPresetV1[];
   perspectivePresets: readonly PerspectivePresetV1[];
   preferences: PracticePreferencesV1;
+  practiceConfigs?: Record<string, PracticePreferencesV1>;
+  cameraPresetOverrides?: string[];
+  perspectivePresetOverrides?: string[];
+  hiddenDrills?: string[];
+  hiddenShots?: string[];
 }>;
 
 export type PracticePreferencesV1 = Readonly<{
+  seed?: string;
   ballFocus: BallFocusSettings;
   sessionCategory: string;
   trajectoryEnabled: boolean;
@@ -107,14 +116,22 @@ export const DEFAULT_PREFERENCES: PracticePreferencesV1 = {
   environment: DEFAULT_ENVIRONMENT, quality: 'auto', screenWidthCm: 120, screenHeightCm: 67.5, viewDistanceCm: 250,
 };
 
+const projectDefaults = validateProjectConfigs(bundledConfigs);
+export const mergePresets = <T extends { id: string }>(defaults: readonly T[], overrides: readonly T[]): T[] => [
+  ...defaults.map(item => overrides.find(value => value.id === item.id) ?? item),
+  ...overrides.filter(item => !defaults.some(value => value.id === item.id)),
+];
+export const browserPresetOverrides = <T extends { id: string }>(presets: readonly T[], defaults: readonly T[], explicitIds?: readonly string[]) => presets.filter(item =>
+  explicitIds ? explicitIds.includes(item.id) : !defaults.some(base => JSON.stringify(base) === JSON.stringify(item)));
 export const DEFAULT_APP_DATA: AppDataV2 = {
   schemaVersion: 2,
+  cameraPresetOverrides: [], perspectivePresetOverrides: [],
   drillPlayerHand: 'right',
   customDrills: [],
   savedShots: [],
-  cameraPositionPresets: DEFAULT_CAMERA_POSITION_PRESETS,
-  perspectivePresets: DEFAULT_PERSPECTIVE_PRESETS,
-  preferences: DEFAULT_PREFERENCES,
+  cameraPositionPresets: mergePresets(DEFAULT_CAMERA_POSITION_PRESETS, projectDefaults.cameraPositionPresets),
+  perspectivePresets: mergePresets(DEFAULT_PERSPECTIVE_PRESETS, projectDefaults.perspectivePresets),
+  preferences: projectDefaults.practiceConfigs['Quick Rally'] ?? DEFAULT_PREFERENCES,
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -257,12 +274,17 @@ export const loadAppData = (): AppDataV2 => {
       } catch { skipped++; }
     }
     if (!current && (customDrills.length || savedShots.length || skipped)) storageNotice = `Saved drills and shots now use the player's perspective. Original data is retained in this browser.${skipped ? ` ${skipped} legacy item(s) need manual repair before import.` : ''}`;
-    return { schemaVersion: 2, drillPlayerHand: parsed.drillPlayerHand === 'left' ? 'left' : 'right', customDrills, savedShots, cameraPositionPresets, perspectivePresets, preferences };
+    const practiceConfigs: Record<string, PracticePreferencesV1> = {};
+    if (isRecord(parsed.practiceConfigs)) for (const [key, value] of Object.entries(parsed.practiceConfigs)) {
+      try { if (validatePracticeConfig(value).sessionCategory === key) practiceConfigs[key] = value; } catch { skipped++; }
+    }
+    const strings = (value: unknown) => Array.isArray(value) ? value.filter((id): id is string => typeof id === 'string') : [];
+    return { ...(parsed.cameraPresetOverrides ? { cameraPresetOverrides: strings(parsed.cameraPresetOverrides) } : {}), ...(parsed.perspectivePresetOverrides ? { perspectivePresetOverrides: strings(parsed.perspectivePresetOverrides) } : {}), ...(parsed.practiceConfigs ? { practiceConfigs } : {}), ...(parsed.hiddenDrills ? { hiddenDrills: strings(parsed.hiddenDrills) } : {}), ...(parsed.hiddenShots ? { hiddenShots: strings(parsed.hiddenShots) } : {}), schemaVersion: 2, drillPlayerHand: parsed.drillPlayerHand === 'left' ? 'left' : 'right', customDrills, savedShots, cameraPositionPresets, perspectivePresets, preferences: practiceConfigs[preferences.sessionCategory] ?? projectDefaults.practiceConfigs[preferences.sessionCategory] ?? preferences };
   } catch {
     return DEFAULT_APP_DATA;
   }
 };
 
 export const saveAppData = (data: AppDataV2): void => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  writeBrowserData(localStorage, STORAGE_KEY, data);
 };

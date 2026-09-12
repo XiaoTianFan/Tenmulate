@@ -31,13 +31,19 @@ The app cannot verify that connection. See the
 
 The drill editor plans **your shots**. **Edit drill** opens an existing library
 entry; copying is optional.
-**Save to project** writes `src/content/project-drills.json` through the local
-development or preview server. A matching drill name updates the existing entry.
-Unfinished editor work is recovered separately when switching pages or reloading;
-it does not update the project until saved. Create/import actions are at the bottom
-of the library's right panel. Static/offline copies can rehearse the bundled catalog,
-but project saves require the local server. See the
-[project saving guide](docs/development/project-drill-saving-2026-09-10.md).
+Use **Save drill**, **Save shot**, **Save config** and **Save preset**. In local
+**development**, every explicit save asks whether to save a **Project default** or
+to **This browser**. Production saves directly to durable browser localStorage.
+Project defaults are included in future builds; browser versions take precedence
+only in that browser. Saves report storage failures without switching destination.
+
+Quick Practice saves one configuration per mode, including camera, ball, landing
+zones, environment and display settings. **Save config** keeps the current mode's
+setup; selecting a mode restores its saved config. Camera and perspective preset
+creation and right-click updates use the same save flow. Unfinished drill edits
+are recovered separately; they do not replace a saved library version until saved.
+Create/import actions remain at the bottom of the drill library. See the
+[unified saving architecture](docs/development/saving-system.md).
 
 An opponent opening feed or serve starts
 each point; player presets then assemble the tactical sequence. **Top-down zones**
@@ -46,12 +52,10 @@ zone for your next shot. Each event owns both balls' settings and your camera
 position; the opponent meets the physical player flight automatically.
 Drop shots, volleys and overheads are available; kick/sidespin are serve-only.
 New/update presets retain both balls, zones, camera and timing.
-**Save new shot** and **Update existing saved shot** write
-`src/content/project-shots.json`, including updates to system default shots. The
-overwrite dialog lists every library shot and selects the current preset when
-known. Later timeline additions use the updated project preset; events already
-placed in drills retain their own settings. Older browser-only presets remain
-available to save into the project. See the [shot saving guide](docs/development/project-shot-saving.md).
+**Save shot** opens a form to create or replace a named preset. Both project and
+browser destinations retain both balls, zones, camera and timing. Later timeline
+additions use the saved preset; existing events keep their own settings. Older
+browser-only presets remain available.
 Use **Add New Shot** at the bottom of the left library to create a fresh preset.
 Right-click a library row, or use its three-dot menu, to delete it from the
 library permanently, including a system default.

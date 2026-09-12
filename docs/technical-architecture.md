@@ -479,6 +479,17 @@ Proposed top-level records:
 
 All persisted records have an explicit schema version. Bundled content definitions are immutable build assets; camera-position and perspective presets are locally customizable. User-created drills have separate IDs. Only opening shots author an opponent floor position; rally responses resolve it from ball contact. Player and response balls have independent type/spin validation, and zone coordinates are validated for the owning court half. JSON import rejects unknown fields, remote URLs, nonfinite values, out-of-envelope coordinates and unsupported schemas. Original schema 1 drills and saved shots migrate once into the schema 2 app-data envelope; they are retained in their original storage key.
 
+**Unified saves (2026-09-12):** [ADR-0053](decisions/0053-unified-save-destinations.md)
+routes explicit drill, shot, practice-config and preset saves through one destination
+coordinator. Development always asks for Project default or This browser; production
+saves directly to localStorage and never probes project APIs. Only development
+installs the three catalog endpoints. They share atomic writes and revision checks.
+Browser overrides take precedence over bundled defaults; project promotion removes
+the corresponding browser override. Quick Practice saves independently per mode.
+Its live form survives route changes without implicitly becoming a durable config;
+Save config persists it. Editor recovery remains independent of saved library data.
+See the [saving audit](development/saving-system.md) for every entry point and receipt.
+
 V1 stores calibration, preferences, custom drills, and offline-content selection locally. A service worker precaches the shell and explicitly selected drill asset groups, exposes storage/cache state, and degrades clearly when storage quota prevents an offline promise. No personal data leaves the device unless an explicitly initiated export or a later separately approved analytics/account feature does so.
 
 ## 12. Future body-tracking boundary

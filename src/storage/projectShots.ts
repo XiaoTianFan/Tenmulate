@@ -42,12 +42,13 @@ export function upsertProjectShot(catalog: ProjectShots, value: unknown, targetI
   return { catalog: validateProjectShots({ schemaVersion: 1, shots }), shot };
 }
 
-/** Browser-only presets remain available to explicitly promote into the project. */
+/** Browser overrides take precedence; defaults remain available in other browsers. */
 export function mergeBrowserShots(project: readonly SavedShotV2[], browser: readonly SavedShotV2[]) {
-  const ids = new Set(project.map(shot => shot.id)), names = new Set(project.map(shot => shotNameKey(shot.name)));
-  return [...project, ...browser.filter(shot => {
-    const name = shotNameKey(shot.name);
-    if (ids.has(shot.id) || names.has(name)) return false;
-    ids.add(shot.id); names.add(name); return true;
-  })];
+  const ids = new Set<string>(), names = new Set<string>();
+  return [...project.map(item => browser.find(value => value.id === item.id)
+    ?? browser.find(value => shotNameKey(value.name) === shotNameKey(item.name)) ?? item), ...browser].filter(item => {
+      const name = shotNameKey(item.name);
+      if (ids.has(item.id) || names.has(name)) return false;
+      ids.add(item.id); names.add(name); return true;
+    });
 }

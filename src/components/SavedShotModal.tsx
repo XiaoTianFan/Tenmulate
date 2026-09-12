@@ -1,3 +1,4 @@
+import { SaveCancelled } from '../storage/savePolicy';
 import { useEffect, useRef, useState } from 'react';
 import { isPlayerSavedShot, validatePlayerEvent } from '../content/playerValidation';
 import type { OpponentHand, PlayerShotEventV2, SavedShotV2 } from '../content/types';
@@ -15,7 +16,7 @@ type Props = {
   onClose: () => void;
 };
 
-export function SavedShotModal({ mode: initialMode, event, playerHand, savedShots, writable, projectStatus, projectShotIds, onSave, onDelete, onClose }: Props) {
+export function SavedShotModal({ mode: initialMode, event, playerHand, savedShots, writable, projectStatus, onSave, onDelete, onClose }: Props) {
   const initialSlot = savedShots.find(shot => shot.id === event.presetId) ?? savedShots.find(shot => shotNameKey(shot.name) === shotNameKey(event.label));
   const [mode, setMode] = useState(initialMode);
   const [slotId, setSlotId] = useState(initialSlot?.id ?? '');
@@ -42,8 +43,8 @@ export function SavedShotModal({ mode: initialMode, event, playerHand, savedShot
     try {
       if (operation === 'delete' && slot) await onDelete(slot.id);
       else if (canSave) await onSave({ ...candidate, id: mode === 'update' ? slotId : `shot-${crypto.randomUUID()}` },
-        slot && projectShotIds.includes(slot.id) ? slot.id : undefined);
-    } catch (error) { setFailure(error instanceof Error ? error.message : 'Project save failed. Your shot settings are retained.'); }
+        slot?.id);
+    } catch (error) { if (error instanceof SaveCancelled) return; setFailure(error instanceof Error ? error.message : 'Save failed. Your shot settings are retained.'); }
     finally { setBusy(false); }
   };
 
@@ -67,13 +68,14 @@ export function SavedShotModal({ mode: initialMode, event, playerHand, savedShot
     (dialog?.querySelector<HTMLElement>('select, input:not(:disabled)') ?? dialog?.querySelector<HTMLElement>('button'))?.focus();
   }, [mode]);
 
-  return <Modal title={mode === 'update' ? 'Update project shot' : 'Save new shot to project'} onClose={dismiss} actions={<>
+  return <Modal title="Save shot" onClose={dismiss} actions={<>
     <button type="button" className="secondary-button" disabled={busy} onClick={dismiss}>Cancel</button>
     {empty ? <button type="button" className="primary-button inline" onClick={() => { setMode('new'); setName(event.label); }}>Save new shot</button>
       : <button type="button" className="primary-button inline" disabled={!canSave} onClick={() => void act('save')}>
-        {busy ? 'Saving…' : mode === 'update' || named ? 'Overwrite project shot' : 'Save to project'}</button>}
+        {busy ? 'Saving…' : 'Save shot'}</button>}
   </>}>
     <div ref={body}>
+      <label className="stack-field"><span>Save as</span><select aria-label="Save shot as" disabled={busy} value={mode} onChange={e => { setMode(e.target.value as 'new' | 'update'); setName(e.target.value === 'new' ? event.label : initialSlot?.name ?? ''); setSlotId(initialSlot?.id ?? ''); }}><option value="update">Replace existing shot</option><option value="new">New shot</option></select></label>
       <p className="project-save-status" role="status">{projectStatus}</p>
       {empty ? <p>The shot library is empty. Save a new shot to create your first slot.</p> : <>
         {mode === 'update' ? <label className="stack-field"><span>Shot to overwrite</span>
@@ -87,7 +89,7 @@ export function SavedShotModal({ mode: initialMode, event, playerHand, savedShot
           </select>
         </label> : null}
         <label className="stack-field"><span>Preset name</span><input maxLength={60} disabled={busy || mode === 'update' && !slot} value={name} onChange={e => setName(e.target.value)}/></label>
-        <p>{slot || named ? <>Replace “{(slot ?? named)!.name}” in the project with the current shot's settings.</> : 'Save the current shot to the project.'} Includes both balls, landing zones, contact camera, camera transition, timing and opponent settings.</p>
+        <p>{slot || named ? <>Replace “{(slot ?? named)!.name}” with the current shot's settings.</> : 'Save the current shot as a preset.'} Includes both balls, landing zones, contact camera, camera transition, timing and opponent settings.</p>
         <p>Future timeline additions use this preset. Shots already placed in drills keep their own settings.</p>
         {collision ? <p className="validation-errors" role="alert">Another shot uses this name. Choose a different name or select that shot to overwrite.</p> : null}
         {slot ? <button type="button" className="secondary-button" disabled={busy || !writable} onClick={() => void act('delete')}>Delete shot</button> : null}
