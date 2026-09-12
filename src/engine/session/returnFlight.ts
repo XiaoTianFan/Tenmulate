@@ -7,6 +7,7 @@ import { resolveCourtFlight } from './courtFlight';
 import { resolveReturnShot, RETURN_SHOT_PROFILES, returnShotContacts } from './returnShot';
 import { bounceContactCost, bounceContactPreference, contactsForTiming } from './bounceContact';
 import { CONTACT_COURT_LIMITS } from './playerCoverage';
+import { groundedOpponentContacts } from './opponentContact';
 export type RallyReturn = Readonly<{ trajectory: ResolvedTrajectory; contactTime: number;
   duration: number; contactErrorM: number; speedRatio: number }>;
 
@@ -29,7 +30,7 @@ function returnFlight(incoming: ResolvedTrajectory, contact: FlightSample, targe
  * accepting a contact. The sampled bounce target stays fixed across candidates. */
 export function returnPlanCandidates(incoming: ResolvedTrajectory, family: ShotFamily, zone: LandingZone,
   target: { x: number; z: number }, preferredGap: number, configuration?: ReturnShotConfiguration, opponentTiming: ContactTiming = 'descent',
-  accepts?: (candidate: ReturnCandidate) => boolean): ReturnCandidate[] {
+  accepts?: (candidate: ReturnCandidate) => boolean, contactCeiling = Infinity): ReturnCandidate[] {
   if (family === 'serve') return [];
   const shot = resolveReturnShot(configuration, family), profile = RETURN_SHOT_PROFILES[shot.type];
   const contacts = contactsForTiming(incoming, shot.type, returnShotContacts(incoming, shot.type), shot.contactTiming);
@@ -70,7 +71,7 @@ export function returnPlanCandidates(incoming: ResolvedTrajectory, family: ShotF
           samples.push({ time: desired, position: mix(a.position, b.position), velocity: mix(a.velocity, b.velocity), bounced: a.bounced });
         }
       }
-      return contactsForTiming(flight, family, samples, opponentTiming).map(sample => {
+      return groundedOpponentContacts(flight, family, samples, opponentTiming, contactCeiling).map(sample => {
         // A later sample is a genuine intercept along this flight, not a new emitter.
         return { source: sample.position, contact: sample, gap: contact.time + sample.time,
           rally: { contactTime: contact.time, duration: sample.time, contactErrorM: 0,

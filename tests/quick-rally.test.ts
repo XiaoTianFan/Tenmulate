@@ -7,6 +7,7 @@ import { defaultReturnShot } from '../src/engine/session/returnShot';
 import { bounceContactPhase } from '../src/engine/session/bounceContact';
 import type { ContactTiming } from '../src/content/types';
 import { trajectoryReadout } from '../src/engine/trajectory/trajectoryReadout';
+import { groundedOpponentShot } from '../src/engine/session/opponentContact';
 
 const settings: SessionSettings = { mode: 'quick-practice', repetitions: 6, workBlockSize: 6, restSeconds: 0, shotIntervalSeconds: 5,
   rhythmPercent: 100, movementPercent: 100, variationPercent: 8, timingVariationPercent: 0, launchSpeedKmh: 70,
@@ -51,7 +52,7 @@ describe('physical Quick Rally returns', () => {
   });
   it.each((['rise', 'apex', 'descent'] as ContactTiming[]).flatMap(player =>
     (['rise', 'apex', 'descent'] as ContactTiming[]).map(opponent => [player, opponent] as const)))
-  ('honors player %s and opponent %s even when a faster interval is requested', (player, opponent) => {
+  ('honors player %s and supported opponent %s contacts at a faster requested interval', (player, opponent) => {
     const session = compileSession(drill, { ...settings, repetitions: 3, shotIntervalSeconds: 2.5,
       rally: { ...settings.rally!, shot: { ...settings.rally!.shot, contactTiming: player }, opponentContactTiming: opponent } });
     expect(session.planningIssues ?? []).toEqual([]);
@@ -59,7 +60,12 @@ describe('physical Quick Rally returns', () => {
     for (const rep of session.repetitions.slice(0, -1)) {
       expect(rep.returnStatus).toBe('linked');
       expect(bounceContactPhase(rep.reachability.contact!)).toBe(player);
-      expect(bounceContactPhase(rep.rallyReturn!.trajectory.samples.at(-1)!)).toBe(opponent);
+      const contact = rep.rallyReturn!.trajectory.samples.at(-1)!;
+      const actualPhase = bounceContactPhase(contact);
+      expect(opponent === 'apex' ? ['apex', 'descent'] : [opponent]).toContain(actualPhase);
+      const next = session.repetitions[rep.index + 1]!;
+      expect(groundedOpponentShot(next.shot)).toBe(true);
+      if (actualPhase !== opponent) expect(next.incomingContact!.contactTime).toBeGreaterThan(next.incomingContact!.apexTime!);
     }
   });
   it('keeps other Quick Practice modes as independent feeds', () => {

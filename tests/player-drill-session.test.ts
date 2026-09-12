@@ -9,6 +9,7 @@ import { sessionCues } from '../src/engine/audio/sessionCues';
 import { bounceContactPhase } from '../src/engine/session/bounceContact';
 import { receivingZone } from '../src/content/playerShots';
 import type { ContactTiming } from '../src/content/types';
+import { groundedOpponentShot } from '../src/engine/session/opponentContact';
 
 const settings: SessionSettings = { repetitions: 4, mode: 'drill', launchSpeedKmh: 78, surface: 'hard', seed: 'player-drill-check',
   variationPercent: 0, timingVariationPercent: 0, spin: 'preset', opponentHand: 'right', workBlockSize: 50,
@@ -16,7 +17,7 @@ const settings: SessionSettings = { repetitions: 4, mode: 'drill', launchSpeedKm
 describe('player-owned drill clock and physical handoffs', () => {
   it.each((['rise', 'apex', 'descent'] as ContactTiming[]).flatMap(player =>
     (['rise', 'apex', 'descent'] as ContactTiming[]).map(opponent => [player, opponent] as const)))
-  ('honors player %s and opponent %s contacts independently', (player, opponent) => {
+  ('honors player %s and supported opponent %s contacts independently', (player, opponent) => {
     const original = PLAYER_DRILLS[0]!;
     const events = original.events.map(event => ({ ...event, ball: { ...event.ball, contactTiming: player },
       opponentReturn: { ...event.opponentReturn, ball: { ...event.opponentReturn.ball, contactTiming: opponent } } }));
@@ -33,7 +34,12 @@ describe('player-owned drill clock and physical handoffs', () => {
     expect(session.playerEvents).toHaveLength(3);
     for (const event of session.playerEvents!) {
       expect(bounceContactPhase(session.repetitions[event.incomingIndex]!.reachability.contact!)).toBe(player);
-      if (event.responseIndex !== undefined) expect(event.opponentContactPhase).toBe(opponent);
+      if (event.responseIndex !== undefined) {
+        const response = session.repetitions[event.responseIndex]!;
+        expect(opponent === 'apex' ? ['apex', 'descent'] : [opponent]).toContain(event.opponentContactPhase);
+        expect(groundedOpponentShot(response.shot)).toBe(true);
+        if (event.opponentContactPhase !== opponent) expect(response.incomingContact!.contactTime).toBeGreaterThan(response.incomingContact!.apexTime!);
+      }
     }
   });
   it('connects the default player pattern with continuous contacts and one opening', () => {
@@ -70,6 +76,7 @@ describe('player-owned drill clock and physical handoffs', () => {
     const session = compileSession(drill, { ...settings, repetitions: drill.events.length });
     expect(session.planningIssues).toEqual([]);
     expect(session.playerEvents).toHaveLength(drill.events.length);
+    expect(session.repetitions.every(rep => groundedOpponentShot(rep.shot))).toBe(true);
     const last = session.playerEvents!.at(-1)!, winner = session.scheduledFlights!.at(-1)!;
     expect(last.responseIndex).toBeUndefined();
     expect(winner).toMatchObject({ phase: 'player', eventIndex: last.index, startTime: last.startTime });

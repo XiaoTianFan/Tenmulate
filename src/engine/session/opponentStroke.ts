@@ -1,6 +1,7 @@
 import type { StrokeChoice, StrokeSide } from '../../content/types';
 import { motionEvent, withPreparedApproach, type MotionRepetition } from './opponentTimeline';
 import { planRecovery } from './opponentMovement';
+import { groundedOpponentShot } from './opponentContact';
 
 const distance = (a: { x: number; z: number }, b: { x: number; z: number }) => Math.hypot(a.x - b.x, a.z - b.z);
 
@@ -15,9 +16,10 @@ export function opponentStrokeOptions<T extends MotionRepetition>(previous: Moti
   return sides.map(stroke => {
     const repetition = withPreparedApproach(previous, { ...draft, shot: { ...draft.shot, stroke } });
     const event = motionEvent(repetition);
+    const grounded = groundedOpponentShot(repetition.shot);
     if (!previousEvent || !previous) {
       const origin = draft.home ?? { x: 0, y: 0, z: event.root.z };
-      return { repetition, score: distance(origin, event.root), feasible: true };
+      return { repetition, score: distance(origin, event.root), feasible: grounded };
     }
     // Check feasibility at the physical ceiling before comparing convenience.
     const a = motionEvent({ ...previous, motionRate: 3, movementRate: 3 });
@@ -34,7 +36,7 @@ export function opponentStrokeOptions<T extends MotionRepetition>(previous: Moti
     const switchCost = previous.shot.stroke === stroke ? 0 : .12;
     const score = travel + direct * .35 + Math.max(0, travel - direct) * .25
       + route.requiredDuration * .15 + switchCost;
-    return { repetition, score: score + deficit * 1000, feasible: deficit < 1e-7 };
+    return { repetition, score: score + deficit * 1000, feasible: grounded && deficit < 1e-7 };
   }).sort((a, b) => Number(b.feasible) - Number(a.feasible) || a.score - b.score);
 }
 

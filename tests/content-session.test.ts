@@ -124,7 +124,7 @@ describe('session compiler', () => {
     const repetition = session.repetitions[0]!;
     const bounce = repetition.trajectory.events.find((event) => event.type === 'bounce')!;
     expect(repetition.shot.family).toBe('serve');
-    expect(repetition.shot.source.y).toBe(2.75);
+    expect(repetition.shot.source.y).toBeCloseTo(2.720799, 5);
     expect(repetition.shot.spin).toBe('kick');
     expect(bounce.position.z).toBeGreaterThanOrEqual(-COURT.serviceLineFromNet);
     expect(bounce.position.z).toBeLessThan(0);

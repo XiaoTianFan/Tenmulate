@@ -17,7 +17,7 @@ afterEach(()=>vi.restoreAllMocks());
 const rep=(clip:StrokeId,hand:'left'|'right',rate=1)=>({index:0,startTime:5,motionRate:rate,preparedApproach:true,
   home:{x:0,y:0,z:13},shot:{...SHOTS[0]!,family:clip.endsWith('volley')?'volley' as const:'groundstroke' as const,
     stroke:clip.startsWith('backhand')?'backhand' as const:'forehand' as const,spin:clip.endsWith('slice')?'slice' as const:'topspin' as const,
-    opponentHand:hand,source:{x:(clip.startsWith('backhand')?-3:3)*(hand==='left'?-1:1),y:1.1,z:12.8},target:{x:0,z:-8}}});
+    opponentHand:hand,source:{x:(clip.startsWith('backhand')?-3:3)*(hand==='left'?-1:1),y:clip==='forehand-slice'?.98:1.1,z:12.8},target:{x:0,z:-8}}});
 const clips=['forehand','backhand','forehand-slice','backhand-slice','forehand-volley','backhand-volley'] as const;
 describe('prepared stroke entries after travel',()=>{
  it.each(clips)('%s stays turned through arrival and preserves the hit in both hands',async clip=>{

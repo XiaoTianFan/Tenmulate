@@ -5,6 +5,7 @@ import { aimDirectionToCourtPoint, netHeightAt, resolveTrajectory, type FlightSa
 import type { LandingZone } from '../trajectory/landingZone';
 import { cameraPlayerPosition, legalReturnContacts } from './playerCoverage';
 import { contactsForTiming } from './bounceContact';
+import { groundedOpponentContacts, opponentContactCeiling } from './opponentContact';
 
 export const rotateCourtPoint = (p: Vec3): Vec3 => ({ x: -p.x, y: p.y, z: -p.z });
 const rotateZone = (z: LandingZone): LandingZone => ({ minX: -z.maxX, maxX: -z.minX, minZ: -z.maxZ, maxZ: -z.minZ });
@@ -83,6 +84,6 @@ export function opponentContacts(flight: ResolvedTrajectory, ball: OpponentBall)
   // The visible opponent uses a real clip and rigid legs. A late ankle-height
   // contact would lower its pelvis through the court just to extend the interval.
   const minimumHeight = ball.family === 'overhead' ? 2.2 : ball.family === 'volley' ? 1.1 : .65;
-  return contactsForTiming(flight, ball.family, legalReturnContacts(rotated).filter(sample => familyContact(sample, ball.family) && sample.position.y >= minimumHeight)
-    .map(sample => ({ ...sample, position: rotateCourtPoint(sample.position), velocity: rotateCourtPoint(sample.velocity) })), ball.contactTiming);
+  return groundedOpponentContacts(flight, ball.family, legalReturnContacts(rotated).filter(sample => familyContact(sample, ball.family) && sample.position.y >= minimumHeight)
+    .map(sample => ({ ...sample, position: rotateCourtPoint(sample.position), velocity: rotateCourtPoint(sample.velocity) })), ball.contactTiming, opponentContactCeiling(ball));
 }

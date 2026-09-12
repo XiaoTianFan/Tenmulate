@@ -57,10 +57,13 @@ describe('versioned drill documents', () => {
     expect(session.repetitions[0]!.shot).toMatchObject({
       paceKmh: 101,
       spin: 'slice',
-      source: { x: 0, y: 1.15, z: 12.4 },
+      source: { x: 0, z: 12.4 },
       cue: 'MOVE NOW',
       opponentHand: 'left',
     });
+    // The slice feed starts at its supported racket height, not the taller
+    // groundstroke preset's emitter; fixed pace, spin and zone remain authored.
+    expect(session.repetitions[0]!.shot.source.y).toBeCloseTo(.987333, 5);
     expect(session.repetitions[0]!.trajectory.intent.landingZone).toEqual({minX:1.25-.8,maxX:2.05,minZ:-8.5,maxZ:-6.5});
   });
 

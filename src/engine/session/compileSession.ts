@@ -1,4 +1,5 @@
 import { resolveOpponentStroke } from './opponentStroke';
+import { groundedOpponentShot, opponentContactCeiling } from './opponentContact';
 import { planRecovery } from './opponentMovement';
 import { acceptsPlayerReturn, resolveReturnShot } from './returnShot';
 import { normalizeShotSpin } from '../../domain/shotKinds';
@@ -95,7 +96,7 @@ export type CompiledSession = Readonly<{
   /** Prepared off-thread so mounting a rally never performs a seam solve. */
   previewNext?: Readonly<{ last: CompiledRepetition; next: CompiledSession }>;
   solverVersion: 'ball-v11-net-shots';
-  plannerVersion: 'gameplay-opponent-footwork-v13' | 'gameplay-player-drills-v19';
+  plannerVersion: 'gameplay-opponent-footwork-v14' | 'gameplay-player-drills-v20';
   contentVersion: '2026.09.09';
   drill: DrillDefinition;
   settings: SessionSettings;
@@ -251,6 +252,10 @@ export const compileSession = (
       }
       shot={...shot,source};
     }
+    // An opening/feed has no incoming flight to wait along. Start it at a
+    // supported racket height before solving physics, including saved presets.
+    source = { ...source, y: Math.min(source.y, opponentContactCeiling({ ...shot, stroke: shot.stroke ?? 'forehand' })) };
+    shot = { ...shot, source };
     const nominalSpin = practiceType ? spinRateForPracticeShot(practiceType, selectedSpin, settings.spinRateRpm)
       : sourceEvent?.spinRateRpm ?? settings.spinRateRpm ?? defaultSpinRateRpm({ spin: selectedSpin, family });
     const spinRange = practiceType ? spinRateProfileForPracticeShot(practiceType, selectedSpin) : null;
@@ -306,7 +311,9 @@ export const compileSession = (
     let contactGap = requestedGap;
     if ((mode === 'drill' || rally) && !rest && draft.shot.family !== 'serve') {
       const target = sampleLandingZone(previous.returnLandingZone, returnRandom);
-      let candidates = returnPlanCandidates(previous.trajectory, draft.shot.family, previous.returnLandingZone, target, requestedGap, previous.returnShot, settings.rally?.opponentContactTiming);
+      const strokeChoice = mode === 'quick-practice' ? settings.practiceStroke === 'forehand' || settings.practiceStroke === 'backhand' ? settings.practiceStroke : 'auto' : draft.shot.stroke ?? 'auto';
+      const contactCeiling = opponentContactCeiling({ ...draft.shot, stroke: strokeChoice });
+      let candidates = returnPlanCandidates(previous.trajectory, draft.shot.family, previous.returnLandingZone, target, requestedGap, previous.returnShot, settings.rally?.opponentContactTiming, undefined, contactCeiling);
       // Cheap ceiling check first. The full rhythm search runs only on the chosen
       // intercept, not inside the physics candidate search.
       const choose = (c: (typeof candidates)[number], a = schedulingPrevious) => resolveOpponentStroke(a, { ...draft,
@@ -317,12 +324,12 @@ export const compileSession = (
         const a = { ...schedulingPrevious, motionRate: 3, movementRate: 3 };
         const b = withPreparedApproach(a, { ...choose(c, a), motionRate: 3, movementRate: 3 });
         const event = motionEvent(b), travel = mode === 'drill' ? cameraTravelSeconds(a.camera, b.camera, 3) : 0;
-        return minimumMotionGap(a, b) <= c.gap + 1e-8
+        return groundedOpponentShot(b.shot) && minimumMotionGap(a, b) <= c.gap + 1e-8
           && (!travel || c.rally.contactTime + travel + event.contactTime - event.start <= c.gap + 1e-8);
       };
       let candidate = candidates.find(canMeet);
       if (!candidate) {
-        candidates = returnPlanCandidates(previous.trajectory, draft.shot.family, previous.returnLandingZone, target, requestedGap, previous.returnShot, settings.rally?.opponentContactTiming, canMeet);
+        candidates = returnPlanCandidates(previous.trajectory, draft.shot.family, previous.returnLandingZone, target, requestedGap, previous.returnShot, settings.rally?.opponentContactTiming, canMeet, contactCeiling);
         candidate = candidates[0];
       }
       const position = candidate?.source ?? candidates[0]?.source;
@@ -410,7 +417,7 @@ export const compileSession = (
 
   return {
     solverVersion: 'ball-v11-net-shots',
-    plannerVersion: 'gameplay-opponent-footwork-v13',
+    plannerVersion: 'gameplay-opponent-footwork-v14',
     contentVersion: '2026.09.09',
     drill,
     settings: { ...settings, rhythmPercent, shotIntervalSeconds: interval, movementPercent:movementRate*100, mode },

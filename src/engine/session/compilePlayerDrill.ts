@@ -1,4 +1,5 @@
 import { resolveOpponentStroke } from './opponentStroke';
+import { groundedOpponentShot, opponentContactCeiling } from './opponentContact';
 import type { OpponentBall, DrillDefinitionV2, OpeningFeed, PlayerShotEventV2, ShotDefinitionV1 } from '../../content/types';
 import type { CompiledRepetition, CompiledSession, SessionSettings } from './compileSession';
 import type { Vec3 } from '../../domain/vector';
@@ -118,12 +119,13 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
   const startPoint = (feed: OpeningFeed, event: PlayerShotEventV2, index: number) => {
     setIndex = Math.floor(index / workBlock);
     const ball = sampleBall(feed.ball, 'opening', index), target = sampleZone(feed.landingZone, 'opening', index);
-    let source = { ...feed.position, y: contactHeight(ball.family) };
+    const sourceHeight = Math.min(contactHeight(ball.family), opponentContactCeiling({ ...ball, stroke: ball.stroke === 'auto' ? 'forehand' : ball.stroke }));
+    let source = { ...feed.position, y: sourceHeight };
     // The authored opening position is the opponent's body root.
     for (let iteration = 0; iteration < 5; iteration++) {
       const shot = shotDefinition(source, ball, target, 'Opening shot'), clip = motionClip(strokeForShot(shot, repetitions.length));
       const yaw = Math.atan2(target.x - source.x, target.z - source.z), offset = rotateMotionPoint(clip.contactLocal!, yaw, ball.hand);
-      source = { x: feed.position.x + offset.x, y: contactHeight(ball.family), z: feed.position.z + offset.z };
+      source = { x: feed.position.x + offset.x, y: sourceHeight, z: feed.position.z + offset.z };
     }
     const fit = fitIncoming(source, ball, feed.landingZone, target, event);
     const contactCamera = fit.contact ? playerContactCamera(event, fit.contact.position) : event.camera;
@@ -244,7 +246,7 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
       const ceiling = resolveOpponentStroke({ ...previous, motionRate: 3, movementRate: 3 },
         { ...previous, index: repetitions.length, shot, startTime: time, motionRate: 3, movementRate: 3,
           incomingContact: incomingContact(flight, contact, playerTime) }, replyBall.stroke);
-      return minimumMotionGap({ ...previous, motionRate: 3, movementRate: 3 }, ceiling) <= time - previous.startTime + 1e-8;
+      return groundedOpponentShot(ceiling.shot) && minimumMotionGap({ ...previous, motionRate: 3, movementRate: 3 }, ceiling) <= time - previous.startTime + 1e-8;
     });
     let playerFlight = resolve(current.contact.position, ball, event.landingZone, target, ball.paceKmh,
       continues ? flight => reachableOpponentContacts(flight).length > 0 : undefined);
@@ -325,7 +327,7 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
     if (solved.previous.motionRate !== previous.motionRate || solved.next.motionRate !== best.rep.motionRate || Math.abs(actual - requested) > .01) motionTimingAdjusted = true;
   }
   const last = repetitions.at(-1);
-  return { solverVersion: 'ball-v11-net-shots', plannerVersion: 'gameplay-player-drills-v19', contentVersion: '2026.09.09',
+  return { solverVersion: 'ball-v11-net-shots', plannerVersion: 'gameplay-player-drills-v20', contentVersion: '2026.09.09',
     drill, settings: { ...settings, mode: 'drill', rhythmPercent: rhythm, movementPercent: movement, shotIntervalSeconds: interval, workBlockSize: workBlock },
     mode: 'drill', repetitions, restPeriods, duration: Math.max(endTime, last ? planRecovery(motionEvent(last)).end + .15 : 3),
     motionTimingAdjusted, rhythmPercent: rhythm, cameraTimeline: { initial: initialCamera ?? DEFAULT_DRILL_CAMERA,

@@ -16,7 +16,7 @@ import { motionEvent, minimumMotionGap, sampleOpponentTimeline, strokeForShot, O
 const repetition = (clip: StrokeId, index = 0, x = 0, z = 12.5, hand: 'left' | 'right' = 'right'): MotionRepetition => ({
   index, startTime: 3 + index * 8, shot: { ...SHOTS[0]!, family: clip.startsWith('serve') ? 'serve' : clip.endsWith('-volley') ? 'volley' : clip==='backhand-overhead'?'overhead':'groundstroke',
     stroke: clip.startsWith('serve') ? undefined : clip.startsWith('backhand') ? 'backhand' : 'forehand', spin: clip.endsWith('slice') ? 'slice' : 'topspin', opponentHand: hand, serveRhythm: clip === 'serve-compact' ? 'compact' : 'normal',
-    source: { x, y: clip.startsWith('serve') ? 2.75 : clip.endsWith('-volley') ? 1.32 : clip==='backhand-overhead'?OPPONENT_MOTION.clips['backhand-overhead'].contactLocal[1]*OPPONENT_MOTION.scale+OPPONENT_MOTION.floorOffset:1.1, z }, target: { x: 1.7, z: -9 } },
+    source: { x, y: clip.startsWith('serve') ? 2.75 : clip.endsWith('-volley') ? 1.32 : clip==='backhand-overhead'?OPPONENT_MOTION.clips['backhand-overhead'].contactLocal[1]*OPPONENT_MOTION.scale+OPPONENT_MOTION.floorOffset:clip==='forehand-slice'?.98:1.1, z }, target: { x: 1.7, z: -9 } },
 });
 const bytes = await readFile(new URL(`../public${OPPONENT_MOTION.url}`, import.meta.url));
 const loadRig = async () => {
@@ -27,6 +27,24 @@ const loadRig = async () => {
 afterEach(() => vi.restoreAllMocks());
 
 describe('local motion asset and shared contact clock', () => {
+  it('keeps rigid feet supported when an obsolete high contact would lift the body', async () => {
+    const rig = await loadRig();
+    const point = (name: string) => rig.group.getObjectByName(name)!.getWorldPosition(new THREE.Vector3());
+    for (const hand of ['right', 'left'] as const) for (const clip of ['forehand', 'backhand', 'forehand-slice', 'backhand-slice', 'forehand-volley', 'backhand-volley', 'backhand-overhead'] as const) {
+      const event = motionEvent(repetition(clip, 0, 2, 10, hand));
+      for (const offset of [-.1, 0, .1]) {
+        const pose = sampleOpponentTimeline([event], event.contactTime + offset)!;
+        rig.sampleMotion({ ...pose, verticalCorrection: 0 });
+        const feet = [point('foot_l'), point('foot_r')];
+        const lengths = ['l', 'r'].flatMap(side => [point(`thigh_${side}`).distanceTo(point(`calf_${side}`)), point(`calf_${side}`).distanceTo(point(`foot_${side}`))]);
+        rig.sampleMotion({ ...pose, verticalCorrection: .5 });
+        [point('foot_l'), point('foot_r')].forEach((foot, i) => expect(foot.distanceTo(feet[i]!)).toBeLessThan(.002));
+        const after = ['l', 'r'].flatMap(side => [point(`thigh_${side}`).distanceTo(point(`calf_${side}`)), point(`calf_${side}`).distanceTo(point(`foot_${side}`))]);
+        after.forEach((length, i) => expect(length).toBeCloseTo(lengths[i]!, 6));
+      }
+    }
+    rig.dispose();
+  });
   it('takes two clear running steps without a shuffle, limb stretch or grip drift on short urgent routes', async () => {
     const rig = await loadRig();
     const point = (name: string) => rig.group.getObjectByName(name)!.getWorldPosition(new THREE.Vector3());

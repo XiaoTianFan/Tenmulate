@@ -305,10 +305,24 @@ export class OpponentRig {
     }
     const left = this.model.getObjectByName('foot_l')!.getWorldPosition(new THREE.Vector3());
     const right = this.model.getObjectByName('foot_r')!.getWorldPosition(new THREE.Vector3());
-    if (Math.abs(sample.verticalCorrection) > 1e-7) {
+    let verticalCorrection = sample.verticalCorrection;
+    if (verticalCorrection > 0 && !isServeMotion(sample.event?.clip ?? '')) {
+      // Defensive support for legacy/unreachable poses. The planner postpones
+      // high contacts; the renderer must never pull a foot off its anchor just
+      // because rigid legs cannot reach after a requested pelvis translation.
+      for (const [side, target] of [['l', left], ['r', right]] as const) {
+        const hip = this.model.getObjectByName(`thigh_${side}`)!.getWorldPosition(new THREE.Vector3());
+        const knee = this.model.getObjectByName(`calf_${side}`)!.getWorldPosition(new THREE.Vector3());
+        const reach = hip.distanceTo(knee) + knee.distanceTo(target) - .002;
+        const horizontal = Math.hypot(hip.x - target.x, hip.z - target.z);
+        const supportedLift = target.y + Math.sqrt(Math.max(0, reach * reach - horizontal * horizontal)) - hip.y;
+        verticalCorrection = Math.min(verticalCorrection, Math.max(0, supportedLift));
+      }
+    }
+    if (Math.abs(verticalCorrection) > 1e-7) {
       const pelvis = this.model.getObjectByName('pelvis')!;
       const world = pelvis.getWorldPosition(new THREE.Vector3());
-      world.y += sample.verticalCorrection;
+      world.y += verticalCorrection;
       pelvis.position.copy(pelvis.parent!.worldToLocal(world));
       this.group.updateMatrixWorld(true);
       // Blend ground support using lift above this character's planted ankle.
@@ -322,8 +336,8 @@ export class OpponentRig {
         // Preserve the service stance and airborne recovery knee's authored
         // bend plane when correcting contact height over the planted foot.
         const preserveBend = isServeMotion(sample.event?.clip ?? '');
-        left.y += sample.verticalCorrection * airborneWeight;
-        right.y += sample.verticalCorrection * airborneWeight;
+        left.y += verticalCorrection * airborneWeight;
+        right.y += verticalCorrection * airborneWeight;
         this.solveFoot('l', left, preserveBend);
         this.solveFoot('r', right, preserveBend);
       }
