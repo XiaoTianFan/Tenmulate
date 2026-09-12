@@ -31,6 +31,8 @@ export type ShotIntent = Readonly<{
   aimDirectionDeg?: number;
   /** Natural permits bounded speed/spin adjustment; exact preserves both. */
   trajectoryMode?: 'natural' | 'exact';
+  /** Opening serve pace is authoritative; natural fitting may adjust spin only. */
+  fixedLaunchSpeed?: boolean;
   launchSpeedKmh: number;
   spin: SpinKind;
   spinRateRpm?: number;
@@ -633,7 +635,7 @@ export const resolveTrajectory = (intent: ShotIntent, accepts?: (flight: Resolve
   };
   let best = evaluate(1,1);
   if (best.error>.12 || !best.legal || !best.acceptable || best.result.resolved.launchAngleDeg>desiredAngle+1) {
-    for (const speed of [1.05,1.1,1.15,.95,.9,.85]) {
+    for (const speed of intent.fixedLaunchSpeed ? [] : [1.05,1.1,1.15,.95,.9,.85]) {
       const candidate=evaluate(speed,1); if(candidate.score<best.score)best=candidate;
       if(best.acceptable && best.legal && best.error<.12 && best.result.resolved.launchAngleDeg<=desiredAngle)break;
     }
@@ -645,7 +647,7 @@ export const resolveTrajectory = (intent: ShotIntent, accepts?: (flight: Resolve
   // Zone membership is the primary intention. Short half-volleys in particular
   // need a slower ball than the old point-target ±15% neighborhood permits.
   // Keep the sampled target (no rejection bias), and publish the resolved speed.
-  if (intent.landingZone && (!best.legal || !best.acceptable || best.error>.18)) {
+  if (!intent.fixedLaunchSpeed && intent.landingZone && (!best.legal || !best.acceptable || best.error>.18)) {
     for (const speed of [.8,.7,.6,.5,1.2,1.35,1.5]) {
       const candidate=evaluate(speed,best.spinFactor);
       if(candidate.score<best.score)best=candidate;

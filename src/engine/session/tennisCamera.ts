@@ -20,6 +20,8 @@ export type TennisCameraExchange = Readonly<{
   incoming?: ResolvedTrajectory;
   outgoing?: ResolvedTrajectory;
   configuration?: DrillCameraTransition;
+  /** Serve reception holds the authored view, including height and direction. */
+  fixedCamera?: CameraConfiguration;
 }>;
 export type TennisCameraTrack = Readonly<{ exchanges: readonly TennisCameraExchange[]; motionScale: number }>;
 export type TennisCameraPlanInput = Readonly<{
@@ -159,6 +161,7 @@ export function sampleTennisCamera(initial: CameraConfiguration, transitions: re
   time: number, opponent?: Vec3, aspect = 16 / 9): CameraConfiguration {
   if (track.motionScale === 0) return initial;
   const exchange = cameraExchangeAt(track, time);
+  if (exchange?.fixedCamera) return interpolateCamera(initial, exchange.fixedCamera, track.motionScale);
   let pose = { ...rawPosition(initial, transitions, time), fov: initial.fov };
   if (exchange) {
     const { from, to, start, opponentContact, reactAt, settleAt } = exchange;

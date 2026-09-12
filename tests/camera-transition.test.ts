@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { DrillCameraTransition } from '../src/content/types';
 import { planTennisCamera, sampleTennisCamera, TENNIS_CAMERA, type TennisCameraPlanInput } from '../src/engine/session/tennisCamera';
 import { sampleCameraTimeline } from '../src/engine/session/cameraTimeline';
+import { motionEvent } from '../src/engine/session/opponentTimeline';
 import { cameraLookAtCourtPoint, wrapCameraAngle } from '../src/domain/camera';
 import { resolveCourtFlight } from '../src/engine/session/courtFlight';
 import { sampleTrajectoryAt } from '../src/engine/trajectory/physics';
@@ -164,16 +165,19 @@ describe('drill, preset and handedness contracts', () => {
     expect(session.planningIssues).toEqual([]);
     const transition = session.cameraTimeline.tennis!.exchanges.find(exchange => exchange.start === session.playerEvents![0]!.startTime)!;
     expect(transition.strategy).toBe('custom'); expect(transition.configuration).toEqual(drill.events[0]!.cameraTransition);
-    expect(transition.outgoing).toBeDefined(); expect(transition.incoming).toBeDefined();
+    expect(transition.outgoing).toBeDefined(); expect(transition.incoming).toBeUndefined();
+    expect(transition.end).toBeLessThanOrEqual(motionEvent(session.repetitions[1]!).start);
     expect(sampleCameraTimeline(session.cameraTimeline, transition.end, root)).toEqual(session.playerEvents![1]!.contactCamera);
   });
-  it('keeps the reset route and physical timing when only new-point focus is customized', () => {
+  it('keeps the reset route and finishes customized focus before the next serve', () => {
     const base = PLAYER_DRILLS.find(drill => drill.id === 'return-practice')!;
     const settings = { ...defaultDrillSettings(base), repetitions: base.events.length, restSeconds: 0 };
     const original = compileSession(base, settings);
     const changed = compileSession({ ...base, events: base.events.map(event => ({ ...event, cameraTransition: { focus: fixture.focus } })) }, settings);
     expect(changed.planningIssues).toEqual([]);
     expect(changed.cameraTimeline.transitions).toEqual(original.cameraTimeline.transitions);
-    expect(changed.playerEvents!.map(e => e.startTime)).toEqual(original.playerEvents!.map(e => e.startTime));
+    expect(changed.playerEvents![1]!.startTime).toBeGreaterThanOrEqual(original.playerEvents![1]!.startTime);
+    const next = changed.playerEvents![1]!, arrival = changed.repetitions[next.incomingIndex]!;
+    expect(sampleCameraTimeline(changed.cameraTimeline, motionEvent(arrival).start, root)).toEqual(next.event.camera);
   });
 });

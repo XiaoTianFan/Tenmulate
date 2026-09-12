@@ -60,8 +60,14 @@ Opponent returns wait for a supported contact height instead of lifting the mode
 If an apex is too high, contact moves to descent along the same ball flight, with
 movement and swing timing fitted to that later hit. See the
 [grounded contact contract](docs/decisions/0050-grounded-opponent-contacts.md).
-Final footwork adjusts each view within its contact neighborhood to meet the real
+For rally shots, final footwork adjusts each view within its contact neighborhood to meet the real
 incoming ball on the configured racket side, retaining your viewing direction.
+Opening serves keep their configured launch speed (including shot variation) and
+hold the exact authored return camera through the toss, serve and player contact.
+The illustrative player return adapts to the serve; it cannot slow the serve or
+recenter the view. Between-point camera moves finish before the next toss.
+Impossible serve speed/zone combinations are reported instead of slowed down.
+See the [opening serve contract](docs/decisions/0052-opening-serve-authority.md).
 The editor labels isolated contact estimates; **Preview actual shot** shows the
 selected shot with its gameplay movement and contact. See the
 [contact-camera investigation](docs/development/player-contact-camera-2026-09-12.md).
@@ -76,6 +82,8 @@ remains shared across the drill. See the [camera transition guide](docs/developm
 Drill shots independently choose player/opponent contact timing:
 on the rise, at the apex, or early descent (the default). The interval solver fits
 within that phase; it does not switch to a quick rebound to meet a short interval.
+After an opening serve, the illustrative player return instead chooses the legal
+contact nearest the authored racket anchor, preserving the incoming serve.
 Quick Rally retains its opponent timing preference; Quick Practice player returns
 choose their shot family and contact automatically.
 Volleys/overheads stay in the air and half-volleys stay just after the bounce.

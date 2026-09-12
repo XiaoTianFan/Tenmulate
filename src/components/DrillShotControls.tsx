@@ -47,7 +47,7 @@ function BallParameters<Side extends StrokeChoice>({ ball, prefix = '', onChange
   </>;
 }
 
-export function OpeningShotControls({ feed, onChange }: { feed: OpeningFeed; onChange: (feed: OpeningFeed) => void }) {
+export function OpeningShotControls({ feed, onChange, resolvedSpeedKmh }: { feed: OpeningFeed; onChange: (feed: OpeningFeed) => void; resolvedSpeedKmh?: number }) {
   const update = (patch: Partial<OpeningFeed>) => {
     const next = { ...feed, ...patch }, zone = feed.landingZone;
     next.landingZone = resolveLandingZone(landingZoneCenter(zone), { width: zone.maxX - zone.minX, depth: zone.maxZ - zone.minZ }, next.ball.family, openingZoneSource(next));
@@ -56,7 +56,8 @@ export function OpeningShotControls({ feed, onChange }: { feed: OpeningFeed; onC
   return <div className="shot-controls">
     <details className="editor-section" open><summary>Opening opponent shot</summary><BallIdentity ball={feed.ball} label="Opening" opening onChange={ball => update({ ball })}/>
     </details>
-    <details className="editor-section" open><summary>Ball &amp; rhythm</summary><BallParameters ball={feed.ball} prefix="Opening " onChange={ball => update({ ball })}/></details>
+      <details className="editor-section" open><summary>Ball &amp; rhythm</summary><BallParameters ball={feed.ball} prefix="Opening " onChange={ball => update({ ball })}/></details>
+      {feed.ball.family === 'serve' ? <p className="saved-shot-count">{resolvedSpeedKmh === undefined ? 'Calculating serve…' : `Resolved launch ${resolvedSpeedKmh.toFixed(1)} km/h.`} Serve speed includes shot variation; your return view stays fixed.</p> : null}
     <p className="saved-shot-count">Drag the yellow landing zone to deliver the opening ball to your first shot.</p>
   </div>;
 }

@@ -67,9 +67,12 @@ export const contactDistance = (sample: FlightSample, event: Pick<PlayerShotEven
   const anchor = playerContactAnchor(event);
   return Math.hypot(sample.position.x - anchor.x, sample.position.z - anchor.z);
 };
+export function playerFamilyContacts(flight: ResolvedTrajectory, event: Pick<PlayerShotEventV2, 'ball'>): readonly FlightSample[] {
+  return legalReturnContacts(flight).filter(sample => familyContact(sample, event.ball.family, true));
+}
 export function playerContacts(flight: ResolvedTrajectory, event: Pick<PlayerShotEventV2, 'camera' | 'ball'>): readonly FlightSample[] {
-  return contactsForTiming(flight, event.ball.family, legalReturnContacts(flight).filter(sample => familyContact(sample, event.ball.family, true)
-    && contactDistance(sample, event) <= PLAYER_CONTACT_RADIUS_M), event.ball.contactTiming);
+  return contactsForTiming(flight, event.ball.family, playerFamilyContacts(flight, event).filter(sample =>
+    contactDistance(sample, event) <= PLAYER_CONTACT_RADIUS_M), event.ball.contactTiming);
 }
 /** Resolve the last footwork adjustment inside the authored reach envelope.
  * Keep the real ball contact .65 m in front and .45 m on the racket side;
