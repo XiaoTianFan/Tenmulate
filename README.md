@@ -13,6 +13,13 @@ parks it without rendering. Setup previews stream fresh feeds continuously;
 launched sets honor their chosen repetitions and rests. See the
 [shared-court verification receipt](docs/development/shared-court-and-zone-resize-2026-09-08.md).
 
+The blue player target zone stays visible during setup and playback. Yellow
+opponent landing zones appear while editing and hide during practice or drills.
+The Trajectory toggle controls lines independently of zones. Top-down editing
+always shows trajectories; returning to player view restores the toggle choice.
+Opening playback Settings does not change trajectory visibility. See
+[the visibility contract](docs/decisions/0055-trajectory-and-zone-visibility.md).
+
 All four Quick Practice modes animate your response. Configure its destination
 with the blue landing zone; player return trajectory lines and trails stay hidden,
 including in top-down view and playback settings. Rally connects exchanges;

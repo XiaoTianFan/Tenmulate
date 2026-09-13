@@ -90,7 +90,7 @@ function AppRoutes({ appData }: { appData: ReturnType<typeof useAppData> }) {
     setRoute(next);
   };
   const cancel = () => { calculation.current?.abort(); setBusy(false); };
-  const drillLaunch = async (drill: DrillDefinitionV2, rhythm?: number, interval?: number, movement?: number, rerun?: SessionLaunch) => {
+  const drillLaunch = async (drill: DrillDefinitionV2, rhythm?: number, interval?: number, movement?: number, rerun?: SessionLaunch, trajectoryEnabled = false) => {
     calculation.current?.abort(); const controller = new AbortController(); calculation.current = controller; setBusy(true);
     try {
       const preferences = appData.data.preferences;
@@ -99,7 +99,7 @@ function AppRoutes({ appData }: { appData: ReturnType<typeof useAppData> }) {
       const session = await compilePlayerDrillAsync(drill, settings, controller.signal);
       if (session.planningIssues?.length) { setMessage(session.planningIssues.map(issue => issue.message).join('\n')); return; }
       setLaunch({ session, camera: drill.events[0]!.camera, environment: preferences.environment, quality: preferences.quality,
-        surface: settings.surface, trajectoryEnabled: false });
+        surface: settings.surface, trajectoryEnabled: rerun?.trajectoryEnabled ?? trajectoryEnabled });
     } catch (error) { if (!controller.signal.aborted) setMessage(error instanceof Error ? error.message : 'Unable to prepare drill.'); }
     finally { if (calculation.current === controller) setBusy(false); }
   };
@@ -125,7 +125,7 @@ function AppRoutes({ appData }: { appData: ReturnType<typeof useAppData> }) {
         projectShotIds={projectShotIds} onSaveShot={saveShot}
         onDeleteShot={async id => { const shot = projectShots.shots.find(shot => shot.id === id) ?? appData.data.savedShots.find(shot => shot.id === id);
           if (import.meta.env.DEV && projectShots.writable && projectShotIds.includes(id)) await projectShots.remove(id); appData.deleteShot(id, shot?.name); }} onRoute={navigate}
-        onSave={saveDrill} onTest={drill => { void drillLaunch(drill); }}/>
+        onSave={saveDrill} onTest={(drill, trajectoryEnabled) => { void drillLaunch(drill, undefined, undefined, undefined, undefined, trajectoryEnabled); }}/>
       : <SetupScreen route={route} cameraPositionPresets={mergePresets(mergePresets(DEFAULT_CAMERA_POSITION_PRESETS, configs.snapshot.cameraPositionPresets), browserPresetOverrides(appData.data.cameraPositionPresets, DEFAULT_CAMERA_POSITION_PRESETS, appData.data.cameraPresetOverrides))} perspectivePresets={mergePresets(mergePresets(DEFAULT_PERSPECTIVE_PRESETS, configs.snapshot.perspectivePresets), browserPresetOverrides(appData.data.perspectivePresets, DEFAULT_PERSPECTIVE_PRESETS, appData.data.perspectivePresetOverrides))}
         initialPreferences={appData.data.preferences} onRoute={navigate} onStart={setLaunch} onSaveCameraPositionPreset={savePosition}
         onSavePerspectivePreset={savePerspective} onSaveConfig={saveConfig} onRestoreBallFocus={appData.saveBallFocus} practiceConfigs={{ ...configs.snapshot.practiceConfigs, ...appData.data.practiceConfigs }} onPreferencesChange={appData.savePreferences}/>}

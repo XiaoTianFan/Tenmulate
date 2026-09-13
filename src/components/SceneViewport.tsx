@@ -30,6 +30,7 @@ export type SceneViewportProps = Readonly<{
   running: boolean;
   resetToken: number;
   showTrajectory?: boolean;
+  showOpponentLandingZone?: boolean;
   playbackRate?: number;
   loopTrajectory?: boolean;
   trajectoryInterval?: number | null;
@@ -89,6 +90,7 @@ export function SceneViewport({
   running,
   resetToken,
   showTrajectory = true,
+  showOpponentLandingZone = false,
   playbackRate = 1,
   loopTrajectory = true,
   trajectoryInterval = null,
@@ -204,6 +206,7 @@ export function SceneViewport({
   useEffect(() => sceneRef.current?.setCourtOverview(courtOverview), [courtOverview]);
   useEffect(() => sceneRef.current?.opponentPositionControl.configure(opponentPlacement ?? null, onOpponentPositionChange ?? null), [opponentPlacement, onOpponentPositionChange]);
   useEffect(() => sceneRef.current?.setBallFocus(ballFocus), [ballFocus]);
+  useEffect(() => sceneRef.current?.setOpponentLandingZoneVisible(showOpponentLandingZone), [showOpponentLandingZone]);
   useEffect(() => sceneRef.current?.setReturnLandingZone(returnLandingZone ?? null, onReturnLandingZoneChange ?? null), [returnLandingZone, onReturnLandingZoneChange]);
   useEffect(() => sceneRef.current?.setNearLandingZone(nearLandingZone ?? null, nearLandingZoneLimits), [nearLandingZone, nearLandingZoneLimits]);
   useEffect(() => sceneRef.current?.setSession(session ?? null, sessionClock ?? null, onSessionIndex), [session, sessionClock, onSessionIndex]);
@@ -212,7 +215,7 @@ export function SceneViewport({
   useEffect(() => sceneRef.current?.returnLandingZoneControl.setDraftListener(onReturnLandingZoneDraft ?? null), [onReturnLandingZoneDraft]);
   useEffect(() => sceneRef.current?.setTrajectory(trajectory), [trajectory]);
   useEffect(() => sceneRef.current?.setLandingZoneInteraction(
-    showTrajectory ? onLandingZoneChange ?? null : null), [showTrajectory, onLandingZoneChange]);
+    onLandingZoneChange ?? null), [onLandingZoneChange]);
   useEffect(() => sceneRef.current?.setSurface(surface), [surface]);
   useEffect(() => sceneRef.current?.setEnvironment(environment), [environment]);
   useEffect(() => sceneRef.current?.setQualityMode(quality), [quality]);

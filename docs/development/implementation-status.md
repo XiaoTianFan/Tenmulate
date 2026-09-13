@@ -9,6 +9,25 @@
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
+## Trajectory and landing-zone visibility — 2026-09-13
+
+Blue player targets remain visible during configuration and practice/drill
+playback. Yellow opponent zones remain visible in Quick Practice setup and the
+editor, including sequence previews, but hide during launched playback. Hidden
+zones remain hidden through flight updates and cannot receive editing gestures.
+Trajectory switches operate independently; top-down editing always shows lines
+and restores the previous choice when returning to player view. Editor Test
+drill carries that choice into playback, whose Settings now has a dedicated
+switch instead of forcing lines on when opened. Quick Practice pseudo-return
+lines and trails remain hidden.
+
+The focused landing-zone and rendering suites pass **31 tests / 3 files**; the
+production build and active motion/precache checks pass. Actual Edge checks
+covered both setup views, editor views, Quick Practice and Test drill with the
+toggle off/on, plus opening Settings. Screenshots confirmed the blue target
+remains visible while the yellow zone is hidden during playback. No public
+deployment. See [ADR-0055](../decisions/0055-trajectory-and-zone-visibility.md).
+
 ## Rally variation feasibility — 2026-09-13
 
 Quick Rally skips failed contact/landing variations and broadens its search

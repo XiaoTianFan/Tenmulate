@@ -335,7 +335,7 @@ export class TennisScene {
     // The editable incoming zone stays on the near court while its return flies
     // through the separately edited blue zone. Never rebind one control to both.
     if (trajectory.intent.source.z >= 0 && !this.authoredNearLandingZone) {
-      this.landingZoneControl.setZone(this.trajectoryVisible ? trajectory.intent.landingZone ?? null : null,
+      this.landingZoneControl.setZone(trajectory.intent.landingZone ?? null,
         landingZoneLimits(trajectory.intent.shotType ?? trajectory.intent.family ?? 'groundstroke', trajectory.intent.source));
     }
     this.updateBounceMarkers();
@@ -379,7 +379,7 @@ export class TennisScene {
     this.authoredNearLandingZone = zone;
     this.landingZoneControl.acceptModel();
     const incoming = this.trajectory && this.trajectory.intent.source.z >= 0 ? this.trajectory : null;
-    this.landingZoneControl.setZone(this.trajectoryVisible ? zone ?? incoming?.intent.landingZone ?? null : null,
+    this.landingZoneControl.setZone(zone ?? incoming?.intent.landingZone ?? null,
       limits ?? landingZoneLimits(incoming?.intent.shotType ?? incoming?.intent.family ?? 'groundstroke', incoming?.intent.source ?? { x: 0 }));
   }
 
@@ -392,7 +392,11 @@ export class TennisScene {
   setTrajectoryVisible(visible: boolean): void {
     this.trajectoryVisible = visible;
     this.setShotPreviewPending(this.shotPreviewPending);
-    this.landingZoneControl.setZone(visible ? this.authoredNearLandingZone ?? this.trajectory?.intent.landingZone ?? null : null);
+  }
+
+  setOpponentLandingZoneVisible(visible: boolean): void {
+    this.landingZoneControl.setVisible(visible);
+    this.canvas.dataset.opponentLandingZoneVisible = String(visible);
   }
 
   setBallPresentation(highContrast: boolean, showTrail: boolean): void {
@@ -419,6 +423,7 @@ export class TennisScene {
     this.shotPreviewPending = pending;
     this.trajectoryLine.visible = this.trajectoryVisible && !pending && !(this.session?.mode === 'quick-practice' && (this.lineTrajectory?.intent.source.z ?? 0) < 0);
     this.playerPreviewLine.visible = this.session?.mode !== 'quick-practice' && this.trajectoryVisible && !pending && !!this.session?.shotPreview?.player && !!this.session.shotPreview.opponent;
+    this.canvas.dataset.trajectoryVisible = String(this.trajectoryLine.visible);
     this.updateBounceMarkers();
     this.canvas.dataset.shotPreviewPending = String(pending);
   }

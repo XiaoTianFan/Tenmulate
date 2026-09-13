@@ -28,7 +28,7 @@ import type { EditorDraft } from '../storage/editorDrafts';
 type Props = {
   route: AppRoute; initialDrill: DrillDefinitionV2; surface: SurfaceId;
   initialPlayerHand: OpponentHand; onPlayerHandChange: (hand: OpponentHand) => void;
-  onRoute: (route: AppRoute) => void; onSave: (drill: DrillDefinitionV2) => Promise<DrillDefinitionV2>; onTest: (drill: DrillDefinitionV2) => void;
+  onRoute: (route: AppRoute) => void; onSave: (drill: DrillDefinitionV2) => Promise<DrillDefinitionV2>; onTest: (drill: DrillDefinitionV2, showTrajectory: boolean) => void;
   initialDraft?: EditorDraft; onDraftChange: (draft: EditorDraft, previousId?: string) => void;
   writable: boolean; projectStatus: string;
   savedShots: readonly SavedShotV2[]; shotsWritable: boolean; shotsStatus: string; projectShotIds: readonly string[];
@@ -50,6 +50,7 @@ export function DrillEditorScreen({ route, initialDrill, initialDraft, onDraftCh
   const [transitionCamera, setTransitionCamera] = useState<CameraConfiguration | null>(() =>
     (initialDrill.playerHand ?? 'right') === initialPlayerHand ? initialDraft?.transitionCamera ?? null : null);
   const [sequenceRange, setSequenceRange] = useState<{ start: number; end: number } | null>(null);
+  const [showTrajectory, setShowTrajectory] = useState(true);
   const [zoneDraft, setZoneDraft] = useState<{ role: 'player' | 'opponent'; zone: LandingZone } | null>(null);
   const [overview, setOverview] = useState(initialDraft?.overview ?? false), [sequence, setSequence] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -222,7 +223,7 @@ export function DrillEditorScreen({ route, initialDrill, initialDraft, onDraftCh
         onDelete={async id => { const name = savedShots.find(shot => shot.id === id)?.name; await onDeleteShot(id); setShotNotice(`Deleted “${name}” from the shot library.`); }}/>
       <section className="editor-stage">
         <div className="editor-scene" ref={sceneContainer}>
-          {trajectory && events.length ? <CourtViewport camera={displayCamera} courtOverview={overview} trajectory={trajectory} surface={surface} running resetToken={0} showTrajectory session={session!} sessionClock={clock} followSessionCamera={sequence && !overview}
+          {trajectory && events.length ? <CourtViewport camera={displayCamera} courtOverview={overview} trajectory={trajectory} surface={surface} running resetToken={0} showTrajectory={showTrajectory || overview} showOpponentLandingZone session={session!} sessionClock={clock} followSessionCamera={sequence && !overview}
             shotPreviewPending={sequence ? !preview.current : !shotPreview.current}
             nearLandingZone={sequence ? session?.repetitions[previewIndex]?.trajectory.intent.landingZone : nearZone} nearLandingZoneLimits={nearLimits} returnLandingZone={!sequence && zoneDraft?.role === 'player' ? zoneDraft.zone : (sequence ? playingEvent : selected)?.landingZone}
             onLandingZoneDraft={sequence || isTransition ? undefined : zone => setZoneDraft(zone ? { role: 'opponent', zone } : null)}
@@ -236,7 +237,7 @@ export function DrillEditorScreen({ route, initialDrill, initialDraft, onDraftCh
             onCameraFovChange={overview ? zoomOverview : lookEnabled ? fov => draftCamera({ ...previewCamera, fov }) : undefined}
             onCameraViewCommit={lookEnabled ? commitCamera : undefined} onMetrics={noMetrics}/> : <div className="editor-preview-loading">{events.length ? 'Preparing drill preview…' : 'Add your first shot from the library.'}</div>}
           <div className="editor-scene-label"><span>{isOpening ? 'Opening shot' : isTransition ? `Camera ${events.indexOf(selected!) + 1} → ${events.indexOf(selected!) + 2}` : `Your shot ${events.indexOf(selected!) + 1}`}</span><strong>{isOpening ? 'Opponent initiates the rally' : isTransition ? `${selected.label} → ${nextEvent.label}` : selected?.label ?? 'Add a player shot'}</strong></div>
-          <div className="editor-view-tools"><button type="button" aria-pressed={overview} onClick={() => { setSequence(false); setOverview(value => !value); }}>{overview ? 'Back to shot view' : 'Top-down zones'}</button>
+          <div className="editor-view-tools"><button type="button" role="switch" aria-label="Trajectory" aria-checked={showTrajectory || overview} disabled={overview} title={overview ? 'Always shown in top-down view' : undefined} onClick={() => setShowTrajectory(value => !value)}>Trajectory {showTrajectory || overview ? 'on' : 'off'}</button><button type="button" aria-pressed={overview} onClick={() => { setSequence(false); setOverview(value => !value); }}>{overview ? 'Back to shot view' : 'Top-down zones'}</button>
             {!isOpening && !isTransition && compiled ? <button type="button" disabled={sequence || !!viewDraft || !!zoneDraft || !preview.current || !!issues.length}
               onClick={() => { setSequenceRange({ start: Math.max(0, compiled.startTime - 1.5), end: compiled.responseIndex === undefined
                 ? preview.session!.scheduledFlights!.find(flight => flight.phase === 'player' && flight.eventIndex === compiled.index)!.endTime
@@ -271,7 +272,7 @@ export function DrillEditorScreen({ route, initialDrill, initialDraft, onDraftCh
         </> : null}
         {[...validation.errors, ...issues.map(issue => issue.message), ...shotIssues.map(issue => issue.message), ...(preview.error ? [preview.error] : [])].length ? <ul className="validation-errors">{[...new Set([...validation.errors, ...issues.map(issue => issue.message), ...shotIssues.map(issue => issue.message), ...(preview.error ? [preview.error] : [])])].map(error => <li key={error}>{error}</li>)}</ul> : null}
         <div className="editor-primary-actions"><small className="project-save-status">{writable ? 'Draft retained here. Save drill to keep a library version.' : projectStatus}</small><button className="primary-button" type="button" disabled={!validation.valid || !writable || saving} onClick={() => void saveDrill()}><Save size={17}/> {saving ? 'Saving…' : 'Save drill'}</button>
-          <button className="secondary-button full-width" type="button" disabled={!validation.valid || preview.pending || !!issues.length || !!preview.error} onClick={() => onTest(workingDrill)}><Play size={16}/> Test drill</button></div>
+          <button className="secondary-button full-width" type="button" disabled={!validation.valid || preview.pending || !!issues.length || !!preview.error} onClick={() => onTest(workingDrill, showTrajectory)}><Play size={16}/> Test drill</button></div>
       </aside>
     </section>
     {creatingShot ? <NewShotModal hand={playerHand} savedShots={savedShots} writable={shotsWritable} status={shotsStatus} onClose={() => setCreatingShot(false)}

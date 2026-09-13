@@ -25,6 +25,7 @@ export class LandingZoneControl {
   private readonly lastCamera = new THREE.Matrix4();
   private readonly lastProjection = new THREE.Matrix4();
   private zone: LandingZone | null = null;
+  private visible = true;
   private canonicalZone: LandingZone | null = null;
   private limits = landingZoneLimits('groundstroke', { x: 0 });
   private onChange: ((zone: LandingZone) => void) | null = null;
@@ -71,6 +72,11 @@ export class LandingZoneControl {
     if (point) this.bounceMarker.position.set(point.x, .04, point.z);
   }
   setBounceVisible(visible: boolean): void { this.showBounce = visible; }
+  setVisible(visible: boolean): void {
+    this.visible = visible;
+    if (!visible) { this.end(false); this.leave(); }
+    this.root.visible = visible && !!this.zone;
+  }
   get displayedBounce(): { x: number; z: number } | null {
     return this.root.visible && this.bounceMarker.visible ? { x: this.bounceMarker.position.x, z: this.bounceMarker.position.z } : null;
   }
@@ -82,7 +88,7 @@ export class LandingZoneControl {
   }
 
   private draw(zone: LandingZone | null): void {
-    this.zone = zone; this.root.visible = !!zone; this.dirty = true;
+    this.zone = zone; this.root.visible = this.visible && !!zone; this.dirty = true;
     if (!zone) return;
     const center = landingZoneCenter(zone);
     this.fill.position.set(center.x, HEIGHT, center.z);
@@ -134,7 +140,7 @@ export class LandingZoneControl {
   }
 
   screenPoints(): Record<string, Readonly<{ x: number; y: number; z: number }>> {
-    if (!this.zone) return {};
+    if (!this.zone || !this.root.visible) return {};
     const z = this.zone, c = landingZoneCenter(z);
     return { center: this.project(c.x, c.z), nearLeft: this.project(z.minX, z.minZ), nearRight: this.project(z.maxX, z.minZ),
       farRight: this.project(z.maxX, z.maxZ), farLeft: this.project(z.minX, z.maxZ), near: this.project(c.x, z.minZ),

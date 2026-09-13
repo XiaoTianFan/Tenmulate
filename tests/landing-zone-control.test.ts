@@ -111,4 +111,24 @@ describe('landing-zone edit gestures', () => {
     control.key('ArrowDown'); expect(landingZoneCenter(changes.at(-1)!).x).toBeCloseTo(0, 5);
     control.key('Escape'); expect(control.key('ArrowRight')).toBe(false);
   });
+
+  it('hides zones, bounce markers and editing through model updates, then restores the latest zone', () => {
+    const { control, changes, project } = setup();
+    const point = project(0, -8);
+    control.setVisible(false);
+    expect(control.root.visible).toBe(false);
+    expect(control.displayedBounce).toBeNull();
+    expect(control.screenPoints()).toEqual({});
+    expect(control.begin(point.x, point.y)).toBe(false);
+    expect(control.key('Enter')).toBe(false);
+    const next = { ...zone, maxX: 1.5 };
+    control.setZone(next); control.setBounce({ x: 0, z: -8 }); control.update();
+    expect(control.root.visible).toBe(false);
+    expect(changes).toEqual([]);
+    control.setVisible(true); control.update();
+    expect(control.root.visible).toBe(true);
+    expect(control.displayedBounce).not.toBeNull();
+    expect(control.root.getObjectByName('LandingZoneArea')!.scale.x).toBe(2.5);
+    expect(control.begin(point.x, point.y)).toBe(true);
+  });
 });
