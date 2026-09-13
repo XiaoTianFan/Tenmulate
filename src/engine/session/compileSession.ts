@@ -2,7 +2,7 @@ import { resolveOpponentStroke } from './opponentStroke';
 import { groundedOpponentShot, opponentContactCeiling } from './opponentContact';
 import { practiceReturnType, resolvePracticeReturn, type PracticeReturn } from './practiceReturn';
 import { planRecovery } from './opponentMovement';
-import { acceptsPlayerReturn, defaultReturnShot, resolveReturnShot } from './returnShot';
+import { acceptsPlayerReturn, automaticReturnShots, defaultReturnShot, resolveReturnShot } from './returnShot';
 import { normalizeShotSpin } from '../../domain/shotKinds';
 import type { ContactTiming, ReturnShotConfiguration } from '../../content/types';
 import type { DrillDefinition, DrillEventV1, ShotDefinitionV1 } from '../../content/types';
@@ -22,7 +22,8 @@ import { assessReachability, cameraPlayerPosition, legalReturnContacts, type Rea
 import type { CameraConfiguration } from '../rendering/TennisScene';
 import { cameraTravelSeconds, DEFAULT_DRILL_CAMERA, interpolateCamera, type CameraTimeline, type CameraTransition } from './cameraTimeline';
 import { DEFAULT_RETURN_LANDING_ZONE } from './returnLandingZone';
-import { finishReturn, returnPlanCandidates, type RallyReturn } from './returnFlight';
+import { finishReturn, rallyZoneTargets, returnPlanCandidates, type RallyReturn, type ReturnCandidate } from './returnFlight';
+import { landsInZone } from './courtFlight';
 import { incomingContact } from './bounceContact';
 import type { Vec3 } from '../../domain/vector';
 import {
@@ -73,7 +74,8 @@ export type SessionSettings = Readonly<{
   returnReceiverSide?: ReturnReceiverSide;
   windVelocity?: Vec3;
   /** Quick Rally connects each player response to the next opponent hit. */
-  rally?: Readonly<{ landingZone: LandingZone; shot: ReturnShotConfiguration; opponentContactTiming?: ContactTiming }>;
+  rally?: Readonly<{ landingZone: LandingZone; shot: ReturnShotConfiguration; opponentContactTiming?: ContactTiming;
+    playerShotPolicy?: 'automatic' | 'configured' }>;
   practiceReturn?: PracticeReturn;
   followPracticeBall?: boolean;
 }>;
@@ -99,7 +101,7 @@ export type CompiledSession = Readonly<{
   /** Prepared off-thread so mounting a rally never performs a seam solve. */
   previewNext?: Readonly<{ last: CompiledRepetition; next: CompiledSession }>;
   solverVersion: 'ball-v12-opening-serve-pace';
-  plannerVersion: 'gameplay-opponent-footwork-v15' | 'gameplay-player-drills-v21';
+  plannerVersion: 'gameplay-opponent-footwork-v16' | 'gameplay-player-drills-v21';
   contentVersion: '2026.09.09';
   drill: DrillDefinition;
   settings: SessionSettings;
@@ -126,6 +128,9 @@ function assessDrillReturn(trajectory: ResolvedTrajectory): Reachability {
   return { reachable: !!contact, reason: contact ? 'reachable' : 'out', contact,
     playerPosition: contact?.position ?? { x: 0, z: -13 }, marginM: 0 };
 }
+
+const legalRallyFlight = (trajectory: ResolvedTrajectory) =>
+  trajectory.solution?.status !== 'unreachable' && landsInZone(trajectory);
 
 export const compileSession = (
   drill: DrillDefinition,
@@ -272,13 +277,23 @@ export const compileSession = (
       : sourceEvent?.spinRateRpm ?? settings.spinRateRpm ?? defaultSpinRateRpm({ spin: selectedSpin, family });
     const spinRange = practiceType ? spinRateProfileForPracticeShot(practiceType, selectedSpin) : null;
     const spinRateRpm = sampleParameter(nominalSpin, variation, spinRange?.minRpm ?? 0, spinRange?.maxRpm ?? 6000, spinRandom);
-    const trajectory = resolveTrajectory({
+    let trajectory = resolveTrajectory({
       ...shot, landingZone, launchSpeedKmh, trajectoryMode: sourceEvent?.trajectoryMode ?? settings.trajectoryMode ?? 'natural',
       spinRateRpm,
       minimumNetClearanceM: shot.netClearanceM, shotType: practiceType,
       aimDirectionDeg: returnServePlacement ? undefined : aimDirectionToCourtPoint(source,target),
       windVelocity: settings.windVelocity, bounceFactor: sourceEvent?.bounceFactor ?? settings.bounceFactor,
     }, rally ? flight => acceptsPlayerReturn(flight, settings.rally!.shot) : undefined);
+    if (rally && (!legalRallyFlight(trajectory) || !acceptsPlayerReturn(trajectory, settings.rally!.shot))) {
+      // Validate the opening/feed before it is displayed. A random landing
+      // sample is replaceable; the configured zone and camera are not.
+      for (const alternative of rallyZoneTargets(landingZone, target)) {
+        const next = resolveTrajectory({ ...trajectory.intent, target: alternative,
+          aimDirectionDeg: aimDirectionToCourtPoint(source, alternative) }, flight => acceptsPlayerReturn(flight, settings.rally!.shot));
+        if (!legalRallyFlight(next) || !acceptsPlayerReturn(next, settings.rally!.shot)) continue;
+        shot = { ...shot, target: alternative }; trajectory = next; break;
+      }
+    }
     // Legacy destination views remain usable, but an unscripted shot holds the
     // preceding view instead of resetting to the session launch camera.
     authoredCamera = sourceEvent?.camera ?? (shot.cameraMotion ? { ...authoredCamera, ...shot.cameraMotion.to } : authoredCamera);
@@ -326,35 +341,85 @@ export const compileSession = (
       const strokeChoice = mode === 'quick-practice' ? settings.practiceStroke === 'forehand' || settings.practiceStroke === 'backhand' ? settings.practiceStroke : 'auto' : draft.shot.stroke ?? 'auto';
       const contactCeiling = opponentContactCeiling({ ...draft.shot, stroke: strokeChoice });
       let candidates = returnPlanCandidates(previous.trajectory, draft.shot.family, previous.returnLandingZone, target, requestedGap, previous.returnShot, settings.rally?.opponentContactTiming, undefined, contactCeiling);
-      // Cheap ceiling check first. The full rhythm search runs only on the chosen
-      // intercept, not inside the physics candidate search.
-      const choose = (c: (typeof candidates)[number], a = schedulingPrevious) => resolveOpponentStroke(a, { ...draft,
-        startTime: a.startTime + c.gap, shot: { ...draft.shot, source: c.source },
+      let returnConfiguration = previous.returnShot;
+      // Reject unsupported heights and travel budgets cheaply before fitting
+      // outgoing physics and checking the full shared rhythm solver.
+      const choose = (c: (typeof candidates)[number], a = schedulingPrevious, desired = draft) => resolveOpponentStroke(a, { ...desired,
+        startTime: a.startTime + c.gap, shot: { ...desired.shot, source: c.source },
         incomingContact: incomingContact(c.rally.trajectory, c.contact, a.startTime + c.rally.contactTime) },
         mode === 'quick-practice' ? settings.practiceStroke === 'forehand' || settings.practiceStroke === 'backhand' ? settings.practiceStroke : 'auto' : draft.shot.stroke ?? 'auto');
-      const canMeet = (c: (typeof candidates)[number]) => {
+      const canMeet = (c: (typeof candidates)[number], desired = draft) => {
         const a = { ...schedulingPrevious, motionRate: 3, movementRate: 3 };
-        const b = withPreparedApproach(a, { ...choose(c, a), motionRate: 3, movementRate: 3 });
+        const b = withPreparedApproach(a, { ...choose(c, a, desired), motionRate: 3, movementRate: 3 });
         const event = motionEvent(b), travel = mode === 'drill' ? cameraTravelSeconds(a.camera, b.camera, 3) : 0;
         return groundedOpponentShot(b.shot) && minimumMotionGap(a, b) <= c.gap + 1e-8
           && (!travel || c.rally.contactTime + travel + event.contactTime - event.start <= c.gap + 1e-8);
       };
-      let candidate = candidates.find(canMeet);
+      // A contact is usable only when the next outgoing flight is legal too.
+      // Keep failed random targets local to this search, preserving both zones.
+      const outgoing = new Map<ReturnCandidate, { trajectory: ResolvedTrajectory; draft: CompiledRepetition }>();
+      let varyOutgoing = false;
+      const canConnect = (c: ReturnCandidate) => {
+        if (!rally) return canMeet(c);
+        const intent = draft.trajectory.intent;
+        const targets = varyOutgoing && intent.landingZone ? rallyZoneTargets(intent.landingZone, draft.shot.target) : [draft.shot.target];
+        for (const target of targets) {
+          const desired = { ...draft, shot: { ...draft.shot, target } };
+          if (!canMeet(c, desired)) continue;
+          const trajectory = resolveTrajectory({ ...intent, target, source: c.source,
+            aimDirectionDeg: aimDirectionToCourtPoint(c.source, target) },
+          flight => acceptsPlayerReturn(flight, returnConfiguration));
+          if (!legalRallyFlight(trajectory) || !acceptsPlayerReturn(trajectory, returnConfiguration)) continue;
+          // Check the real route/rate solver too, before making the intercept
+          // immutable. Its chosen shot direction can alter the preparation.
+          const linked = withPreparedApproach(schedulingPrevious, { ...choose(c, schedulingPrevious, desired), trajectory });
+          if (solveShotInterval(schedulingPrevious, linked, c.gap).gap > c.gap + 1e-7) continue;
+          outgoing.set(c, { trajectory, draft: desired }); return true;
+        }
+        return false;
+      };
+      let candidate = candidates.find(canConnect);
       if (!candidate) {
-        candidates = returnPlanCandidates(previous.trajectory, draft.shot.family, previous.returnLandingZone, target, requestedGap, previous.returnShot, settings.rally?.opponentContactTiming, canMeet, contactCeiling);
+        candidates = returnPlanCandidates(previous.trajectory, draft.shot.family, previous.returnLandingZone, target, requestedGap, previous.returnShot, settings.rally?.opponentContactTiming, canConnect, contactCeiling);
         candidate = candidates[0];
+      }
+      if (rally && !candidate) {
+        for (const broadenOutgoing of [false, true]) {
+          varyOutgoing = broadenOutgoing;
+          for (const alternative of rallyZoneTargets(previous.returnLandingZone, target)) {
+            candidates = returnPlanCandidates(previous.trajectory, draft.shot.family, previous.returnLandingZone, alternative,
+              requestedGap, previous.returnShot, settings.rally?.opponentContactTiming, canConnect, contactCeiling, true);
+            candidate = candidates[0];
+            if (candidate) break;
+          }
+          if (candidate) break;
+        }
+      }
+      if (rally && !candidate && settings.rally?.playerShotPolicy === 'automatic') {
+        for (const alternativeShot of automaticReturnShots(previous.returnShot)) {
+          if (!acceptsPlayerReturn(previous.trajectory, alternativeShot)) continue;
+          returnConfiguration = alternativeShot;
+          for (const alternative of rallyZoneTargets(previous.returnLandingZone, target)) {
+            candidates = returnPlanCandidates(previous.trajectory, draft.shot.family, previous.returnLandingZone, alternative,
+              requestedGap, alternativeShot, settings.rally.opponentContactTiming, canConnect, contactCeiling, true);
+            candidate = candidates[0];
+            if (candidate) break;
+          }
+          if (candidate) break;
+        }
       }
       const position = candidate?.source ?? candidates[0]?.source;
       if (rally && !candidate) {
         repetitions[index - 1] = { ...previous, returnStatus: 'infeasible' };
         repetitions.splice(index);
-        planningIssues.push({ index: previous.index, phase: 'response', message: 'The rally cannot connect these zones and shot settings. Adjust the player return, opponent shot or contact timing.' });
+        planningIssues.push({ index: previous.index, phase: 'response', message: 'No connected rally was found within these zones and shot constraints after trying alternative contacts and landing points. Adjust the zones, opponent shot or contact timing.' });
         break;
       }
       if (position) {
+        if (candidate && outgoing.has(candidate)) draft = outgoing.get(candidate)!.draft;
         if (candidate) draft = choose(candidate);
         const shot = { ...draft.shot, source: position };
-        const trajectory = resolveTrajectory({ ...draft.trajectory.intent, source: position,
+        const trajectory = candidate && outgoing.get(candidate)?.trajectory || resolveTrajectory({ ...draft.trajectory.intent, source: position,
           aimDirectionDeg: aimDirectionToCourtPoint(position, shot.target) }, rally ? flight => acceptsPlayerReturn(flight, settings.rally!.shot) : undefined);
         draft = withPreparedApproach(schedulingPrevious, addPracticeReturn({ ...draft, shot, trajectory, reachability: assessDrillReturn(trajectory),
           incomingContact: candidate ? incomingContact(candidate.rally.trajectory, candidate.contact, previous.startTime + candidate.rally.contactTime) : undefined,
@@ -362,7 +427,7 @@ export const compileSession = (
       }
       if (candidate) {
         plannedReturn = finishReturn(candidate); contactGap = candidate.gap;
-        previous = { ...previous, reachability: { ...previous.reachability, reachable: true, reason: 'reachable',
+        previous = { ...previous, returnShot: returnConfiguration, reachability: { ...previous.reachability, reachable: true, reason: 'reachable',
           contact: previous.trajectory.samples.find(s => s.time === candidate.rally.contactTime)! } };
         schedulingPrevious = previous;
       }
@@ -429,7 +494,7 @@ export const compileSession = (
 
   return {
     solverVersion: 'ball-v12-opening-serve-pace',
-    plannerVersion: 'gameplay-opponent-footwork-v15',
+    plannerVersion: 'gameplay-opponent-footwork-v16',
     contentVersion: '2026.09.09',
     drill,
     settings: { ...settings, rhythmPercent, shotIntervalSeconds: interval, movementPercent:movementRate*100, mode },

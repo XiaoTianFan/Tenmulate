@@ -41,3 +41,18 @@ export function returnShotContacts(incoming: ResolvedTrajectory, type: ReturnSho
 export function acceptsPlayerReturn(incoming: ResolvedTrajectory, shot: ReturnShotConfiguration): boolean {
   return contactsForTiming(incoming, shot.type, returnShotContacts(incoming, shot.type), shot.contactTiming).length > 0;
 }
+
+/** Quick Practice only authors the blue zone. Hidden defaults are preferences;
+ * explicit drill/API return configurations remain constraints. */
+export function* automaticReturnShots(preferred: ReturnShotConfiguration) {
+  yield preferred;
+  const seen = new Set([JSON.stringify(preferred)]);
+  for (const type of [preferred.type, ...Object.keys(RETURN_SHOT_PROFILES).filter(type => type !== preferred.type)] as ReturnShotType[]) {
+    for (const spin of [RETURN_SHOT_PROFILES[type].spin, 'flat', 'topspin', 'slice'] as const) {
+      for (const contactTiming of ['descent', 'rise', 'apex'] as const) {
+        const shot = { ...defaultReturnShot(type, spin), contactTiming }, key = JSON.stringify(shot);
+        if (!seen.has(key)) { seen.add(key); yield shot; }
+      }
+    }
+  }
+}

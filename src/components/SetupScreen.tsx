@@ -190,7 +190,7 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
   const returnServePlacement = RETURN_SERVE_PATTERN[returnPreviewIndex % RETURN_SERVE_PATTERN.length]!;
   const camera = useMemo<CameraConfiguration>(() => ({ eyeHeight, behindBaseline, lateral, yaw, pitch, fov }), [behindBaseline, eyeHeight, fov, lateral, pitch, yaw]);
   const { container: overviewContainer, displayCamera, zoomOverview } = useCourtOverview(camera, overview);
-  const rally = useMemo(() => practicePreset === 'rally' ? { landingZone: rallyLandingZone, shot: rallyShot, opponentContactTiming } : undefined, [practicePreset, rallyLandingZone, rallyShot, opponentContactTiming]);
+  const rally = useMemo(() => practicePreset === 'rally' ? { landingZone: rallyLandingZone, shot: rallyShot, opponentContactTiming, playerShotPolicy: 'automatic' as const } : undefined, [practicePreset, rallyLandingZone, rallyShot, opponentContactTiming]);
   const practiceReturn = useMemo(() => ({ type: practiceReturnType(sessionCategory), landingZone: rallyLandingZone }), [sessionCategory, rallyLandingZone]);
   const nearZone = useMemo(() => rally ? resolveLandingZone(practiceLandingTarget(opponentPosition, aimDirectionDeg, landingDepthM), landingZone, shotType, opponentPosition) : undefined, [rally, opponentPosition, aimDirectionDeg, landingDepthM, landingZone, shotType]);
   const sessionSettings = useMemo(() => ({

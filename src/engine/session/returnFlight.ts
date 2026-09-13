@@ -13,6 +13,18 @@ export type RallyReturn = Readonly<{ trajectory: ResolvedTrajectory; contactTime
 
 export type ReturnCandidate = Readonly<{ rally: RallyReturn; contact: FlightSample; source: Vec3; gap: number }>;
 
+/** Deterministic alternatives inside the authored zone. The random point is
+ * preferred, never a new constraint that makes the whole zone infeasible. */
+export function* rallyZoneTargets(zone: LandingZone, preferred: { x: number; z: number }) {
+  const seen = new Set<string>();
+  for (const point of [preferred, ...[.5, .25, .75, 0, 1].flatMap(z =>
+    [.5, .25, .75, 0, 1].map(x => ({ x: zone.minX + (zone.maxX - zone.minX) * x,
+      z: zone.minZ + (zone.maxZ - zone.minZ) * z })))]) {
+    const key = `${point.x}:${point.z}`;
+    if (!seen.has(key)) { seen.add(key); yield point; }
+  }
+}
+
 /** Solve in the trajectory solver's canonical half, then rotate the complete
  * physical flight 180 degrees. No endpoint snapping or retiming of the ball. */
 function returnFlight(incoming: ResolvedTrajectory, contact: FlightSample, target: { x: number; z: number },
@@ -30,8 +42,12 @@ function returnFlight(incoming: ResolvedTrajectory, contact: FlightSample, targe
  * accepting a contact. The sampled bounce target stays fixed across candidates. */
 export function returnPlanCandidates(incoming: ResolvedTrajectory, family: ShotFamily, zone: LandingZone,
   target: { x: number; z: number }, preferredGap: number, configuration?: ReturnShotConfiguration, opponentTiming: ContactTiming = 'descent',
-  accepts?: (candidate: ReturnCandidate) => boolean, contactCeiling = Infinity): ReturnCandidate[] {
+  accepts?: (candidate: ReturnCandidate) => boolean, contactCeiling = Infinity, allContacts = false): ReturnCandidate[] {
   if (family === 'serve') return [];
+  // A return landing must intersect the opponent's playable court. Avoid a
+  // costly candidate scan for an explicitly impossible zone.
+  if (zone.maxZ <= 0 || zone.minZ > COURT.halfLength || zone.minX > COURT.singlesWidth / 2
+    || zone.maxX < -COURT.singlesWidth / 2) return [];
   const shot = resolveReturnShot(configuration, family), profile = RETURN_SHOT_PROFILES[shot.type];
   const contacts = contactsForTiming(incoming, shot.type, returnShotContacts(incoming, shot.type), shot.contactTiming);
   if (!contacts.length) return [];
@@ -43,14 +59,17 @@ export function returnPlanCandidates(incoming: ResolvedTrajectory, family: ShotF
   // Keep the preferred contact, plus the window's start when it is distinct.
   const selected = [ranked[0]!];
   if (Math.abs(contacts[0]!.time - selected[0]!.time) > .1) selected.push(contacts[0]!);
+  if (allContacts) selected.push(...ranked.filter(contact => !selected.includes(contact)));
   const preferred = shot.paceKmh ?? profile.pace;
   const results: ReturnCandidate[] = [];
   const preferences = new Map<ResolvedTrajectory, ReturnType<typeof bounceContactPreference>>();
   for (const contact of selected) {
     const candidatesForFlight = (flight: ResolvedTrajectory): ReturnCandidate[] => {
+      if (flight.solution?.status === 'unreachable') return [];
       const net = flight.events.find(e => e.type === 'net-crossing');
       const bounce = flight.events.find(e => e.type === 'bounce');
       if (!net || net.position.y < netHeightAt(net.position.x) + COURT.ballRadius + .05 || !bounce
+        || bounce.position.z <= 0 || bounce.position.z > COURT.halfLength || Math.abs(bounce.position.x) > COURT.singlesWidth / 2
         || bounce.position.x < zone.minX - .04 || bounce.position.x > zone.maxX + .04
         || bounce.position.z < zone.minZ - .04 || bounce.position.z > zone.maxZ + .04) return [];
       const end = flight.events.find(e => e.type === 'second-bounce')?.time ?? Infinity;
@@ -86,6 +105,9 @@ export function returnPlanCandidates(incoming: ResolvedTrajectory, family: ShotF
       preferences.set(flight, bounceContactPreference(flight, family, opponentTiming));
       results.push(...candidatesForFlight(flight));
     }
+    // The complete fallback scans every legal simulation sample if necessary,
+    // stopping as soon as a flight satisfies the caller's full link contract.
+    if (allContacts && results.length) break;
   }
   return results.sort((a, b) => {
     const score = (c: ReturnCandidate) => Math.abs(c.gap - preferredGap) * .2 + Math.abs(1 - c.rally.speedRatio) * .12
