@@ -177,7 +177,7 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
       <header className="rehearsal-header rehearsal-chrome-content">
         <strong>Tenmulate</strong>
         <span className="drill-title">{session.drill.title}</span>
-        <span className="rep-status">Set {activeEvent ? activeEvent.setIndex + 1 : player.currentSet} of {player.setCount} · {session.playerEvents ? opening ? 'Opening shot' : `Your shot ${repetitionNumber} of ${eventCount}` : `Rep ${repetitionNumber} of ${eventCount}`}</span>
+        <span className="rep-status">{session.playerEvents ? 'Repetition' : 'Set'} {activeEvent ? activeEvent.setIndex + 1 : player.currentSet} of {player.setCount} · {session.playerEvents ? opening ? 'Opening shot' : `Your shot ${repetitionNumber} of ${eventCount}` : `Rep ${repetitionNumber} of ${eventCount}`}</span>
         <div>
           <CastingButton />
           <button type="button" aria-label="Settings" aria-expanded={showDiagnostics} onClick={() => setShowDiagnostics((value) => !value)}><Settings size={18} /> Settings</button>
@@ -189,7 +189,7 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
       </div>
 
       {player.countdown ? <div className="countdown" aria-live="assertive"><strong>{player.countdown}</strong><span>Ready position</span></div> : null}
-      {player.status === 'resting' ? <div className="countdown rest-countdown" aria-live="polite"><strong>{player.restRemaining}</strong><span>Rest · next set follows</span></div> : null}
+      {player.status === 'resting' ? <div className="countdown rest-countdown" aria-live="polite"><strong>{player.restRemaining}</strong><span>Rest · next {session.playerEvents ? 'repetition' : 'set'} follows</span></div> : null}
       <div className="rehearsal-transport-zone rehearsal-chrome-zone">
       <div className="rehearsal-transport rehearsal-chrome-content" role="group" aria-label="Playback controls">
         <button type="button" aria-label="Previous repetition" onClick={player.previous}><SkipBack size={22} /></button>

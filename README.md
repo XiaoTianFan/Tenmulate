@@ -38,6 +38,11 @@ The app cannot verify that connection. See the
 
 The drill editor plans **your shots**. **Edit drill** opens an existing library
 entry; copying is optional.
+Before **Run drill**, use **Practice set** to enter the total repetitions of the
+whole drill and rest between repetitions (0–120 seconds). One repetition includes
+every authored player shot. The final ball finishes before rest starts; the next
+run opens a new point, with no extra rest after the final run. These are launch
+settings; Replay same seed and New variation retain them.
 Use **Save drill**, **Save shot**, **Save config** and **Save preset**. In local
 **development**, every explicit save asks whether to save a **Project default** or
 to **This browser**. Production saves directly to durable browser localStorage.

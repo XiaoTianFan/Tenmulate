@@ -1,13 +1,39 @@
 # V1 implementation status
 
 - **Status:** Active
-- **Last updated:** 2026-09-13
+- **Last updated:** 2026-09-14
 - **Current implementation:** Drills save to a shared project JSON catalog, with direct editing, same-name overwrites and separate per-drill recovery across navigation, reload and test playback. The library uses a list and right inspector with bottom create/import actions. Player-first drills retain independently configurable camera movement, timing and focus, direct court editing, neutral-spin-first groundstroke fitting and independent bounce-contact timing. Six Blender-authored venues and twelve Quality/Performance GLBs remain active; audiences default to Half.
 - **Previous venue integration:** Source/assets `25e363b`, runtime `18141c5` and verification `d1a916a` were fast-forwarded into `main`, preserving separately committed local-motion work `b2a082e`. All twelve local feature tips were included at this integration checkpoint; see the [branch audit](feature-branch-integration-2026-09-05.md). No remote push or deployment.
 
 **Motion/model integration checkpoint (2026-09-07):** Local `main` includes all 17 motion/model feature commits plus delivery/documentation reconciliation through `a9ba202`: all 24 clips, the 1.88 m articulated model, recovery planning, crossovers and both serve rhythms. No local feature tip remains unmerged. The 237-test suite, production build, active-asset/cache guard, both-hand gameplay/crossover checks and actual production-browser practice review pass. The [current motion contract](local-motion-pipeline.md) replaces competing “latest” descriptions below; the [integration receipt](motion-main-integration-2026-09-07.md) records the exact merge, evidence and remaining owner/device gates. Older stage counts and asset hashes below are historical evidence, not active selectors. No public deployment occurred.
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
+
+## Drill practice sets — 2026-09-14
+
+The drill library now exposes typed **Total repetitions** and **Rest between
+repetitions (s)** inputs immediately before Run drill. A repetition means the
+complete authored sequence. The launch adapter converts full runs to the existing
+player-shot count and sets the work block to the drill length, preserving internal
+new-point openings without inserting extra rests there. Rest is 0–120 seconds;
+the repetition limit is the largest complete number of runs within the existing
+200-player-shot compiler limit. Invalid input blocks launch instead of silently
+truncating a requested run. Initial count derives from the drill's default shot
+count, rounded up to a complete run; rest initially uses the existing 20 seconds.
+
+These controls configure a launch without changing the saved drill. Replay same
+seed and New variation retain its compiled settings. Playback labels full runs as
+repetitions and shows the existing rest countdown before the next run. The final
+winner finishes before rest, with no rest after the final run. Single runs and
+zero-second rest create no rest periods.
+
+The focused suites pass **12 tests / 3 files**, covering sequence order, exact rest duration and boundaries,
+no opponent return after each winner, invalid values and complete-run limits.
+Production build and active motion/precache checks pass. Actual Edge verification
+covered invalid input, desktop/mobile controls, a three-run Crosscourt serve
+returns launch (six shots, 49 seconds), visible three-second rests and completion.
+New variation also retained all three repetitions.
+Local implementation only; no public deployment.
 
 ## Trajectory and landing-zone visibility — 2026-09-13
 

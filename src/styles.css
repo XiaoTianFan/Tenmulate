@@ -235,6 +235,11 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .library-inspector .range-field { grid-template-columns: 75px minmax(40px, 1fr) 44px 18px; gap: 7px; font-size: 11px; }
 .library-inspector .range-field output { height: 30px; font-size: 11px; }
 .library-inspector .player-hand-controls { margin-block: 16px; }
+.drill-practice-set { min-width: 0; margin: 20px 0; padding: 14px 0 0; border: 0; border-top: 1px solid var(--divider); }
+.drill-practice-set legend { padding: 0 10px 0 0; font-size: 13px; font-weight: 600; }
+.drill-practice-set label { display: grid; grid-template-columns: minmax(0, 1fr) 76px; align-items: center; gap: 12px; margin-bottom: 12px; font-size: 12px; }
+.drill-practice-set input { width: 100%; min-width: 0; padding: 9px 8px; border: 1px solid var(--divider); border-radius: 6px; background: #080e12; color: var(--text); font: inherit; }
+.drill-practice-set small { display: block; color: var(--muted); font-size: 11px; line-height: 1.6; }
 .library-actions { position: sticky; bottom: 0; padding: 16px 22px; border-top: 1px solid var(--divider); background: #0b1216; }
 .library-actions small, .project-save-status { display: block; margin-top: 10px; color: var(--muted); font-size: 10px; line-height: 1.5; }
 .project-save-status { margin: 0 0 9px; }

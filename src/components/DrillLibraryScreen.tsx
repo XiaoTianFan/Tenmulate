@@ -12,13 +12,14 @@ import { RangeField } from './RangeField';
 import { downloadDrill } from '../content/validation';
 import { AppHeader, type AppRoute } from './AppHeader';
 import { Modal } from './Modal';
+import { maxDrillRepetitions, type DrillPracticeSet } from '../app/drillPracticeSet';
 
 type Props = {
   route: AppRoute; drills: readonly DrillDefinitionV2[]; projectIds: readonly string[];
   writable: boolean; projectStatus: string;
   playerHand: OpponentHand; onPlayerHandChange: (hand: OpponentHand) => void;
   onRoute: (route: AppRoute) => void;
-  onRun: (drill: DrillDefinitionV2, rhythm: number, interval: number, movement: number) => void;
+  onRun: (drill: DrillDefinitionV2, rhythm: number, interval: number, movement: number, practiceSet: DrillPracticeSet) => void;
   onEdit: (drill: DrillDefinitionV2) => void;
   onSave: (drill: DrillDefinitionV2) => Promise<DrillDefinitionV2>;
   onDelete: (id: string) => Promise<void>;
@@ -29,6 +30,8 @@ export function DrillLibraryScreen({ route, drills, projectIds, writable, projec
   const [rhythmOverride, setRhythmOverride] = useState<number | null>(null);
   const [intervalOverride, setIntervalOverride] = useState<number | null>(null);
   const [movementOverride, setMovementOverride] = useState<number | null>(null);
+  const [repetitionsInput, setRepetitionsInput] = useState<string | null>(null);
+  const [restInput, setRestInput] = useState('20');
   const [message, setMessage] = useState<string | null>(null), [busy, setBusy] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const authored = drills.find(drill => drill.id === selectedId) ?? drills[0];
@@ -37,6 +40,12 @@ export function DrillLibraryScreen({ route, drills, projectIds, writable, projec
   const rhythm = rhythmOverride ?? selected?.defaultRhythmPercent ?? rhythmFromLegacyInterval(selected?.defaultInterval ?? 4.5);
   const interval = intervalOverride ?? selected?.defaultInterval ?? 4.5;
   const movement = movementOverride ?? selected?.defaultMovementPercent ?? 100;
+  const maxRepetitions = selected ? maxDrillRepetitions(selected) : 1;
+  const repetitionValue = repetitionsInput ?? String(Math.min(maxRepetitions, Math.max(1,
+    Math.ceil((selected?.defaultRepetitions ?? 1) / Math.max(1, selected?.events.length ?? 1)))));
+  const repetitions = Number(repetitionValue), restSeconds = Number(restInput);
+  const validSet = repetitionValue.trim() !== '' && Number.isInteger(repetitions) && repetitions >= 1 && repetitions <= maxRepetitions
+    && restInput.trim() !== '' && Number.isFinite(restSeconds) && restSeconds >= 0 && restSeconds <= 120;
   const uniqueTitle = (base: string) => {
     let title = base, suffix = 2;
     while (drills.some(drill => drillNameKey(drill.title) === drillNameKey(title))) {
@@ -71,7 +80,7 @@ export function DrillLibraryScreen({ route, drills, projectIds, writable, projec
       <section className="drill-table" aria-label="Available drills">
         <header><span>Drill library · {drills.length}</span><span>Family</span><span>Your shots</span><span>Rhythm</span></header>
         {drills.map(drill => <button key={drill.id} type="button" className={'drill-table-row' + (drill.id === selected?.id ? ' selected' : '')}
-          onClick={() => { setSelectedId(drill.id); setRhythmOverride(null); setIntervalOverride(null); setMovementOverride(null); }}>
+          onClick={() => { setSelectedId(drill.id); setRhythmOverride(null); setIntervalOverride(null); setMovementOverride(null); setRepetitionsInput(null); }}>
           <span><strong>{drill.title}</strong><small>{drill.description}</small></span><span>{drill.category}</span>
           <span>{drill.events.length}</span><span>{drill.defaultRhythmPercent ?? rhythmFromLegacyInterval(drill.defaultInterval)}%</span>
         </button>)}
@@ -89,7 +98,16 @@ export function DrillLibraryScreen({ route, drills, projectIds, writable, projec
             <RangeField label="Stroke rhythm" value={rhythm} min={50} max={300} step={5} unit="%" onChange={setRhythmOverride}/>
             <RangeField label="Shot interval" value={interval} min={1} max={30} step={.1} unit="s" onChange={setIntervalOverride}/>
             <RangeField label="Movement pace" value={movement} min={50} max={300} step={5} unit="%" onChange={setMovementOverride}/>
-            <button className="primary-button" type="button" disabled={busy} onClick={() => onRun(selected, rhythm, interval, movement)}><Play size={17}/> Run drill</button>
+            <fieldset className="drill-practice-set">
+              <legend>Practice set</legend>
+              <label><span>Total repetitions</span><input type="number" min={1} max={maxRepetitions} step={1} value={repetitionValue}
+                onChange={event => setRepetitionsInput(event.target.value)} /></label>
+              <label><span>Rest between repetitions (s)</span><input type="number" min={0} max={120} step={1} value={restInput}
+                onChange={event => setRestInput(event.target.value)} /></label>
+              <small aria-live="polite">{validSet ? `${repetitions} complete ${repetitions === 1 ? 'run' : 'runs'} · ${repetitions * selected.events.length} player shots${repetitions > 1 ? ` · ${restSeconds}s rest between runs` : ' · no rest needed'}`
+                : `Enter 1–${maxRepetitions} whole repetitions and 0–120 seconds of rest.`}</small>
+            </fieldset>
+            <button className="primary-button" type="button" disabled={busy || !validSet || !selected.events.length} onClick={() => onRun(selected, rhythm, interval, movement, { repetitions, restSeconds })}><Play size={17}/> Run drill</button>
             <button className="secondary-button full-width" type="button" disabled={busy} onClick={() => onEdit(selected)}><PencilLine size={16}/> Edit drill</button>
             <button className="secondary-button full-width" type="button" disabled={busy} onClick={() => {
               const copy = copyPlayerDrill(selected); onEdit({ ...copy, title: uniqueTitle(copy.title) });

@@ -29,10 +29,11 @@ export type DrillPlanningIssue = Readonly<{ index: number; phase: 'opening' | 'p
 type IncomingFit = { trajectory: ResolvedTrajectory; contact: FlightSample | null; score: number };
 export type PlayerShotSelection = Readonly<{ eventId: string; opening: boolean; initialOpening?: boolean }>;
 export type ShotPreviewTrajectories = Readonly<{ player?: ResolvedTrajectory; opponent?: ResolvedTrajectory }>;
+export const MAX_PLAYER_DRILL_SHOTS = 200;
 
 export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSettings, selection?: PlayerShotSelection): CompiledSession {
   if (!drill.events.length) throw new Error('A drill needs at least one player shot.');
-  const count = Math.max(1, Math.min(200, Math.floor(settings.repetitions)));
+  const count = Math.max(1, Math.min(MAX_PLAYER_DRILL_SHOTS, Math.floor(settings.repetitions)));
   const rhythm = normalizeRhythm(settings.rhythmPercent ?? drill.defaultRhythmPercent ?? 100);
   const movement = normalizeRhythm(settings.movementPercent ?? drill.defaultMovementPercent ?? 100);
   const interval = normalizeShotInterval(settings.shotIntervalSeconds ?? settings.interval ?? drill.defaultInterval);
