@@ -1,5 +1,11 @@
 # Tenmulate
 
+The interface supports English and Simplified Chinese. Chinese browser languages
+start in Chinese; other browser languages start in English. Use the header language
+selector (or playback Settings) to override this. Shipped drills, shots, camera
+positions and perspectives are bilingual; browser-created content keeps the text
+you wrote. See the [localization contract](docs/development/internationalization.md).
+
 Tenmulate is a browser-based, first-person tennis visualization tool. It places a player at a calibrated on-court point of view and plays configurable incoming ball trajectories for shadow swinging, return preparation, and tactical mental rehearsal.
 
 The repository contains the active V1 implementation: a deterministic Three.js court/ball simulation, complete starter shot library, rehearsal player, local drill editor, independently customizable camera-position and perspective presets, validated JSON exchange, and offline-capable app shell. All six built-in court environments use Blender-authored assets with Quality/Performance variants. A 1.88 m CC0 articulated mannequin runs the 25-clip tennis library, including normal/compact serves and a distinct backhand overhead, in actual gameplay. The ball machine remains the opponent load-failure fallback.

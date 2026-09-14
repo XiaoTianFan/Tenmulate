@@ -9,6 +9,22 @@
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
+## English / Simplified Chinese — 2026-09-14
+
+Browser-language detection and a persistent language selector cover setup, editor,
+drill library, playback, saves, help and diagnostics. Default content is translated
+at the presentation boundary; browser overrides and authored drafts retain their
+exact text. Language changes preserve form state and playback clocks/cameras.
+
+The 12 localization tests and production build pass. Edge checks cover both
+languages, Chinese desktop/mobile layout, browser detection and saved preference,
+draft preservation, default versus authored presets, development save choices,
+production browser-only saves and playback switching. The full suite has 643
+passes and 16 existing storage/catalog failures reproduced against pre-change code
+with the same owner-edited catalogs. See the [implementation and evidence](internationalization.md)
+and [ADR-0056](../decisions/0056-bilingual-ui-and-authored-content.md).
+Local implementation only; no public deployment.
+
 ## Drill practice sets — 2026-09-14
 
 The drill library now exposes typed **Total repetitions** and **Rest between
