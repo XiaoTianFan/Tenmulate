@@ -1,3 +1,4 @@
+import { t } from '../i18n/locale';
 import { useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Info } from 'lucide-react';
@@ -19,28 +20,28 @@ export function AboutButton({ route }: { route: AppRoute }) {
   }, [open]);
 
   return <>
-    <button className="icon-text-button" type="button" aria-label="About" aria-haspopup="dialog" onClick={() => setOpen(true)}><Info size={18} /> About</button>
+    <button className="icon-text-button" type="button" aria-label={t("About")} aria-haspopup="dialog" onClick={() => setOpen(true)}><Info size={18} /> {t("About")}</button>
     {createPortal(<dialog ref={dialog} className="about-dialog" aria-labelledby={titleId} onClose={() => setOpen(false)} onKeyDown={event => event.stopPropagation()}>
-      <header><h2 id={titleId}>About Tenmulate</h2><button type="button" aria-label="Close About" onClick={() => setOpen(false)}>Close</button></header>
+      <header><h2 id={titleId}>{t("About Tenmulate")}</h2><button type="button" aria-label={t("Close About")} onClick={() => setOpen(false)}>{t("Close")}</button></header>
       {open ? <div className="about-body">
-        <p>A first-person tennis rehearsal tool for Quick Practice and custom drills.</p>
+        <p>{t("A first-person tennis rehearsal tool for Quick Practice and custom drills.")}</p>
         <section aria-labelledby={`${titleId}-help`}>
-          <h3 id={`${titleId}-help`}>Help</h3>
-          <p>{routeHelp[route]}</p>
+          <h3 id={`${titleId}-help`}>{t("Help")}</h3>
+          <p>{t(routeHelp[route])}</p>
           <dl className="shortcut-list">
-            <div><dt>Drag the court</dt><dd>Drag outside the landing zone to look around. Scroll to zoom.</dd></div>
-            <div><dt>Landing zone</dt><dd>Drag inside to move it; drag an edge or corner to resize. Select the zone and use arrow keys for small adjustments.</dd></div>
-            <div><dt>WASD / Shift</dt><dd>Move around the court during setup or shot editing. Hold Shift to move faster.</dd></div>
-            <div><dt>PgUp / PgDn</dt><dd>Raise or lower the camera.</dd></div>
-            <div><dt>Ctrl+W / Ctrl+S</dt><dd>Raise or lower the camera after enabling Protect Ctrl+W/S. Hold Escape to leave protected controls.</dd></div>
-            <div><dt>Presets</dt><dd>Choose a camera position or perspective below the canvas. Right-click a preset to update it.</dd></div>
-            <div><dt>Space</dt><dd>Pause or resume practice.</dd></div>
+            <div><dt>{t("Drag the court")}</dt><dd>{t("Drag outside the landing zone to look around. Scroll to zoom.")}</dd></div>
+            <div><dt>{t("Landing zone")}</dt><dd>{t("Drag inside to move it; drag an edge or corner to resize. Select the zone and use arrow keys for small adjustments.")}</dd></div>
+            <div><dt>{t("WASD / Shift")}</dt><dd>{t("Move around the court during setup or shot editing. Hold Shift to move faster.")}</dd></div>
+            <div><dt>{t("PgUp / PgDn")}</dt><dd>{t("Raise or lower the camera.")}</dd></div>
+            <div><dt>{t("Ctrl+W / Ctrl+S")}</dt><dd>{t("Raise or lower the camera after enabling Protect Ctrl+W/S. Hold Escape to leave protected controls.")}</dd></div>
+            <div><dt>{t("Presets")}</dt><dd>{t("Choose a camera position or perspective below the canvas. Right-click a preset to update it.")}</dd></div>
+            <div><dt>{t("Space")}</dt><dd>{t("Pause or resume practice.")}</dd></div>
           </dl>
         </section>
         <section className="about-contact" aria-labelledby={`${titleId}-contact`}>
-          <h3 id={`${titleId}-contact`}>Contact</h3>
-          <p>Created by <a href="https://www.xiaotianfanx.com/" target="_blank" rel="noopener noreferrer">Xiaotian Fan (GleeGen)</a></p>
-          <a href="mailto:xiaotianfanx@email.com">xiaotianfanx@email.com</a>
+          <h3 id={`${titleId}-contact`}>{t("Contact")}</h3>
+          <p>{t("Created by")} <a href="https://www.xiaotianfanx.com/" target="_blank" rel="noopener noreferrer">Xiaotian Fan (GleeGen)</a></p>
+          <a href="mailto:xiaotianfanx@email.com">{t("xiaotianfanx@email.com")}</a>
         </section>
       </div> : null}
     </dialog>, document.body)}

@@ -1,3 +1,4 @@
+import { t, message as translateMessage } from '../i18n/locale';
 import { SaveCancelled } from '../storage/savePolicy';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Copy, Play, Save, Trash2 } from 'lucide-react';
@@ -95,7 +96,7 @@ export function DrillEditorScreen({ route, initialDrill, initialDraft, onDraftCh
   useLayoutEffect(() => {
     const inspector = root.current?.querySelector('.event-inspector');
     root.current?.querySelectorAll('details').forEach(detail => {
-      const key = detail.querySelector('summary')?.textContent ?? '';
+      const key = detail.querySelector('summary')?.dataset.sectionKey ?? detail.querySelector('summary')?.textContent ?? '';
       if (Object.hasOwn(sections.current, key)) detail.open = sections.current[key]!;
     });
     if (inspector) inspector.scrollTop = initialDraft?.inspectorScroll ?? 0;
@@ -107,7 +108,7 @@ export function DrillEditorScreen({ route, initialDrill, initialDraft, onDraftCh
     const element = root.current;
     const toggle = (event: Event) => {
       if (event.target instanceof HTMLDetailsElement) {
-        sections.current[event.target.querySelector('summary')?.textContent ?? ''] = event.target.open; captureDraft();
+        sections.current[event.target.querySelector('summary')?.dataset.sectionKey ?? event.target.querySelector('summary')?.textContent ?? ''] = event.target.open; captureDraft();
       }
     };
     element?.addEventListener('toggle', toggle, true);
@@ -235,17 +236,15 @@ export function DrillEditorScreen({ route, initialDrill, initialDraft, onDraftCh
             onReturnLandingZoneChange={!sequence && !isTransition && selected ? zone => updateEvent({ landingZone: zone }) : undefined}
             onCameraLookChange={lookEnabled ? draftLook : undefined}
             onCameraFovChange={overview ? zoomOverview : lookEnabled ? fov => draftCamera({ ...previewCamera, fov }) : undefined}
-            onCameraViewCommit={lookEnabled ? commitCamera : undefined} onMetrics={noMetrics}/> : <div className="editor-preview-loading">{events.length ? 'Preparing drill preview…' : 'Add your first shot from the library.'}</div>}
-          <div className="editor-scene-label"><span>{isOpening ? 'Opening shot' : isTransition ? `Camera ${events.indexOf(selected!) + 1} → ${events.indexOf(selected!) + 2}` : `Your shot ${events.indexOf(selected!) + 1}`}</span><strong>{isOpening ? 'Opponent initiates the rally' : isTransition ? `${selected.label} → ${nextEvent.label}` : selected?.label ?? 'Add a player shot'}</strong></div>
-          <div className="editor-view-tools"><button type="button" role="switch" aria-label="Trajectory" aria-checked={showTrajectory || overview} disabled={overview} title={overview ? 'Always shown in top-down view' : undefined} onClick={() => setShowTrajectory(value => !value)}>Trajectory {showTrajectory || overview ? 'on' : 'off'}</button><button type="button" aria-pressed={overview} onClick={() => { setSequence(false); setOverview(value => !value); }}>{overview ? 'Back to shot view' : 'Top-down zones'}</button>
+            onCameraViewCommit={lookEnabled ? commitCamera : undefined} onMetrics={noMetrics}/> : <div className="editor-preview-loading">{events.length ? t("Preparing drill preview…") : t("Add your first shot from the library.")}</div>}
+          <div className="editor-scene-label"><span>{isOpening ? t("Opening shot") : isTransition ? t("Camera {0} → {1}", {"0": events.indexOf(selected!) + 1, "1": events.indexOf(selected!) + 2}) : t("Your shot {0}", {"0": events.indexOf(selected!) + 1})}</span><strong>{isOpening ? t("Opponent initiates the rally") : isTransition ? `${selected.label} → ${nextEvent.label}` : selected?.label ?? t("Add a player shot")}</strong></div>
+          <div className="editor-view-tools"><button type="button" role="switch" aria-label={t("Trajectory")} aria-checked={showTrajectory || overview} disabled={overview} title={overview ? t("Always shown in top-down view") : undefined} onClick={() => setShowTrajectory(value => !value)}>{t("Trajectory")} {showTrajectory || overview ? t("on") : t("off")}</button><button type="button" aria-pressed={overview} onClick={() => { setSequence(false); setOverview(value => !value); }}>{overview ? t("Back to shot view") : t("Top-down zones")}</button>
             {!isOpening && !isTransition && compiled ? <button type="button" disabled={sequence || !!viewDraft || !!zoneDraft || !preview.current || !!issues.length}
               onClick={() => { setSequenceRange({ start: Math.max(0, compiled.startTime - 1.5), end: compiled.responseIndex === undefined
                 ? preview.session!.scheduledFlights!.find(flight => flight.phase === 'player' && flight.eventIndex === compiled.index)!.endTime
-                : Math.min(nextCompiled?.startTime ?? preview.session!.duration, compiled.startTime + 1.2) }); setOverview(false); setSequence(true); }}>
-              Preview actual shot
-            </button> : null}
-            <span><i className="return-swatch"/>Your landing <i className="landing-swatch"/>{isOpening ? 'Opening landing' : 'Opponent return'}</span></div>
-          <div className="editor-preview-status" role="status">{sequence ? 'Actual sequence' : shotPreview.pending ? 'Updating shot…' : shotPreview.error || (shotIssues.length ? 'Shot needs adjustment' : issues.length ? 'Isolated shot · Sequence needs adjustment' : isOpening ? 'Opening preview' : 'Isolated shot · Estimated contact')}</div>
+                : Math.min(nextCompiled?.startTime ?? preview.session!.duration, compiled.startTime + 1.2) }); setOverview(false); setSequence(true); }}>{t("Preview actual shot")} </button> : null}
+            <span><i className="return-swatch"/>{t("Your landing")} <i className="landing-swatch"/>{isOpening ? t("Opening landing") : t("Opponent return")}</span></div>
+          <div className="editor-preview-status" role="status">{sequence ? t("Actual sequence") : shotPreview.pending ? t("Updating shot…") : shotPreview.error || (shotIssues.length ? t("Shot needs adjustment") : issues.length ? t("Isolated shot · Sequence needs adjustment") : isOpening ? t("Opening preview") : t("Isolated shot · Estimated contact"))}</div>
         </div>
         <DrillTimeline drill={drill} selectedId={isOpening || isTransition ? selectedId : selected?.id ?? ''} onSelect={selectEvent} onInsert={addEvent} onMove={reorder} onRemove={remove}
           playing={sequence} previewDisabled={!session || preview.pending || !!preview.error || !validation.valid || !!issues.length}
@@ -253,26 +252,26 @@ export function DrillEditorScreen({ route, initialDrill, initialDraft, onDraftCh
       </section>
       <aside className="event-inspector">
         <PlayerHandControls hand={playerHand} onChange={changePlayerHand}/>
-        <details className="editor-section"><summary>Drill configuration</summary>
-          <label className="stack-field"><span>Drill title</span><input value={drill.title} maxLength={100} onChange={e => updateDrill({ title: e.target.value })}/></label>
-          <label className="stack-field"><span>Description</span><textarea aria-label="Description" value={drill.description} maxLength={400} rows={3} onChange={e => updateDrill({ description: e.target.value })}/></label>
-          <EditorNumber label="Default player interval (s)" value={drill.defaultInterval} min={1} max={30} step={.1} onChange={defaultInterval => updateDrill({ defaultInterval })}/>
-          <EditorNumber label="Default movement pace (%)" value={drill.defaultMovementPercent ?? 100} min={50} max={300} step={5} onChange={defaultMovementPercent => updateDrill({ defaultMovementPercent })}/>
-          <EditorNumber label="Default stroke rhythm (%)" value={drill.defaultRhythmPercent ?? 100} min={50} max={300} step={5} onChange={defaultRhythmPercent => updateDrill({ defaultRhythmPercent })}/>
+        <details className="editor-section"><summary data-section-key="Drill configuration">{t("Drill configuration")}</summary>
+          <label className="stack-field"><span>{t("Drill title")}</span><input value={drill.title} maxLength={100} onChange={e => updateDrill({ title: e.target.value })}/></label>
+          <label className="stack-field"><span>{t("Description")}</span><textarea aria-label={t("Description")} value={drill.description} maxLength={400} rows={3} onChange={e => updateDrill({ description: e.target.value })}/></label>
+          <EditorNumber label={t("Default player interval (s)")} value={drill.defaultInterval} min={1} max={30} step={.1} onChange={defaultInterval => updateDrill({ defaultInterval })}/>
+          <EditorNumber label={t("Default movement pace (%)")} value={drill.defaultMovementPercent ?? 100} min={50} max={300} step={5} onChange={defaultMovementPercent => updateDrill({ defaultMovementPercent })}/>
+          <EditorNumber label={t("Default stroke rhythm (%)")} value={drill.defaultRhythmPercent ?? 100} min={50} max={300} step={5} onChange={defaultRhythmPercent => updateDrill({ defaultRhythmPercent })}/>
         </details>
-        <div className="inspector-divider"><span>{isOpening ? 'Opening shot' : isTransition ? 'Selected camera transition' : 'Selected player shot'}</span>{!isTransition ? <div><button type="button" onClick={duplicate} disabled={isOpening || !selected || events.length >= 200} aria-label="Duplicate event"><Copy size={15}/></button><button type="button" onClick={() => remove()} disabled={isOpening || !selected} aria-label="Delete event"><Trash2 size={15}/></button></div> : null}</div>
-        {isOpening ? <><OpeningShotControls feed={feed} onChange={updateFeed} resolvedSpeedKmh={!shotPreview.pending ? shotPreview.session?.repetitions[0]?.trajectory.resolved.launchSpeedKmh : undefined}/><button type="button" className="secondary-button full-width" onClick={() => { setOverview(true); setSequence(false); }}>Place opponent on court</button>{selected ? <button type="button" className="secondary-button full-width" onClick={() => updateFeed(openingFor(selected, feed.ball.family === 'serve'))}>Use suggested opening for player shot</button> : null}</> : selected ? <>
+        <div className="inspector-divider"><span>{isOpening ? t("Opening shot") : isTransition ? t("Selected camera transition") : t("Selected player shot")}</span>{!isTransition ? <div><button type="button" onClick={duplicate} disabled={isOpening || !selected || events.length >= 200} aria-label={t("Duplicate event")}><Copy size={15}/></button><button type="button" onClick={() => remove()} disabled={isOpening || !selected} aria-label={t("Delete event")}><Trash2 size={15}/></button></div> : null}</div>
+        {isOpening ? <><OpeningShotControls feed={feed} onChange={updateFeed} resolvedSpeedKmh={!shotPreview.pending ? shotPreview.session?.repetitions[0]?.trajectory.resolved.launchSpeedKmh : undefined}/><button type="button" className="secondary-button full-width" onClick={() => { setOverview(true); setSequence(false); }}>{t("Place opponent on court")}</button>{selected ? <button type="button" className="secondary-button full-width" onClick={() => updateFeed(openingFor(selected, feed.ball.family === 'serve'))}>{t("Use suggested opening for player shot")}</button> : null}</> : selected ? <>
           {isTransition ? <CameraTransitionControls configuration={selected.cameraTransition} camera={previewCamera} captureEnabled={!overview && !sequence}
             onChange={cameraTransition => updateEvent({ cameraTransition })} onView={setTransitionCamera}
             previewDisabled={!transitionWindow || preview.pending || !!issues.length || !!preview.error || sequence}
             onPreview={() => { if (!transitionWindow) return; setOverview(false); setSequenceRange({ start: transitionWindow.start, end: transitionWindow.end }); setSequence(true); }}/>
             : <DrillShotControls event={selected} drill={drill} camera={previewCamera} onChange={updateEvent} onCameraChange={commitCamera} onEditOpening={() => selectEvent(`opening:${selected.id}`)}/>}
-          {compiled?.timing && !preview.pending ? <p className="saved-shot-count">Player contacts {compiled.timing.actual.toFixed(2)} s apart{compiled.timing.limited ? ` · requested ${compiled.timing.requested.toFixed(2)} s` : ''}.</p> : null}
-          <button className="secondary-button full-width save-shot-button" type="button" onClick={() => setShotDraft({ mode: selected.presetId ? 'update' : 'new', event: snapshotPlayerShot({ ...selected, camera: isTransition ? selected.camera : previewCamera }, workingDrill) })}><Save size={16}/> Save shot</button>
+          {compiled?.timing && !preview.pending ? <p className="saved-shot-count">{t("Player contacts")} {compiled.timing.actual.toFixed(2)} {t("s apart")}{compiled.timing.limited ? t(" · requested {0} s", {"0": compiled.timing.requested.toFixed(2)}) : ''}.</p> : null}
+          <button className="secondary-button full-width save-shot-button" type="button" onClick={() => setShotDraft({ mode: selected.presetId ? 'update' : 'new', event: snapshotPlayerShot({ ...selected, camera: isTransition ? selected.camera : previewCamera }, workingDrill) })}><Save size={16}/> {t("Save shot")}</button>
         </> : null}
-        {[...validation.errors, ...issues.map(issue => issue.message), ...shotIssues.map(issue => issue.message), ...(preview.error ? [preview.error] : [])].length ? <ul className="validation-errors">{[...new Set([...validation.errors, ...issues.map(issue => issue.message), ...shotIssues.map(issue => issue.message), ...(preview.error ? [preview.error] : [])])].map(error => <li key={error}>{error}</li>)}</ul> : null}
-        <div className="editor-primary-actions"><small className="project-save-status">{writable ? 'Draft retained here. Save drill to keep a library version.' : projectStatus}</small><button className="primary-button" type="button" disabled={!validation.valid || !writable || saving} onClick={() => void saveDrill()}><Save size={17}/> {saving ? 'Saving…' : 'Save drill'}</button>
-          <button className="secondary-button full-width" type="button" disabled={!validation.valid || preview.pending || !!issues.length || !!preview.error} onClick={() => onTest(workingDrill, showTrajectory)}><Play size={16}/> Test drill</button></div>
+        {[...validation.errors, ...issues.map(issue => issue.message), ...shotIssues.map(issue => issue.message), ...(preview.error ? [preview.error] : [])].length ? <ul className="validation-errors">{[...new Set([...validation.errors, ...issues.map(issue => issue.message), ...shotIssues.map(issue => issue.message), ...(preview.error ? [preview.error] : [])])].map(error => <li key={error}>{translateMessage(error)}</li>)}</ul> : null}
+        <div className="editor-primary-actions"><small className="project-save-status">{writable ? t("Draft retained here. Save drill to keep a library version.") : translateMessage(projectStatus)}</small><button className="primary-button" type="button" disabled={!validation.valid || !writable || saving} onClick={() => void saveDrill()}><Save size={17}/> {saving ? t("Saving…") : t("Save drill")}</button>
+          <button className="secondary-button full-width" type="button" disabled={!validation.valid || preview.pending || !!issues.length || !!preview.error} onClick={() => onTest(workingDrill, showTrajectory)}><Play size={16}/> {t("Test drill")}</button></div>
       </aside>
     </section>
     {creatingShot ? <NewShotModal hand={playerHand} savedShots={savedShots} writable={shotsWritable} status={shotsStatus} onClose={() => setCreatingShot(false)}
@@ -281,6 +280,6 @@ export function DrillEditorScreen({ route, initialDrill, initialDraft, onDraftCh
       onSave={async (shot, targetId) => { const saved = await onSaveShot(shot, targetId); updateEvent({ presetId: saved.id, label: saved.name }); setShotNotice(`Saved “${saved.name}”.`); setShotDraft(null); }}
       onDelete={async id => { await onDeleteShot(id); setShotNotice('Shot removed from the library.'); setShotDraft(null); }}/>
       : null}
-    {message ? <Modal title="Drill editor" onClose={() => setMessage(null)} actions={<button className="primary-button inline" type="button" onClick={() => setMessage(null)}>Close</button>}><p>{message}</p></Modal> : null}
+    {message ? <Modal title={t("Drill editor")} onClose={() => setMessage(null)} actions={<button className="primary-button inline" type="button" onClick={() => setMessage(null)}>{t("Close")}</button>}><p>{translateMessage(message)}</p></Modal> : null}
   </main>;
 }

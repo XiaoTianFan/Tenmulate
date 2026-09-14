@@ -1,3 +1,4 @@
+import { t } from '../i18n/locale';
 import { useRef, type PointerEvent as ReactPointerEvent } from 'react';
 import { COURT, OPPONENT_POSITION_LIMITS, clampOpponentPosition, playerViewHorizontalToWorldX, worldXToPlayerViewHorizontal } from '../domain/court';
 import { aimDirectionToCourtPoint } from '../engine/trajectory/physics';
@@ -75,7 +76,7 @@ export function CourtPlan({ opponent, landing = null, aimDirectionDeg = 0, onOpp
       className="court-plan"
       viewBox={`0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`}
       role="img"
-      aria-label="Interactive top-down tennis court and ITF runoff"
+      aria-label={t("Interactive top-down tennis court and ITF runoff")}
       onContextMenu={(event) => event.preventDefault()}
       onPointerDown={startPointer}
       onPointerMove={(event) => { if (dragMode.current) updateFromPointer(event); }}
@@ -89,13 +90,13 @@ export function CourtPlan({ opponent, landing = null, aimDirectionDeg = 0, onOpp
       <line x1={COURT_LEFT + singlesInset} y1={NET_Y - serviceOffset} x2={COURT_LEFT + COURT_WIDTH - singlesInset} y2={NET_Y - serviceOffset} className="court-plan-line" />
       <line x1={COURT_LEFT + singlesInset} y1={NET_Y + serviceOffset} x2={COURT_LEFT + COURT_WIDTH - singlesInset} y2={NET_Y + serviceOffset} className="court-plan-line" />
       <line x1={VIEW_WIDTH / 2} y1={NET_Y - serviceOffset} x2={VIEW_WIDTH / 2} y2={NET_Y + serviceOffset} className="court-plan-line" />
-      <text x={VIEW_WIDTH / 2} y={PLACEMENT_TOP + 17} textAnchor="middle" className="court-plan-runoff-label">6.40 m BACK RUNOFF</text>
-      <text x={PLACEMENT_LEFT + 11} y={NET_Y} textAnchor="middle" transform={`rotate(-90 ${PLACEMENT_LEFT + 11} ${NET_Y})`} className="court-plan-runoff-label">3.66 m SIDE RUNOFF</text>
+      <text x={VIEW_WIDTH / 2} y={PLACEMENT_TOP + 17} textAnchor="middle" className="court-plan-runoff-label">{t("6.40 m BACK RUNOFF")}</text>
+      <text x={PLACEMENT_LEFT + 11} y={NET_Y} textAnchor="middle" transform={`rotate(-90 ${PLACEMENT_LEFT + 11} ${NET_Y})`} className="court-plan-runoff-label">{t("3.66 m SIDE RUNOFF")}</text>
       {onAimChange ? <line x1={opponentMarker.x} y1={opponentMarker.y} x2={aimEnd.x} y2={aimEnd.y} className="court-plan-aim" /> : null}
       {landingMarker ? <g transform={`translate(${landingMarker.x} ${landingMarker.y})`} className="court-plan-landing"><circle r="11" /><path d="M-15 0H15M0-15V15" /></g> : null}
       <g transform={`translate(${opponentMarker.x} ${opponentMarker.y})`} className="court-plan-opponent"><circle r="13" /><circle cy="-3" r="4" /><path d="M-7 9Q0 1 7 9" /></g>
-      <text x="18" y="52" className="court-plan-label">OPPONENT</text>
-      <text x="18" y={VIEW_HEIGHT - 36} className="court-plan-label">YOU</text>
+      <text x="18" y="52" className="court-plan-label">{t("OPPONENT")}</text>
+      <text x="18" y={VIEW_HEIGHT - 36} className="court-plan-label">{t("YOU")}</text>
     </svg>
   );
 }

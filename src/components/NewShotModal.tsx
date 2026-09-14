@@ -1,3 +1,4 @@
+import { t, message as translateMessage } from '../i18n/locale';
 import { SaveCancelled } from '../storage/savePolicy';
 import { useEffect, useRef, useState } from 'react';
 import { Modal } from './Modal';
@@ -38,18 +39,18 @@ export function NewShotModal({ hand, savedShots, writable, status, onSave, onClo
     catch (failure) { if (failure instanceof SaveCancelled) return; setError(failure instanceof Error ? failure.message : 'Unable to create shot.'); }
     finally { pending.current = false; setBusy(false); }
   };
-  return <Modal title="Add New Shot" onClose={busy ? undefined : onClose} actions={<>
-    <button type="button" className="secondary-button" disabled={busy} onClick={onClose}>Cancel</button>
-    <button type="button" className="primary-button inline" disabled={busy || !writable || !name.trim() || duplicate} onClick={() => void save()}>{busy ? 'Creating…' : 'Save shot'}</button>
+  return <Modal title={t("Add New Shot")} onClose={busy ? undefined : onClose} actions={<>
+    <button type="button" className="secondary-button" disabled={busy} onClick={onClose}>{t("Cancel")}</button>
+    <button type="button" className="primary-button inline" disabled={busy || !writable || !name.trim() || duplicate} onClick={() => void save()}>{busy ? t("Creating…") : t("Save shot")}</button>
   </>}><div ref={body}>
-    <label className="stack-field"><span>Preset name</span><input maxLength={60} disabled={busy} value={name} onChange={e => setName(e.target.value)}/></label>
-    <label className="stack-field"><span>Shot type</span><select aria-label="Shot type" disabled={busy} value={family} onChange={e => setFamily(e.target.value as RallyShotFamily)}>
-      {Object.entries(SHOT_TYPE_LABELS).filter(([id]) => id !== 'serve').map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+    <label className="stack-field"><span>{t("Preset name")}</span><input maxLength={60} disabled={busy} value={name} onChange={e => setName(e.target.value)}/></label>
+    <label className="stack-field"><span>{t("Shot type")}</span><select aria-label={t("Shot type")} disabled={busy} value={family} onChange={e => setFamily(e.target.value as RallyShotFamily)}>
+      {Object.entries(SHOT_TYPE_LABELS).filter(([id]) => id !== 'serve').map(([id, label]) => <option key={id} value={id}>{t(label)}</option>)}
     </select></label>
-    <label className="stack-field"><span>Stroke side</span><select aria-label="Stroke side" disabled={busy} value={stroke} onChange={e => setStroke(e.target.value as typeof stroke)}><option value="forehand">Forehand</option><option value="backhand">Backhand</option></select></label>
-    <p>Starts with fresh {hand}-handed settings. Add the preset to a timeline to adjust its balls, landing zones and shot view.</p>
-    {duplicate ? <p className="validation-errors" role="alert">A shot already uses this name. Choose a new name.</p> : null}
-    {!writable ? <p role="status">{status}</p> : null}
-    {error ? <p className="validation-errors" role="alert">{error}</p> : null}
+    <label className="stack-field"><span>{t("Stroke side")}</span><select aria-label={t("Stroke side")} disabled={busy} value={stroke} onChange={e => setStroke(e.target.value as typeof stroke)}><option value="forehand">{t("Forehand")}</option><option value="backhand">{t("Backhand")}</option></select></label>
+    <p>{t("Starts with fresh")} {t(hand)}{t("-handed settings. Add the preset to a timeline to adjust its balls, landing zones and shot view.")}</p>
+    {duplicate ? <p className="validation-errors" role="alert">{t("A shot already uses this name. Choose a new name.")}</p> : null}
+    {!writable ? <p role="status">{translateMessage(status)}</p> : null}
+    {error ? <p className="validation-errors" role="alert">{translateMessage(error)}</p> : null}
   </div></Modal>;
 }

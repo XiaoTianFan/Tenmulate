@@ -1,3 +1,4 @@
+import { t } from '../i18n/locale';
 import { Fragment, useState, type DragEvent } from 'react';
 import { Camera, Play, Plus, Square } from 'lucide-react';
 import type { DrillDefinitionV2 } from '../content/types';
@@ -21,29 +22,29 @@ export function DrillTimeline({ drill, selectedId, onSelect, onInsert, onMove, o
     const shot = event.dataTransfer.getData(SHOT_DRAG_TYPE), id = event.dataTransfer.getData(EVENT_DRAG_TYPE);
     if (shot) onInsert(shot, index); else if (id) onMove(id, index);
   };
-  return <div className="timeline" aria-label="Drill timeline" onDragOver={event => {
+  return <div className="timeline" aria-label={t("Drill timeline")} onDragOver={event => {
     if (accepts(event)) { event.preventDefault(); setDropIndex(events.length); }
   }} onDrop={event => drop(event, events.length)} onDragLeave={event => {
     if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDropIndex(null);
   }}>
-    <div className="timeline-toolbar"><button type="button" className={`opening-chip${selectedId === 'launch' ? ' selected' : ''}`} onClick={() => onSelect('launch')}>Opening · Opponent {drill.launch.ball.family === 'serve' ? 'serve' : 'feed'}</button>
-      {events.map((event, index) => event.openingFeed ? <button type="button" key={event.id} className={`opening-chip${selectedId === `opening:${event.id}` ? ' selected' : ''}`} onClick={() => onSelect(`opening:${event.id}`)}>Opening before {index + 1}</button> : null)}
-      <strong>{drill.title}</strong><span>{events.length} player shots</span>
-      <button type="button" className="sequence-preview-button" disabled={previewDisabled && !playing} aria-pressed={playing} onClick={onPreview}>{playing ? <Square size={14}/> : <Play size={14}/>} {playing ? 'Stop preview' : 'Preview sequence'}</button></div>
+    <div className="timeline-toolbar"><button type="button" className={`opening-chip${selectedId === 'launch' ? ' selected' : ''}`} onClick={() => onSelect('launch')}>{t("Opening · Opponent")} {drill.launch.ball.family === 'serve' ? t("serve") : t("feed")}</button>
+      {events.map((event, index) => event.openingFeed ? <button type="button" key={event.id} className={`opening-chip${selectedId === `opening:${event.id}` ? ' selected' : ''}`} onClick={() => onSelect(`opening:${event.id}`)}>{t("Opening before")} {index + 1}</button> : null)}
+      <strong>{drill.title}</strong><span>{events.length} {t("player shots")}</span>
+      <button type="button" className="sequence-preview-button" disabled={previewDisabled && !playing} aria-pressed={playing} onClick={onPreview}>{playing ? <Square size={14}/> : <Play size={14}/>} {playing ? t("Stop preview") : t("Preview sequence")}</button></div>
     <div className="timeline-body">
       {events.length ? TRACKS.map(track => <div className="timeline-track" key={track}>
-        <strong>{track}</strong><div className="track-events" style={{ gridTemplateColumns: columns }}>
+        <strong>{t(track)}</strong><div className="track-events" style={{ gridTemplateColumns: columns }}>
           {events.map((event, index) => {
             const camera = event.camera;
-            const text = track === 'Your shot' ? `${index + 1}. ${event.openingFeed ? 'New point · ' : ''}${event.label}`
-              : track === 'Your ball' ? `${Math.round(event.ball.paceKmh)} km/h · ${event.ball.spin}`
-              : track === 'Opponent' ? index === events.length - 1 || events[index + 1]?.openingFeed ? 'Point ends' : `${event.opponentReturn.ball.family} · ${event.opponentReturn.ball.paceKmh} km/h`
-              : track === 'Shot view' ? `${camera.lateral.toFixed(1)} m · ${camera.yaw.toFixed(0)}°` : event.cue;
+            const text = track === 'Your shot' ? `${index + 1}. ${event.openingFeed ? t('New point · ') : ''}${event.label}`
+              : track === 'Your ball' ? `${Math.round(event.ball.paceKmh)} ${t('km/h')} · ${t(event.ball.spin)}`
+              : track === 'Opponent' ? index === events.length - 1 || events[index + 1]?.openingFeed ? t('Point ends') : `${t(event.opponentReturn.ball.family)} · ${event.opponentReturn.ball.paceKmh} ${t('km/h')}`
+              : track === 'Shot view' ? `${camera.lateral.toFixed(1)} ${t('m')} · ${camera.yaw.toFixed(0)}°` : event.cue;
             const custom = event.cameraTransition?.movement?.destination && event.cameraTransition.movement.destination !== 'auto'
               || Object.values(event.cameraTransition?.focus ?? {}).some(target => target.mode !== 'auto');
-            return <Fragment key={event.id}><button type="button" draggable aria-label={`${track} ${index + 1}: ${text}`}
+            return <Fragment key={event.id}><button type="button" draggable aria-label={`${t(track)} ${index + 1}: ${text}`}
               className={`timeline-clip${event.id === selectedId ? ' selected' : ''}${dropIndex === index ? ' drop-before' : ''}`}
-              onClick={() => onSelect(event.id)} title={`${text} · Right-click to remove`}
+              onClick={() => onSelect(event.id)} title={t("{0} · Right-click to remove", {"0": text})}
               onContextMenu={e => { e.preventDefault(); onRemove(event.id); }}
               onKeyDown={e => { if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); onRemove(event.id); } }}
               onDragStart={e => { e.dataTransfer.setData(EVENT_DRAG_TYPE, event.id); e.dataTransfer.effectAllowed = 'move'; }}
@@ -52,15 +53,15 @@ export function DrillTimeline({ drill, selectedId, onSelect, onInsert, onMove, o
               onDrop={e => { const b = e.currentTarget.getBoundingClientRect(); drop(e, index + (e.clientX > b.left + b.width / 2 ? 1 : 0)); }}
             >{text}</button>{index < events.length - 1 ? <div className="timeline-transition-slot">
               {track === 'Your shot' ? <button type="button" className={`timeline-camera-transition${selectedId === `camera:${event.id}` ? ' selected' : ''}`}
-                aria-label={`Camera transition ${index + 1} to ${index + 2}`} aria-pressed={selectedId === `camera:${event.id}`}
-                title={`Camera ${index + 1} → ${index + 2} · ${custom ? 'Custom' : 'Automatic'}`}
-                onClick={() => onSelect(`camera:${event.id}`)}><Camera size={14}/><span>{custom ? 'Custom' : 'Auto'}</span></button> : null}
+                aria-label={t("Camera transition {0} to {1}", {"0": index + 1, "1": index + 2})} aria-pressed={selectedId === `camera:${event.id}`}
+                title={t("Camera {0} → {1} · {2}", {"0": index + 1, "1": index + 2, "2": custom ? t('Custom') : t('Automatic')})}
+                onClick={() => onSelect(`camera:${event.id}`)}><Camera size={14}/><span>{custom ? t("Custom") : t("Auto")}</span></button> : null}
             </div> : null}</Fragment>;
           })}
-          <div className={`timeline-drop-end${dropIndex === events.length ? ' active' : ''}`} aria-label="Drop shot at end"><Plus size={15}/></div>
+          <div className={`timeline-drop-end${dropIndex === events.length ? ' active' : ''}`} aria-label={t("Drop shot at end")}><Plus size={15}/></div>
         </div>
-      </div>) : <div className="timeline-empty">Drop a shot here to start a drill.</div>}
+      </div>) : <div className="timeline-empty">{t("Drop a shot here to start a drill.")}</div>}
     </div>
-    <small className="timeline-help">Drag to add or reorder · Right-click a shot to remove · Select a narrow camera event to edit movement and focus</small>
+    <small className="timeline-help">{t("Drag to add or reorder · Right-click a shot to remove · Select a narrow camera event to edit movement and focus")}</small>
   </div>;
 }

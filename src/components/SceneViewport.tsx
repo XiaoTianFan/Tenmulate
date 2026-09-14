@@ -1,3 +1,4 @@
+import { t, message as translateMessage } from '../i18n/locale';
 import { useEffect, useEffectEvent, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { cameraFovAfterWheel, cameraLookAfterDrag, type CameraLook } from '../domain/camera';
 import type { SurfaceId } from '../domain/court';
@@ -326,7 +327,7 @@ export function SceneViewport({
         ref={canvasRef}
         className={[onCameraLookChange ? 'look-enabled' : '', onAimChange ? 'aim-enabled' : '', onLandingZoneChange ? 'landing-enabled' : ''].filter(Boolean).join(' ') || undefined}
         tabIndex={0}
-        aria-label={onLandingZoneChange ? 'Live tennis court. Left-drag inside the landing zone to move; drag an edge or corner to resize; drag elsewhere to look. Enter selects the zone; arrow keys move it; Escape deselects.' : 'Live first-person tennis court preview'}
+        aria-label={onLandingZoneChange ? t("Live tennis court. Left-drag inside the landing zone to move; drag an edge or corner to resize; drag elsewhere to look. Enter selects the zone; arrow keys move it; Escape deselects.") : t("Live first-person tennis court preview")}
         onContextMenu={onAimChange ? (event) => event.preventDefault() : undefined}
         onPointerDown={onLandingZoneChange || onAimChange || onCameraLookChange || onOpponentPositionChange ? (event) => {
           if (pointerDrag.current) return;
@@ -364,12 +365,12 @@ export function SceneViewport({
         onKeyDown={event => { if (sceneRef.current?.[keyboardZone.current].key(event.key)) { event.preventDefault(); event.stopPropagation(); } }}
         onBlur={()=>{ sceneRef.current?.landingZoneControl.leave(); sceneRef.current?.returnLandingZoneControl.leave(); }}
       />
-      {error ? <div className="renderer-error" role="alert"><strong>3D renderer unavailable</strong><span>{error}</span><small>WebGL 2 and hardware acceleration are required. Setup and local drills remain available.</small></div> : null}
-      {!error && !venueStatus.hasAsset && venueStatus.status !== 'ready' ? <div className="renderer-error" role={venueStatus.status === 'error' ? 'alert' : 'status'}><strong>{venueStatus.status === 'error' ? 'Venue unavailable' : 'Loading Blender venue…'}</strong><span>{venueStatus.message ?? (venueStatus.totalBytes ? `${Math.round(venueStatus.loadedBytes / venueStatus.totalBytes * 100)}%` : 'Preparing the selected scene')}</span>{venueStatus.status === 'error' ? <button onClick={() => sceneRef.current?.retryVenue()}>Retry venue</button> : null}</div> : null}
-      {!error && venueStatus.hasAsset && venueStatus.status === 'error' ? <div className="scene-audience-error" role="alert">Venue quality update failed: {venueStatus.message} <button onClick={() => sceneRef.current?.retryVenue()}>Retry venue</button></div> : null}
-      {audienceError ? <div className="scene-audience-error" role="alert">{audienceError} <button onClick={() => sceneRef.current?.retryVenue()}>Retry audience</button></div> : null}
-      {interactionHint ? <div className="scene-aim-hint">{interactionHint}</div> : null}
-      {practiceIssue ? <div className="scene-audience-error" role="alert">{practiceIssue}</div> : null}
+      {error ? <div className="renderer-error" role="alert"><strong>{t("3D renderer unavailable")}</strong><span>{translateMessage(error)}</span><small>{t("WebGL 2 and hardware acceleration are required. Setup and local drills remain available.")}</small></div> : null}
+      {!error && !venueStatus.hasAsset && venueStatus.status !== 'ready' ? <div className="renderer-error" role={venueStatus.status === 'error' ? 'alert' : 'status'}><strong>{venueStatus.status === 'error' ? t("Venue unavailable") : t("Loading Blender venue…")}</strong><span>{translateMessage(venueStatus.message) || (venueStatus.totalBytes ? `${Math.round(venueStatus.loadedBytes / venueStatus.totalBytes * 100)}%` : t("Preparing the selected scene"))}</span>{venueStatus.status === 'error' ? <button onClick={() => sceneRef.current?.retryVenue()}>{t("Retry venue")}</button> : null}</div> : null}
+      {!error && venueStatus.hasAsset && venueStatus.status === 'error' ? <div className="scene-audience-error" role="alert">{t("Venue quality update failed:")} {translateMessage(venueStatus.message)} <button onClick={() => sceneRef.current?.retryVenue()}>{t("Retry venue")}</button></div> : null}
+      {audienceError ? <div className="scene-audience-error" role="alert">{translateMessage(audienceError)} <button onClick={() => sceneRef.current?.retryVenue()}>{t("Retry audience")}</button></div> : null}
+      {interactionHint ? <div className="scene-aim-hint">{translateMessage(interactionHint)}</div> : null}
+      {practiceIssue ? <div className="scene-audience-error" role="alert">{translateMessage(practiceIssue)}</div> : null}
       {visibleTooltip ? (
         <aside
           className={`trajectory-tooltip${visibleTooltip.placeBelow ? ' below' : ''}`}
@@ -377,21 +378,20 @@ export function SceneViewport({
           data-flight-owner={readout.owner}
           style={{ left: visibleTooltip.x, top: visibleTooltip.y }}
         >
-          <strong>{readout.owner === 'player' ? 'Your ball' : 'Opponent ball'} · {spinLabel}</strong>
+          <strong>{readout.owner === 'player' ? t("Your ball") : t("Opponent ball")} · {t(spinLabel)}</strong>
           <span className="trajectory-tooltip-current">
-            {visibleTooltip.sample.time.toFixed(2)} s · {visibleTooltip.sample.position.y.toFixed(2)} m high · {Math.round(tooltipSpeedKmh)} km/h
-          </span>
+            {visibleTooltip.sample.time.toFixed(2)} {t("s ·")} {visibleTooltip.sample.position.y.toFixed(2)} {t("m high ·")} {Math.round(tooltipSpeedKmh)} {t("km/h")} </span>
           <dl>
-            <div><dt>Launch</dt><dd>{tooltipTrajectory.resolved.launchSpeedKmh.toFixed(1)} km/h</dd></div>
-            <div><dt>Spin</dt><dd>{Math.round(tooltipTrajectory.resolved.spinRateRpm)} rpm</dd></div>
-            <div><dt>Angle</dt><dd>{tooltipTrajectory.resolved.launchAngleDeg.toFixed(1)}°</dd></div>
-            <div title="Highest ball centre above the court, before the first bounce"><dt>Peak height</dt><dd>{readout.peakHeight.toFixed(2)} m</dd></div>
-            <div title="Ball centre above the court at the net"><dt>Height at net</dt><dd>{readout.netHeight === undefined ? 'No crossing' : `${readout.netHeight.toFixed(2)} m`}</dd></div>
-            <div title="Ball centre above the local net tape"><dt>Over net tape</dt><dd>{readout.netClearance === undefined ? 'No crossing' : `${readout.netClearance.toFixed(2)} m`}</dd></div>
-            <div><dt>Landing</dt><dd>{bounce ? `${bounce.position.x.toFixed(2)}, ${bounce.position.z.toFixed(2)} m` : 'Unresolved'}</dd></div>
-            <div><dt>Target error</dt><dd>{bounce ? `${Math.hypot(bounce.position.x - tooltipTrajectory.intent.target.x, bounce.position.z - tooltipTrajectory.intent.target.z).toFixed(2)} m` : 'Unresolved'}</dd></div>
-            <div><dt>Bounce</dt><dd>{bounce?.postSpeedKmh !== undefined ? `${Math.round(bounce.speedKmh)} → ${Math.round(bounce.postSpeedKmh)} km/h` : 'Unresolved'}</dd></div>
-            <div><dt>Arrival</dt><dd>{receiver ? `${receiver.position.y.toFixed(2)} m · ${Math.round(receiver.speedKmh)} km/h` : 'Before baseline'}</dd></div>
+            <div><dt>{t("Launch")}</dt><dd>{tooltipTrajectory.resolved.launchSpeedKmh.toFixed(1)} {t("km/h")}</dd></div>
+            <div><dt>{t("Spin")}</dt><dd>{Math.round(tooltipTrajectory.resolved.spinRateRpm)} {t("rpm")}</dd></div>
+            <div><dt>{t("Angle")}</dt><dd>{tooltipTrajectory.resolved.launchAngleDeg.toFixed(1)}°</dd></div>
+            <div title={t("Highest ball centre above the court, before the first bounce")}><dt>{t("Peak height")}</dt><dd>{readout.peakHeight.toFixed(2)} {t("m")}</dd></div>
+            <div title={t("Ball centre above the court at the net")}><dt>{t("Height at net")}</dt><dd>{readout.netHeight === undefined ? t("No crossing") : t("{0} m", {"0": readout.netHeight.toFixed(2)})}</dd></div>
+            <div title={t("Ball centre above the local net tape")}><dt>{t("Over net tape")}</dt><dd>{readout.netClearance === undefined ? t("No crossing") : t("{0} m", {"0": readout.netClearance.toFixed(2)})}</dd></div>
+            <div><dt>{t("Landing")}</dt><dd>{bounce ? t("{0}, {1} m", {"0": bounce.position.x.toFixed(2), "1": bounce.position.z.toFixed(2)}) : t("Unresolved")}</dd></div>
+            <div><dt>{t("Target error")}</dt><dd>{bounce ? t("{0} m", {"0": Math.hypot(bounce.position.x - tooltipTrajectory.intent.target.x, bounce.position.z - tooltipTrajectory.intent.target.z).toFixed(2)}) : t("Unresolved")}</dd></div>
+            <div><dt>{t("Bounce")}</dt><dd>{bounce?.postSpeedKmh !== undefined ? t("{0} → {1} km/h", {"0": Math.round(bounce.speedKmh), "1": Math.round(bounce.postSpeedKmh)}) : t("Unresolved")}</dd></div>
+            <div><dt>{t("Arrival")}</dt><dd>{receiver ? t("{0} m · {1} km/h", {"0": receiver.position.y.toFixed(2), "1": Math.round(receiver.speedKmh)}) : t("Before baseline")}</dd></div>
           </dl>
         </aside>
       ) : null}

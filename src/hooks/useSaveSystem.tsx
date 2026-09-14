@@ -1,3 +1,4 @@
+import { t, message as translateMessage } from '../i18n/locale';
 import { useEffect, useRef, useState } from 'react';
 import { Modal } from '../components/Modal';
 import { needsSaveDestination, SaveCancelled, type SaveDestination } from '../storage/savePolicy';
@@ -29,17 +30,17 @@ export function useSaveSystem() {
     });
   };
   return { run, ui: <>
-    {notice ? <div className="save-notice" role="status">{notice}<button type="button" aria-label="Dismiss save notice" onClick={() => setNotice('')}>×</button></div> : null}
-    {request ? <Modal title={`Save ${request.label.toLowerCase()}`} labelledBy="save-destination-title" onClose={busy ? undefined : request.cancel}
-      actions={<button type="button" className="secondary-button" disabled={busy} onClick={request.cancel}>Cancel</button>}>
-      <p>Where should this be saved?</p>
+    {notice ? <div className="save-notice" role="status">{translateMessage(notice)}<button type="button" aria-label={t("Dismiss save notice")} onClick={() => setNotice('')}>×</button></div> : null}
+    {request ? <Modal title={t("Save {0}", {"0": t(request.label.toLowerCase())})} labelledBy="save-destination-title" onClose={busy ? undefined : request.cancel}
+      actions={<button type="button" className="secondary-button" disabled={busy} onClick={request.cancel}>{t("Cancel")}</button>}>
+      <p>{t("Where should this be saved?")}</p>
       <div className="save-destinations">
-        <button type="button" className="secondary-button" disabled={busy} onClick={() => void request.perform('browser')}><strong>This browser</strong><span>Personal copy on this browser and device. Kept after closing the tab.</span></button>
-        <button type="button" className="secondary-button" disabled={busy || !request.projectAvailable} onClick={() => void request.perform('project')}><strong>Project default</strong><span>Update the local project. Included in future builds for everyone.</span></button>
+        <button type="button" className="secondary-button" disabled={busy} onClick={() => void request.perform('browser')}><strong>{t("This browser")}</strong><span>{t("Personal copy on this browser and device. Kept after closing the tab.")}</span></button>
+        <button type="button" className="secondary-button" disabled={busy || !request.projectAvailable} onClick={() => void request.perform('project')}><strong>{t("Project default")}</strong><span>{t("Update the local project. Included in future builds for everyone.")}</span></button>
       </div>
-      {!request.projectAvailable ? <p>Project storage is unavailable. This browser is still available.</p> : null}
-      {busy ? <p role="status">Saving…</p> : null}
-      {error ? <p role="alert" className="validation-errors">{error}</p> : null}
+      {!request.projectAvailable ? <p>{t("Project storage is unavailable. This browser is still available.")}</p> : null}
+      {busy ? <p role="status">{t("Saving…")}</p> : null}
+      {error ? <p role="alert" className="validation-errors">{translateMessage(error)}</p> : null}
     </Modal> : null}
   </> };
 }

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { t } from '../i18n/locale';
 
 export function RangeField({ label, value, min, max, step, unit, onChange, commitOnRelease = false }: Readonly<{
   label: string; value: number; min: number; max: number; step: number; unit: string;
@@ -14,8 +15,8 @@ export function RangeField({ label, value, min, max, step, unit, onChange, commi
   };
   const displayed = commitOnRelease ? draft : value;
   return <label className="range-field">
-    <span>{label}</span>
-    <input aria-label={label} type="range" min={min} max={max} step={step} value={displayed}
+    <span>{t(label)}</span>
+    <input aria-label={t(label)} type="range" min={min} max={max} step={step} value={displayed}
       onPointerDown={commitOnRelease ? event => { editing.current = true; event.currentTarget.setPointerCapture(event.pointerId); } : undefined}
       onPointerUp={commitOnRelease ? commit : undefined}
       onPointerCancel={commitOnRelease ? () => { editing.current = false; pending.current = value; setDraft(value); } : undefined}
@@ -25,6 +26,6 @@ export function RangeField({ label, value, min, max, step, unit, onChange, commi
         const next = Number(event.target.value); pending.current = next; setDraft(next);
         if (!commitOnRelease || !editing.current) onChange(next);
       }} />
-    <output>{displayed.toFixed(step < 1 ? 2 : 0)}</output><small>{unit}</small>
+    <output>{displayed.toFixed(step < 1 ? 2 : 0)}</output><small>{t(unit)}</small>
   </label>;
 }

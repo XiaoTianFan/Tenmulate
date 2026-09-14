@@ -1,3 +1,4 @@
+import { t, message as translateMessage } from '../i18n/locale';
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { PLAYER_DRILLS } from '../content/playerDrills';
 import { copyPlayerDrill } from '../content/playerMigration';
@@ -8,6 +9,8 @@ import { compilePlayerDrillAsync } from '../engine/session/playerDrillClient';
 import { useAppData } from '../hooks/useAppData';
 import { defaultDrillSettings } from './defaults';
 import type { DrillPracticeSet } from './drillPracticeSet';
+import { useLocale } from '../i18n/locale';
+import { localizeDefaultDrill, localizeDefaultShot, localizeDefaultPreset, localizeDefaults } from '../i18n/content';
 import type { SessionLaunch } from './types';
 import { SharedCourtProvider } from '../components/SharedCourt';
 import { Modal } from '../components/Modal';
@@ -26,9 +29,10 @@ const SetupScreen = lazy(() => import('../components/SetupScreen').then(module =
 const RehearsalScreen = lazy(() => import('../components/RehearsalScreen').then(module => ({ default: module.RehearsalScreen })));
 const DrillLibraryScreen = lazy(() => import('../components/DrillLibraryScreen').then(module => ({ default: module.DrillLibraryScreen })));
 const DrillEditorScreen = lazy(() => import('../components/DrillEditorScreen').then(module => ({ default: module.DrillEditorScreen })));
-const LoadingScreen = () => <main className="route-loading" aria-live="polite"><strong>Tenmulate</strong><span>Preparing court…</span></main>;
+const LoadingScreen = () => <main className="route-loading" aria-live="polite"><strong>Tenmulate</strong><span>{t("Preparing court…")}</span></main>;
 
 export function App() {
+  useLocale();
   const appData = useAppData();
   return <SharedCourtProvider environment={appData.data.preferences.environment} quality={appData.data.preferences.quality}
     ballFocus={appData.data.preferences.ballFocus} onBallFocusChange={appData.saveBallFocus}><AppRoutes appData={appData}/></SharedCourtProvider>;
@@ -37,10 +41,18 @@ function AppRoutes({ appData }: { appData: ReturnType<typeof useAppData> }) {
   const project = useProjectDrills();
   const projectShots = useProjectShots();
   const configs = useProjectConfigs(), saves = useSaveSystem();
-  const drills = mergeBrowserDrills(project.drills, appData.data.customDrills).filter(item => !appData.data.hiddenDrills?.includes(item.id));
-  const shots = mergeBrowserShots(projectShots.shots, appData.data.savedShots).filter(item => !appData.data.hiddenShots?.includes(item.id));
+  const rawDrills = mergeBrowserDrills(project.drills, appData.data.customDrills).filter(item => !appData.data.hiddenDrills?.includes(item.id));
+  const rawShots = mergeBrowserShots(projectShots.shots, appData.data.savedShots).filter(item => !appData.data.hiddenShots?.includes(item.id));
   const projectIds = project.drills.filter(item => !appData.data.customDrills.some(override => override.id === item.id)).map(item => item.id);
   const projectShotIds = projectShots.shots.filter(item => !appData.data.savedShots.some(override => override.id === item.id)).map(item => item.id);
+  const drills = localizeDefaults(rawDrills, projectIds, localizeDefaultDrill);
+  const shots = localizeDefaults(rawShots, projectShotIds, localizeDefaultShot);
+  const positionOverrides = browserPresetOverrides(appData.data.cameraPositionPresets, DEFAULT_CAMERA_POSITION_PRESETS, appData.data.cameraPresetOverrides);
+  const perspectiveOverrides = browserPresetOverrides(appData.data.perspectivePresets, DEFAULT_PERSPECTIVE_PRESETS, appData.data.perspectivePresetOverrides);
+  const defaultPositions = mergePresets(DEFAULT_CAMERA_POSITION_PRESETS, configs.snapshot.cameraPositionPresets);
+  const defaultPerspectives = mergePresets(DEFAULT_PERSPECTIVE_PRESETS, configs.snapshot.perspectivePresets);
+  const positions = localizeDefaults(mergePresets(defaultPositions, positionOverrides), defaultPositions.filter(preset => !positionOverrides.some(item => item.id === preset.id)).map(preset => preset.id), localizeDefaultPreset);
+  const perspectives = localizeDefaults(mergePresets(defaultPerspectives, perspectiveOverrides), defaultPerspectives.filter(preset => !perspectiveOverrides.some(item => item.id === preset.id)).map(preset => preset.id), localizeDefaultPreset);
   const clearBrowserAfterProject = (clear: () => void) => {
     try { clear(); } catch { throw new Error('The project default was saved, but its browser override could not be cleared. Allow browser storage and retry to make the project version visible here.'); }
   };
@@ -70,7 +82,7 @@ function AppRoutes({ appData }: { appData: ReturnType<typeof useAppData> }) {
   });
   const [route, setRoute] = useState<AppRoute>('practice');
   const [launch, setLaunch] = useState<SessionLaunch | null>(null);
-  const [editorDrill, setEditorDrill] = useState<DrillDefinitionV2>(() => drafts.active()?.drill ?? copyPlayerDrill(PLAYER_DRILLS[2]!));
+  const [editorDrill, setEditorDrill] = useState<DrillDefinitionV2>(() => drafts.active()?.drill ?? { ...copyPlayerDrill(localizeDefaultDrill(PLAYER_DRILLS[2]!)), title: t('Copy of {0}', { 0: localizeDefaultDrill(PLAYER_DRILLS[2]!).title }) });
   const [busy, setBusy] = useState(false), [message, setMessage] = useState<string | null>(() => appStorageNotice() || null);
   const calculation = useRef<AbortController | null>(null);
   useEffect(() => () => calculation.current?.abort(), []);
@@ -91,8 +103,8 @@ function AppRoutes({ appData }: { appData: ReturnType<typeof useAppData> }) {
     setRoute(next);
   };
   const cancel = () => { calculation.current?.abort(); setBusy(false); };
-  const drillLaunch = async (drill: DrillDefinitionV2, { rhythm, interval, movement, rerun, trajectoryEnabled = false, practiceSet }: {
-    rhythm?: number; interval?: number; movement?: number; rerun?: SessionLaunch; trajectoryEnabled?: boolean; practiceSet?: DrillPracticeSet;
+  const drillLaunch = async (drill: DrillDefinitionV2, { rhythm, interval, movement, rerun, trajectoryEnabled = false, practiceSet, defaultContent = false }: {
+    rhythm?: number; interval?: number; movement?: number; rerun?: SessionLaunch; trajectoryEnabled?: boolean; practiceSet?: DrillPracticeSet; defaultContent?: boolean;
   } = {}) => {
     calculation.current?.abort(); const controller = new AbortController(); calculation.current = controller; setBusy(true);
     try {
@@ -102,7 +114,7 @@ function AppRoutes({ appData }: { appData: ReturnType<typeof useAppData> }) {
       const session = await compilePlayerDrillAsync(drill, settings, controller.signal);
       if (session.planningIssues?.length) { setMessage(session.planningIssues.map(issue => issue.message).join('\n')); return; }
       setLaunch({ session, camera: drill.events[0]!.camera, environment: preferences.environment, quality: preferences.quality,
-        surface: settings.surface, trajectoryEnabled: rerun?.trajectoryEnabled ?? trajectoryEnabled });
+        defaultContent: rerun?.defaultContent ?? defaultContent, surface: settings.surface, trajectoryEnabled: rerun?.trajectoryEnabled ?? trajectoryEnabled });
     } catch (error) { if (!controller.signal.aborted) setMessage(error instanceof Error ? error.message : 'Unable to prepare drill.'); }
     finally { if (calculation.current === controller) setBusy(false); }
   };
@@ -120,7 +132,7 @@ function AppRoutes({ appData }: { appData: ReturnType<typeof useAppData> }) {
       : route === 'drills' ? <DrillLibraryScreen route={route} drills={drills} projectIds={projectIds}
         projectStatus={storageStatus} writable={true} onRoute={navigate}
         playerHand={appData.data.drillPlayerHand} onPlayerHandChange={appData.saveDrillPlayerHand}
-        onRun={(drill, rhythm, interval, movement, practiceSet) => void drillLaunch(drill, { rhythm, interval, movement, practiceSet })} onEdit={editDrill} onSave={saveDrill}
+        onRun={(drill, rhythm, interval, movement, practiceSet) => void drillLaunch(drill, { rhythm, interval, movement, practiceSet, defaultContent: projectIds.includes(drill.id) })} onEdit={editDrill} onSave={saveDrill}
         onDelete={async id => { if (import.meta.env.DEV && project.writable && projectIds.includes(id)) await project.remove(id); appData.deleteDrill(id); drafts.remove(id); }}/>
       : route === 'editor' ? <DrillEditorScreen key={editorDrill.id} route={route} initialDrill={editorDrill} initialPlayerHand={appData.data.drillPlayerHand} onPlayerHandChange={appData.saveDrillPlayerHand} surface={appData.data.preferences.surface}
         initialDraft={drafts.get(editorDrill.id)} onDraftChange={cacheDraft} writable={true} projectStatus={storageStatus}
@@ -129,12 +141,12 @@ function AppRoutes({ appData }: { appData: ReturnType<typeof useAppData> }) {
         onDeleteShot={async id => { const shot = projectShots.shots.find(shot => shot.id === id) ?? appData.data.savedShots.find(shot => shot.id === id);
           if (import.meta.env.DEV && projectShots.writable && projectShotIds.includes(id)) await projectShots.remove(id); appData.deleteShot(id, shot?.name); }} onRoute={navigate}
         onSave={saveDrill} onTest={(drill, trajectoryEnabled) => { void drillLaunch(drill, { trajectoryEnabled }); }}/>
-      : <SetupScreen route={route} cameraPositionPresets={mergePresets(mergePresets(DEFAULT_CAMERA_POSITION_PRESETS, configs.snapshot.cameraPositionPresets), browserPresetOverrides(appData.data.cameraPositionPresets, DEFAULT_CAMERA_POSITION_PRESETS, appData.data.cameraPresetOverrides))} perspectivePresets={mergePresets(mergePresets(DEFAULT_PERSPECTIVE_PRESETS, configs.snapshot.perspectivePresets), browserPresetOverrides(appData.data.perspectivePresets, DEFAULT_PERSPECTIVE_PRESETS, appData.data.perspectivePresetOverrides))}
+      : <SetupScreen route={route} cameraPositionPresets={positions} perspectivePresets={perspectives}
         initialPreferences={appData.data.preferences} onRoute={navigate} onStart={setLaunch} onSaveCameraPositionPreset={savePosition}
         onSavePerspectivePreset={savePerspective} onSaveConfig={saveConfig} onRestoreBallFocus={appData.saveBallFocus} practiceConfigs={{ ...configs.snapshot.practiceConfigs, ...appData.data.practiceConfigs }} onPreferencesChange={appData.savePreferences}/>}
     </Suspense>
     {saves.ui}
-    {busy ? <Modal title="Preparing drill" onClose={cancel} actions={<button type="button" className="secondary-button" onClick={cancel}>Cancel</button>}><p role="status">Connecting your shots, opponent returns and camera movement…</p></Modal> : null}
-    {message ? <Modal title="Drill planning" onClose={() => setMessage(null)} actions={<button type="button" className="primary-button inline" onClick={() => setMessage(null)}>Close</button>}><p className="drill-planning-message">{message}</p></Modal> : null}
+    {busy ? <Modal title={t("Preparing drill")} onClose={cancel} actions={<button type="button" className="secondary-button" onClick={cancel}>{t("Cancel")}</button>}><p role="status">{t("Connecting your shots, opponent returns and camera movement…")}</p></Modal> : null}
+    {message ? <Modal title={t("Drill planning")} onClose={() => setMessage(null)} actions={<button type="button" className="primary-button inline" onClick={() => setMessage(null)}>{t("Close")}</button>}><p className="drill-planning-message">{translateMessage(message)}</p></Modal> : null}
   </>;
 }

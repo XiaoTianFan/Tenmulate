@@ -1,3 +1,4 @@
+import { t } from '../i18n/locale';
 import { useEffect, useRef, type ReactNode } from 'react';
 import { X } from 'lucide-react';
 
@@ -32,7 +33,7 @@ export function Modal({ title, children, onClose, actions, labelledBy = 'modal-t
       <section ref={root} className="modal" role="dialog" aria-modal="true" aria-labelledby={labelledBy}>
         <header>
           <h2 id={labelledBy}>{title}</h2>
-          {onClose ? <button type="button" aria-label="Close dialog" onClick={onClose}><X size={19} /></button> : null}
+          {onClose ? <button type="button" aria-label={t("Close dialog")} onClick={onClose}><X size={19} /></button> : null}
         </header>
         <div className="modal-body">{children}</div>
         {actions ? <footer className="modal-actions">{actions}</footer> : null}

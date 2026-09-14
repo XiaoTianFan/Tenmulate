@@ -1,3 +1,4 @@
+import { t, message as translateMessage } from '../i18n/locale';
 import { SaveCancelled } from '../storage/savePolicy';
 import { useEffect, useRef, useState } from 'react';
 import { isPlayerSavedShot, validatePlayerEvent } from '../content/playerValidation';
@@ -68,34 +69,34 @@ export function SavedShotModal({ mode: initialMode, event, playerHand, savedShot
     (dialog?.querySelector<HTMLElement>('select, input:not(:disabled)') ?? dialog?.querySelector<HTMLElement>('button'))?.focus();
   }, [mode]);
 
-  return <Modal title="Save shot" onClose={dismiss} actions={<>
-    <button type="button" className="secondary-button" disabled={busy} onClick={dismiss}>Cancel</button>
-    {empty ? <button type="button" className="primary-button inline" onClick={() => { setMode('new'); setName(event.label); }}>Save new shot</button>
+  return <Modal title={t("Save shot")} onClose={dismiss} actions={<>
+    <button type="button" className="secondary-button" disabled={busy} onClick={dismiss}>{t("Cancel")}</button>
+    {empty ? <button type="button" className="primary-button inline" onClick={() => { setMode('new'); setName(event.label); }}>{t("Save new shot")}</button>
       : <button type="button" className="primary-button inline" disabled={!canSave} onClick={() => void act('save')}>
-        {busy ? 'Saving…' : 'Save shot'}</button>}
+        {busy ? t("Saving…") : t("Save shot")}</button>}
   </>}>
     <div ref={body}>
-      <label className="stack-field"><span>Save as</span><select aria-label="Save shot as" disabled={busy} value={mode} onChange={e => { setMode(e.target.value as 'new' | 'update'); setName(e.target.value === 'new' ? event.label : initialSlot?.name ?? ''); setSlotId(initialSlot?.id ?? ''); }}><option value="update">Replace existing shot</option><option value="new">New shot</option></select></label>
-      <p className="project-save-status" role="status">{projectStatus}</p>
-      {empty ? <p>The shot library is empty. Save a new shot to create your first slot.</p> : <>
-        {mode === 'update' ? <label className="stack-field"><span>Shot to overwrite</span>
-          <select aria-label="Shot to overwrite" disabled={busy} value={slotId} onChange={e => {
+      <label className="stack-field"><span>{t("Save as")}</span><select aria-label={t("Save shot as")} disabled={busy} value={mode} onChange={e => { setMode(e.target.value as 'new' | 'update'); setName(e.target.value === 'new' ? event.label : initialSlot?.name ?? ''); setSlotId(initialSlot?.id ?? ''); }}><option value="update">{t("Replace existing shot")}</option><option value="new">{t("New shot")}</option></select></label>
+      <p className="project-save-status" role="status">{translateMessage(projectStatus)}</p>
+      {empty ? <p>{t("The shot library is empty. Save a new shot to create your first slot.")}</p> : <>
+        {mode === 'update' ? <label className="stack-field"><span>{t("Shot to overwrite")}</span>
+          <select aria-label={t("Shot to overwrite")} disabled={busy} value={slotId} onChange={e => {
             setSlotId(e.target.value);
             setName(savedShots.find(shot => shot.id === e.target.value)?.name ?? '');
             setFailure('');
           }}>
-            <option value="" disabled>Choose a library shot…</option>
+            <option value="" disabled>{t("Choose a library shot…")}</option>
             {savedShots.map(shot => <option key={shot.id} value={shot.id}>{shot.name}</option>)}
           </select>
         </label> : null}
-        <label className="stack-field"><span>Preset name</span><input maxLength={60} disabled={busy || mode === 'update' && !slot} value={name} onChange={e => setName(e.target.value)}/></label>
-        <p>{slot || named ? <>Replace “{(slot ?? named)!.name}” with the current shot's settings.</> : 'Save the current shot as a preset.'} Includes both balls, landing zones, contact camera, camera transition, timing and opponent settings.</p>
-        <p>Future timeline additions use this preset. Shots already placed in drills keep their own settings.</p>
-        {collision ? <p className="validation-errors" role="alert">Another shot uses this name. Choose a different name or select that shot to overwrite.</p> : null}
-        {slot ? <button type="button" className="secondary-button" disabled={busy || !writable} onClick={() => void act('delete')}>Delete shot</button> : null}
+        <label className="stack-field"><span>{t("Preset name")}</span><input maxLength={60} disabled={busy || mode === 'update' && !slot} value={name} onChange={e => setName(e.target.value)}/></label>
+        <p>{slot || named ? <>{t("Replace “")}{(slot ?? named)!.name}{t("” with the current shot's settings.")}</> : t("Save the current shot as a preset.")} {t("Includes both balls, landing zones, contact camera, camera transition, timing and opponent settings.")}</p>
+        <p>{t("Future timeline additions use this preset. Shots already placed in drills keep their own settings.")}</p>
+        {collision ? <p className="validation-errors" role="alert">{t("Another shot uses this name. Choose a different name or select that shot to overwrite.")}</p> : null}
+        {slot ? <button type="button" className="secondary-button" disabled={busy || !writable} onClick={() => void act('delete')}>{t("Delete shot")}</button> : null}
       </>}
-      {errors.length ? <ul className="validation-errors" role="alert">{errors.map(error => <li key={error}>{error}</li>)}</ul> : null}
-      {failure ? <p className="validation-errors" role="alert">{failure}</p> : null}
+      {errors.length ? <ul className="validation-errors" role="alert">{errors.map(error => <li key={error}>{translateMessage(error)}</li>)}</ul> : null}
+      {failure ? <p className="validation-errors" role="alert">{translateMessage(failure)}</p> : null}
     </div>
   </Modal>;
 }

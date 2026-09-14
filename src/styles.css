@@ -22,6 +22,8 @@ html, body, #root { width: 100%; min-width: 320px; min-height: 100%; margin: 0; 
 body { min-height: 100vh; overflow: hidden; }
 button, input, select { font: inherit; }
 button { color: inherit; }
+.language-control { max-width: 108px; min-width: 74px; padding: 7px 5px; color: var(--text); background: var(--bg); border: 1px solid var(--divider); border-radius: 5px; font-size: 12px; }
+html[lang="zh-CN"] { font-family: Inter, "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif; }
 button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .route-loading { min-height: 100vh; display: grid; place-content: center; justify-items: center; gap: 10px; background: radial-gradient(circle, #12212a, var(--bg) 62%); }
 .route-loading strong { font-size: 28px; letter-spacing: -0.04em; }
@@ -136,6 +138,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .mode-switch { display: grid; grid-template-columns: 94px 1fr 1fr; align-items: center; border: 0; padding: 0; margin: 0 0 12px; }
 .mode-switch legend { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); }
 .mode-switch::before { content: "Mode"; color: #d4dbde; font-size: 13px; }
+html[lang="zh-CN"] .mode-switch::before { content: "模式"; }
 .mode-switch button { height: 34px; border: 1px solid var(--divider); background: #0c1216; color: #b8c2c7; cursor: pointer; font-size: 12px; }
 .mode-switch button:first-of-type { border-radius: 6px 0 0 6px; }
 .mode-switch button:last-of-type { border-radius: 0 6px 6px 0; }

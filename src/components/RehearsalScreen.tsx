@@ -1,5 +1,9 @@
+import { VENUE_LABELS } from '../domain/environment';
+import { defaultContentText } from '../i18n/content';
+import { t, message as translateMessage } from '../i18n/locale';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BallFocusControls } from './BallFocusControls';
+import { LanguageControl } from './LanguageControl';
 import {
   ChevronLeft,
   ChevronRight,
@@ -39,6 +43,7 @@ type RehearsalScreenProps = Readonly<{
 const speedOptions = [0.5, 0.75, 1, 1.25] as const;
 
 export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreenProps) {
+  const contentText = (value: string) => launch.defaultContent ? defaultContentText(value) : value;
   const [playbackRate, setPlaybackRate] = useState(1);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
@@ -176,74 +181,75 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
       <div className="rehearsal-header-zone rehearsal-chrome-zone">
       <header className="rehearsal-header rehearsal-chrome-content">
         <strong>Tenmulate</strong>
-        <span className="drill-title">{session.drill.title}</span>
-        <span className="rep-status">{session.playerEvents ? 'Repetition' : 'Set'} {activeEvent ? activeEvent.setIndex + 1 : player.currentSet} of {player.setCount} · {session.playerEvents ? opening ? 'Opening shot' : `Your shot ${repetitionNumber} of ${eventCount}` : `Rep ${repetitionNumber} of ${eventCount}`}</span>
+        <span className="drill-title">{contentText(session.drill.title)}</span>
+        <span className="rep-status">{session.playerEvents ? t("Repetition") : t("Set")} {activeEvent ? activeEvent.setIndex + 1 : player.currentSet} {t("of")} {player.setCount} · {session.playerEvents ? opening ? t("Opening shot") : t("Your shot {0} of {1}", {"0": repetitionNumber, "1": eventCount}) : t("Rep {0} of {1}", {"0": repetitionNumber, "1": eventCount})}</span>
         <div>
           <CastingButton />
-          <button type="button" aria-label="Settings" aria-expanded={showDiagnostics} onClick={() => setShowDiagnostics((value) => !value)}><Settings size={18} /> Settings</button>
-          <button type="button" aria-label={autoHideUI ? 'Keep controls visible' : 'Auto-hide controls'} title={autoHideUI ? 'Show UI (H)' : 'Hide UI (H)'} aria-pressed={!autoHideUI} onClick={toggleUI}>{autoHideUI ? <Eye size={18} /> : <EyeOff size={18} />} {autoHideUI ? 'Show UI' : 'Hide UI'}</button>
-          <button type="button" aria-label={fullscreen.active ? 'Exit full screen' : 'Full screen'} aria-pressed={fullscreen.active} onClick={() => void fullscreen.toggle()}>{fullscreen.active ? <Minimize size={18} /> : <Expand size={18} />} {fullscreen.active ? 'Exit full screen' : 'Full screen'}</button>
-          <button type="button" onClick={onExit}><LogOut size={18} /> Exit</button>
+          <button type="button" aria-label={t("Settings")} aria-expanded={showDiagnostics} onClick={() => setShowDiagnostics((value) => !value)}><Settings size={18} /> {t("Settings")}</button>
+          <button type="button" aria-label={autoHideUI ? t("Keep controls visible") : t("Auto-hide controls")} title={autoHideUI ? t("Show UI (H)") : t("Hide UI (H)")} aria-pressed={!autoHideUI} onClick={toggleUI}>{autoHideUI ? <Eye size={18} /> : <EyeOff size={18} />} {autoHideUI ? t("Show UI") : t("Hide UI")}</button>
+          <button type="button" aria-label={fullscreen.active ? t("Exit full screen") : t("Full screen")} aria-pressed={fullscreen.active} onClick={() => void fullscreen.toggle()}>{fullscreen.active ? <Minimize size={18} /> : <Expand size={18} />} {fullscreen.active ? t("Exit full screen") : t("Full screen")}</button>
+          <button type="button" onClick={onExit}><LogOut size={18} /> {t("Exit")}</button>
         </div>
       </header>
       </div>
 
-      {player.countdown ? <div className="countdown" aria-live="assertive"><strong>{player.countdown}</strong><span>Ready position</span></div> : null}
-      {player.status === 'resting' ? <div className="countdown rest-countdown" aria-live="polite"><strong>{player.restRemaining}</strong><span>Rest · next {session.playerEvents ? 'repetition' : 'set'} follows</span></div> : null}
+      {player.countdown ? <div className="countdown" aria-live="assertive"><strong>{player.countdown}</strong><span>{t("Ready position")}</span></div> : null}
+      {player.status === 'resting' ? <div className="countdown rest-countdown" aria-live="polite"><strong>{player.restRemaining}</strong><span>{t("Rest · next")} {session.playerEvents ? t("repetition") : t("set")} {t("follows")}</span></div> : null}
       <div className="rehearsal-transport-zone rehearsal-chrome-zone">
-      <div className="rehearsal-transport rehearsal-chrome-content" role="group" aria-label="Playback controls">
-        <button type="button" aria-label="Previous repetition" onClick={player.previous}><SkipBack size={22} /></button>
-        <button className="primary-transport" type="button" aria-label={paused ? 'Resume' : 'Pause'} onClick={paused ? player.play : player.pause}>{paused ? <Play size={24} fill="currentColor" /> : <Pause size={24} fill="currentColor" />}</button>
-        <button type="button" aria-label="Restart set" onClick={player.restart}><RotateCcw size={22} /></button>
-        <button type="button" aria-label="Next repetition" onClick={player.next}><SkipForward size={22} /></button>
+      <div className="rehearsal-transport rehearsal-chrome-content" role="group" aria-label={t("Playback controls")}>
+        <button type="button" aria-label={t("Previous repetition")} onClick={player.previous}><SkipBack size={22} /></button>
+        <button className="primary-transport" type="button" aria-label={paused ? t("Resume") : t("Pause")} onClick={paused ? player.play : player.pause}>{paused ? <Play size={24} fill="currentColor" /> : <Pause size={24} fill="currentColor" />}</button>
+        <button type="button" aria-label={t("Restart set")} onClick={player.restart}><RotateCcw size={22} /></button>
+        <button type="button" aria-label={t("Next repetition")} onClick={player.next}><SkipForward size={22} /></button>
         <div className="speed-control">
-          <button type="button" aria-label="Slower playback" onClick={() => setPlaybackRate((value) => speedOptions[Math.max(0, speedOptions.indexOf(value as typeof speedOptions[number]) - 1)] ?? 0.5)}><ChevronLeft size={16} /></button>
+          <button type="button" aria-label={t("Slower playback")} onClick={() => setPlaybackRate((value) => speedOptions[Math.max(0, speedOptions.indexOf(value as typeof speedOptions[number]) - 1)] ?? 0.5)}><ChevronLeft size={16} /></button>
           <span>{playbackRate.toFixed(playbackRate === 1 ? 1 : 2)}×</span>
-          <button type="button" aria-label="Faster playback" onClick={() => setPlaybackRate((value) => speedOptions[Math.min(speedOptions.length - 1, speedOptions.indexOf(value as typeof speedOptions[number]) + 1)] ?? 1.25)}><ChevronRight size={16} /></button>
+          <button type="button" aria-label={t("Faster playback")} onClick={() => setPlaybackRate((value) => speedOptions[Math.min(speedOptions.length - 1, speedOptions.indexOf(value as typeof speedOptions[number]) + 1)] ?? 1.25)}><ChevronRight size={16} /></button>
         </div>
         <div className="session-progress"><span style={{ width: `${player.progress * 100}%` }} /></div>
       </div>
       </div>
 
-      <aside className="rehearsal-metadata" aria-label="Shot metadata">
-        <div className="metadata-shot"><strong>{resolvedSpeed} <small>km/h</small></strong>
-          <span>{metadataBall ? `${ballOwner} · ${metadataBall.spin} · ${metadataBall.family}` : `${shot.spin} · ${shot.family}`}</span>
-          <button type="button" aria-label={soundEnabled ? 'Mute cues' : 'Unmute cues'} title={soundEnabled ? 'Mute cues' : 'Unmute cues'} onClick={() => setSoundEnabled((value) => !value)}>{soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}</button>
+      <aside className="rehearsal-metadata" aria-label={t("Shot metadata")}>
+        <div className="metadata-shot"><strong>{resolvedSpeed} <small>{t("km/h")}</small></strong>
+          <span>{metadataBall ? `${t(ballOwner)} · ${t(metadataBall.spin)} · ${t(metadataBall.family)}` : `${t(shot.spin)} · ${t(shot.family)}`}</span>
+          <button type="button" aria-label={soundEnabled ? t("Mute cues") : t("Unmute cues")} title={soundEnabled ? t("Mute cues") : t("Unmute cues")} onClick={() => setSoundEnabled((value) => !value)}>{soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}</button>
         </div>
-        <div className="metadata-placement"><span>{(metadataBall?.hand ?? shot.opponentHand) === 'left' ? 'Left' : 'Right'} arm · {metadataBall?.stroke ?? shot.stroke}</span><span>{playerEvent ? playerEvent.event.label : repetition?.returnServePlacement
-          ? `${RETURN_SERVE_PLACEMENT_LABELS[repetition.returnServePlacement]} serve · ${shot.depth}${shot.serveRhythm ? ` · ${shot.serveRhythm}` : ''}`
-          : `${shot.direction} · ${shot.depth}${shot.serveRhythm ? ` · ${shot.serveRhythm}` : ''}`}</span></div>
-        <div className="metadata-rhythm"><span>Trajectory {showTrajectory ? 'on' : 'off'}</span>
-          {timing ? <span title="Shot interval">{timing.actual.toFixed(2)} s</span> : null}
-          <span>Stroke {Math.round((repetition?.motionRate??1)*100)}%</span><span>Move {Math.round((repetition?.movementRate??1)*100)}%</span></div>
-        {paused ? <span className="metadata-state" role="status">Paused</span> : null}
-        {playerEvent ? <span className="metadata-note">{playerEvent.event.cue}</span> : null}
-        {timing?.limited ? <span className="metadata-note">Requested {timing.requested.toFixed(2)} s · resolved {timing.actual.toFixed(2)} s</span> : null}
+        <div className="metadata-placement"><span>{(metadataBall?.hand ?? shot.opponentHand) === 'left' ? t("Left") : t("Right")} {t("arm ·")} {t(metadataBall?.stroke ?? shot.stroke ?? 'Automatic')}</span><span>{playerEvent ? contentText(playerEvent.event.label) : repetition?.returnServePlacement
+          ? t("{0} serve · {1}{2}", {"0": t(RETURN_SERVE_PLACEMENT_LABELS[repetition.returnServePlacement]), "1": t(shot.depth), "2": shot.serveRhythm ? ` · ${t(shot.serveRhythm)}` : ''})
+          : `${t(shot.direction)} · ${t(shot.depth)}${shot.serveRhythm ? ` · ${t(shot.serveRhythm)}` : ''}`}</span></div>
+        <div className="metadata-rhythm"><span>{t("Trajectory")} {showTrajectory ? t("on") : t("off")}</span>
+          {timing ? <span title={t("Shot interval")}>{timing.actual.toFixed(2)} {t("s")}</span> : null}
+          <span>{t("Stroke")} {Math.round((repetition?.motionRate??1)*100)}%</span><span>{t("Move")} {Math.round((repetition?.movementRate??1)*100)}%</span></div>
+        {paused ? <span className="metadata-state" role="status">{t("Paused")}</span> : null}
+        {playerEvent ? <span className="metadata-note">{contentText(playerEvent.event.cue)}</span> : null}
+        {timing?.limited ? <span className="metadata-note">{t("Requested")} {timing.requested.toFixed(2)} {t("s · resolved")} {timing.actual.toFixed(2)} {t("s")}</span> : null}
       </aside>
 
-      {fullscreen.error ? <div className="fullscreen-message" role="alert"><span>{fullscreen.error}</span><button type="button" aria-label="Dismiss fullscreen message" onClick={fullscreen.clearError}><X size={16} /></button></div> : null}
+      {fullscreen.error ? <div className="fullscreen-message" role="alert"><span>{translateMessage(fullscreen.error)}</span><button type="button" aria-label={t("Dismiss fullscreen message")} onClick={fullscreen.clearError}><X size={16} /></button></div> : null}
 
       {showDiagnostics ? (
         <aside className="coach-overlay">
-          <div className="coach-heading"><h2>Session settings</h2><button type="button" aria-label="Close settings" onClick={() => setShowDiagnostics(false)}><X size={18} /></button></div>
-          <label className="toggle-field"><span>Trajectory</span><button type="button" role="switch" aria-label="Trajectory" aria-checked={showTrajectory} className={showTrajectory ? 'toggle active' : 'toggle'} onClick={() => setShowTrajectory(value => !value)}><span /></button><small>{showTrajectory ? 'On' : 'Off'}</small></label>
-          <details className="editor-section" open><summary>Perspective</summary><BallFocusControls /></details>
-          <label className="compact-range"><span>Camera motion (restarts set)</span><input aria-label="Camera motion intensity" type="range" min="0" max="1" step="0.25" value={cameraMotionScale} onChange={(event) => setCameraMotionScale(Number(event.target.value))} /><output>{Math.round(cameraMotionScale * 100)}%</output></label>
-          <label className="compact-range"><span>Countdown</span><input aria-label="Countdown volume" type="range" min="0" max="1" step="0.1" value={audioLevels.countdown} onChange={(event) => setAudioLevels((current) => ({ ...current, countdown: Number(event.target.value) }))} /><output>{Math.round(audioLevels.countdown * 100)}%</output></label>
-          <label className="compact-range"><span>Contact</span><input aria-label="Contact volume" type="range" min="0" max="1" step="0.1" value={audioLevels.contact} onChange={(event) => setAudioLevels((current) => ({ ...current, contact: Number(event.target.value) }))} /><output>{Math.round(audioLevels.contact * 100)}%</output></label>
-          <label className="compact-range"><span>Bounce</span><input aria-label="Bounce volume" type="range" min="0" max="1" step="0.1" value={audioLevels.bounce} onChange={(event) => setAudioLevels((current) => ({ ...current, bounce: Number(event.target.value) }))} /><output>{Math.round(audioLevels.bounce * 100)}%</output></label>
-          <label className="compact-range"><span>Footwork</span><input aria-label="Footwork cue volume" type="range" min="0" max="1" step="0.1" value={audioLevels.footwork} onChange={(event) => setAudioLevels((current) => ({ ...current, footwork: Number(event.target.value) }))} /><output>{Math.round(audioLevels.footwork * 100)}%</output></label>
-          <label className="compact-range"><span>Ambience</span><input aria-label="Ambience volume" type="range" min="0" max="1" step="0.1" value={audioLevels.ambience} onChange={(event) => setAudioLevels((current) => ({ ...current, ambience: Number(event.target.value) }))} /><output>{Math.round(audioLevels.ambience * 100)}%</output></label>
-          <label className="compact-check"><input type="checkbox" checked={highContrastBall} onChange={(event) => setHighContrastBall(event.target.checked)} /><span>High-contrast ball</span></label>
-          <label className="compact-check"><input type="checkbox" checked={showBallTrail} onChange={(event) => setShowBallTrail(event.target.checked)} /><span>Short ball trail</span></label>
+          <div className="coach-heading"><h2>{t("Session settings")}</h2><button type="button" aria-label={t("Close settings")} onClick={() => setShowDiagnostics(false)}><X size={18} /></button></div>
+          <label className="select-field"><span>{t("Language")}</span><LanguageControl /></label>
+          <label className="toggle-field"><span>{t("Trajectory")}</span><button type="button" role="switch" aria-label={t("Trajectory")} aria-checked={showTrajectory} className={showTrajectory ? 'toggle active' : 'toggle'} onClick={() => setShowTrajectory(value => !value)}><span /></button><small>{showTrajectory ? t("On") : t("Off")}</small></label>
+          <details className="editor-section" open><summary>{t("Perspective")}</summary><BallFocusControls /></details>
+          <label className="compact-range"><span>{t("Camera motion (restarts set)")}</span><input aria-label={t("Camera motion intensity")} type="range" min="0" max="1" step="0.25" value={cameraMotionScale} onChange={(event) => setCameraMotionScale(Number(event.target.value))} /><output>{Math.round(cameraMotionScale * 100)}%</output></label>
+          <label className="compact-range"><span>{t("Countdown")}</span><input aria-label={t("Countdown volume")} type="range" min="0" max="1" step="0.1" value={audioLevels.countdown} onChange={(event) => setAudioLevels((current) => ({ ...current, countdown: Number(event.target.value) }))} /><output>{Math.round(audioLevels.countdown * 100)}%</output></label>
+          <label className="compact-range"><span>{t("Contact")}</span><input aria-label={t("Contact volume")} type="range" min="0" max="1" step="0.1" value={audioLevels.contact} onChange={(event) => setAudioLevels((current) => ({ ...current, contact: Number(event.target.value) }))} /><output>{Math.round(audioLevels.contact * 100)}%</output></label>
+          <label className="compact-range"><span>{t("Bounce")}</span><input aria-label={t("Bounce volume")} type="range" min="0" max="1" step="0.1" value={audioLevels.bounce} onChange={(event) => setAudioLevels((current) => ({ ...current, bounce: Number(event.target.value) }))} /><output>{Math.round(audioLevels.bounce * 100)}%</output></label>
+          <label className="compact-range"><span>{t("Footwork")}</span><input aria-label={t("Footwork cue volume")} type="range" min="0" max="1" step="0.1" value={audioLevels.footwork} onChange={(event) => setAudioLevels((current) => ({ ...current, footwork: Number(event.target.value) }))} /><output>{Math.round(audioLevels.footwork * 100)}%</output></label>
+          <label className="compact-range"><span>{t("Ambience")}</span><input aria-label={t("Ambience volume")} type="range" min="0" max="1" step="0.1" value={audioLevels.ambience} onChange={(event) => setAudioLevels((current) => ({ ...current, ambience: Number(event.target.value) }))} /><output>{Math.round(audioLevels.ambience * 100)}%</output></label>
+          <label className="compact-check"><input type="checkbox" checked={highContrastBall} onChange={(event) => setHighContrastBall(event.target.checked)} /><span>{t("High-contrast ball")}</span></label>
+          <label className="compact-check"><input type="checkbox" checked={showBallTrail} onChange={(event) => setShowBallTrail(event.target.checked)} /><span>{t("Short ball trail")}</span></label>
         </aside>
       ) : null}
 
       {player.status === 'completed' ? (
-        <Modal title="Set complete" actions={<><button className="secondary-button" type="button" onClick={onExit}>Back to setup</button><button className="secondary-button" type="button" onClick={onRandomize}>New variation</button><button className="primary-button inline" type="button" onClick={player.restart}>Replay same seed</button></>}>
-          <p>{session.drill.title}: {eventCount} {session.playerEvents ? 'player shots' : 'repetitions'} completed in {Math.round(session.duration)} seconds.</p>
-          <dl className="session-summary"><div><dt>Trajectory</dt><dd>{showTrajectory ? 'on' : 'off'}</dd></div><div><dt>Shot type</dt><dd>{session.settings.practiceShotType ?? 'Drill-authored'}</dd></div><div><dt>Venue</dt><dd>{launch.environment.venue}</dd></div><div><dt>Surface</dt><dd>{launch.surface}</dd></div><div><dt>Landing depth</dt><dd>{session.settings.landingDepthM ? `${session.settings.landingDepthM.toFixed(1)} m` : 'Drill-authored'}</dd></div><div><dt>Spin rate</dt><dd>{session.settings.spinRateRpm !== undefined ? `${Math.round(session.settings.spinRateRpm)} rpm` : 'Drill-authored'}</dd></div><div><dt>Bounce height</dt><dd>{(session.settings.bounceFactor ?? 1).toFixed(2)}×</dd></div><div><dt>Launch speed</dt><dd>{session.settings.launchSpeedKmh} km/h</dd></div><div><dt>Stroke rhythm</dt><dd>{session.rhythmPercent}% ± {session.settings.timingVariationPercent}%</dd></div><div><dt>Shot interval</dt><dd>{session.settings.shotIntervalSeconds?.toFixed(1)} s</dd></div><div><dt>Movement pace</dt><dd>{session.settings.movementPercent}%</dd></div><div><dt>Seed</dt><dd>{session.settings.seed}</dd></div></dl>
-          <p>The same seed reproduces the same shot order and bounded landing variation.</p>
+        <Modal title={t("Set complete")} actions={<><button className="secondary-button" type="button" onClick={onExit}>{t("Back to setup")}</button><button className="secondary-button" type="button" onClick={onRandomize}>{t("New variation")}</button><button className="primary-button inline" type="button" onClick={player.restart}>{t("Replay same seed")}</button></>}>
+          <p>{contentText(session.drill.title)}: {eventCount} {session.playerEvents ? t("player shots") : t("repetitions")} {t("completed in")} {Math.round(session.duration)} {t("seconds.")}</p>
+          <dl className="session-summary"><div><dt>{t("Trajectory")}</dt><dd>{showTrajectory ? t("on") : t("off")}</dd></div><div><dt>{t("Shot type")}</dt><dd>{t(session.settings.practiceShotType ?? 'Drill-authored')}</dd></div><div><dt>{t("Venue")}</dt><dd>{t(VENUE_LABELS[launch.environment.venue])}</dd></div><div><dt>{t("Surface")}</dt><dd>{t(launch.surface)}</dd></div><div><dt>{t("Landing depth")}</dt><dd>{session.settings.landingDepthM ? t("{0} m", {"0": session.settings.landingDepthM.toFixed(1)}) : t("Drill-authored")}</dd></div><div><dt>{t("Spin rate")}</dt><dd>{session.settings.spinRateRpm !== undefined ? t("{0} rpm", {"0": Math.round(session.settings.spinRateRpm)}) : t("Drill-authored")}</dd></div><div><dt>{t("Bounce height")}</dt><dd>{(session.settings.bounceFactor ?? 1).toFixed(2)}×</dd></div><div><dt>{t("Launch speed")}</dt><dd>{session.settings.launchSpeedKmh} {t("km/h")}</dd></div><div><dt>{t("Stroke rhythm")}</dt><dd>{session.rhythmPercent}% ± {session.settings.timingVariationPercent}%</dd></div><div><dt>{t("Shot interval")}</dt><dd>{session.settings.shotIntervalSeconds?.toFixed(1)} {t("s")}</dd></div><div><dt>{t("Movement pace")}</dt><dd>{session.settings.movementPercent}%</dd></div><div><dt>{t("Seed")}</dt><dd>{session.settings.seed}</dd></div></dl>
+          <p>{t("The same seed reproduces the same shot order and bounded landing variation.")}</p>
         </Modal>
       ) : null}
     </main>

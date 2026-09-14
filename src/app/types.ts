@@ -10,4 +10,6 @@ export type SessionLaunch = Readonly<{
   environment: EnvironmentConfiguration;
   surface: SurfaceId;
   quality: QualityMode;
+  /** Only bundled/project text may follow the interface language during playback. */
+  defaultContent?: boolean;
 }>;
