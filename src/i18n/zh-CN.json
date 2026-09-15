@@ -672,5 +672,8 @@
   "Ctrl+W/S are locked to camera height. Hold Escape to leave protected controls.": "Ctrl+W/S 已锁定为视点高度控制。长按 Escape 退出按键保护。",
   "Untitled preset": "未命名预设",
   "Physical contact interval": "实际触球间隔",
-  "Shortest feasible interval": "最短可行间隔"
+  "Shortest feasible interval": "最短可行间隔",
+  "No drill open": "尚未打开训练",
+  "Open a drill or create a new one from the Drills page to start editing.": "请前往训练页面打开已有训练或创建新训练，开始编辑。",
+  "Go to Drills": "前往训练"
 }

@@ -1,9 +1,7 @@
 import { t, message as translateMessage } from '../i18n/locale';
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
-import { PLAYER_DRILLS } from '../content/playerDrills';
-import { copyPlayerDrill } from '../content/playerMigration';
 import type { DrillDefinitionV2 } from '../content/types';
-import type { AppRoute } from '../components/AppHeader';
+import { AppHeader, type AppRoute } from '../components/AppHeader';
 import { compileSession } from '../engine/session/compileSession';
 import { compilePlayerDrillAsync } from '../engine/session/playerDrillClient';
 import { useAppData } from '../hooks/useAppData';
@@ -83,7 +81,7 @@ function AppRoutes({ appData }: { appData: ReturnType<typeof useAppData> }) {
   });
   const [route, setRoute] = useState<AppRoute>('practice');
   const [launch, setLaunch] = useState<SessionLaunch | null>(null);
-  const [editorDrill, setEditorDrill] = useState<DrillDefinitionV2>(() => drafts.active()?.drill ?? { ...copyPlayerDrill(localizeDefaultDrill(PLAYER_DRILLS[2]!)), title: t('Copy of {0}', { 0: localizeDefaultDrill(PLAYER_DRILLS[2]!).title }) });
+  const [editorDrill, setEditorDrill] = useState<DrillDefinitionV2 | null>(() => drafts.active()?.drill ?? null);
   const [busy, setBusy] = useState(false), [message, setMessage] = useState<string | null>(() => appStorageNotice() || null);
   const calculation = useRef<AbortController | null>(null);
   useEffect(() => { void loadRehearsal(); }, []);
@@ -140,13 +138,21 @@ function AppRoutes({ appData }: { appData: ReturnType<typeof useAppData> }) {
         playerHand={appData.data.drillPlayerHand} onPlayerHandChange={appData.saveDrillPlayerHand} onPrepare={prepareDrill}
         onRun={(drill, rhythm, interval, movement, practiceSet) => void drillLaunch(drill, { rhythm, interval, movement, practiceSet, defaultContent: projectIds.includes(drill.id) })} onEdit={editDrill} onSave={saveDrill}
         onDelete={async id => { if (import.meta.env.DEV && project.writable && projectIds.includes(id)) await project.remove(id); appData.deleteDrill(id); drafts.remove(id); }}/>
-      : route === 'editor' ? <DrillEditorScreen key={editorDrill.id} route={route} launching={busy} initialDrill={editorDrill} initialPlayerHand={appData.data.drillPlayerHand} onPlayerHandChange={appData.saveDrillPlayerHand} surface={appData.data.preferences.surface}
+      : route === 'editor' ? editorDrill ? <DrillEditorScreen key={editorDrill.id} route={route} launching={busy} initialDrill={editorDrill} initialPlayerHand={appData.data.drillPlayerHand} onPlayerHandChange={appData.saveDrillPlayerHand} surface={appData.data.preferences.surface}
         initialDraft={drafts.get(editorDrill.id)} onDraftChange={cacheDraft} writable={true} projectStatus={storageStatus}
         savedShots={shots} shotsWritable={true} shotsStatus={storageStatus}
         projectShotIds={projectShotIds} onSaveShot={saveShot}
         onDeleteShot={async id => { const shot = projectShots.shots.find(shot => shot.id === id) ?? appData.data.savedShots.find(shot => shot.id === id);
           if (import.meta.env.DEV && projectShots.writable && projectShotIds.includes(id)) await projectShots.remove(id); appData.deleteShot(id, shot?.name); }} onRoute={navigate}
         onSave={saveDrill} onTest={(drill, trajectoryEnabled) => { void drillLaunch(drill, { trajectoryEnabled }); }}/>
+      : <main className="app-shell editor-empty-shell">
+        <AppHeader route={route} onRoute={navigate}/>
+        <section className="editor-empty-state">
+          <h1>{t('No drill open')}</h1>
+          <p>{t('Open a drill or create a new one from the Drills page to start editing.')}</p>
+          <button type="button" className="primary-button inline" onClick={() => navigate('drills')}>{t('Go to Drills')}</button>
+        </section>
+      </main>
       : <SetupScreen route={route} cameraPositionPresets={positions} perspectivePresets={perspectives}
         initialPreferences={appData.data.preferences} onRoute={navigate} onStart={setLaunch} onSaveCameraPositionPreset={savePosition}
         onSavePerspectivePreset={savePerspective} onSaveConfig={saveConfig} onRestoreBallFocus={appData.saveBallFocus} practiceConfigs={{ ...configs.snapshot.practiceConfigs, ...appData.data.practiceConfigs }} onPreferencesChange={appData.savePreferences}/>}
