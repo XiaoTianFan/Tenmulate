@@ -1,6 +1,81 @@
 {
   "schemaVersion": 1,
-  "practiceConfigs": {},
+  "practiceConfigs": {
+    "Quick Rally": {
+      "seed": "18427",
+      "sessionCategory": "Quick Rally",
+      "trajectoryEnabled": true,
+      "launchSpeedKmh": 70,
+      "interval": 4.7,
+      "rhythmPercent": 100,
+      "movementPercent": 100,
+      "practiceStroke": "auto",
+      "trajectoryMode": "natural",
+      "returnTargetMode": "pattern",
+      "repetitions": 12,
+      "variation": 8,
+      "timingVariation": 0,
+      "workBlockSize": 4,
+      "restSeconds": 20,
+      "surface": "hard",
+      "shotType": "groundstroke",
+      "spin": "topspin",
+      "spinRateRpm": 1103,
+      "bounceFactor": 1.05,
+      "opponentHand": "right",
+      "serveRhythm": "normal",
+      "landingZone": {
+        "width": 3.044956162321569,
+        "depth": 2
+      },
+      "rallyLandingZone": {
+        "minX": -1.811829434141369,
+        "maxX": 1.593052335639538,
+        "minZ": 9.024200091949796,
+        "maxZ": 11.024200091949796
+      },
+      "rallyShot": {
+        "type": "groundstroke",
+        "spin": "topspin",
+        "contactTiming": "descent",
+        "spinRateRpm": 600
+      },
+      "opponentContactTiming": "descent",
+      "landingDepthM": 9.925564585312655,
+      "aimDirectionDeg": 0.407555950686526,
+      "opponentPosition": {
+        "x": -0.054755194377431746,
+        "z": 13.213614122075729
+      },
+      "camera": {
+        "eyeHeight": 1.7,
+        "behindBaseline": 3.073458097776985,
+        "lateral": 0.026121382228864155,
+        "yaw": 1.792602539062159,
+        "pitch": -2.0444384765621635,
+        "fov": 71.1111048317737
+      },
+      "environment": {
+        "venue": "hard-open-arena",
+        "audience": "half",
+        "lighting": "day",
+        "lightDirection": -35,
+        "lightIntensity": 1,
+        "timeOfDay": 10.25,
+        "weather": "clear",
+        "weatherIntensity": 0,
+        "windDirection": 0,
+        "windSpeedMps": 0
+      },
+      "quality": "auto",
+      "screenWidthCm": 120,
+      "screenHeightCm": 67.5,
+      "viewDistanceCm": 250,
+      "ballFocus": {
+        "enabled": false
+      }
+    }
+  },
   "cameraPositionPresets": [],
   "perspectivePresets": []
 }

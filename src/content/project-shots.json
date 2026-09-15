@@ -13,10 +13,10 @@
         "cue": "FOREHAND CROSSCOURT DEEP",
         "camera": {
           "eyeHeight": 1.7,
-          "behindBaseline": 0.21499999999999986,
-          "lateral": -2.2,
-          "yaw": 0,
-          "pitch": -1.7,
+          "behindBaseline": 3.520091892001894,
+          "lateral": -2.751175569004377,
+          "yaw": 9.77779418945363,
+          "pitch": -3.166664428709737,
           "fov": 70
         },
         "ball": {
@@ -34,10 +34,10 @@
           "contactTiming": "descent"
         },
         "landingZone": {
-          "minX": 1.8,
-          "maxX": 3.4000000000000004,
-          "minZ": 8.3,
-          "maxZ": 10.3
+          "minX": 2.2386390229653887,
+          "maxX": 3.8386390229653893,
+          "minZ": 8.975058268656095,
+          "maxZ": 10.975058268656095
         },
         "opponentReturn": {
           "ball": {
@@ -55,12 +55,15 @@
             "contactTiming": "descent"
           },
           "landingZone": {
-            "minX": -2.8222222222222224,
-            "maxX": -1.6222222222222222,
-            "minZ": -8.299999999999999,
-            "maxZ": -6.8999999999999995
+            "minX": 2.3555002935719704,
+            "maxX": 3.5555002935719706,
+            "minZ": -10.115514076399428,
+            "maxZ": -8.715514076399428
           }
-        }
+        },
+        "intervalSeconds": 4.5,
+        "rhythmPercent": 100,
+        "movementPercent": 100
       }
     },
     {
@@ -75,11 +78,11 @@
         "cue": "FOREHAND CROSSCOURT MEDIUM",
         "camera": {
           "eyeHeight": 1.7,
-          "behindBaseline": 0.21499999999999986,
-          "lateral": -2.2,
-          "yaw": 0,
-          "pitch": -1.7,
-          "fov": 70
+          "behindBaseline": 0.052195450533883775,
+          "lateral": -2.812109301036045,
+          "yaw": 15.481479492187532,
+          "pitch": -2.840739746093277,
+          "fov": 74.44444475841132
         },
         "ball": {
           "family": "groundstroke",
@@ -117,12 +120,15 @@
             "contactTiming": "descent"
           },
           "landingZone": {
-            "minX": -2.8222222222222224,
-            "maxX": -1.6222222222222222,
-            "minZ": -8.299999999999999,
-            "maxZ": -6.8999999999999995
+            "minX": -3.000241120704199,
+            "maxX": -1.8002411207041988,
+            "minZ": -8.122285598207233,
+            "maxZ": -6.722285598207233
           }
-        }
+        },
+        "intervalSeconds": 5,
+        "rhythmPercent": 100,
+        "movementPercent": 100
       }
     },
     {
@@ -199,11 +205,11 @@
         "cue": "INSIDE-OUT FOREHAND",
         "camera": {
           "eyeHeight": 1.7,
-          "behindBaseline": 0.21499999999999986,
-          "lateral": 2.1,
-          "yaw": 0,
-          "pitch": -1.7,
-          "fov": 70
+          "behindBaseline": 0.9389835106292262,
+          "lateral": 4.844079709433536,
+          "yaw": -15.970383300782032,
+          "pitch": -5.285184936523478,
+          "fov": 74.44444475841132
         },
         "ball": {
           "family": "groundstroke",
@@ -241,12 +247,15 @@
             "contactTiming": "descent"
           },
           "landingZone": {
-            "minX": 0.7836477987421385,
-            "maxX": 1.9836477987421386,
-            "minZ": -8.299999999999999,
-            "maxZ": -6.8999999999999995
+            "minX": 0.1378892205946195,
+            "maxX": 1.3378892205946196,
+            "minZ": -8.37379504838114,
+            "maxZ": -6.973795048381141
           }
-        }
+        },
+        "intervalSeconds": 5,
+        "rhythmPercent": 100,
+        "movementPercent": 100
       }
     },
     {
@@ -261,10 +270,10 @@
         "cue": "BACKHAND CROSSCOURT DEEP",
         "camera": {
           "eyeHeight": 1.7,
-          "behindBaseline": 0.21499999999999986,
-          "lateral": 2.2,
-          "yaw": 0,
-          "pitch": -1.7,
+          "behindBaseline": 3.877305197509668,
+          "lateral": 2.9950708856053896,
+          "yaw": -8.637041015625755,
+          "pitch": -1.7000134277350298,
           "fov": 70
         },
         "ball": {
@@ -282,10 +291,10 @@
           "contactTiming": "descent"
         },
         "landingZone": {
-          "minX": -3.4000000000000004,
-          "maxX": -1.8,
-          "minZ": 8.3,
-          "maxZ": 10.3
+          "minX": -3.8048956349007734,
+          "maxX": -2.2048956349007733,
+          "minZ": 8.941305494280966,
+          "maxZ": 10.941305494280966
         },
         "opponentReturn": {
           "ball": {
@@ -303,74 +312,15 @@
             "contactTiming": "descent"
           },
           "landingZone": {
-            "minX": 1.6222222222222222,
-            "maxX": 2.8222222222222224,
-            "minZ": -8.299999999999999,
-            "maxZ": -6.8999999999999995
+            "minX": -3.6805337598074948,
+            "maxX": -2.4805337598074946,
+            "minZ": -10.662701159142816,
+            "maxZ": -9.262701159142818
           }
-        }
-      }
-    },
-    {
-      "schemaVersion": 2,
-      "playerHand": "right",
-      "id": "bh-cross-high",
-      "name": "Heavy backhand crosscourt",
-      "event": {
-        "id": "preset-bh-cross-high",
-        "presetId": "bh-cross-high",
-        "label": "Heavy backhand crosscourt",
-        "cue": "HEAVY BACKHAND CROSSCOURT",
-        "camera": {
-          "eyeHeight": 1.7,
-          "behindBaseline": 0.21499999999999986,
-          "lateral": 2.2,
-          "yaw": 0,
-          "pitch": -1.7,
-          "fov": 70
         },
-        "ball": {
-          "family": "groundstroke",
-          "stroke": "backhand",
-          "hand": "right",
-          "paceKmh": 70,
-          "spin": "topspin",
-          "spinRateRpm": 600,
-          "netClearanceM": 0.25,
-          "variationPercent": 8,
-          "bounceFactor": 1,
-          "trajectoryMode": "natural",
-          "serveRhythm": "normal",
-          "contactTiming": "descent"
-        },
-        "landingZone": {
-          "minX": -3.2,
-          "maxX": -1.5999999999999999,
-          "minZ": 8,
-          "maxZ": 10
-        },
-        "opponentReturn": {
-          "ball": {
-            "family": "groundstroke",
-            "stroke": "auto",
-            "hand": "right",
-            "paceKmh": 70,
-            "spin": "topspin",
-            "spinRateRpm": 600,
-            "netClearanceM": 0.25,
-            "variationPercent": 8,
-            "bounceFactor": 1,
-            "trajectoryMode": "natural",
-            "serveRhythm": "normal",
-            "contactTiming": "descent"
-          },
-          "landingZone": {
-            "minX": 1.6222222222222222,
-            "maxX": 2.8222222222222224,
-            "minZ": -8.299999999999999,
-            "maxZ": -6.8999999999999995
-          }
-        }
+        "intervalSeconds": 4.5,
+        "rhythmPercent": 100,
+        "movementPercent": 100
       }
     },
     {
@@ -447,11 +397,11 @@
         "cue": "NEUTRAL BALL THROUGH THE MIDDLE",
         "camera": {
           "eyeHeight": 1.7,
-          "behindBaseline": 0.21499999999999986,
-          "lateral": 0,
-          "yaw": 0,
-          "pitch": -1.7,
-          "fov": 70
+          "behindBaseline": 2.591062454666344,
+          "lateral": -0.006168859480373724,
+          "yaw": 1.6296166992187864,
+          "pitch": -0.3963348388670056,
+          "fov": 74.44444475841132
         },
         "ball": {
           "family": "groundstroke",
@@ -489,12 +439,15 @@
             "contactTiming": "descent"
           },
           "landingZone": {
-            "minX": -0.9773584905660377,
-            "maxX": 0.22264150943396221,
-            "minZ": -8.299999999999999,
-            "maxZ": -6.8999999999999995
+            "minX": -0.6104607080695309,
+            "maxX": 0.5895392919304691,
+            "minZ": -9.528726573121537,
+            "maxZ": -8.128726573121536
           }
-        }
+        },
+        "intervalSeconds": 5,
+        "rhythmPercent": 100,
+        "movementPercent": 100
       }
     },
     {
@@ -511,8 +464,8 @@
           "eyeHeight": 1.7,
           "behindBaseline": -2.885,
           "lateral": -2,
-          "yaw": 0,
-          "pitch": -1.7,
+          "yaw": 14.6666845703121,
+          "pitch": -2.8407464599607692,
           "fov": 70
         },
         "ball": {
@@ -556,7 +509,10 @@
             "minZ": -5.2,
             "maxZ": -3.8
           }
-        }
+        },
+        "intervalSeconds": 5,
+        "rhythmPercent": 100,
+        "movementPercent": 100
       }
     },
     {
@@ -571,10 +527,10 @@
         "cue": "SHORT ANGLE RIGHT",
         "camera": {
           "eyeHeight": 1.7,
-          "behindBaseline": -2.885,
-          "lateral": 2,
-          "yaw": 0,
-          "pitch": -1.7,
+          "behindBaseline": -3.1055328601098777,
+          "lateral": 3.0857101110040857,
+          "yaw": -15.318520507812877,
+          "pitch": -3.4925891113282432,
           "fov": 70
         },
         "ball": {
@@ -613,74 +569,15 @@
             "contactTiming": "descent"
           },
           "landingZone": {
-            "minX": 1.395421686746988,
-            "maxX": 2.595421686746988,
-            "minZ": -5.2,
-            "maxZ": -3.8
+            "minX": 1.542730602618342,
+            "maxX": 2.7427306026183422,
+            "minZ": -5.066502748004414,
+            "maxZ": -3.6665027480044134
           }
-        }
-      }
-    },
-    {
-      "schemaVersion": 2,
-      "playerHand": "right",
-      "id": "defensive-high-left",
-      "name": "High defensive crosscourt",
-      "event": {
-        "id": "preset-defensive-high-left",
-        "presetId": "defensive-high-left",
-        "label": "High defensive crosscourt",
-        "cue": "HIGH DEFENSIVE CROSSCOURT",
-        "camera": {
-          "eyeHeight": 1.7,
-          "behindBaseline": 0.6150000000000002,
-          "lateral": -2.5,
-          "yaw": 0,
-          "pitch": -1.7,
-          "fov": 70
         },
-        "ball": {
-          "family": "groundstroke",
-          "stroke": "forehand",
-          "hand": "right",
-          "paceKmh": 70,
-          "spin": "topspin",
-          "spinRateRpm": 600,
-          "netClearanceM": 0.25,
-          "variationPercent": 8,
-          "bounceFactor": 1,
-          "trajectoryMode": "natural",
-          "serveRhythm": "normal",
-          "contactTiming": "descent"
-        },
-        "landingZone": {
-          "minX": 1.7,
-          "maxX": 3.3,
-          "minZ": 8.7,
-          "maxZ": 10.7
-        },
-        "opponentReturn": {
-          "ball": {
-            "family": "groundstroke",
-            "stroke": "auto",
-            "hand": "right",
-            "paceKmh": 70,
-            "spin": "topspin",
-            "spinRateRpm": 600,
-            "netClearanceM": 0.25,
-            "variationPercent": 8,
-            "bounceFactor": 1,
-            "trajectoryMode": "natural",
-            "serveRhythm": "normal",
-            "contactTiming": "descent"
-          },
-          "landingZone": {
-            "minX": -3.081649484536083,
-            "maxX": -1.8816494845360827,
-            "minZ": -8.7,
-            "maxZ": -7.3
-          }
-        }
+        "intervalSeconds": 5,
+        "rhythmPercent": 100,
+        "movementPercent": 100
       }
     },
     {
@@ -695,10 +592,10 @@
         "cue": "BACKHAND SLICE DOWN THE LINE",
         "camera": {
           "eyeHeight": 1.7,
-          "behindBaseline": -0.08499999999999908,
-          "lateral": 2.1,
-          "yaw": 0,
-          "pitch": -1.7,
+          "behindBaseline": -0.8554136503930668,
+          "lateral": 2.475501946891937,
+          "yaw": 1.7925891113281978,
+          "pitch": -0.07036987304672948,
           "fov": 70
         },
         "ball": {
@@ -707,7 +604,7 @@
           "hand": "right",
           "paceKmh": 70,
           "spin": "slice",
-          "spinRateRpm": 1253,
+          "spinRateRpm": 1800,
           "netClearanceM": 0.25,
           "variationPercent": 8,
           "bounceFactor": 1,
@@ -716,10 +613,10 @@
           "contactTiming": "descent"
         },
         "landingZone": {
-          "minX": 1.5999999999999999,
-          "maxX": 3.2,
-          "minZ": 7.6,
-          "maxZ": 9.6
+          "minX": 2.161185932391737,
+          "maxX": 3.7611859323917374,
+          "minZ": 8.60769526131219,
+          "maxZ": 10.60769526131219
         },
         "opponentReturn": {
           "ball": {
@@ -737,12 +634,15 @@
             "contactTiming": "descent"
           },
           "landingZone": {
-            "minX": 1.5331210191082802,
-            "maxX": 2.7331210191082804,
-            "minZ": -8,
-            "maxZ": -6.6000000000000005
+            "minX": -0.08897413026595191,
+            "maxX": 1.1110258697340483,
+            "minZ": -8.243349842432849,
+            "maxZ": -6.843349842432849
           }
-        }
+        },
+        "intervalSeconds": 5,
+        "rhythmPercent": 100,
+        "movementPercent": 100
       }
     },
     {
@@ -757,10 +657,10 @@
         "cue": "FOREHAND APPROACH DOWN THE LINE",
         "camera": {
           "eyeHeight": 1.7,
-          "behindBaseline": -3.885,
-          "lateral": -1.8,
-          "yaw": 0,
-          "pitch": -1.7,
+          "behindBaseline": -3.904978376013087,
+          "lateral": -2.4094084769964157,
+          "yaw": 2.9333422851564137,
+          "pitch": -1.7000000000000455,
           "fov": 70
         },
         "ball": {
@@ -778,10 +678,10 @@
           "contactTiming": "descent"
         },
         "landingZone": {
-          "minX": -3.2,
-          "maxX": -1.5999999999999999,
-          "minZ": 8.3,
-          "maxZ": 10.3
+          "minX": -3.995,
+          "maxX": -2.3949999999999996,
+          "minZ": 8.941995312764085,
+          "maxZ": 10.941995312764085
         },
         "opponentReturn": {
           "ball": {
@@ -799,12 +699,15 @@
             "contactTiming": "descent"
           },
           "landingZone": {
-            "minX": -2.411392405063291,
-            "maxX": -1.2113924050632914,
-            "minZ": -4.2,
-            "maxZ": -2.8
+            "minX": -0.5998912531196599,
+            "maxX": 0.6001087468803399,
+            "minZ": -4.577858115992395,
+            "maxZ": -3.177858115992395
           }
-        }
+        },
+        "intervalSeconds": 5,
+        "rhythmPercent": 100,
+        "movementPercent": 100
       }
     },
     {
@@ -819,19 +722,19 @@
         "cue": "HALF-VOLLEY THROUGH THE MIDDLE",
         "camera": {
           "eyeHeight": 1.7,
-          "behindBaseline": -5.385,
-          "lateral": 0,
-          "yaw": 0,
-          "pitch": -1.7,
+          "behindBaseline": -5.719711922204615,
+          "lateral": 0.010603673863120387,
+          "yaw": 1.4666979980466976,
+          "pitch": -5.448143920898701,
           "fov": 70
         },
         "ball": {
           "family": "half-volley",
           "stroke": "forehand",
           "hand": "right",
-          "paceKmh": 55,
+          "paceKmh": 61,
           "spin": "slice",
-          "spinRateRpm": 650,
+          "spinRateRpm": 2000,
           "netClearanceM": 1,
           "variationPercent": 8,
           "bounceFactor": 1,
@@ -840,10 +743,10 @@
           "contactTiming": "rise"
         },
         "landingZone": {
-          "minX": -0.8,
-          "maxX": 0.8,
-          "minZ": 7.5,
-          "maxZ": 9.5
+          "minX": 0.9167340718775492,
+          "maxX": 2.516734071877549,
+          "minZ": 4.99765301816834,
+          "maxZ": 6.99765301816834
         },
         "opponentReturn": {
           "ball": {
@@ -861,12 +764,15 @@
             "contactTiming": "descent"
           },
           "landingZone": {
-            "minX": -1.054931506849315,
-            "maxX": 0.14506849315068487,
-            "minZ": -6.75,
-            "maxZ": -5.35
+            "minX": -3.281864449324286,
+            "maxX": -2.081864449324286,
+            "minZ": -2.767157327390441,
+            "maxZ": -1.3671573273904407
           }
-        }
+        },
+        "intervalSeconds": 5,
+        "rhythmPercent": 100,
+        "movementPercent": 100
       }
     },
     {
@@ -881,17 +787,17 @@
         "cue": "FOREHAND VOLLEY CROSSCOURT",
         "camera": {
           "eyeHeight": 1.7,
-          "behindBaseline": -7.585,
-          "lateral": -1.6,
-          "yaw": 0,
-          "pitch": -1.7,
+          "behindBaseline": -7.431739658623083,
+          "lateral": -3.276838579204312,
+          "yaw": 23.955574951171798,
+          "pitch": -4.470369873047389,
           "fov": 70
         },
         "ball": {
           "family": "volley",
           "stroke": "forehand",
           "hand": "right",
-          "paceKmh": 45,
+          "paceKmh": 65,
           "spin": "slice",
           "spinRateRpm": 650,
           "netClearanceM": 0.25,
@@ -902,10 +808,10 @@
           "contactTiming": "descent"
         },
         "landingZone": {
-          "minX": 0,
-          "maxX": 1.6,
-          "minZ": 8.3,
-          "maxZ": 10.3
+          "minX": 1.8748114665317002,
+          "maxX": 3.4748114665317003,
+          "minZ": 7.207027455190895,
+          "maxZ": 9.339366218450985
         },
         "opponentReturn": {
           "ball": {
@@ -928,7 +834,10 @@
             "minZ": -9.2,
             "maxZ": -7.8
           }
-        }
+        },
+        "intervalSeconds": 5,
+        "rhythmPercent": 100,
+        "movementPercent": 100
       }
     },
     {
@@ -943,17 +852,17 @@
         "cue": "BACKHAND VOLLEY CROSSCOURT",
         "camera": {
           "eyeHeight": 1.7,
-          "behindBaseline": -8.085,
-          "lateral": 1.6,
-          "yaw": 0,
-          "pitch": -1.7,
+          "behindBaseline": -7.263670520509257,
+          "lateral": 2.397503836646481,
+          "yaw": -8.79998657226588,
+          "pitch": -3.981486206054228,
           "fov": 70
         },
         "ball": {
           "family": "volley",
           "stroke": "backhand",
           "hand": "right",
-          "paceKmh": 45,
+          "paceKmh": 64,
           "spin": "slice",
           "spinRateRpm": 650,
           "netClearanceM": 0.25,
@@ -964,10 +873,10 @@
           "contactTiming": "descent"
         },
         "landingZone": {
-          "minX": -1.6,
-          "maxX": 0,
-          "minZ": 8.3,
-          "maxZ": 10.3
+          "minX": -2.7087269523975794,
+          "maxX": -1.1087269523975793,
+          "minZ": 5.570828092296354,
+          "maxZ": 7.570828092296354
         },
         "opponentReturn": {
           "ball": {
@@ -990,7 +899,10 @@
             "minZ": -9.2,
             "maxZ": -7.8
           }
-        }
+        },
+        "intervalSeconds": 5,
+        "rhythmPercent": 100,
+        "movementPercent": 100
       }
     },
     {
@@ -1005,10 +917,10 @@
         "cue": "DEFENSIVE LOB",
         "camera": {
           "eyeHeight": 1.7,
-          "behindBaseline": -1.8849999999999998,
-          "lateral": 1.2,
-          "yaw": 0,
-          "pitch": -1.7,
+          "behindBaseline": 3.9029137135592564,
+          "lateral": 2.3513570481268715,
+          "yaw": -4.399999999999636,
+          "pitch": -0.5592871093749636,
           "fov": 70
         },
         "ball": {
@@ -1052,7 +964,10 @@
             "minZ": -6.2,
             "maxZ": -4.8
           }
-        }
+        },
+        "intervalSeconds": 5,
+        "rhythmPercent": 100,
+        "movementPercent": 100
       }
     },
     {
@@ -1069,8 +984,8 @@
           "eyeHeight": 1.7,
           "behindBaseline": -6.385,
           "lateral": -0.8,
-          "yaw": 0,
-          "pitch": -1.7,
+          "yaw": 15.155548095703011,
+          "pitch": -3.6555615234373136,
           "fov": 70
         },
         "ball": {
@@ -1088,10 +1003,10 @@
           "contactTiming": "descent"
         },
         "landingZone": {
-          "minX": 1.2,
-          "maxX": 2.8,
-          "minZ": 8,
-          "maxZ": 10
+          "minX": 1.945028810844732,
+          "maxX": 3.545028810844732,
+          "minZ": 8.391137876354673,
+          "maxZ": 10.391137876354673
         },
         "opponentReturn": {
           "ball": {
@@ -1114,7 +1029,10 @@
             "minZ": -9.2,
             "maxZ": -7.8
           }
-        }
+        },
+        "intervalSeconds": 5,
+        "rhythmPercent": 100,
+        "movementPercent": 100
       }
     },
     {
@@ -1129,17 +1047,17 @@
         "cue": "FOREHAND DROP SHOT",
         "camera": {
           "eyeHeight": 1.7,
-          "behindBaseline": -3.885,
-          "lateral": -1.6,
-          "yaw": 0,
-          "pitch": -1.7,
+          "behindBaseline": 0.5175438240647856,
+          "lateral": -2.490144497245683,
+          "yaw": 2.933315429687241,
+          "pitch": -3.1666711425781386,
           "fov": 70
         },
         "ball": {
           "family": "drop-shot",
           "stroke": "forehand",
           "hand": "right",
-          "paceKmh": 38,
+          "paceKmh": 50,
           "spin": "slice",
           "spinRateRpm": 1400,
           "netClearanceM": 0.12,
@@ -1150,10 +1068,10 @@
           "contactTiming": "descent"
         },
         "landingZone": {
-          "minX": 1,
-          "maxX": 2.6,
-          "minZ": 1.7999999999999998,
-          "maxZ": 3.8
+          "minX": -3.9434216709459022,
+          "maxX": -2.343421670945902,
+          "minZ": 1.154596259419507,
+          "maxZ": 3.154596259419507
         },
         "opponentReturn": {
           "ball": {
@@ -1171,12 +1089,15 @@
             "contactTiming": "descent"
           },
           "landingZone": {
-            "minX": -2.2503797468354434,
-            "maxX": -1.0503797468354432,
-            "minZ": -4.2,
-            "maxZ": -2.8
+            "minX": 1.0694325901122697,
+            "maxX": 2.26943259011227,
+            "minZ": -4.4509723586508025,
+            "maxZ": -3.050972358650802
           }
-        }
+        },
+        "intervalSeconds": 5,
+        "rhythmPercent": 100,
+        "movementPercent": 100
       }
     },
     {
@@ -1191,10 +1112,10 @@
         "cue": "FOREHAND RETURN CROSSCOURT",
         "camera": {
           "eyeHeight": 1.7,
-          "behindBaseline": -0.3849999999999998,
-          "lateral": -2.4,
-          "yaw": 0,
-          "pitch": -1.7,
+          "behindBaseline": -0.26523300791287624,
+          "lateral": -3.5961364087588463,
+          "yaw": 17.76299926757747,
+          "pitch": -4.307404174804901,
           "fov": 70
         },
         "ball": {
@@ -1212,10 +1133,10 @@
           "contactTiming": "descent"
         },
         "landingZone": {
-          "minX": 1.4999999999999998,
-          "maxX": 3.0999999999999996,
-          "minZ": 8,
-          "maxZ": 10
+          "minX": 2.0208815294942424,
+          "maxX": 3.620881529494242,
+          "minZ": 8.214129860749594,
+          "maxZ": 10.214129860749594
         },
         "opponentReturn": {
           "ball": {
@@ -1233,12 +1154,15 @@
             "contactTiming": "descent"
           },
           "landingZone": {
-            "minX": -2.9780645161290322,
-            "maxX": -1.778064516129032,
-            "minZ": -7.7,
-            "maxZ": -6.3
+            "minX": -0.3617865098804023,
+            "maxX": 0.8382134901195979,
+            "minZ": -8.901226507920764,
+            "maxZ": -7.501226507920763
           }
-        }
+        },
+        "intervalSeconds": 5,
+        "rhythmPercent": 100,
+        "movementPercent": 100
       }
     },
     {
@@ -1253,10 +1177,10 @@
         "cue": "BACKHAND RETURN CROSSCOURT",
         "camera": {
           "eyeHeight": 1.7,
-          "behindBaseline": -0.3849999999999998,
-          "lateral": 2.4,
-          "yaw": 0,
-          "pitch": -1.7,
+          "behindBaseline": -0.17474250300718264,
+          "lateral": 3.47250651271539,
+          "yaw": -9.288930664062264,
+          "pitch": -4.6333288574212474,
           "fov": 70
         },
         "ball": {
@@ -1295,12 +1219,15 @@
             "contactTiming": "descent"
           },
           "landingZone": {
-            "minX": 1.778064516129032,
-            "maxX": 2.9780645161290322,
-            "minZ": -7.7,
-            "maxZ": -6.3
+            "minX": -0.29760183409353314,
+            "maxX": 0.902398165906467,
+            "minZ": -9.141195924529931,
+            "maxZ": -7.741195924529931
           }
-        }
+        },
+        "intervalSeconds": 5,
+        "rhythmPercent": 100,
+        "movementPercent": 100
       }
     }
   ]
