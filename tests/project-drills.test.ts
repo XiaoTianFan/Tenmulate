@@ -18,8 +18,11 @@ async function fixture() {
   return { file, store: createProjectDrillStore(file) };
 }
 describe('project drill persistence', () => {
-  it('ships a valid catalog with the current starter library', () => {
-    expect(validateProjectCatalog(catalog).drills).toHaveLength(PLAYER_DRILLS.length);
+  it('ships a valid editable catalog without assuming the fallback library size', () => {
+    const drills = validateProjectCatalog(catalog).drills;
+    expect(drills.length).toBeGreaterThan(0);
+    expect(new Set(drills.map(drill => drill.id)).size).toBe(drills.length);
+    expect(drills.map(drill => drill.id)).toEqual(catalog.drills.map(drill => drill.id));
   });
   it('writes complete settings to disk and survives reopening with stable identity', async () => {
     const { file, store } = await fixture(), current = await store.read();

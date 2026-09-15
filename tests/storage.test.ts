@@ -2,6 +2,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PLAYER_DRILLS as DRILLS } from '../src/content/playerDrills';
 import { DEFAULT_APP_DATA, DEFAULT_PREFERENCES, loadAppData, saveAppData } from '../src/storage/appStorage';
 
+// Migration/normalization unit tests must not inherit an author's editable
+// project config. Real project/browser precedence is covered in save-system.test.
+vi.mock('../src/content/project-configs.json', () => ({ default: {
+  schemaVersion: 1, practiceConfigs: {}, cameraPositionPresets: [], perspectivePresets: [],
+} }));
+
 class MemoryStorage {
   private values = new Map<string, string>();
   getItem(key: string) { return this.values.get(key) ?? null; }

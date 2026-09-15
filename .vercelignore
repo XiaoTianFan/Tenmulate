@@ -1,0 +1,13 @@
+.git
+node_modules
+dist
+coverage
+.tools
+.vercel
+.playwright-cli
+artifacts
+tmp
+output
+assets
+*.log
+.env*

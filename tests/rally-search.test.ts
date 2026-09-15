@@ -1,4 +1,4 @@
-import { expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { DRILL_BY_CATEGORY } from '../src/content/bundled';
 import { compileSession, type SessionSettings } from '../src/engine/session/compileSession';
 import { preparePreviewBatch } from '../src/engine/session/practicePreview';
@@ -23,10 +23,15 @@ const settings: SessionSettings = {
 };
 const drill = DRILL_BY_CATEGORY.get('Quick Rally')!;
 
-it('keeps the reported deep-zone rally connected through randomized preview batches', () => {
-  let session = compileSession(drill, settings);
-  expect(session.planningIssues ?? []).toEqual([]);
-  for (let cycle = 1; cycle <= 12; cycle++) {
+describe.sequential('reported deep-zone rally across consecutive randomized batches', () => {
+  let session: ReturnType<typeof compileSession>;
+  beforeAll(() => {
+    session = compileSession(drill, settings);
+    expect(session.planningIssues ?? []).toEqual([]);
+  }, 60_000);
+  // Keep every seam and all 72 returned shots. A case is one real preview batch,
+  // so failures identify the cycle instead of timing out the entire soak.
+  for (let cycle = 1; cycle <= 12; cycle++) it(`keeps batch ${cycle} connected`, () => {
     const batch = preparePreviewBatch({ drill, settings, last: session.repetitions.at(-1)!, cycle });
     expect(batch.next.planningIssues ?? [], `cycle ${cycle}`).toEqual([]);
     expect(batch.next.repetitions).toHaveLength(6);
@@ -42,8 +47,8 @@ it('keeps the reported deep-zone rally connected through randomized preview batc
       expect(rep.startTime + rep.rallyReturn!.contactTime + rep.rallyReturn!.duration).toBeCloseTo(next.startTime, 8);
     }
     session = batch.next;
-  }
-}, 60_000);
+  }, 60_000);
+});
 
 it('searches the remaining real player contact samples when preferred contacts are rejected', () => {
   const incoming = compileSession(drill, { ...settings, repetitions: 1 }).repetitions[0]!.trajectory;
