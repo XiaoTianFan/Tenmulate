@@ -11,8 +11,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build && node scripts/check-motion-integration.mjs --dist",
     "check:motion": "node scripts/check-motion-integration.mjs",
-    "test": "vitest run --maxWorkers=2",
-    "test:watch": "vitest --maxWorkers=2",
+    "test": "vitest run --maxWorkers=1",
+    "test:watch": "vitest --maxWorkers=1",
     "preview": "vite preview",
     "check:release": "npm test && npm run build"
   },

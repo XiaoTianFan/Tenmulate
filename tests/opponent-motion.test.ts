@@ -87,9 +87,11 @@ describe('local motion asset and shared contact clock', () => {
     }
     rig.dispose();
   });
-  it('keeps post-IK contact and root continuity when fresh preview batches replace one another',async()=>{
+  it.each((['right', 'left'] as const).flatMap(opponentHand =>
+    (['groundstroke', 'serve', 'volley', 'overhead'] as const).map(practiceShotType => ({ opponentHand, practiceShotType }))
+  ))('keeps post-IK preview continuity for $opponentHand $practiceShotType', async ({ opponentHand, practiceShotType }) => {
     const rig=await loadRig();
-    for(const opponentHand of ['right','left'] as const)for(const practiceShotType of ['groundstroke','serve','volley','overhead'] as const){
+    try {
       const p=PRACTICE_SHOT_PROFILES[practiceShotType];
       const preview=new ContinuousPracticePreview(compilePracticePreview(DRILLS[0]!,{
         repetitions:1,practiceShotType,opponentHand,opponentPosition:p.opponentPosition,landingDepthM:p.defaultLandingDepthM,
@@ -106,8 +108,7 @@ describe('local motion asset and shared contact clock', () => {
         if(time===seam)expect(contact.distanceTo(new THREE.Vector3(pose.event!.source.x,pose.event!.source.y,pose.event!.source.z))).toBeLessThan(.002);
         previous=contact;
       }
-    }
-    rig.dispose();
+    } finally { rig.dispose(); }
   });
   it('preserves real racket contacts after IK at both rhythm bounds and for both hands',async()=>{
     const rig=await loadRig();

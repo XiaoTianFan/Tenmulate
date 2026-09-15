@@ -23,6 +23,11 @@ npm ci
 npm run check:release
 ```
 
+Test files run with one worker to avoid CPU-heavy solver suites competing with one
+another. Multi-scenario rally and motion checks are named per batch/hand/shot, with
+all original assertions and per-case timeouts retained. Documentation-only commits
+do not retrigger runtime CI.
+
 The release command runs all tests, TypeScript compilation, the Vite build and
 active model/motion/precache verification. Build output is `dist`. No external
 service credentials or motion-laboratory installation are required. Runtime
