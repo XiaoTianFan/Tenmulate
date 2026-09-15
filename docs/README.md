@@ -4,6 +4,11 @@ This folder is the project record for product discovery, design, architecture, a
 
 ## Structure
 
+Start with the [user guide](user-guide.md), [release runbook](development/release.md),
+[implementation status](development/implementation-status.md), and
+[asset attribution](asset-attribution.md). Dated research and verification receipts
+below retain their historical scope; they do not establish current deployment state.
+
 - `product-requirements.md`: the product contract for the current intended release.
 - `technical-architecture.md`: the current system design and boundaries.
 - `concepts/`: generated or drawn visual hypotheses with prompts, limitations, and explicit owner-review status.

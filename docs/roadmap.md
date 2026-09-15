@@ -3,9 +3,7 @@
 - **Status:** Draft
 - **Last updated:** 2026-08-30
 
-**Current checkpoint:** the code-owned local ball-machine product now spans the functional work in Phases 1–6. The phase exit gates remain open where they require production 3D assets, measured target hardware/browser evidence, the 30-minute soak, human observation, licensing, or public deployment. See the [V1 release matrix](development/v1-release-matrix.md).
-
-**Visual-pipeline checkpoint (2026-08-31):** ADR-0005/0006/0007 make six court environments canonical Three.js compositions and remove Gaussian splats, generated-world assets, and downloaded venue textures from the runtime. Three outdoor arenas, three seating-free indoor courts, shared dynamic sky/weather, physical wind, and the CC0 neutral humanoid carrier are integrated. Venue work now moves through owner/target-device polish; opponent work waits on the owner-supplied mocap clips, separate racket, and retarget/contact review.
+**Current checkpoint (2026-09-15):** The frontend includes six authored venues, the 25-clip articulated opponent, player-first drills, browser/project saving and English/Chinese localization. GitHub/Vercel release preparation follows the [release runbook](development/release.md). Target-device performance, the long soak, human technique review and public provenance remain separate gates. Earlier phase checklists below are historical planning, not the current implementation inventory.
 
 This roadmap is ordered by uncertainty and integration risk. V1 is one complete public-free, non-tracking product; features are not split into must/should/could or a V1.1. Calendar estimates follow the vertical slice and asset bake-off.
 
