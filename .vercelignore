@@ -1,13 +1,14 @@
-.git
-node_modules
-dist
-coverage
-.tools
-.vercel
-.playwright-cli
-artifacts
-tmp
-output
-assets
+# Anchor source/tool directories: public/assets must be uploaded.
+/.git
+/node_modules
+/dist
+/coverage
+/.tools
+/.vercel
+/.playwright-cli
+/artifacts
+/tmp
+/output
+/assets
 *.log
 .env*
