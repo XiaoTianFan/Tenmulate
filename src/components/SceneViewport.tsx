@@ -1,5 +1,5 @@
 import { t, message as translateMessage } from '../i18n/locale';
-import { useEffect, useEffectEvent, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { useEffect, useLayoutEffect, useEffectEvent, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { cameraFovAfterWheel, cameraLookAfterDrag, type CameraLook } from '../domain/camera';
 import type { SurfaceId } from '../domain/court';
 import { DEFAULT_ENVIRONMENT, type EnvironmentConfiguration } from '../domain/environment';
@@ -158,7 +158,7 @@ export function SceneViewport({
     return () => { canvas.removeEventListener('wheel', listener); if(zoomCommitTimer.current)clearTimeout(zoomCommitTimer.current); };
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     let scene: TennisScene;
@@ -203,25 +203,25 @@ export function SceneViewport({
     return () => document.removeEventListener('visibilitychange', update);
   }, [active]);
 
-  useEffect(() => sceneRef.current?.setCamera(camera), [camera, followSessionCamera]);
+  useLayoutEffect(() => sceneRef.current?.setCamera(camera), [camera, followSessionCamera, viewKey]);
   useEffect(() => sceneRef.current?.setCourtOverview(courtOverview), [courtOverview]);
   useEffect(() => sceneRef.current?.opponentPositionControl.configure(opponentPlacement ?? null, onOpponentPositionChange ?? null), [opponentPlacement, onOpponentPositionChange]);
   useEffect(() => sceneRef.current?.setBallFocus(ballFocus), [ballFocus]);
   useEffect(() => sceneRef.current?.setOpponentLandingZoneVisible(showOpponentLandingZone), [showOpponentLandingZone]);
   useEffect(() => sceneRef.current?.setReturnLandingZone(returnLandingZone ?? null, onReturnLandingZoneChange ?? null), [returnLandingZone, onReturnLandingZoneChange]);
   useEffect(() => sceneRef.current?.setNearLandingZone(nearLandingZone ?? null, nearLandingZoneLimits), [nearLandingZone, nearLandingZoneLimits]);
-  useEffect(() => sceneRef.current?.setSession(session ?? null, sessionClock ?? null, onSessionIndex), [session, sessionClock, onSessionIndex]);
-  useEffect(() => sceneRef.current?.setShotPreviewPending(shotPreviewPending), [shotPreviewPending]);
+  useLayoutEffect(() => sceneRef.current?.setSession(session ?? null, sessionClock ?? null, onSessionIndex), [session, sessionClock, onSessionIndex]);
+  useLayoutEffect(() => sceneRef.current?.setShotPreviewPending(shotPreviewPending), [shotPreviewPending]);
   useEffect(() => sceneRef.current?.landingZoneControl.setDraftListener(onLandingZoneDraft ?? null), [onLandingZoneDraft]);
   useEffect(() => sceneRef.current?.returnLandingZoneControl.setDraftListener(onReturnLandingZoneDraft ?? null), [onReturnLandingZoneDraft]);
-  useEffect(() => sceneRef.current?.setTrajectory(trajectory), [trajectory]);
+  useLayoutEffect(() => sceneRef.current?.setTrajectory(trajectory), [trajectory]);
   useEffect(() => sceneRef.current?.setLandingZoneInteraction(
     onLandingZoneChange ?? null), [onLandingZoneChange]);
   useEffect(() => sceneRef.current?.setSurface(surface), [surface]);
   useEffect(() => sceneRef.current?.setEnvironment(environment), [environment]);
   useEffect(() => sceneRef.current?.setQualityMode(quality), [quality]);
-  useEffect(() => sceneRef.current?.setRunning(running), [running]);
-  useEffect(() => sceneRef.current?.reset(), [resetToken]);
+  useLayoutEffect(() => sceneRef.current?.setRunning(running), [running]);
+  useLayoutEffect(() => sceneRef.current?.reset(), [resetToken]);
   useEffect(() => sceneRef.current?.setTrajectoryVisible(showTrajectory), [showTrajectory]);
   useEffect(() => sceneRef.current?.setPlaybackRate(playbackRate), [playbackRate]);
   useEffect(() => sceneRef.current?.setLoopTrajectory(loopTrajectory), [loopTrajectory]);

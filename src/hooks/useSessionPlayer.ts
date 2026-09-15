@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { CompiledSession } from '../engine/session/compileSession';
 
 export type PlayerStatus = 'countdown' | 'playing' | 'resting' | 'paused' | 'completed';
@@ -35,7 +35,7 @@ export const useSessionPlayer = (session: CompiledSession, playbackRate: number)
     setStatus('countdown');
   }, []);
 
-  useEffect(() => restart(), [restart, session]);
+  useLayoutEffect(() => restart(), [restart, session]);
 
   useEffect(() => {
     let frame = 0;

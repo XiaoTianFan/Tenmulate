@@ -27,6 +27,7 @@ import { CourtViewport } from './SharedCourt';
 import type { EditorDraft } from '../storage/editorDrafts';
 
 type Props = {
+  launching?: boolean;
   route: AppRoute; initialDrill: DrillDefinitionV2; surface: SurfaceId;
   initialPlayerHand: OpponentHand; onPlayerHandChange: (hand: OpponentHand) => void;
   onRoute: (route: AppRoute) => void; onSave: (drill: DrillDefinitionV2) => Promise<DrillDefinitionV2>; onTest: (drill: DrillDefinitionV2, showTrajectory: boolean) => void;
@@ -38,7 +39,8 @@ type Props = {
 const cloneEvent = (event: PlayerShotEventV2) => ({ ...structuredClone(event), id: `event-${crypto.randomUUID()}` });
 const noMetrics = () => undefined;
 
-export function DrillEditorScreen({ route, initialDrill, initialDraft, onDraftChange, writable, projectStatus, initialPlayerHand, onPlayerHandChange, surface, onRoute, onSave, onTest, savedShots, shotsWritable, shotsStatus, projectShotIds, onSaveShot, onDeleteShot }: Props) {
+const START_CLOCK = Object.freeze({ current: 0 });
+export function DrillEditorScreen({ route, launching = false, initialDrill, initialDraft, onDraftChange, writable, projectStatus, initialPlayerHand, onPlayerHandChange, surface, onRoute, onSave, onTest, savedShots, shotsWritable, shotsStatus, projectShotIds, onSaveShot, onDeleteShot }: Props) {
   const [drill, setDrill] = useState<DrillDefinitionV2>(() => {
     const copy = structuredClone(playerDrillForHand(initialDraft?.drill ?? initialDrill, initialPlayerHand));
     const fov = copy.events[0]?.camera.fov ?? DEFAULT_CAMERA.fov;
@@ -224,8 +226,8 @@ export function DrillEditorScreen({ route, initialDrill, initialDraft, onDraftCh
         onDelete={async id => { const name = savedShots.find(shot => shot.id === id)?.name; await onDeleteShot(id); setShotNotice(`Deleted “${name}” from the shot library.`); }}/>
       <section className="editor-stage">
         <div className="editor-scene" ref={sceneContainer}>
-          {trajectory && events.length ? <CourtViewport camera={displayCamera} courtOverview={overview} trajectory={trajectory} surface={surface} running resetToken={0} showTrajectory={showTrajectory || overview} showOpponentLandingZone session={session!} sessionClock={clock} followSessionCamera={sequence && !overview}
-            shotPreviewPending={sequence ? !preview.current : !shotPreview.current}
+          {trajectory && events.length ? <CourtViewport camera={displayCamera} courtOverview={overview} trajectory={trajectory} surface={surface} running={!launching} resetToken={0} showTrajectory={showTrajectory || overview} showOpponentLandingZone session={launching ? undefined : session!} sessionClock={launching ? START_CLOCK : clock} followSessionCamera={sequence && !overview}
+            shotPreviewPending={launching || (sequence ? !preview.current : !shotPreview.current)}
             nearLandingZone={sequence ? session?.repetitions[previewIndex]?.trajectory.intent.landingZone : nearZone} nearLandingZoneLimits={nearLimits} returnLandingZone={!sequence && zoneDraft?.role === 'player' ? zoneDraft.zone : (sequence ? playingEvent : selected)?.landingZone}
             onLandingZoneDraft={sequence || isTransition ? undefined : zone => setZoneDraft(zone ? { role: 'opponent', zone } : null)}
             onReturnLandingZoneDraft={sequence || isTransition ? undefined : zone => setZoneDraft(zone ? { role: 'player', zone } : null)}

@@ -352,7 +352,12 @@ export class TennisScene {
     this.profiler?.reset();
     this.landingZoneControl.acceptModel();
     this.canvas.dataset.sessionRevision = String(++this.sessionRevision);
-    if(this.session!==session&&!clock){this.elapsed=0;this.sessionIndex=-1;}
+    // A rehearsal owns a new clock even when its cached session is reused.
+    // Reset before rendering; never retain the preview's phase until the next tick.
+    this.elapsed = clock?.current ?? 0; this.sessionIndex = -1;
+    this.canvas.dataset.sessionTime = this.elapsed.toFixed(4);
+    for (const ball of this.balls) ball.visible = false;
+    this.ballTrail.visible = false;
     this.session = session;
     this.canvas.dataset.sessionCategory = session?.drill.category ?? '';
     this.playerPreviewLine.geometry.dispose();

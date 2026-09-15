@@ -9,6 +9,14 @@
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
+## Practice startup — 2026-09-16
+
+Configuration prewarms exact launch sessions; Start reuses completed calculations
+and immediately stops/reset the old preview. Worker reuse, bounded caches and a
+smaller initial preview batch reduce repeated work. The shared renderer and player
+clock reset before playback without reloading the court. Development/production
+browser timing and cold-start limitations: [startup contract](session-startup.md).
+
 ## Quick Practice switching — 2026-09-16
 
 Return now has its own shipped config: 170 km/h flat compact serve, a 3.85 m ×

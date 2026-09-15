@@ -24,10 +24,20 @@ export function usePracticePreview(drill: DrillDefinitionV1, settings: SessionSe
       void compilePracticeAsync(drill, settings, true, controller.signal)
         .then(session => { if (!controller.signal.aborted) setResult({ session, source: settings, error: '' }); })
         .catch(error => { if (!controller.signal.aborted) setResult(previous => ({ ...previous, source: settings, error: String(error.message ?? error) })); });
-    }, modeChanged ? 0 : 150);
+    }, modeChanged ? 0 : 50);
     return () => { clearTimeout(timer); controller.abort(); };
   }, [drill, settings]);
   const pending = result.source !== settings;
+  const [prepared, setPrepared] = useState<SessionSettings | null>(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      void compilePracticeAsync(drill, settings, false, controller.signal)
+        .then(() => { if (!controller.signal.aborted) setPrepared(settings); })
+        .catch(() => { /* Start reports planning failures; superseded warmups are silent. */ });
+    }, 200);
+    return () => { clearTimeout(timer); controller.abort(); };
+  }, [drill, settings]);
   return { ...result, session: pending || result.error ? placeholder.session : result.session,
-    error: pending ? '' : result.error, pending };
+    error: pending ? '' : result.error, pending, prepared: prepared === settings };
 }

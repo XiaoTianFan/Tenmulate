@@ -98,6 +98,8 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
   const [practicePreset, setPracticePreset] = useState<PracticePresetId>(initialPractice.id);
   const [overview, setOverview] = useState(false);
   const [launching, setLaunching] = useState(false), [launchError, setLaunchError] = useState('');
+  const launchCalculation = useRef<AbortController | null>(null);
+  useEffect(() => () => launchCalculation.current?.abort(), []);
   const [rallyLandingZone, setRallyLandingZone] = useState(initialPreferences.rallyLandingZone);
   const rallyShot = useMemo(() => defaultReturnShot('groundstroke'), []);
   const [opponentContactTiming, setOpponentContactTiming] = useState(initialPreferences.opponentContactTiming);
@@ -501,13 +503,16 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
   });
 
   const launch = async () => {
-    setLaunching(true); setLaunchError('');
+    launchCalculation.current?.abort();
+    const controller = new AbortController(); launchCalculation.current = controller;
+    setLaunching(true); setLaunchError(''); setResetToken(value => value + 1);
     try {
-      const session = await compilePracticeAsync(drill, sessionSettings, false);
+      const session = await compilePracticeAsync(drill, sessionSettings, false, controller.signal);
+      if (controller.signal.aborted) return;
       if (session.planningIssues?.length) { setLaunchError(session.planningIssues[0]!.message); return; }
       onStart({ session, trajectoryEnabled, camera, environment, surface, quality, defaultContent: true });
-    } catch (error) { setLaunchError(error instanceof Error ? error.message : String(error)); }
-    finally { setLaunching(false); }
+    } catch (error) { if (!controller.signal.aborted) setLaunchError(error instanceof Error ? error.message : String(error)); }
+    finally { if (launchCalculation.current === controller) setLaunching(false); }
   };
 
   const requestStart = () => {
@@ -533,7 +538,7 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
   };
 
   return (
-    <main className="app-shell setup-shell">
+    <main className="app-shell setup-shell" data-session-prepared={preview.prepared}>
       <AppHeader route={route} onRoute={onRoute} />
       <section className="practice-layout">
         <aside className="session-rail compact-practice-rail" aria-label={t("Practice presets")}>
@@ -551,7 +556,7 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
 
         <section className="preview-column" aria-label={t("Live court preview")}>
           <div className="setup-court-view" ref={overviewContainer} data-camera-eye-height={eyeHeight.toFixed(3)}>
-            <CourtViewport camera={displayCamera} courtOverview={overview} trajectory={trajectory} surface={surface} environment={environment} quality={quality} running={!preview.pending && !preview.error} shotPreviewPending={preview.pending} resetToken={resetToken} showTrajectory={trajectoryEnabled || overview} showOpponentLandingZone loopTrajectory session={previewSession} onSessionIndex={onPreviewIndex} onLandingZoneChange={changeLandingZone}
+            <CourtViewport camera={displayCamera} courtOverview={overview} trajectory={trajectory} surface={surface} environment={environment} quality={quality} running={!launching && !preview.pending && !preview.error} shotPreviewPending={launching || preview.pending} resetToken={resetToken} showTrajectory={trajectoryEnabled || overview} showOpponentLandingZone loopTrajectory session={launching ? undefined : previewSession} onSessionIndex={onPreviewIndex} onLandingZoneChange={changeLandingZone}
               followSessionCamera={!overview} nearLandingZone={nearZone} returnLandingZone={rallyLandingZone} onReturnLandingZoneChange={setRallyLandingZone}
               opponentPlacement={overview ? { ...opponentPosition, hand: opponentHand } : undefined} onOpponentPositionChange={overview ? changeRecoveryCenter : undefined}
               onCameraFovChange={overview ? zoomOverview : updateCameraFov} onCameraLookChange={overview ? undefined : updateCameraLook} onMetrics={onMetrics} />

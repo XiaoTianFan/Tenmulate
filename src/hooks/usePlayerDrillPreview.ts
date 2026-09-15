@@ -23,6 +23,14 @@ export function usePlayerDrillPreview(drill: DrillDefinitionV2, surface: Surface
     }, selection ? drafting ? 75 : 0 : 180);
     return () => { clearTimeout(timer); controller.abort(); };
   }, [drill, surface, selection, drafting, valid]);
+  useEffect(() => {
+    if (!valid || selection || drafting) return;
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      void compilePlayerDrillAsync(drill, { ...defaultDrillSettings(drill), surface }, controller.signal).catch(() => {});
+    }, 250);
+    return () => { clearTimeout(timer); controller.abort(); };
+  }, [drill, surface, selection, drafting, valid]);
   const current = result.source === drill && result.surface === surface && result.selection === selection;
   return { session: result.session, pending: !current && valid, error: errors[0] ?? (current ? result.error : ''), current: current && valid && !result.error };
 }

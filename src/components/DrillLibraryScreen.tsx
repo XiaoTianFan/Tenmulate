@@ -1,6 +1,6 @@
 import { t, message as translateMessage } from '../i18n/locale';
 import { SaveCancelled } from '../storage/savePolicy';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Copy, Download, FileUp, PencilLine, Play, Trash2 } from 'lucide-react';
 import { rhythmFromLegacyInterval } from '../engine/session/rhythm';
 import { PLAYER_DRILLS } from '../content/playerDrills';
@@ -21,12 +21,13 @@ type Props = {
   playerHand: OpponentHand; onPlayerHandChange: (hand: OpponentHand) => void;
   onRoute: (route: AppRoute) => void;
   onRun: (drill: DrillDefinitionV2, rhythm: number, interval: number, movement: number, practiceSet: DrillPracticeSet) => void;
+  onPrepare: (drill: DrillDefinitionV2, rhythm: number, interval: number, movement: number, practiceSet: DrillPracticeSet, signal: AbortSignal) => Promise<void>;
   onEdit: (drill: DrillDefinitionV2) => void;
   onSave: (drill: DrillDefinitionV2) => Promise<DrillDefinitionV2>;
   onDelete: (id: string) => Promise<void>;
 };
 
-export function DrillLibraryScreen({ route, drills, projectIds, writable, projectStatus, playerHand, onPlayerHandChange, onRoute, onRun, onEdit, onSave, onDelete }: Props) {
+export function DrillLibraryScreen({ route, drills, projectIds, writable, projectStatus, playerHand, onPlayerHandChange, onRoute, onRun, onPrepare, onEdit, onSave, onDelete }: Props) {
   const [selectedId, setSelectedId] = useState(drills[0]?.id ?? '');
   const [rhythmOverride, setRhythmOverride] = useState<number | null>(null);
   const [intervalOverride, setIntervalOverride] = useState<number | null>(null);
@@ -47,6 +48,17 @@ export function DrillLibraryScreen({ route, drills, projectIds, writable, projec
   const repetitions = Number(repetitionValue), restSeconds = Number(restInput);
   const validSet = repetitionValue.trim() !== '' && Number.isInteger(repetitions) && repetitions >= 1 && repetitions <= maxRepetitions
     && restInput.trim() !== '' && Number.isFinite(restSeconds) && restSeconds >= 0 && restSeconds <= 120;
+  const [preparedKey, setPreparedKey] = useState('');
+  const prepareKey = JSON.stringify([selected, rhythm, interval, movement, repetitions, restSeconds]);
+  useEffect(() => {
+    if (!selected || !validSet) return;
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      void onPrepare(selected, rhythm, interval, movement, { repetitions, restSeconds }, controller.signal)
+        .then(() => { if (!controller.signal.aborted) setPreparedKey(prepareKey); }).catch(() => {});
+    }, 100);
+    return () => { clearTimeout(timer); controller.abort(); };
+  }, [selected, validSet, rhythm, interval, movement, repetitions, restSeconds, onPrepare, prepareKey]);
   const uniqueTitle = (base: string) => {
     let title = base, suffix = 2;
     while (drills.some(drill => drillNameKey(drill.title) === drillNameKey(title))) {
@@ -75,7 +87,7 @@ export function DrillLibraryScreen({ route, drills, projectIds, writable, projec
     finally { setBusy(false); }
   };
 
-  return <main className="app-shell library-shell">
+  return <main className="app-shell library-shell" data-session-prepared={preparedKey === prepareKey}>
     <AppHeader route={route} onRoute={onRoute}/>
     <section className="library-layout">
       <section className="drill-table" aria-label={t("Available drills")}>
