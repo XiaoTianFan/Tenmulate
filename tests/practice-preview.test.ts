@@ -11,6 +11,23 @@ const settings: SessionSettings={repetitions:1,workBlockSize:1,restSeconds:120,s
   seed:'preview-seam',opponentHand:'right',serveRhythm:'preset',mode:'quick-practice',practiceShotType:'groundstroke'};
 
 describe('continuous practice preview',()=>{
+  it('starts with short prepared batches and expands without losing the seam or rewind', async () => {
+    const initial = compilePracticePreview(DRILLS[0]!, settings, 3);
+    const previewNext = preparePreviewBatch({ drill: DRILLS[0]!, settings: initial.settings, last: initial.repetitions.at(-1)!, cycle: 1 }, 3);
+    const preview = new ContinuousPracticePreview({ ...initial, previewNext }, {
+      compile: async request => preparePreviewBatch(request), dispose() {},
+    });
+    expect(initial.repetitions).toHaveLength(3); expect(previewNext.next.repetitions).toHaveLength(3);
+    expect(initial.restPeriods).toEqual([]);
+    await Promise.resolve();
+    const firstSeam = preview.frame(0).nextContact;
+    const next = preview.frame(firstSeam);
+    expect(next.cycle).toBe(1); expect(next.flights.length).toBeGreaterThan(0);
+    await Promise.resolve();
+    expect(preview.frame(next.nextContact).cycle).toBe(2);
+    expect(preview.frame(0).cycle).toBe(0);
+    preview.dispose();
+  });
   it('uses prefetched batches with identical trajectories and seam timing, including rewind', async () => {
     const initial = compilePracticePreview(DRILLS[0]!, settings);
     const serial = new ContinuousPracticePreview(initial);

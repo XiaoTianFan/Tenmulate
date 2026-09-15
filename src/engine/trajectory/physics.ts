@@ -504,6 +504,7 @@ const resolveNaturalRallyShot = (intent: ShotIntent, accepts?: (flight: Resolved
   const softClearance = netShot ? comfortableClearance : Math.max(GROUNDSTROKE_SOFT_NET_CLEARANCE_M, minimumClearance);
   const highVolley = volley && intent.source.y > netHeightAt(0) + minimumClearance + .25;
   const candidates = new Map<string, ReturnType<typeof evaluateUncached>>();
+  const acceptance = new Map<string, boolean>();
   let accepted: ReturnType<typeof evaluateUncached> | undefined;
 
   function evaluateUncached(speed: number, spin: number) {
@@ -546,8 +547,12 @@ const resolveNaturalRallyShot = (intent: ShotIntent, accepts?: (flight: Resolved
     const key = `${speed.toFixed(6)}:${spin.toFixed(6)}`;
     let candidate = candidates.get(key);
     if (!candidate) { candidate = evaluateUncached(speed, spin); candidates.set(key, candidate); }
-    if (accepts && candidate.legal && candidate.error <= .18 && (!accepted || candidate.score < accepted.score)
-      && accepts(integrateTrajectory(candidate.candidateIntent, candidate.velocity))) accepted = candidate;
+    if (accepts && candidate.legal && candidate.error <= .18 && (!accepted || candidate.score < accepted.score)) {
+      // Coordinate refinement can revisit the same clamped pace/spin pair.
+      // Its downstream contact/link solve is deterministic and can be expensive.
+      if (!acceptance.has(key)) acceptance.set(key, accepts(integrateTrajectory(candidate.candidateIntent, candidate.velocity)));
+      if (acceptance.get(key)) accepted = candidate;
+    }
     return candidate;
   };
   let best = evaluate(1, 1);

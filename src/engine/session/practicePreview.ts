@@ -6,8 +6,8 @@ import { sessionFlights, type SessionFlight } from './sessionFlights';
 
 /** Preview batches ignore planned set/rest counts. Six feeds cover alternating
  * sides, three step offsets and T/body/wide serves. The next batch is fresh. */
-export function compilePracticePreview(drill: DrillDefinitionV1, settings: SessionSettings): CompiledSession {
-  const session = compileSession(drill, { ...settings, repetitions: 6, workBlockSize: 6, restSeconds: 0 });
+export function compilePracticePreview(drill: DrillDefinitionV1, settings: SessionSettings, batchSize = 6): CompiledSession {
+  const session = compileSession(drill, { ...settings, repetitions: batchSize, workBlockSize: batchSize, restSeconds: 0 });
   return { ...session, ...(!session.planningIssues?.length ? { previewLoop: true as const } : {}) };
 }
 
@@ -26,12 +26,12 @@ export type PreviewBatchCompiler = {
 };
 
 /** The same deterministic compilation and seam fitting run in either thread. */
-export function preparePreviewBatch({ drill, settings, last, cycle }: PreviewBatchRequest): PreviewBatch {
+export function preparePreviewBatch({ drill, settings, last, cycle }: PreviewBatchRequest, batchSize = 6): PreviewBatch {
   if (settings.rally && drill.category === 'Quick Rally') {
-    const continued = compileSession(drill, { ...settings, seed: `${settings.seed}:preview:${cycle}`, repetitions: 6, workBlockSize: 6, restSeconds: 0 }, last);
+    const continued = compileSession(drill, { ...settings, seed: `${settings.seed}:preview:${cycle}`, repetitions: batchSize, workBlockSize: batchSize, restSeconds: 0 }, last);
     return { last: continued.repetitions[0]!, next: { ...continued, previewLoop: true, repetitions: continued.repetitions.slice(1) } };
   }
-  const next = compilePracticePreview(drill, { ...settings, seed: `${settings.seed}:preview:${cycle}` });
+  const next = compilePracticePreview(drill, { ...settings, seed: `${settings.seed}:preview:${cycle}` }, batchSize);
   const first = next.repetitions[0]!, requested = settings.shotIntervalSeconds!;
   const solved = solveShotInterval(last, first, requested), gap = solved.gap;
   const offset = last.startTime + gap - first.startTime;
