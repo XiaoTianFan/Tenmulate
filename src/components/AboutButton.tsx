@@ -41,7 +41,6 @@ export function AboutButton({ route }: { route: AppRoute }) {
         <section className="about-contact" aria-labelledby={`${titleId}-contact`}>
           <h3 id={`${titleId}-contact`}>{t("Contact")}</h3>
           <p>{t("Created by")} <a href="https://www.xiaotianfanx.com/" target="_blank" rel="noopener noreferrer">Xiaotian Fan (GleeGen)</a></p>
-          <a href="mailto:xiaotianfanx@email.com">{t("xiaotianfanx@email.com")}</a>
         </section>
       </div> : null}
     </dialog>, document.body)}
