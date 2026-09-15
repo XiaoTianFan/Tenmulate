@@ -115,3 +115,26 @@ Official hosting references: [Vite on Vercel](https://vercel.com/docs/frameworks
 [Node versions](https://vercel.com/docs/functions/runtimes/node-js/node-js-versions),
 [vercel.json](https://vercel.com/docs/project-configuration/vercel-json),
 [GitHub file limits](https://docs.github.com/en/repositories/working-with-files/managing-large-files/about-large-files-on-github).
+
+### Verified candidate
+
+- Source/configuration commit: `e3ca0115bad18153dfbc8aee2615deb6fc7d760b` on `main`,
+  pushed to the private GitHub repository with existing history preserved.
+- [GitHub Actions run 34986287907](https://github.com/XiaoTianFan/Tenmulate/actions/runs/34986287907):
+  **success**, Ubuntu, Node **24.20.0**, clean `npm ci`, **677 tests / 64 files**,
+  TypeScript/Vite build and active model/precache guard all pass.
+- Local Node **24.21.0** build and focused 63-case motion suite pass. Initial local
+  all-worker runs hit CPU-related timeout limits. Test files now run serially and
+  multi-scenario cases are parameterized without removing assertions or increasing
+  the per-case limits. The clean Linux run verifies the complete final suite.
+- Production-build Edge smoke: English/Chinese switch, direct browser config save,
+  rejected development project-write request and two-run serve-return drill launch
+  pass. No app errors; one ANGLE shader precision warning remains.
+- Markdown local-file links pass. Tracked worktree is clean after closeout commits;
+  ignored evidence remains available for review.
+- Remaining non-blocking build/tool notices: large Three.js renderer chunk,
+  transitive glob deprecation and GitHub Actions Node deprecation notices.
+- No Vercel production URL or live deployment verified. Public visibility/license,
+  public provenance, long-soak/device review and physical cleanup remain pending.
+- `npm audit --omit=dev` reports **0 runtime dependency vulnerabilities** on
+  2026-09-15. Build-tool deprecation notices remain as noted above.
