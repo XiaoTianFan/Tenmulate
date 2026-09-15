@@ -1,7 +1,8 @@
 # V1 release matrix
 
 - **Motion reconciliation:** 2026-09-07; unrelated rows retain their earlier verification scope
-- **Scope:** Local V1; current motion/model status follows the [integration receipt](motion-main-integration-2026-09-07.md)
+- **Hosting:** Public deployment verified 2026-09-16; see the [release runbook](release.md). Device and human acceptance remain separate.
+- **Scope:** Feature acceptance matrix; current motion/model status follows the [integration receipt](motion-main-integration-2026-09-07.md)
 - **Authority:** [Product requirements](../product-requirements.md)
 
 Status meanings:

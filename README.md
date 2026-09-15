@@ -4,6 +4,8 @@ First-person tennis rehearsal in your browser: visualize incoming balls, practic
 return timing, and build tactical drills from player shots, opponent returns and
 camera movements. Built with React, TypeScript, Vite and Three.js.
 
+**[Open Tenmulate](https://tenmulate.xiaotianfanx.com)**
+
 ## Features
 
 - Rally, Return, Volley and Overhead quick practice.
@@ -56,9 +58,8 @@ using Node 24, `npm ci`, `npm run build`, and `dist`. Import the repository into
 new Vercel project; no environment variables are required. CLI uploads exclude local
 tools, temporary evidence and Blender source files while retaining runtime assets.
 
-[Release runbook and handoff](docs/development/release.md) records setup steps,
-verification, remaining release gates and cleanup candidates. A prepared build is
-not a claim of public deployment or target-device acceptance.
+[Release runbook](docs/development/release.md) records the live project, deployment
+checks, rollback procedure and remaining device/technique acceptance gates.
 
 ## Limits and asset provenance
 

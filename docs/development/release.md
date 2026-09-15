@@ -1,20 +1,24 @@
-# Release preparation and hosting runbook
+# Release and hosting runbook
 
-Current preparation date: **2026-09-15**. This page is the authority for remote
-and deployment state; older implementation receipts describe their dated local runs.
+Verified **2026-09-16** (Asia/Shanghai). This page owns current remote and hosting
+state; older implementation receipts describe their dated runs.
 
-## Source and hosting
+## Source and production
 
-- GitHub: [XiaoTianFan/Tenmulate](https://github.com/XiaoTianFan/Tenmulate), private
-  release-preparation repository. `origin` points to its HTTPS Git URL.
-- Vercel team: `xiaotianfans-projects`. No Tenmulate project exists yet. Do not
-  repurpose the team's unrelated projects.
-- Local Vercel CLI is installed but its token is invalid. The connected Vercel
-  integration can list the team/projects. Production has **not** been deployed.
-- Public repository visibility and repository-wide source licensing remain owner
-  decisions. Private upload does not grant an open-source license.
+- Public repository: [XiaoTianFan/Tenmulate](https://github.com/XiaoTianFan/Tenmulate).
+  `main` tracks `origin/main`; existing source history is preserved.
+- Live site: **https://tenmulate.xiaotianfanx.com**. HTTPS and Vercel DNS verified.
+  The root domain and unrelated projects were not changed.
+- Vercel team/project: `xiaotianfans-projects/tenmulate`, project ID
+  `prj_Tj1tvVnPjcCEanLxVaeUYma9VUP3`, connected to the GitHub repository.
+- Verified code commit: `1d92d2d`. Successful production deployment:
+  [DpgZtXc4QaHyRx85Pe52XxmRyNWS](https://vercel.com/xiaotianfans-projects/tenmulate/DpgZtXc4QaHyRx85Pe52XxmRyNWS).
+  Subsequent documentation-only deployments may carry a newer commit.
+- Public visibility does not grant a repository-wide open-source license. No such
+  license has been selected; third-party assets retain their own licenses. See
+  [asset attribution](../asset-attribution.md).
 
-## Reproducible build
+## Build and deploy
 
 Use Node **24.x** (`.node-version`, package engines, CI and Vercel agree):
 
@@ -23,118 +27,71 @@ npm ci
 npm run check:release
 ```
 
-Test files run with one worker to avoid CPU-heavy solver suites competing with one
-another. Multi-scenario rally and motion checks are named per batch/hand/shot, with
-all original assertions and per-case timeouts retained. Documentation-only commits
-do not retrigger runtime CI.
+The release command runs all tests, TypeScript, Vite and active model/motion/cache
+validation. Test files run serially because physics and motion suites are CPU-heavy.
+Build output is `dist`; no credentials, database or motion laboratory are required.
+Runtime assets are tracked under `public`; optional Blender sources live in `assets`.
 
-The release command runs all tests, TypeScript compilation, the Vite build and
-active model/motion/precache verification. Build output is `dist`. No external
-service credentials or motion-laboratory installation are required. Runtime
-assets are committed under `public`; optional Blender sources live under `assets`.
+Vercel uses framework Vite, root `.`, install `npm ci`, build `npm run build`,
+output `dist`, and Node 24. No environment variables are required. For CLI work,
+use `vercel link` to select the existing team/project, `vercel` for a preview,
+and `vercel --prod` for an authorized production deployment. Keep `.vercel` local.
+Git integration deploys pushes to `main`; deployment success alone does not prove CI
+passed. Check the exact commit's **Release checks** before accepting a release.
 
-The migration tests use an empty project-config fixture so editing shipped defaults
-cannot replace their test inputs. Save integration tests still read the real project
-catalog and verify browser overrides. Shipped drills are validated for schema and
-unique identity instead of assuming the fallback library's historical size.
+CLI upload exclusions in `.vercelignore` are rooted deliberately: `/assets` excludes
+Blender sources, while `public/assets` must be uploaded. A bare `assets` excluded
+both directories and caused the first deployment's motion-manifest ENOENT failure.
+`tests/deployment-inputs.test.ts` guards the required runtime/build inputs.
 
-## Vercel handoff for Homie / the owner
+The app navigates in memory at `/`; no catch-all rewrite is needed. HTML and `sw.js`
+revalidate. The Vite PWA configuration owns precache and runtime venue caching.
+Development `/__tenmulate/project/*` write middleware is absent in production.
 
-1. Import `XiaoTianFan/Tenmulate` from GitHub into a **new** `tenmulate` project in
-   `xiaotianfans-projects`, or identify the intended existing project explicitly.
-2. Use framework **Vite**, root `.`, Node **24.x**, install `npm ci`, build
-   `npm run build`, output `dist`. These build settings are in `vercel.json`.
-3. No environment variables are required. Do not upload development credentials.
-   CLI uploads use `.vercelignore` to exclude tools, evidence and Blender sources.
-4. Before production promotion, check the **Release checks** GitHub Actions run for
-   the exact commit. Git integration can deploy before CI finishes; its existence
-   is not proof that tests passed. Validate a preview before promoting it.
-5. If using the CLI, run `vercel login`, then `vercel link` and select the exact
-   team/new project. Run `vercel` for preview. Production promotion is a separate
-   reviewed action; do not overwrite another application's project or domain.
-6. Record the deployment URL, commit SHA, project identity and live checks here.
-   For rollback, promote the previously verified deployment in Vercel; do not
-   rewrite Git history. Existing browser saves are origin-local and do not migrate
-   automatically to a different preview/production domain.
+For rollback, promote the previous verified deployment in Vercel without rewriting
+Git history. Check the canonical URL, active GLB and browser flow after promotion.
+Browser saves belong to their origin and do not migrate automatically between
+localhost, preview URLs and the canonical domain.
 
-This app uses in-memory navigation at `/`; no catch-all rewrite is needed. Static
-assets and the review page must retain their own paths. HTML and `sw.js` revalidate;
-asset filenames carry content hashes where managed by the renderer. Runtime venue
-caching is defined in Vite's PWA configuration. The local `/__tenmulate/project/*`
-write endpoints are development middleware, not Vercel Functions.
+## Verified release evidence
 
-## Live acceptance checklist
+- [GitHub Actions 34992021656](https://github.com/XiaoTianFan/Tenmulate/actions/runs/34992021656):
+  clean Linux Node 24 release check, **678 tests / 65 files**, build and motion guard pass.
+- Vercel production build passes: 38 precache entries, 25 motion clips, 1.88 m model.
+- Live active GLB returns HTTP 200 and matches SHA-256
+  `64f3bc37161dfc2fcf536e80a6e39465792bdc6a822dd26493d04d2ab2bd3eaf`.
+- Live Edge: Rally default, rendered court, direct browser config save, Chinese
+  language retained on reload, English switch and two-repetition serve-return drill
+  complete (4 player shots, 32 seconds). The development write URL returns 404.
+- No application console errors observed. ANGLE shader precision warnings and the
+  large Three.js bundle warning remain; build tools emit glob deprecation notices.
+- The deploy install audit reports zero dependency vulnerabilities at verification.
+- Prepublication inspection found no tracked environment/private-key/video/database/
+  ZIP files, no common credential-pattern matches across the audited source history,
+  and no blob exceeding GitHub's file limit. This was a bounded pattern audit.
 
-- Open the canonical URL in English and Chinese; verify default language and switch.
-- Load a court, begin a practice and run a repeated drill with rest.
-- Save a browser config/shot/drill, reload and confirm it persists with no project
-  destination prompt. Confirm user text retains its authored language.
-- Confirm GLB/worker requests succeed, console has no app errors, and the active
-  opponent hash matches `src/content/opponent-motion.json`.
-- Reload an updated deployment with an existing service worker; then exercise
-  already-loaded assets offline. First-time offline use is not supported.
-- Complete target-device frame-time/soak and owner technique review before claiming
-  all public V1 acceptance gates passed. Review [asset provenance](../asset-attribution.md).
+## Closeout and retained work
 
-## Cleanup inventory and scope
+The owner approved cleanup after reviewing the prior inventory. Merged local feature
+branches and disposable localization/release scripts, logs and old browser evidence
+are removed. Current live evidence is retained locally in ignored `output/release`.
+Reference PDFs in `tmp/pdfs`, reusable `.tools`, tracked authoring sources and the
+Vercel link are retained. Git object housekeeping is left to Git; no objects are
+manually deleted.
 
-| Surface | State / disposition |
+| Surface | Current state |
 | --- | --- |
-| Code | Release configuration and deterministic storage test fixtures updated; verification results below. |
-| Runtime | Local build verification; Vercel live verification pending. |
-| Documentation | README reduced to an entry point; feature details preserved in user guide; release and provenance linked from current records. |
-| Rules | Root AGENTS.md remains the single project rule source; no parent rule files or competing CLAUDE files found. |
-| Memory | Generated-read-only; no global memory changes authorized or made. |
-| Workspace | One worktree (`main`); 15 other local branches are already merged. No branches or evidence deleted. |
+| Code | changed-and-verified: deploy input regression and CI pass |
+| Runtime | changed-and-verified: public HTTPS deployment and live drill completion |
+| Documentation | changed-and-verified: current hosting authority and linked entry points |
+| Rules | verified-current: root AGENTS.md remains the project rule source |
+| Memory | out-of-scope: generated/read-only, no memory changes |
+| Workspace | changed-and-verified: approved residue removed, unique sources retained |
 
-Deletion candidates are **preview only**, retained for owner review:
+## Remaining acceptance work
 
-- `tmp/`: one-off localization/release scripts, logs and reference PDFs; inspect PDF
-  provenance before removing the whole directory.
-- `.playwright-cli/`, `output/playwright/`, root `*.log`: local test evidence; retain
-  any screenshots needed for release review.
-- `.git/objects/35/tmp_obj_udVm2p` and `.git/objects/92/tmp_obj_vrZ8mh`: two Git-reported
-  temporary garbage objects (about 1.23 MiB). Let Git housekeeping handle these only
-  after a reviewed backup/cleanup decision; no manual object deletion performed.
-- 15 merged `codex/*` branches: no unique commits, but retained until cleanup approval.
-
-`.tools/` contains reusable Blender tools/environments, not disposable task residue.
-`assets/` contains tracked authoring sources; keep them. `node_modules/`, `dist/`
-and QA artifacts are ignored, not source-release inputs. Physical deletion is a
-separate post-report approval step required by the invoked neat-freak skill.
-
-## Verification record
-
-Git inspection found no blobs above GitHub's file limit: the largest reachable blob
-is 22,271,747 bytes. A bounded scan for common token/private-key patterns found no
-matches in 216 reachable pre-release commits. No tracked environment, private-key,
-video, database or ZIP files were found. This is a pattern audit, not a guarantee
-that every possible secret format has been detected.
-
-Official hosting references: [Vite on Vercel](https://vercel.com/docs/frameworks/frontend/vite),
-[Node versions](https://vercel.com/docs/functions/runtimes/node-js/node-js-versions),
-[vercel.json](https://vercel.com/docs/project-configuration/vercel-json),
-[GitHub file limits](https://docs.github.com/en/repositories/working-with-files/managing-large-files/about-large-files-on-github).
-
-### Verified candidate
-
-- Source/configuration commit: `e3ca0115bad18153dfbc8aee2615deb6fc7d760b` on `main`,
-  pushed to the private GitHub repository with existing history preserved.
-- [GitHub Actions run 34986287907](https://github.com/XiaoTianFan/Tenmulate/actions/runs/34986287907):
-  **success**, Ubuntu, Node **24.20.0**, clean `npm ci`, **677 tests / 64 files**,
-  TypeScript/Vite build and active model/precache guard all pass.
-- Local Node **24.21.0** build and focused 63-case motion suite pass. Initial local
-  all-worker runs hit CPU-related timeout limits. Test files now run serially and
-  multi-scenario cases are parameterized without removing assertions or increasing
-  the per-case limits. The clean Linux run verifies the complete final suite.
-- Production-build Edge smoke: English/Chinese switch, direct browser config save,
-  rejected development project-write request and two-run serve-return drill launch
-  pass. No app errors; one ANGLE shader precision warning remains.
-- Markdown local-file links pass. Tracked worktree is clean after closeout commits;
-  ignored evidence remains available for review.
-- Remaining non-blocking build/tool notices: large Three.js renderer chunk,
-  transitive glob deprecation and GitHub Actions Node deprecation notices.
-- No Vercel production URL or live deployment verified. Public visibility/license,
-  public provenance, long-soak/device review and physical cleanup remain pending.
-- `npm audit --omit=dev` reports **0 runtime dependency vulnerabilities** on
-  2026-09-15. Build-tool deprecation notices remain as noted above.
+Public hosting is complete. Long mixed-session soak, the full target-device/browser
+matrix, real TV/projector calibration, owner/coach technique review, comprehensive
+asset-rights review and repository-wide licensing remain separate gates. Offline
+and service-worker upgrade acceptance also need a dedicated live lifecycle test.
+Do not infer those results from this release smoke test.

@@ -66,10 +66,9 @@ The release/scope decisions are normative in [ADR-0002](decisions/0002-v1-scope-
 
 Review the two generated court boards and choose the first outdoor and indoor north stars. Then identify available test devices, the first biomechanics reviewer, and either a rights-cleared performer/capture plan or a specifically licensed source clip. The US$99 envelope and world/character/motion test order are ready once those gates are answered.
 
-## Release preparation — 2026-09-15
+## Hosting decisions — 2026-09-16
 
-The owner selected GitHub for source release preparation and Vercel for frontend
-hosting. The static Vite app and runtime assets can be served by one Vercel project;
-a separate asset host is not required for this candidate. Domain, public repository
-visibility/license, public provenance review and target-device acceptance remain
-open. Current setup, verification and handoff: [release runbook](development/release.md).
+GitHub public visibility, Vercel hosting and `tenmulate.xiaotianfanx.com` are decided
+and live. A separate asset host is not required. Repository-wide licensing, broader
+asset-rights review and target-device acceptance remain open. Current authority:
+[release runbook](development/release.md).

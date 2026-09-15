@@ -3,7 +3,7 @@
 - **Status:** Draft
 - **Last updated:** 2026-08-30
 
-**Current checkpoint (2026-09-15):** The frontend includes six authored venues, the 25-clip articulated opponent, player-first drills, browser/project saving and English/Chinese localization. GitHub/Vercel release preparation follows the [release runbook](development/release.md). Target-device performance, the long soak, human technique review and public provenance remain separate gates. Earlier phase checklists below are historical planning, not the current implementation inventory.
+**Current checkpoint (2026-09-16):** The frontend includes six authored venues, the 25-clip articulated opponent, player-first drills, browser/project saving and English/Chinese localization. Public GitHub and Vercel hosting are live; evidence follows the [release runbook](development/release.md). Target-device performance, the long soak, human technique review and public provenance remain separate gates. Earlier phase checklists below are historical planning, not the current implementation inventory.
 
 This roadmap is ordered by uncertainty and integration risk. V1 is one complete public-free, non-tracking product; features are not split into must/should/could or a V1.1. Calendar estimates follow the vertical slice and asset bake-off.
 

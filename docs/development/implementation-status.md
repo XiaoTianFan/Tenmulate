@@ -1,27 +1,22 @@
 # V1 implementation status
 
 - **Status:** Active
-- **Last updated:** 2026-09-15
-- **Current implementation:** Six authored venues, a 25-clip articulated opponent, player-first drills, configurable drill repetitions/rest, English/Chinese UI and browser-local production saves. Development saves choose project defaults or browser storage. Release preparation and remote/live state: [release runbook](release.md).
+- **Last updated:** 2026-09-16
+- **Current implementation:** Six authored venues, a 25-clip articulated opponent, player-first drills, configurable drill repetitions/rest, English/Chinese UI and browser-local production saves. Development saves choose project defaults or browser storage. Remote/live state: [release runbook](release.md).
 - **Previous venue integration:** Source/assets `25e363b`, runtime `18141c5` and verification `d1a916a` were fast-forwarded into `main`, preserving separately committed local-motion work `b2a082e`. All twelve local feature tips were included at this integration checkpoint; see the [branch audit](feature-branch-integration-2026-09-05.md). No remote push or deployment.
 
 **Motion/model integration checkpoint (2026-09-07):** Local `main` includes all 17 motion/model feature commits plus delivery/documentation reconciliation through `a9ba202`: all 24 clips, the 1.88 m articulated model, recovery planning, crossovers and both serve rhythms. No local feature tip remains unmerged. The 237-test suite, production build, active-asset/cache guard, both-hand gameplay/crossover checks and actual production-browser practice review pass. The [current motion contract](local-motion-pipeline.md) replaces competing “latest” descriptions below; the [integration receipt](motion-main-integration-2026-09-07.md) records the exact merge, evidence and remaining owner/device gates. Older stage counts and asset hashes below are historical evidence, not active selectors. No public deployment occurred.
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
-## Release preparation — 2026-09-15
+## Public hosting — 2026-09-16
 
-Private GitHub repository and `origin` are configured; current source and saved
-project defaults are committed and pushed. Node 24, GitHub Actions and Vercel Vite
-settings are checked in. Clean Linux CI passes **677 tests / 64 files**, the build
-and active motion/precache guard. Storage normalization fixtures no longer depend
-on editable project configs; actual catalog/browser precedence remains tested.
-This resolves the 16 historical storage/catalog failures recorded below.
-
-README, user guide, asset attribution and hosting handoff are reconciled. Local
-production browser smoke passes. Vercel project creation/deployment and public
-release acceptance are still pending; ignored residue and merged branches are
-retained for review. See the [release runbook and CI receipt](release.md).
+GitHub is public and Vercel serves https://tenmulate.xiaotianfanx.com. The CLI upload
+exclusion now preserves public runtime assets. Clean Linux CI passes **678 tests /
+65 files**, build and active motion/precache checks. Live Edge verifies bilingual
+setup, browser saving and completion of a two-repetition serve-return drill.
+Approved merged branches and task residue are cleaned; unique sources are retained.
+Hosting evidence and remaining owner/device gates: [release runbook](release.md).
 
 ## English / Simplified Chinese — 2026-09-14
 
