@@ -74,6 +74,80 @@
       "ballFocus": {
         "enabled": false
       }
+    },
+    "Return Practice": {
+      "seed": "18427",
+      "sessionCategory": "Return Practice",
+      "trajectoryEnabled": true,
+      "launchSpeedKmh": 170,
+      "interval": 4.7,
+      "rhythmPercent": 100,
+      "movementPercent": 100,
+      "practiceStroke": "auto",
+      "trajectoryMode": "natural",
+      "returnTargetMode": "custom",
+      "repetitions": 12,
+      "variation": 8,
+      "timingVariation": 0,
+      "workBlockSize": 4,
+      "restSeconds": 20,
+      "surface": "hard",
+      "shotType": "serve",
+      "spin": "flat",
+      "spinRateRpm": 1179,
+      "bounceFactor": 1,
+      "opponentHand": "right",
+      "serveRhythm": "compact",
+      "landingZone": {
+        "width": 3.85,
+        "depth": 1.3
+      },
+      "rallyLandingZone": {
+        "minX": -1.8,
+        "maxX": 1.6,
+        "minZ": 9.0242,
+        "maxZ": 11.0242
+      },
+      "rallyShot": {
+        "type": "groundstroke",
+        "spin": "topspin",
+        "contactTiming": "descent",
+        "spinRateRpm": 600
+      },
+      "opponentContactTiming": "descent",
+      "landingDepthM": 5.55,
+      "aimDirectionDeg": 10.496091406548217,
+      "opponentPosition": {
+        "x": -1.25,
+        "z": 12.235
+      },
+      "camera": {
+        "eyeHeight": 1.68,
+        "behindBaseline": 2.8,
+        "lateral": 3.6,
+        "yaw": -7.74,
+        "pitch": -3.62,
+        "fov": 71.1111048317737
+      },
+      "environment": {
+        "venue": "hard-open-arena",
+        "audience": "half",
+        "lighting": "day",
+        "lightDirection": -35,
+        "lightIntensity": 1,
+        "timeOfDay": 10.25,
+        "weather": "clear",
+        "weatherIntensity": 0,
+        "windDirection": 0,
+        "windSpeedMps": 0
+      },
+      "quality": "auto",
+      "screenWidthCm": 120,
+      "screenHeightCm": 67.5,
+      "viewDistanceCm": 250,
+      "ballFocus": {
+        "enabled": false
+      }
     }
   },
   "cameraPositionPresets": [],

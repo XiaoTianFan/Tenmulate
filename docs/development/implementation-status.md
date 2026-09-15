@@ -9,6 +9,21 @@
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
+## Quick Practice switching — 2026-09-16
+
+Return now has its own shipped config: 170 km/h flat compact serve, a 3.85 m ×
+1.30 m target in the left receiver's service box, and the deep blue return zone.
+Explicit browser-saved configs still override shipped defaults.
+
+Switching modes immediately replaces the prior preview with a paused single-feed
+preview of the selected mode. Its continuous sequence resolves off-thread without
+the parameter-edit debounce; cancelled requests cannot publish late results. While
+pending, old balls/trajectory lines do not animate. The existing WebGL canvas stays
+mounted. Development and production Edge checks include rapid switches with worker
+loads deliberately delayed by 1.2 seconds; all selected modes remain at time zero
+in the ready pose until their own sequence resolves. Return defaults and practice
+return/contact regressions pass, as do TypeScript, build and motion asset checks.
+
 ## Public hosting — 2026-09-16
 
 GitHub is public and Vercel serves https://tenmulate.xiaotianfanx.com. The CLI upload

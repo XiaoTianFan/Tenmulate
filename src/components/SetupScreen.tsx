@@ -551,7 +551,7 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
 
         <section className="preview-column" aria-label={t("Live court preview")}>
           <div className="setup-court-view" ref={overviewContainer} data-camera-eye-height={eyeHeight.toFixed(3)}>
-            <CourtViewport camera={displayCamera} courtOverview={overview} trajectory={trajectory} surface={surface} environment={environment} quality={quality} running resetToken={resetToken} showTrajectory={trajectoryEnabled || overview} showOpponentLandingZone loopTrajectory session={previewSession} onSessionIndex={onPreviewIndex} onLandingZoneChange={changeLandingZone}
+            <CourtViewport camera={displayCamera} courtOverview={overview} trajectory={trajectory} surface={surface} environment={environment} quality={quality} running={!preview.pending && !preview.error} shotPreviewPending={preview.pending} resetToken={resetToken} showTrajectory={trajectoryEnabled || overview} showOpponentLandingZone loopTrajectory session={previewSession} onSessionIndex={onPreviewIndex} onLandingZoneChange={changeLandingZone}
               followSessionCamera={!overview} nearLandingZone={nearZone} returnLandingZone={rallyLandingZone} onReturnLandingZoneChange={setRallyLandingZone}
               opponentPlacement={overview ? { ...opponentPosition, hand: opponentHand } : undefined} onOpponentPositionChange={overview ? changeRecoveryCenter : undefined}
               onCameraFovChange={overview ? zoomOverview : updateCameraFov} onCameraLookChange={overview ? undefined : updateCameraLook} onMetrics={onMetrics} />

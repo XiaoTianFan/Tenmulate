@@ -5,8 +5,24 @@ import { DEFAULT_RALLY_OPPONENT_POSITION } from '../src/domain/court';
 import { RETURN_SERVE_PATTERN, returnServeTarget, returnServerPosition } from '../src/domain/returnPractice';
 import { PRACTICE_SHOT_PROFILES } from '../src/engine/trajectory/practiceProfiles';
 import { DEFAULT_CAMERA_POSITION_PRESETS } from '../src/storage/appStorage';
+import bundledConfigs from '../src/content/project-configs.json';
+import { validateProjectConfigs } from '../src/storage/projectConfigs';
+import { practiceLandingTarget } from '../src/engine/trajectory/practiceProfiles';
+import { resolveLandingZone } from '../src/engine/trajectory/landingZone';
 
 describe('Quick Practice setup presets', () => {
+  it('ships an independent 170 km/h Return with a wide legal service-box zone', () => {
+    const config = validateProjectConfigs(bundledConfigs).practiceConfigs['Return Practice']!;
+    expect(config).toMatchObject({ shotType: 'serve', spin: 'flat', launchSpeedKmh: 170,
+      serveRhythm: 'compact', returnTargetMode: 'custom' });
+    const zone = resolveLandingZone(practiceLandingTarget(config.opponentPosition, config.aimDirectionDeg,
+      config.landingDepthM), config.landingZone, config.shotType, config.opponentPosition);
+    expect(zone.minX).toBeCloseTo(.12);
+    expect(zone.maxX).toBeCloseTo(3.97);
+    expect(zone.minZ).toBeCloseTo(-6.2);
+    expect(zone.maxZ).toBeCloseTo(-4.9);
+    expect(config.camera.lateral).toBeGreaterThan(0);
+  });
   it('uses the reference recreational Groundstroke ball defaults for Rally', () => {
     expect(PRACTICE_SHOT_PROFILES.groundstroke).toMatchObject({
       defaultLaunchSpeedKmh: 70,

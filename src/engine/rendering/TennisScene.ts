@@ -354,6 +354,7 @@ export class TennisScene {
     this.canvas.dataset.sessionRevision = String(++this.sessionRevision);
     if(this.session!==session&&!clock){this.elapsed=0;this.sessionIndex=-1;}
     this.session = session;
+    this.canvas.dataset.sessionCategory = session?.drill.category ?? '';
     this.playerPreviewLine.geometry.dispose();
     const player = session?.shotPreview?.opponent && session.shotPreview.player;
     this.playerPreviewLine.geometry = new THREE.BufferGeometry().setFromPoints(player?.samples.map(sample => new THREE.Vector3(sample.position.x, sample.position.y, sample.position.z)) ?? []);
