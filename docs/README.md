@@ -20,6 +20,8 @@ below retain their historical scope; they do not establish current deployment st
 
 ## Current research reading packets
 
+- [Venue-aware tennis audio plan](research/audio-system-plan-2026-09-17.md): proposed sound palette, browser architecture, asset candidates and verification gates. Awaiting owner review and manual goal launch; no audio implementation yet.
+
 - [Player handedness mirroring](development/player-handedness-2026-09-09.md): shared handedness, reversible court coordinates, saved orientation and unchanged opponent hands under [ADR-0038](decisions/0038-player-handedness-mirroring.md).
 
 - [Player-first drill planning and verification](development/player-first-drills-2026-09-09.md): schema 2 player events, opening feeds, both ball configurations, physical contact/camera linkage and migration under [ADR-0037](decisions/0037-player-first-drill-planning.md).
