@@ -3,6 +3,7 @@ import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import type { DrillDefinitionV2 } from '../content/types';
 import { AppHeader, type AppRoute } from '../components/AppHeader';
 import { compileSession } from '../engine/session/compileSession';
+import { practiceAudio } from '../engine/audio/AudioCueEngine';
 import { compilePlayerDrillAsync } from '../engine/session/playerDrillClient';
 import { useAppData } from '../hooks/useAppData';
 import { defaultDrillSettings } from './defaults';
@@ -109,6 +110,7 @@ function AppRoutes({ appData }: { appData: ReturnType<typeof useAppData> }) {
   const drillLaunch = async (drill: DrillDefinitionV2, { rhythm, interval, movement, rerun, trajectoryEnabled = false, practiceSet, defaultContent = false }: {
     rhythm?: number; interval?: number; movement?: number; rerun?: SessionLaunch; trajectoryEnabled?: boolean; practiceSet?: DrillPracticeSet; defaultContent?: boolean;
   } = {}) => {
+    practiceAudio.unlock();
     calculation.current?.abort(); const controller = new AbortController(); calculation.current = controller; setBusy(true);
     try {
       const preferences = appData.data.preferences;

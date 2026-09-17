@@ -675,5 +675,15 @@
   "Shortest feasible interval": "最短可行间隔",
   "No drill open": "尚未打开训练",
   "Open a drill or create a new one from the Drills page to start editing.": "请前往训练页面打开已有训练或创建新训练，开始编辑。",
-  "Go to Drills": "前往训练"
+  "Go to Drills": "前往训练",
+  "Mute all sound": "关闭所有声音",
+  "Unmute all sound": "开启所有声音",
+  "Crowd sound": "观众声音",
+  "Crowd": "观众",
+  "Crowd volume": "观众音量",
+  "Loading sounds · synthesized impacts for now": "正在加载声音 · 暂用合成触球音",
+  "Some sounds unavailable · synthesized impacts active": "部分声音不可用 · 正在使用合成触球音",
+  "Audio is unavailable in this browser": "当前浏览器无法播放声音",
+  "Tap to enable sound": "点击以开启声音",
+  "Retry sound": "重试声音"
 }

@@ -97,5 +97,75 @@ try {
     return { status: globalThis.qaPalette.status, ...globalThis.qaPalette.metrics };
   });
   assert.equal(recovered.status, 'ready'); assert.equal(recovered.failed.length, 0);
-  console.log(JSON.stringify({ passed: true, transport: localFixtures ? 'local byte fixtures; normal HTTP UNVERIFIED' : 'normal HTTP', ...result, faultInjection: { failed, recovered } }, null, 2));
+  await page.evaluate(async () => {
+    const { AudioCueEngine } = await import('/src/engine/audio/AudioCueEngine.ts');
+    globalThis.qaEngine = new AudioCueEngine();
+    const start = document.createElement('button'); start.textContent = 'Unlock test audio';
+    start.onclick = () => globalThis.qaEngine.unlock(); document.body.append(start);
+  });
+  await page.getByRole('button', { name: 'Unlock test audio' }).click();
+  const lifecycle = await page.evaluate(async () => {
+    const { DEFAULT_AUDIO_LEVELS } = await import('/src/engine/audio/AudioCueEngine.ts');
+    const { DEFAULT_ENVIRONMENT, VENUE_IDS } = await import('/src/domain/environment.ts');
+    const engine = globalThis.qaEngine;
+    const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+    const ready = async () => {
+      for (let i = 0; i < 100 && engine.metrics.status !== 'ready'; i++) await delay(20);
+      if (engine.metrics.status !== 'ready') throw new Error(JSON.stringify(engine.metrics));
+    };
+    engine.configure(DEFAULT_ENVIRONMENT, 'hard', DEFAULT_AUDIO_LEVELS, true);
+    engine.setPlayback('playing'); await ready();
+    const lease = await engine.capture(), trackId = lease.stream.getAudioTracks()[0].id;
+    const monitor = new AudioContext(); await monitor.resume();
+    const source = monitor.createMediaStreamSource(lease.stream), analyser = monitor.createAnalyser(), silent = monitor.createGain();
+    silent.gain.value = 0; source.connect(analyser).connect(silent).connect(monitor.destination);
+    const rms = async () => { await delay(180); const data = new Float32Array(analyser.fftSize); analyser.getFloatTimeDomainData(data); return Math.sqrt(data.reduce((sum, value) => sum + value * value, 0) / data.length); };
+    // MediaStreamSource initialization has its own buffering; measure it rather
+    // than treating a fixed 180 ms sample as proof of a silent application graph.
+    let audible = await rms(), captureWarmupMs = 180;
+    for (let attempt = 0; audible === 0 && attempt < 4; attempt++) { audible = await rms(); captureWarmupMs += 180; }
+    engine.configure(DEFAULT_ENVIRONMENT, 'hard', DEFAULT_AUDIO_LEVELS, false);
+    const muted = await rms();
+    engine.configure(DEFAULT_ENVIRONMENT, 'hard', DEFAULT_AUDIO_LEVELS, true);
+    const unmuted = await rms();
+    const matrix = [];
+    for (const venue of VENUE_IDS) for (const audience of ['empty', 'half', 'full']) {
+      engine.configure({ ...DEFAULT_ENVIRONMENT, venue, audience, weather: 'rain', weatherIntensity: 1, windSpeedMps: 15 }, 'clay', DEFAULT_AUDIO_LEVELS, true);
+      await ready(); await delay(90); engine.tick();
+      matrix.push({ venue, audience, ...engine.metrics, dispatches: undefined });
+    }
+    engine.setPlayback('paused'); const paused = await rms();
+    engine.setPlayback('playing'); const resumed = await rms();
+    engine.setPlayback('idle'); await delay(100); const idle = engine.metrics;
+    const captureSurvivedExit = lease.stream.getAudioTracks()[0].readyState === 'live' && lease.stream.getAudioTracks()[0].id === trackId;
+    const cycles = [];
+    for (let i = 0; i < 10; i++) {
+      engine.configure(DEFAULT_ENVIRONMENT, 'hard', DEFAULT_AUDIO_LEVELS, true); engine.setPlayback('countdown');
+      await ready(); engine.setPlayback('playing'); engine.play('contact', 1);
+      engine.setPlayback('idle'); await delay(90); cycles.push(engine.metrics);
+    }
+    lease.release(); lease.release();
+    const released = { captureLeases: engine.metrics.captureLeases, state: lease.stream.getAudioTracks()[0].readyState };
+    engine.configure(DEFAULT_ENVIRONMENT, 'hard', DEFAULT_AUDIO_LEVELS, true); engine.setPlayback('playing'); await ready();
+    engine.setPlayback('completed'); const completed = engine.metrics;
+    await delay(4400); const settled = engine.metrics;
+    engine.dispose(); source.disconnect(); analyser.disconnect(); silent.disconnect(); await monitor.close();
+    return { audible, captureWarmupMs, muted, unmuted, paused, resumed, matrix, idle, cycles, captureSurvivedExit, released, completed, settled, disposed: engine.metrics };
+  });
+  assert(lifecycle.audible > 1e-6 && lifecycle.unmuted > 1e-6 && lifecycle.resumed > 1e-6,
+    JSON.stringify({ audible: lifecycle.audible, unmuted: lifecycle.unmuted, resumed: lifecycle.resumed, matrix: lifecycle.matrix[0], paused: lifecycle.paused }));
+  assert(lifecycle.muted < 1e-4 && lifecycle.paused < 1e-4);
+  for (const row of lifecycle.matrix) {
+    assert(row.voices <= 32 && row.convolvers <= 2 && row.decodedBytes <= 32 * 1024 * 1024);
+    assert.equal(row.voicesByBus.crowd, row.audience === 'empty' ? 0 : 1);
+  }
+  for (const row of [lifecycle.idle, ...lifecycle.cycles]) {
+    assert.equal(row.voices, 0); assert.equal(row.convolvers, 0); assert.equal(row.decodedBytes, 0);
+    assert.equal(row.cleanupTimers, 0); assert.equal(row.activeLoops, 0);
+  }
+  assert.equal(lifecycle.captureSurvivedExit, true);
+  assert.deepEqual(lifecycle.released, { captureLeases: 0, state: 'ended' });
+  assert.equal(lifecycle.settled.voices, 0); assert.equal(lifecycle.settled.convolvers, 0); assert.equal(lifecycle.settled.cleanupTimers, 0);
+  assert.equal(lifecycle.disposed.contextState, 'absent');
+  console.log(JSON.stringify({ passed: true, transport: localFixtures ? 'local byte fixtures; normal HTTP UNVERIFIED' : 'normal HTTP', ...result, faultInjection: { failed, recovered }, lifecycle }, null, 2));
 } finally { await browser.close(); }

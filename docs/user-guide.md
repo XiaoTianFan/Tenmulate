@@ -35,6 +35,14 @@ and 9.8 m from the net. Volley starts halfway between the T and net. **Reset vie
 restores those mode-specific positions. See the
 [Quick Practice return and camera contract](decisions/0051-quick-practice-returns-and-views.md).
 
+Practice sound starts with your Start gesture. Settings separates contact,
+bounce, training, ambience and crowd levels. **Crowd sound** can be disabled
+independently; an empty venue has no crowd sound. Indoor venues add damped
+reflections, while outdoor venues use shorter tails and configured weather/wind.
+**Mute all sound** also silences effects and captured audio. Pause/backgrounding
+fades sound; resume restores it. If sounds fail to load, the visible status
+identifies the synthesized fallback and offers **Retry sound**.
+
 **Cast** opens iOS Screen Mirroring instructions and an optional local court capture
 preview. Capture keeps the same canvas/video/audio tracks across setup and practice,
 with up to 720p at 30 fps. Direct AirPlay of that live capture is unavailable in

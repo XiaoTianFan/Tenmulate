@@ -37,7 +37,16 @@
 - Browser-plugin absent; regular bundled Playwright used. Interactive-js skill was inspected but js_repl is absent, so it was not applied and no global configuration was changed.
 - DSP command: set AUDIO_PLAYWRIGHT_MODULE to bundled playwright/index.mjs file URL; set AUDIO_LOCAL_FIXTURES=1; run `node scripts/audio/verify-browser.mjs` under Node 24. Omit fixture flag for normal HTTP qualification. Dev server was started on 127.0.0.1:4185 (exec session 10446); verify its live handle before reuse.
 
-## Next implementation stage
+## Integration stage — 2026-09-17
+
+- The stage proposal below is now implemented: shared context/graph/palette, clock/camera adapter, lifecycle cleanup, bilingual crowd/retry controls, gesture unlock before drill compilation, hashed runtime cache and ADR-0057.
+- Node 24 release passes 697 tests / 69 files, zero failures/skips, TypeScript/build/motion-cache guard (233.56 seconds). Existing bundle warning remains.
+- Real Edge 153 graph/capture checks with explicit local-byte fixtures pass all 18 venue/audience combinations. Muted/paused captured RMS is zero, resume is nonzero, capture survives exit and idempotent release ends its track. Ten enter/exit cycles and completion cleanup return voices/convolvers/decoded bytes/loops/timers to zero.
+- Capture pipe warmup was 540 ms; this is separate from event dispatch latency.
+- Actual development Quick Practice shows normal HTTP failure and Retry recovery with fixtures without auto-resuming. Crowd toggle disables its slider. English/Chinese desktop settings visually inspected. Master mute removes sources/effects; exit clears buffers; no page errors. Short gameplay dispatch sample is insufficient for the 100-event budget.
+- Remaining: production Quick Practice/drill/capture, timing across rates, visibility/seek/restart and load/codec faults, offline delivery and review recordings. Normal HTTP, owner listening and unavailable-device gates remain open.
+
+## Integration stage proposal (historical)
 
 Replace/wire AudioCueEngine only after preserving its unlock/play/setAmbience/capture contract. It remains the original oscillator implementation. Proposed owner: one shared AudioContext/SoundscapeGraph/AudioPalette, stable status subscription, environment/surface/levels configuration, playback status lifecycle, no-speech reactions on session completion only, bounded cleanup timer, output captured after master. Loop gains follow environmentalLevels and audienceGain. Scene exit clears buffers/loops while capture lease/context remains. RehearsalScreen should use the spatial adapter/cursor, explicit restart reset, sampleCameraTimeline for pan, default ambience .3/crowd .3, master mute and translated status/retry controls. App.drillLaunch must unlock synchronously before async compilation. Do not change simulation clocks.
 

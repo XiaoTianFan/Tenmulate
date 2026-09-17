@@ -161,6 +161,7 @@ export class SoundscapeGraph {
 
   get metrics() {
     return { voices: this.voices.size, loopingVoices: [...this.voices].filter(voice => voice.loop).length,
+      voicesByBus: Object.fromEntries(Object.keys(this.buses).map(bus => [bus, [...this.voices].filter(voice => voice.bus === bus && !voice.stopping).length])),
       convolvers: this.effects.length, impulseBytes: this.effects.reduce((sum, effect) => sum + effect.bytes, 0) };
   }
 

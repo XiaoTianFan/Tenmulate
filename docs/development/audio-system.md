@@ -24,10 +24,9 @@ Seven new tests pass for file inventory/hashes/budget, PCM attack/clipping/tail,
 provenance, all six venue/three audience settings, surface decay, deterministic
 environmental loops and audio-only variation. Existing tests are unchanged.
 
-## Remaining verification
+## Graph-stage evidence
 
-Live playback still uses the old engine. New graph/palette modules and a spatial
-cue adapter are present but not connected. Real Edge 153 OfflineAudioContext
+Real Edge 153 OfflineAudioContext
 renders pass for all six profiles, wet master mute (zero energy after fade),
 32-voice stress (peak .8457), two-convolver transition bound and zero resources
 after reset/dispose. The complete decoded palette plus generated ambience uses
@@ -39,7 +38,26 @@ files. A running IDM instance may be intercepting media; cause is not confirmed.
 No global settings were changed. The script defaults to normal HTTP; fixture mode
 must be explicitly selected with AUDIO_LOCAL_FIXTURES=1 and is not delivery proof.
 
-Engine ownership/lifecycle integration, bilingual controls, offline caching,
-capture parity, timing budgets and actual browser gameplay are the next stages.
+## Integrated gameplay and remaining verification
+
+Live playback now uses the shared graph/palette and clock/camera adapter. Quick
+Practice and drill start unlock on the user gesture. Bilingual controls provide
+master mute, ambience, crowd mute/level and visible retry. Pause/seek/backgrounding
+fade voices; exit clears resources without closing a leased capture track. Only
+session completion triggers applause. Physics and simulation clocks are unchanged.
+
+Live graph/capture checks cover all 18 venue/audience combinations, zero captured
+RMS on mute/pause, audible resume, track continuity across exit, idempotent release,
+ten enter/exit cycles and bounded completion cleanup. Idle voices, convolvers,
+decoded bytes, loops and timers return to zero. Capture pipe warmup was 540 ms;
+this is separate from event dispatch timing.
+
+Actual development Quick Practice verified visible failure/Retry recovery,
+English/Chinese desktop controls, crowd mute, global mute and exit cleanup with
+no page errors. Integration release passes 697 tests / 69 files, no failures/skips,
+plus TypeScript, production build and motion/cache guard. Bounded audio caching
+is implemented; normal HTTP/offline qualification, production gameplay/drill
+capture, 100-event timing and review recordings remain.
+
 Owner audition and real Safari/iOS checks remain open. Source descriptions and
 waveform checks are not evidence of subjective listening quality.

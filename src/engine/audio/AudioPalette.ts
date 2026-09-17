@@ -14,6 +14,7 @@ export class AudioPalette {
   private abort = new AbortController();
   private failed = new Set<string>();
   private errors = new Map<string, string>();
+  private decodeTail: Promise<void> = Promise.resolve();
   status: PaletteStatus = 'idle';
   constructor(private readonly context: BaseAudioContext, private readonly changed: () => void = () => {}) {}
 
@@ -45,16 +46,29 @@ export class AudioPalette {
     if (pending) return pending;
     const generation = this.generation;
     const asset = manifest.assets[id];
+    const controller = new AbortController();
+    const abort = () => controller.abort();
+    const lifetime = this.abort.signal;
+    lifetime.addEventListener('abort', abort, { once: true });
+    const timeout = setTimeout(abort, 8000);
     this.status = 'loading'; this.changed();
     const request = (async () => {
       try {
-        const response = await fetch(asset.url, { signal: this.abort.signal });
+        const response = await fetch(asset.url, { signal: controller.signal });
         if (!response.ok) throw new Error(`Audio ${response.status}: ${id}`);
         const data = await response.arrayBuffer();
         if (data.byteLength !== asset.bytes) throw new Error(`Invalid audio payload: ${id} (${data.byteLength}/${asset.bytes}, ${response.headers.get('content-type')})`);
         const hash = [...new Uint8Array(await crypto.subtle.digest('SHA-256', data))].map(value => value.toString(16).padStart(2, '0')).join('');
         if (hash !== asset.sha256) throw new Error(`Audio integrity failed: ${id}`);
-        const buffer = await this.context.decodeAudioData(data);
+        const before = this.decodeTail;
+        let release!: () => void;
+        this.decodeTail = new Promise<void>(resolve => { release = resolve; });
+        let buffer: AudioBuffer;
+        try {
+          await before;
+          if (generation !== this.generation) return null;
+          buffer = await this.context.decodeAudioData(data);
+        } finally { release(); }
         if (generation !== this.generation) return null;
         this.failed.delete(id);
         this.errors.delete(id);
@@ -66,6 +80,7 @@ export class AudioPalette {
         }
         return null;
       } finally {
+        clearTimeout(timeout); lifetime.removeEventListener('abort', abort);
         if (generation === this.generation) {
           this.pending.delete(id);
           this.status = this.failed.size ? 'fallback' : this.pending.size ? 'loading' : 'ready';
