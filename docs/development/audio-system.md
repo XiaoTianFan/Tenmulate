@@ -2,6 +2,18 @@
 
 Status: Implemented locally; full acceptance blocked. Last updated: 2026-09-17.
 
+Update 2026-09-18: owner-authorized memory-only qualification now passes actual
+gameplay timing and production Quick Practice/drill/capture. Browser audio is
+supplied as local Response bytes before native fetch; contexts are offline and
+escaped media requests fail closed. This is not the rejected binary HTTP bypass.
+120 gameplay events across four rates give p95 10.18/10.97/10.36/20.71 ms, maximum
+22.75 ms. Pause/seek/resume/restart/exit pass without duplicates or page errors.
+Production capture preserves both tracks across routes and ends them on stop;
+mute/pause captured RMS is zero. Desktop/mobile Chinese controls were inspected,
+and a 15-second actual gameplay audio recording was created. Six real browser
+venue renders pass with 54 in-memory sample loads and no media requests. Cache,
+remaining browser matrix, matched A/B and owner listening gates are still open.
+
 The [requirement audit](audio-acceptance-audit-2026-09-17.md) maps the original
 scope to evidence and remaining gates. No completion or owner acceptance is claimed.
 

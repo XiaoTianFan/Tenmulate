@@ -1,28 +1,21 @@
 /** Actual dev gameplay: authoritative-clock dispatch timing and UI lifecycle. */
 import assert from 'node:assert/strict';
-import { readFile, mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { openMemoryApp } from './memory-app.mjs';
 if (process.env.AUDIO_BROWSER_TESTS !== 'explicitly-authorized') {
   throw new Error('Browser media tests are paused at the owner request after IDM popups. Obtain explicit reauthorization before setting AUDIO_BROWSER_TESTS=explicitly-authorized.');
 }
 const { chromium } = await import(process.env.AUDIO_PLAYWRIGHT_MODULE || 'playwright');
 const browser = await chromium.launch({ channel: process.env.AUDIO_BROWSER || 'msedge', headless: true });
+const app = await openMemoryApp(browser);
 try {
-  const page = await browser.newPage({ viewport: { width: 1365, height: 900 } });
+  const page = await app.context.newPage();
+  page.setDefaultTimeout(30000);
   const errors = []; page.on('pageerror', error => errors.push(error.message));
-  const fixtures = process.env.AUDIO_LOCAL_FIXTURES === '1';
-  if (fixtures) {
-    const manifest = JSON.parse(await readFile(new URL('../../src/content/audio-palette.json', import.meta.url), 'utf8'));
-    const assets = new Set(Object.values(manifest.assets).map(asset => asset.url));
-    await page.route('**/assets/audio/*', async route => {
-      const path = new URL(route.request().url()).pathname;
-      if (!assets.has(path)) return route.continue();
-      await route.fulfill({ body: await readFile(new URL(`../../public${path}`, import.meta.url)), contentType: path.endsWith('.wav') ? 'audio/wav' : 'audio/mpeg' });
-    });
-  }
-  await page.goto(process.env.AUDIO_BASE_URL || 'http://127.0.0.1:4185/');
+  await page.goto(app.url);
   await page.getByRole('button', { name: 'Start practice', exact: true }).waitFor({ timeout: 30000 });
   await page.locator('summary').filter({ hasText: 'Practice set' }).click();
-  await page.getByRole('slider', { name: 'Repetitions', exact: true }).fill('50');
+  await page.getByRole('slider', { name: 'Repetitions', exact: true }).fill('15');
   await page.getByRole('slider', { name: 'Rest', exact: true }).fill('0');
   await page.getByRole('button', { name: 'Start practice', exact: true }).click();
   const safety = page.getByRole('checkbox', { name: 'I have cleared a safe practice area.' });
@@ -31,6 +24,7 @@ try {
   await page.keyboard.press('h');
   await page.evaluate(async () => { globalThis.audioUnderTest = (await import('/src/engine/audio/AudioCueEngine.ts')).practiceAudio; });
   await page.waitForFunction(() => globalThis.audioUnderTest.getSnapshot() === 'ready');
+  console.log('Memory-only gameplay ready; media requests:', app.mediaRequests.length);
   const metrics = () => page.evaluate(() => globalThis.audioUnderTest.metrics);
   const button = name => page.getByRole('button', { name, exact: true }).click();
   await button('Slower playback'); await button('Slower playback');
@@ -44,7 +38,7 @@ try {
     rates.push(report); console.log(JSON.stringify({ rate, count: events.length, p95Ms: report.p95Ms, maxMs: report.maxMs }));
     assert(report.p95Ms <= 40, `Rate ${rate}: p95 ${report.p95Ms} exceeds 40 ms`);
     assert.equal(new Set(events.map(event => event.id)).size, events.length, 'No duplicate dispatches');
-    if (rate !== 1.25) await button('Faster playback');
+    if (rate !== 1.25) { await button('Restart set'); await button('Faster playback'); }
   }
   await button('Pause'); await page.waitForTimeout(150);
   const paused = await metrics(); assert.equal(paused.voices, 0);
@@ -60,7 +54,8 @@ try {
   await button('Exit'); await page.waitForTimeout(150);
   const idle = await metrics(); assert.equal(idle.voices, 0); assert.equal(idle.decodedBytes, 0);
   assert.deepEqual(errors, []);
-  const report = { passed: true, browser: await page.evaluate(() => navigator.userAgent), transport: fixtures ? 'explicit local-byte fixtures; HTTP unverified' : 'normal HTTP', rates, paused, resumed, restarted, idle, errors };
+  assert.deepEqual(app.mediaRequests, []);
+  const report = { passed: true, browser: await page.evaluate(() => navigator.userAgent), transport: 'memory-only audio; browser offline', mediaRequests: app.mediaRequests, rates, paused, resumed, restarted, idle, errors };
   await mkdir('tmp/audio-ui', { recursive: true }); await writeFile('tmp/audio-gameplay-result.json', JSON.stringify(report, null, 2));
   console.log('Gameplay timing and UI lifecycle passed.');
-} finally { await browser.close(); }
+} finally { await app.close(); await browser.close(); }

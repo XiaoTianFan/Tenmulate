@@ -12,6 +12,11 @@
 
 ## Live work
 
+- Memory-only qualification (2026-09-18): installed a fetch shim before app code that returns local Uint8Array/Response bytes without calling native fetch; unknown media fails closed. A Node VM test proves zero native fetch calls for audio. Browser contexts run offline; their route handler rejects any escaped media request.
+- Real Edge 153 OfflineAudioContext: all six venue responses passed with real decoded recorded samples. 54 in-memory loads; only a runner-supplied HTML document appeared in request routing, zero media requests. The earlier binary-HTTP bypass remains rejected.
+- Actual development gameplay: 120 events, 30 each at 0.5/0.75/1/1.25 rates. p95 dispatch delays 10.18/10.97/10.36/20.71 ms; maximum 22.75 ms. Pause, both-direction seek, resume, restart, exit passed; no duplicates/page errors/media requests. Output latency reported separately (base .01 s, output .04 s).
+- Actual production bundles: Quick Practice and drill audio/court capture passed; captured mute/pause RMS zero, both playback modes nonzero. Same audio/video track IDs survive route changes; stopping ends tracks. Desktop and 390x844 Chinese settings inspected. Fifteen-second actual gameplay recording saved in ignored tmp/audio-review; decoded PCM non-silent, peak -20.2 dBFS. No browser media requests. Normal HTTP remains untested; no claim of IDM safety from renamed URLs.
+
 - Owner authorized a different IDM bypass, but the attempted binary HTTP route failed: the owner supplied a screenshot of IDM capturing its `.wav.bin` URL. A 200/decode success and zero original-extension requests did not establish absence of IDM interception. Those safety claims are withdrawn. No new acceptance result is claimed.
 - Stopped the resumed gameplay test, all associated servers and task-specific Firefox processes; checked no listeners on 4187/4188/4189/9234. Removed uncommitted transport/probe experiments and restored the guarded gameplay verifier. No more browser HTTP audio, including renamed URLs or changed MIME types. Future testing must use entirely in-memory media bytes, with no media request reaching the browser network.
 
