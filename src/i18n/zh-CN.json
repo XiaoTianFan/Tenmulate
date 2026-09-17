@@ -675,5 +675,11 @@
   "Shortest feasible interval": "最短可行间隔",
   "No drill open": "尚未打开训练",
   "Open a drill or create a new one from the Drills page to start editing.": "请前往训练页面打开已有训练或创建新训练，开始编辑。",
-  "Go to Drills": "前往训练"
+  "Go to Drills": "前往训练",
+  "Quick Practice": "快速练习",
+  "Reset config": "重置配置",
+  "Incoming ball": "对手来球",
+  "Configuration reset to defaults for this practice.": "已恢复当前练习的默认配置。",
+  "Choose the shot you want to practice. Opponent shot controls the ball coming to you.": "选择你想练习的击球类型。「对手击球」设置的是向你打来的球。"
+
 }

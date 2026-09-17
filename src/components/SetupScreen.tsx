@@ -1,3 +1,4 @@
+import { practiceDefaults } from '../app/practiceDefaults';
 import { t, message as translateMessage } from '../i18n/locale';
 import { SaveCancelled } from '../storage/savePolicy';
 import { RangeField } from './RangeField';
@@ -84,10 +85,11 @@ type SetupScreenProps = Readonly<{
   onRestoreBallFocus: (value: PracticePreferencesV1['ballFocus']) => void;
   onSaveConfig: (preferences: Omit<PracticePreferencesV1, 'ballFocus'>) => Promise<void>;
   practiceConfigs: Record<string, PracticePreferencesV1>;
+  projectPracticeConfigs: Record<string, PracticePreferencesV1>;
   onPreferencesChange: (preferences: Omit<PracticePreferencesV1, 'ballFocus'>) => void;
 }>;
 
-export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSITION_PRESETS, perspectivePresets = DEFAULT_PERSPECTIVE_PRESETS, initialPreferences, practiceConfigs, onSaveConfig, onRestoreBallFocus, onRoute, onStart, onSaveCameraPositionPreset, onSavePerspectivePreset, onPreferencesChange }: SetupScreenProps) {
+export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSITION_PRESETS, perspectivePresets = DEFAULT_PERSPECTIVE_PRESETS, initialPreferences, practiceConfigs, projectPracticeConfigs, onSaveConfig, onRestoreBallFocus, onRoute, onStart, onSaveCameraPositionPreset, onSavePerspectivePreset, onPreferencesChange }: SetupScreenProps) {
   const legacyInitialPreferences = initialPreferences as PracticePreferencesV1 & { physicsSurface?: SurfaceId; visualSurface?: SurfaceId };
   const initialPractice = PRACTICE_PRESETS.find((preset) => preset.category === initialPreferences.sessionCategory) ?? PRACTICE_PRESETS[0]!;
   const initialPositionPreset = cameraPositionPresets.find((preset) => (
@@ -418,30 +420,15 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
   };
 
   const choosePractice = (preset: typeof PRACTICE_PRESETS[number]) => {
-    const nextDrill = DRILL_BY_CATEGORY.get(preset.category);
     setPracticePreset(preset.id);
     setSessionCategory(preset.category);
-    const saved = practiceConfigs[preset.category];
-    if (saved) { restoreConfig(saved); return; }
-    if (preset.id === 'rally') setTrajectoryEnabled(true);
-    changeShotType(preset.shotType);
-    if (preset.returnReceiverSide) {
-      setReturnReceiverSide(preset.returnReceiverSide);
-      setReturnTargetMode('pattern');
-      setReturnPreviewIndex(0);
-      setOpponentPosition(returnServerPosition(preset.returnReceiverSide));
-    } else {
-      setOpponentPosition(preset.opponent);
-    }
-    const position = cameraPositionPresets.find((item) => item.id === preset.cameraPresetId);
-    if (position) applyCameraPosition(position);
-    if (preset.id === 'overhead' || preset.id === 'volley') {
-      const view = QUICK_PRACTICE_VIEWS[preset.id];
-      setEyeHeight(view.eyeHeight); setBehindBaseline(view.behindBaseline); setLateral(view.lateral);
-      updateCameraYaw(view.yaw); setPitch(view.pitch); setSelectedPositionPreset(''); setSelectedPerspectivePreset('');
-    }
-    setOverview(false);
-    if (nextDrill) { setRhythmPercent(100); setRepetitions(nextDrill.defaultRepetitions); }
+    restoreConfig(practiceConfigs[preset.category] ?? practiceDefaults(preset.category, projectPracticeConfigs));
+    setLaunchError(''); setPreviewRepetition(null); setResetToken(value => value + 1);
+  };
+  const resetConfig = () => {
+    restoreConfig(practiceDefaults(sessionCategory, projectPracticeConfigs));
+    setLaunchError(''); setPreviewRepetition(null); setResetToken(value => value + 1);
+    setPresetNotice(t('Configuration reset to defaults for this practice.'));
   };
 
   const changeLanding = (point:Readonly<{x:number;z:number}>) => {
@@ -542,8 +529,8 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
       <AppHeader route={route} onRoute={onRoute} />
       <section className="practice-layout">
         <aside className="session-rail compact-practice-rail" aria-label={t("Practice presets")}>
-          <h1>{t("Practice")}</h1>
-          <p className="rail-intro">{t("Choose a starting camera and incoming-ball setup.")}</p>
+          <h1>{t("Quick Practice")}</h1>
+          <p className="rail-intro">{t("Choose the shot you want to practice. Opponent shot controls the ball coming to you.")}</p>
           <p className="compact-display-notice">{t("Setup works here. For safe physical shadow-swing practice, use a larger display with a cleared practice area.")}</p>
           <div className="session-list">
             {PRACTICE_PRESETS.map((preset) => {
@@ -578,9 +565,9 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
           </div>
         </section>
 
-        <aside className="inspector" aria-label={t("Practice configuration")}>
-          <h2>{t("Practice configuration")}</h2>
-          <SetupSection title={t("Opponent shot")} subtitle={t("Shot type and spin")} open>
+        <aside className="inspector" aria-label={t("Quick Practice")}>
+          <h2>{t("Quick Practice")}</h2>
+          <SetupSection title={t("Opponent shot")} subtitle={t("Incoming ball")} open>
             <label className="select-field"><span>{t("Shot type")}</span><select aria-label={t("Shot type")} value={shotType} onChange={(event) => changeShotType(event.target.value as PracticeShotType)}>{(['groundstroke','serve','drop-shot','volley','lob','overhead'] as const).map(type=><option key={type} value={type}>{t(PRACTICE_SHOT_PROFILES[type].label)}</option>)}</select></label>
             <label className="select-field"><span>{t("Spin type")}</span><select aria-label={t("Spin type")} value={spin} onChange={(event) => changeSpin(event.target.value)}>{shotProfile.spins.map((option) => <option key={option} value={option}>{t(practiceSpinLabel(shotType, option))}</option>)}</select></label>
             {shotType!=='serve'?<label className="select-field"><span>{t("Stroke side")}</span><select aria-label={t("Stroke side")} value={practiceStroke} onChange={event=>setPracticeStroke(event.target.value as 'forehand'|'backhand'|'auto')}><option value="auto">{t("Automatic")}</option><option value="forehand">{t("Forehand")}</option><option value="backhand">{t("Backhand")}</option></select></label>:null}
@@ -623,7 +610,7 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
           <SetupSection title={t("System")} subtitle={t("Quality and repeatability")}><label className="select-field"><span>{t("Quality")}</span><select value={quality} onChange={(event) => setQuality(event.target.value as QualityMode)}><option value="auto">{t("Auto adaptive")}</option><option value="performance">{t("Performance")}</option><option value="quality">{t("Quality")}</option></select></label><label className="text-field"><span>{t("Seed")}</span><input aria-label={t("Seed")} value={seed} inputMode="numeric" onChange={(event) => setSeed(event.target.value.replace(/\D/g, '').slice(0, 10) || '0')} /></label></SetupSection>
           {preview.pending ? <p role="status">{t("Updating practice…")}</p> : preview.error || previewSession.planningIssues?.length ? <p role="alert">{translateMessage(preview.error || previewSession.planningIssues?.[0]?.message)}</p> : null}
           {launchError ? <p role="alert">{translateMessage(launchError)}</p> : null}
-          <div className="inspector-actions"><button className="secondary-button" type="button" disabled={saving} onClick={() => void performSave(() => onSaveConfig(pendingPreferences.current))}><Save size={16}/>{saving ? t("Saving…") : t("Save config")}</button><button className="primary-button" type="button" disabled={launching || preview.pending || !!preview.error || !!previewSession.planningIssues?.length} onClick={requestStart}><Play size={16}/>{launching ? t("Preparing practice…") : t("Start practice")}</button></div>
+          <div className="inspector-actions"><button className="secondary-button" type="button" disabled={saving || launching} onClick={resetConfig}><RotateCcw size={16}/>{t("Reset config")}</button><button className="secondary-button" type="button" disabled={saving} onClick={() => void performSave(() => onSaveConfig(pendingPreferences.current))}><Save size={16}/>{saving ? t("Saving…") : t("Save config")}</button><button className="primary-button" type="button" disabled={launching || preview.pending || !!preview.error || !!previewSession.planningIssues?.length} onClick={requestStart}><Play size={16}/>{launching ? t("Preparing practice…") : t("Start practice")}</button></div>
         </aside>
       </section>
       {dialog === 'safety' ? <Modal title={t("Make room to swing")} actions={<><button className="secondary-button" type="button" onClick={() => setDialog(null)}>{t("Cancel")}</button><button className="primary-button inline" type="button" disabled={!safetyChecked} onClick={() => { localStorage.setItem('tenmulate.safetyAcknowledged', 'true'); setDialog(null); launch(); }}>{t("Continue")}</button></>}><p>{t("Move furniture, people, pets, and breakable objects beyond your full racket-and-arm reach. Tenmulate does not measure your room.")}</p><label className="check-row"><input type="checkbox" checked={safetyChecked} onChange={(event) => setSafetyChecked(event.target.checked)} /> {t("I have cleared a safe practice area.")}</label></Modal> : null}

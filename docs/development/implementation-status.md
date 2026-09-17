@@ -9,6 +9,16 @@
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
+## Quick Practice clarity and recovery — 2026-09-17
+
+Navigation and both setup panels say Quick Practice. The introduction explains that
+modes describe the player's shot, while Opponent shot configures the incoming ball.
+Reset config restores the selected mode's project defaults (or complete built-in
+mode defaults), including camera, both zones, opponent, shot, rhythm, practice set
+and display/environment settings. It bypasses browser-saved overrides without
+deleting them; Save config explicitly replaces a saved config. Switching to an
+unsaved mode also loads a complete configuration instead of inheriting prior edits.
+
 ## Fresh editor — 2026-09-16
 
 Without an existing browser draft, Editor opens an empty state directing users to

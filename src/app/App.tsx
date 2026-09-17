@@ -155,7 +155,7 @@ function AppRoutes({ appData }: { appData: ReturnType<typeof useAppData> }) {
       </main>
       : <SetupScreen route={route} cameraPositionPresets={positions} perspectivePresets={perspectives}
         initialPreferences={appData.data.preferences} onRoute={navigate} onStart={setLaunch} onSaveCameraPositionPreset={savePosition}
-        onSavePerspectivePreset={savePerspective} onSaveConfig={saveConfig} onRestoreBallFocus={appData.saveBallFocus} practiceConfigs={{ ...configs.snapshot.practiceConfigs, ...appData.data.practiceConfigs }} onPreferencesChange={appData.savePreferences}/>}
+        onSavePerspectivePreset={savePerspective} onSaveConfig={saveConfig} onRestoreBallFocus={appData.saveBallFocus} projectPracticeConfigs={configs.snapshot.practiceConfigs} practiceConfigs={{ ...configs.snapshot.practiceConfigs, ...appData.data.practiceConfigs }} onPreferencesChange={appData.savePreferences}/>}
     </Suspense>
     {saves.ui}
     {busy ? <Modal title={t("Preparing drill")} onClose={cancel} actions={<button type="button" className="secondary-button" onClick={cancel}>{t("Cancel")}</button>}><p role="status">{t("Connecting your shots, opponent returns and camera movement…")}</p></Modal> : null}

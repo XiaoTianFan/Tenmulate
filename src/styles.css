@@ -534,3 +534,8 @@ html[lang="zh-CN"] .mode-switch::before { content: "模式"; }
 .editor-empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 2rem; gap: 1rem; }
 .editor-empty-state h1 { margin: 0; font-size: 1.5rem; }
 .editor-empty-state p { margin: 0 0 .5rem; max-width: 32rem; color: var(--text-muted, #8ca5b2); }
+
+/* Quick Practice uses a single horizontal content edge for headings and fields. */
+.setup-shell .inspector > h2 { margin-inline: 0; }
+.setup-shell .setup-section { margin-inline: 0; }
+.setup-shell .setup-section summary { padding-left: 0; }

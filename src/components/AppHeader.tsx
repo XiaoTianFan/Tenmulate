@@ -15,7 +15,7 @@ export function AppHeader({ route, onRoute }: AppHeaderProps) {
     <header className="app-header">
       <strong className="wordmark">Tenmulate</strong>
       <nav aria-label={t("Primary navigation")}>
-        <button className={route === 'practice' ? 'nav-item active' : 'nav-item'} type="button" onClick={() => onRoute('practice')}>{t("Practice")}</button>
+        <button className={route === 'practice' ? 'nav-item active' : 'nav-item'} type="button" onClick={() => onRoute('practice')}>{t("Quick Practice")}</button>
         <button className={route === 'drills' ? 'nav-item active' : 'nav-item'} type="button" onClick={() => onRoute('drills')}>{t("Drills")}</button>
         <button className={route === 'editor' ? 'nav-item active' : 'nav-item'} type="button" onClick={() => onRoute('editor')}>{t("Editor")}</button>
       </nav>
