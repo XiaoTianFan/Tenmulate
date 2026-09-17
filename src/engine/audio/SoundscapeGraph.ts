@@ -42,7 +42,14 @@ export class SoundscapeGraph {
 
   private ramp(param: AudioParam, value: number, seconds: number = AUDIO_LIMITS.muteFadeSeconds) {
     const now = this.context.currentTime;
-    param.cancelAndHoldAtTime(now);
+    if (typeof param.cancelAndHoldAtTime === 'function') param.cancelAndHoldAtTime(now);
+    else {
+      // Firefox versions without cancelAndHoldAtTime still support a continuous
+      // fade by sampling the current intrinsic value before cancelling ramps.
+      const current = param.value;
+      param.cancelScheduledValues(now);
+      param.setValueAtTime(current, now);
+    }
     param.linearRampToValueAtTime(value, now + seconds);
   }
 

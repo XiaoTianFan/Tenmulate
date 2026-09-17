@@ -2,6 +2,10 @@
 
 - Date: 2026-09-17
 - Status: Implemented locally; full browser delivery and owner listening gates open
+- Qualification update 2026-09-18: owner-authorized memory-only tests cover actual
+  gameplay timing, production capture, Workbox cache policy and Firefox sample
+  decoding/fades. Normal HTTP through IDM is not used. Owner listening and real
+  Safari/iOS remain open; see the updated implementation ledger.
 - Extends: ADR-0015 (compiled gameplay clock) and ADR-0034 (shared court capture)
 
 ## Decision
@@ -34,6 +38,10 @@ serializes decodes, ignores stale generations, and bounds decoded buffers with
 room for impulse responses. Fetches time out after eight seconds. Failed loads
 show a translated status with retry; procedural impacts are explicitly identified.
 Gameplay does not wait indefinitely for optional audio.
+
+Firefox versions without AudioParam.cancelAndHoldAtTime use a sampled-current-value
+cancelScheduledValues/setValueAtTime fallback before the same linear fade. A real
+Firefox 136 failure and successful six-profile mute rerun qualify this branch.
 
 Short impacts ship as mono 48 kHz/16-bit PCM WAV; audience audio ships as MP3 with
 gapless metadata. Content-hashed audio URLs use a dedicated bounded CacheFirst
