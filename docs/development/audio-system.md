@@ -2,6 +2,13 @@
 
 Status: In progress, local only. Last updated: 2026-09-17.
 
+Browser/media testing is paused at the owner's request following repeated IDM
+popups. All active task tests/downloads and local test servers were stopped.
+Do not retry browser media or downloads without explicit reauthorization. The
+gameplay timing harness has no passing result; production/drill/offline/recording
+and Firefox acceptance remain unverified. Earlier fixture-backed results below
+remain limited to the explicitly named checks.
+
 The [approved execution goal](../research/audio-system-goal-2026-09-17.md) and
 [research/acceptance plan](../research/audio-system-plan-2026-09-17.md) retain the
 full requirements. PROGRESS.md records resumable implementation state.

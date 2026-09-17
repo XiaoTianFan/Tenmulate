@@ -1,6 +1,9 @@
 /** Real browser DSP checks. Start Vite first. Uses an existing Playwright install. */
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+if (process.env.AUDIO_BROWSER_TESTS !== 'explicitly-authorized') {
+  throw new Error('Browser media tests are paused at the owner request after IDM popups. Obtain explicit reauthorization before setting AUDIO_BROWSER_TESTS=explicitly-authorized.');
+}
 const { chromium } = await import(process.env.AUDIO_PLAYWRIGHT_MODULE || 'playwright');
 const browser = await chromium.launch({ channel: process.env.AUDIO_BROWSER || 'msedge', headless: true });
 try {

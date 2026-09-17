@@ -12,6 +12,10 @@
 
 ## Live work
 
+- OWNER STOP, 2026-09-17: no further browser media requests or downloads after repeated IDM popups. Stopped timing test (8187), Firefox download (73403), dev server (10446), preview (64115); process check found no remaining task-owned headless Edge. Preserve this constraint across goal continuations. Do not retry via another browser/transport or alter IDM.
+- Integration committed f57fc55. New gameplay timing harness is unqualified: first run reported zero measured events and failed, revised polling run was stopped before a result. No 100-event acceptance claim. Only offline/local code work may continue without renewed owner authorization for browser activity.
+- Browser verification entrypoints now guard before importing/launching Playwright, to prevent accidental reruns. Firefox download did not finish and no Firefox qualification occurred.
+
 - Baseline command: prepend bundled Node bin to PATH; invoke Node explicitly with `C:/Program Files/nodejs/node_modules/npm/bin/npm-cli.js run check:release`.
 - Vitest and its workers verified via process executable path to use bundled Node 24; nested npm wrapper itself uses system Node 25, which does not execute application tests.
 - First npm ci attempt accidentally used Node 25 through its wrapper; the successful explicit Node 24 rerun is the installation baseline.

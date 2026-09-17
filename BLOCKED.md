@@ -1,5 +1,8 @@
 # Open audio acceptance items
 
+- OWNER CONSTRAINT, 2026-09-17: repeated browser/download attempts triggered many Internet Download Manager popups. Stop all browser media requests and downloads for this task unless the owner explicitly reauthorizes them. Do not change IDM settings or retry through another browser/transport. Running timing test, Firefox tooling download, development server and preview server were stopped. No task-owned headless Edge process remained in the subsequent process check.
+- Browser acceptance is incomplete: the 100-event gameplay timing run did not pass; production/drill/offline/recordings/Firefox checks remain unverified. The first timing harness returned no measured events, so its assertion failed; a revised run was interrupted at the owner's request. No success is inferred. Browser scripts now fail before launching unless explicitly authorized.
+
 - Owner listening acceptance is OPEN; no audition or physical-speaker quality is claimed.
 - Real Safari/iOS/device qualification is OPEN until an actual device is available.
 - No implementation blocker established. Integration release passed (697 tests / 69 files).
