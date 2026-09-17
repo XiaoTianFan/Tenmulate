@@ -1,6 +1,9 @@
 # Venue-aware audio implementation
 
-Status: In progress, local only. Last updated: 2026-09-17.
+Status: Implemented locally; full acceptance blocked. Last updated: 2026-09-17.
+
+The [requirement audit](audio-acceptance-audit-2026-09-17.md) maps the original
+scope to evidence and remaining gates. No completion or owner acceptance is claimed.
 
 Browser/media testing is paused at the owner's request following repeated IDM
 popups. All active task tests/downloads and local test servers were stopped.
@@ -81,3 +84,9 @@ additive tests; it is not relabeled as a new full-suite run.
 
 These tests prove control-flow/error handling only. They do not establish real
 codec support, audible realism, playback timing, normal HTTP or offline caching.
+
+Final local release rerun at 67d6f4e: 703 tests / 70 files passed with no failures
+or skips (195.05 seconds for tests); TypeScript, Vite production build and the active
+motion/cache guard passed. The existing large-bundle warning remains. No browser
+or media download was launched. This closes local regression qualification but
+does not close the browser-dependent gates listed in the acceptance audit.

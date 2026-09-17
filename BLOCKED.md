@@ -5,6 +5,6 @@
 
 - Owner listening acceptance is OPEN; no audition or physical-speaker quality is claimed.
 - Real Safari/iOS/device qualification is OPEN until an actual device is available.
-- No implementation blocker established. Integration release passed (697 tests / 69 files).
+- Core implementation is committed. Full acceptance is blocked by the restriction on further browser/media testing; the [requirement audit](docs/development/audio-acceptance-audit-2026-09-17.md) records the missing evidence.
 - Palette source/license and numerical checks are complete; audible audition and gameplay A/B review remain OPEN.
-- Normal browser audio transport: local WAV/MP3 fetch returns empty HTTP 204 in both Edge and Chromium. Direct HTTP clients receive correct bytes; text/browser module requests work. Internet Download Manager is running and may intercept media. User has been asked to exclude localhost or leave this check open. No global setting was changed. Offline DSP uses explicit local-byte fixtures and does not claim transport success. This does not block remaining implementation.
+- Earlier normal browser audio transport checks returned empty HTTP 204 for local WAV/MP3 in Edge and Chromium; direct clients received correct bytes. The cause was not established. The owner's later stop instruction supersedes the earlier request to exclude localhost. No global setting was changed. Fixture-backed DSP does not establish transport success. Do not resume this investigation without explicit owner reauthorization.

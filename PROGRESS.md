@@ -12,6 +12,10 @@
 
 ## Live work
 
+- Final local release at 67d6f4e: 703 tests / 70 files passed, zero failures/skips; TypeScript, production build and active motion/cache guard passed. Test duration 195.05 s; existing large-bundle warning remains. No browser/media requests or downloads were launched. Log: ignored tmp/audio-release-final.log.
+- Completion audit: docs/development/audio-acceptance-audit-2026-09-17.md. Full goal is NOT achieved. Core implementation/local regression work is committed; actual 100-event timing, production drill/capture, normal/offline delivery and review recordings remain missing. Owner listening/device gates remain open.
+- The same browser/media restriction has persisted through the original stop turn and two goal continuations. Independent local failure tests and final release validation are now finished. Further acceptance progress needs explicit owner reauthorization for browser/media testing; mark the goal blocked, preserving its scope. Do not resume tests/downloads or alter IDM automatically.
+
 - Local-only continuation: six new AudioPalette ownership/error tests pass without network or browsers. Covers coalesced loads/cache reuse, empty 204 interception, same-length corruption, decoder rejection/retry, stale uncancellable decode after exit, eight-second timeout cleanup. Combined audio suite: 18 tests / 4 files; TypeScript build check passed under Node 24.19.0. These are stubbed transport/decoder control-flow tests, not acoustic/device evidence.
 
 - OWNER STOP, 2026-09-17: no further browser media requests or downloads after repeated IDM popups. Stopped timing test (8187), Firefox download (73403), dev server (10446), preview (64115); process check found no remaining task-owned headless Edge. Preserve this constraint across goal continuations. Do not retry via another browser/transport or alter IDM.
