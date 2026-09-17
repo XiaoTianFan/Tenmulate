@@ -1,0 +1,205 @@
+{
+  "version": 1,
+  "sampleRate": 48000,
+  "assets": {
+    "contact-0": {
+      "url": "/assets/audio/contact-0.6033330a4782.wav",
+      "sha256": "6033330a47821644e2a2a443998ac25c7cc6643ba961699c6e25b74ff2badc87",
+      "bytes": 30012,
+      "source": "tennis-hit-preview",
+      "recipe": "atrim=start=0.476:end=0.78,asetpts=PTS-STARTPTS,asetrate=46800,aresample=48000,highpass=f=85,lowpass=f=7600,afade=t=out:st=0.20:d=0.08,volume=0.7",
+      "channels": 1,
+      "sampleRate": 48000
+    },
+    "contact-1": {
+      "url": "/assets/audio/contact-1.b7e5343be65d.wav",
+      "sha256": "b7e5343be65de2c74bfd8ec41e31b4ddd22f68017b951b60188e52c8ae58b413",
+      "bytes": 29262,
+      "source": "tennis-hit-preview",
+      "recipe": "atrim=start=0.476:end=0.78,asetpts=PTS-STARTPTS,asetrate=48000,aresample=48000,highpass=f=85,lowpass=f=6800,afade=t=out:st=0.20:d=0.08,volume=0.7",
+      "channels": 1,
+      "sampleRate": 48000
+    },
+    "contact-2": {
+      "url": "/assets/audio/contact-2.b0652dd3352c.wav",
+      "sha256": "b0652dd3352c2624ceabfe729190fefc1a02841b8f8b3bf559c97f6c33940180",
+      "bytes": 28552,
+      "source": "tennis-hit-preview",
+      "recipe": "atrim=start=0.476:end=0.78,asetpts=PTS-STARTPTS,asetrate=49199.99999999999,aresample=48000,highpass=f=85,lowpass=f=6000,afade=t=out:st=0.20:d=0.08,volume=0.7",
+      "channels": 1,
+      "sampleRate": 48000
+    },
+    "bounce-hard-0": {
+      "url": "/assets/audio/bounce-hard-0.e34a3fe91a71.wav",
+      "sha256": "e34a3fe91a71988968995a302202c9afefcc049442ab3c09927f77ce5ecf28b8",
+      "bytes": 25004,
+      "source": "authored",
+      "recipe": {
+        "function": "bouncePcm",
+        "frequency": 185,
+        "decay": 0.043,
+        "grit": 0.24,
+        "seed": 812,
+        "variant": 0
+      },
+      "channels": 1,
+      "sampleRate": 48000
+    },
+    "bounce-hard-1": {
+      "url": "/assets/audio/bounce-hard-1.c9aa7b997852.wav",
+      "sha256": "c9aa7b997852dc4351cf9dac7114bef2e0fd3e1dfb2f05c7a7968049f7f28c7e",
+      "bytes": 25004,
+      "source": "authored",
+      "recipe": {
+        "function": "bouncePcm",
+        "frequency": 185,
+        "decay": 0.043,
+        "grit": 0.24,
+        "seed": 813,
+        "variant": 1
+      },
+      "channels": 1,
+      "sampleRate": 48000
+    },
+    "bounce-hard-2": {
+      "url": "/assets/audio/bounce-hard-2.f955a9ffb911.wav",
+      "sha256": "f955a9ffb9110920cb68f171c3adb97a1ec12ff538d2b61787ecc241aceffe49",
+      "bytes": 25004,
+      "source": "authored",
+      "recipe": {
+        "function": "bouncePcm",
+        "frequency": 185,
+        "decay": 0.043,
+        "grit": 0.24,
+        "seed": 814,
+        "variant": 2
+      },
+      "channels": 1,
+      "sampleRate": 48000
+    },
+    "bounce-clay-0": {
+      "url": "/assets/audio/bounce-clay-0.a22f4f4acc56.wav",
+      "sha256": "a22f4f4acc5667d87c28c6ec0756f06b1786dfdf480439e63334edbf10d05fdb",
+      "bytes": 25004,
+      "source": "authored",
+      "recipe": {
+        "function": "bouncePcm",
+        "frequency": 150,
+        "decay": 0.033,
+        "grit": 0.34,
+        "seed": 812,
+        "variant": 0
+      },
+      "channels": 1,
+      "sampleRate": 48000
+    },
+    "bounce-clay-1": {
+      "url": "/assets/audio/bounce-clay-1.3e53ab3d82c0.wav",
+      "sha256": "3e53ab3d82c014c70883c7572972206f7b4772226ed9a34ea1f6362d2db62e67",
+      "bytes": 25004,
+      "source": "authored",
+      "recipe": {
+        "function": "bouncePcm",
+        "frequency": 150,
+        "decay": 0.033,
+        "grit": 0.34,
+        "seed": 813,
+        "variant": 1
+      },
+      "channels": 1,
+      "sampleRate": 48000
+    },
+    "bounce-clay-2": {
+      "url": "/assets/audio/bounce-clay-2.7076b7e60a41.wav",
+      "sha256": "7076b7e60a4173b5a3f7b583f2b3acc2c2e3ed44a81fb8c975d04d3637725990",
+      "bytes": 25004,
+      "source": "authored",
+      "recipe": {
+        "function": "bouncePcm",
+        "frequency": 150,
+        "decay": 0.033,
+        "grit": 0.34,
+        "seed": 814,
+        "variant": 2
+      },
+      "channels": 1,
+      "sampleRate": 48000
+    },
+    "bounce-grass-0": {
+      "url": "/assets/audio/bounce-grass-0.6009aa7ab919.wav",
+      "sha256": "6009aa7ab919262fd8470bb7c2ebbf4f5f1c7327a8008b234bee9b0e8e284ee9",
+      "bytes": 25004,
+      "source": "authored",
+      "recipe": {
+        "function": "bouncePcm",
+        "frequency": 125,
+        "decay": 0.024,
+        "grit": 0.13,
+        "seed": 812,
+        "variant": 0
+      },
+      "channels": 1,
+      "sampleRate": 48000
+    },
+    "bounce-grass-1": {
+      "url": "/assets/audio/bounce-grass-1.2d5e2bdc0db9.wav",
+      "sha256": "2d5e2bdc0db95e82fcf9c500297b02939e286aa2485ca9edb8e57b74b8d870f3",
+      "bytes": 25004,
+      "source": "authored",
+      "recipe": {
+        "function": "bouncePcm",
+        "frequency": 125,
+        "decay": 0.024,
+        "grit": 0.13,
+        "seed": 813,
+        "variant": 1
+      },
+      "channels": 1,
+      "sampleRate": 48000
+    },
+    "bounce-grass-2": {
+      "url": "/assets/audio/bounce-grass-2.f683e89d1a0e.wav",
+      "sha256": "f683e89d1a0e61562bf2e35a0a47a0f3a700aab3c51d07c82e6ab32f412aea45",
+      "bytes": 25004,
+      "source": "authored",
+      "recipe": {
+        "function": "bouncePcm",
+        "frequency": 125,
+        "decay": 0.024,
+        "grit": 0.13,
+        "seed": 814,
+        "variant": 2
+      },
+      "channels": 1,
+      "sampleRate": 48000
+    },
+    "cheer-0": {
+      "url": "/assets/audio/cheer-0.6cd2a4483238.mp3",
+      "sha256": "6cd2a44832388cd353c561a042dede6b049a302b954a6486f4a544aa8ff50070",
+      "bytes": 62031,
+      "source": "well-done",
+      "recipe": "atrim=start=0:end=3.8,asetpts=PTS-STARTPTS,highpass=f=180,lowpass=f=6800,afade=t=in:d=0.06,afade=t=out:st=2.6:d=0.5,volume=0.6",
+      "channels": 2,
+      "sampleRate": 48000
+    },
+    "cheer-1": {
+      "url": "/assets/audio/cheer-1.5182efc3863a.mp3",
+      "sha256": "5182efc3863ae9a5f6353bc02387db708ef0d8a1015e2d9cd5a17e7e4025cab2",
+      "bytes": 48207,
+      "source": "well-done",
+      "recipe": "atrim=start=0.7:end=3.65,asetpts=PTS-STARTPTS,highpass=f=180,lowpass=f=6800,afade=t=in:d=0.06,afade=t=out:st=2.15:d=0.5,volume=0.6",
+      "channels": 2,
+      "sampleRate": 48000
+    },
+    "murmur": {
+      "url": "/assets/audio/murmur.3a560d3cab5e.mp3",
+      "sha256": "3a560d3cab5efaedb35beb92b96d86a6cd53a4e198bbc997e9a7b2f0bfa882f6",
+      "bytes": 129069,
+      "source": "crowd-murmur-preview",
+      "channels": 2,
+      "sampleRate": 48000,
+      "duration": 8,
+      "recipe": "First 8.8s, 200-2100Hz, gain .32, .8s tail/head crossfade, 128kbps MP3 with gapless metadata."
+    }
+  }
+}

@@ -1,0 +1,5 @@
+Tenmulate audio palette
+Recorded sources: kletton97 (Tennis-Ball-Hit), qubodup (Well Done), jayfrosting (Murmur 1.wav).
+These recordings are CC0 1.0: https://creativecommons.org/publicdomain/zero/1.0/
+See provenance.json for exact source links, hashes, transformations and preview limitations.
+Bounce samples are authored procedural effects, not recordings.
