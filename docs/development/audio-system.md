@@ -26,8 +26,20 @@ environmental loops and audio-only variation. Existing tests are unchanged.
 
 ## Remaining verification
 
-Live playback still uses the old engine. Graph ownership, lifecycle, bilingual
-controls, offline caching, true master mute, capture parity, OfflineAudioContext
-renders, timing/resource budgets and actual browser gameplay are the next stages.
+Live playback still uses the old engine. New graph/palette modules and a spatial
+cue adapter are present but not connected. Real Edge 153 OfflineAudioContext
+renders pass for all six profiles, wet master mute (zero energy after fade),
+32-voice stress (peak .8457), two-convolver transition bound and zero resources
+after reset/dispose. The complete decoded palette plus generated ambience uses
+9514064 bytes. A real 404 causes an explicit failure state and retry recovers.
+
+These checks use explicitly labeled local-byte fixtures: normal browser WAV/MP3
+requests currently return empty HTTP 204 while direct clients retrieve valid
+files. A running IDM instance may be intercepting media; cause is not confirmed.
+No global settings were changed. The script defaults to normal HTTP; fixture mode
+must be explicitly selected with AUDIO_LOCAL_FIXTURES=1 and is not delivery proof.
+
+Engine ownership/lifecycle integration, bilingual controls, offline caching,
+capture parity, timing budgets and actual browser gameplay are the next stages.
 Owner audition and real Safari/iOS checks remain open. Source descriptions and
 waveform checks are not evidence of subjective listening quality.

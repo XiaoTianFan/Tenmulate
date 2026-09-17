@@ -26,4 +26,19 @@
 
 ## Next
 
-Implement and test real graph/resource limits and the enriched cue adapter; integrate UI/capture; run the full plan's acceptance matrix. Actual-browser/OfflineAudioContext/physical listening evidence is still pending. This file must be updated at every committed stage.
+## Graph stage — not wired into gameplay yet
+
+- Added SoundscapeGraph: actual Web Audio buses, shared post-effects master, bounded soft saturation, spatial pan, 32-voice limit, two-convolver transition limit, fade/mute, sweep/reset/dispose.
+- Added AudioPalette: coalesced loads, source-byte/hash checks, decode memory budget, cancellation generations, explicit failure state/retry and procedural contact/bounce fallback. All-venue decoded palette + three procedural layers: 9514064 bytes; impulses are additionally accounted for by the graph.
+- Added spatialSessionCues/AudioCueCursor: existing cue helper remains unchanged, physical metadata adapter, exact-zero opening, pause/seek suppression and audio-relative camera mix. Caller must explicitly reset cursor on restart/session replacement.
+- Focused unit run: audio-acoustics, audio-palette, audio-spatial-cues and unchanged session-cues: 13 passed / 4 files; TypeScript build check passed. The clock test covers 101 impacts at each supported rate, but is not a real gameplay timing measurement.
+- Real Edge 153 OfflineAudioContext checks in scripts/audio/verify-browser.mjs passed with local-byte fixtures: all six venue responses finite and non-silent, indoor tail ratios exceed outdoor, muted wet output energy is zero, 80-hit stress peak .8457 and max 32 voices, 60 rapid switches max 2 convolvers, reset/dispose zero voices/effects. Injected 404 -> fallback -> retry ready.
+- NORMAL HTTP TRANSPORT IS NOT VERIFIED: Edge and separate Chromium browser fetches receive empty HTTP 204 for WAV/MP3; text returns 200. PowerShell and Playwright API requests get 200 and correct bytes (contact-0 30012). IDM is running; possible media interception, not confirmed. No IDM settings/processes were changed. User was asked asynchronously to exclude localhost or keep this gate open.
+- Browser-plugin absent; regular bundled Playwright used. Interactive-js skill was inspected but js_repl is absent, so it was not applied and no global configuration was changed.
+- DSP command: set AUDIO_PLAYWRIGHT_MODULE to bundled playwright/index.mjs file URL; set AUDIO_LOCAL_FIXTURES=1; run `node scripts/audio/verify-browser.mjs` under Node 24. Omit fixture flag for normal HTTP qualification. Dev server was started on 127.0.0.1:4185 (exec session 10446); verify its live handle before reuse.
+
+## Next implementation stage
+
+Replace/wire AudioCueEngine only after preserving its unlock/play/setAmbience/capture contract. It remains the original oscillator implementation. Proposed owner: one shared AudioContext/SoundscapeGraph/AudioPalette, stable status subscription, environment/surface/levels configuration, playback status lifecycle, no-speech reactions on session completion only, bounded cleanup timer, output captured after master. Loop gains follow environmentalLevels and audienceGain. Scene exit clears buffers/loops while capture lease/context remains. RehearsalScreen should use the spatial adapter/cursor, explicit restart reset, sampleCameraTimeline for pan, default ambience .3/crowd .3, master mute and translated status/retry controls. App.drillLaunch must unlock synchronously before async compilation. Do not change simulation clocks.
+
+Then add PWA audio cache rules, ADR, engine/lifecycle/browser/capture tests, recordings and full acceptance matrix. Owner/real-device listening remains open. Update this file each committed stage.
