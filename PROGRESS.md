@@ -12,6 +12,12 @@
 
 ## Live work
 
+- Final compatibility stage (2026-09-18): real Firefox 136 exposed missing AudioParam.cancelAndHoldAtTime. Added continuous-ramp fallback using the sampled current value; real six-profile renders now have audible attacks and zero after mute. Firefox also lacks OfflineAudioContext.suspend, so its test uses an actual initial 40 ms fade (no skipped assertions).
+- Actual production labels corrected to audio-specific Chinese names; rebuilt production Quick Practice/drill/capture and 390x844 settings pass again. Actual capture is 15 s stereo Opus, peak -20.7 dBFS, mean -49.3 dBFS. Matched baseline/outdoor/indoor listening renders at -30 dBFS RMS are available; see docs/development/audio-listening-review.md.
+- Real registered Workbox strategy in a worker passes 15 warm cache entries, 15 byte-identical offline hits without new payload delivery, 15 cold missing responses not cached, and recovery of all 15. Audio reaches the worker through messages/RAM, never a media HTTP request. Browser and server media counts are zero.
+- Added 18 rapid pending-load venue/surface switch checks, actual drill dispatch plus controlled visibility-event lifecycle, and reran the full original graph/capture matrix with the memory-only helper. All pass. Controlled visibility is not a physical iPhone/background-throttling claim.
+- Release rerun initially passed 704 tests / 71 files, then caught a test-only TypeScript mock signature error. Corrected signature; focused test and full build/motion guard pass. A complete check:release rerun is now running to establish final command-level green evidence.
+
 - Memory-only qualification (2026-09-18): installed a fetch shim before app code that returns local Uint8Array/Response bytes without calling native fetch; unknown media fails closed. A Node VM test proves zero native fetch calls for audio. Browser contexts run offline; their route handler rejects any escaped media request.
 - Real Edge 153 OfflineAudioContext: all six venue responses passed with real decoded recorded samples. 54 in-memory loads; only a runner-supplied HTML document appeared in request routing, zero media requests. The earlier binary-HTTP bypass remains rejected.
 - Actual development gameplay: 120 events, 30 each at 0.5/0.75/1/1.25 rates. p95 dispatch delays 10.18/10.97/10.36/20.71 ms; maximum 22.75 ms. Pause, both-direction seek, resume, restart, exit passed; no duplicates/page errors/media requests. Output latency reported separately (base .01 s, output .04 s).

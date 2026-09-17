@@ -12,9 +12,12 @@ export function installMemoryAudio(payload) {
   const original = globalThis.fetch.bind(globalThis);
   const metrics = globalThis.audioMemoryTransport = { delivered: 0, rejected: 0 };
   globalThis.audioMemoryFaults = {};
+  globalThis.audioMemoryDelayMs = 0;
   globalThis.fetch = async (input, init) => {
     const url = new URL(typeof input === 'string' || input instanceof URL ? input : input.url, globalThis.location.href);
     if (url.pathname.startsWith('/assets/audio/') && /\.(wav|mp3|ogg|opus)(?:$|\.)/i.test(url.pathname)) {
+      if (init?.signal?.aborted || input instanceof Request && input.signal.aborted) throw new DOMException('Aborted', 'AbortError');
+      if (globalThis.audioMemoryDelayMs > 0) await new Promise(resolve => setTimeout(resolve, globalThis.audioMemoryDelayMs));
       if (init?.signal?.aborted || input instanceof Request && input.signal.aborted) throw new DOMException('Aborted', 'AbortError');
       const fault = globalThis.audioMemoryFaults[url.pathname];
       if (fault === 'missing') { metrics.rejected++; return new Response('Injected missing audio', { status: 404 }); }

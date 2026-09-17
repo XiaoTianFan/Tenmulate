@@ -1,27 +1,16 @@
 /** Real browser DSP checks. Start Vite first. Uses an existing Playwright install. */
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { openMemoryApp } from './memory-app.mjs';
 if (process.env.AUDIO_BROWSER_TESTS !== 'explicitly-authorized') {
   throw new Error('Browser media tests are paused at the owner request after IDM popups. Obtain explicit reauthorization before setting AUDIO_BROWSER_TESTS=explicitly-authorized.');
 }
 const { chromium } = await import(process.env.AUDIO_PLAYWRIGHT_MODULE || 'playwright');
 const browser = await chromium.launch({ channel: process.env.AUDIO_BROWSER || 'msedge', headless: true });
+const app = await openMemoryApp(browser);
 try {
-  const page = await browser.newPage();
-  const base = process.env.AUDIO_BASE_URL || 'http://127.0.0.1:4185';
-  const localFixtures = process.env.AUDIO_LOCAL_FIXTURES === '1';
-  if (localFixtures) {
-    // Isolates browser DSP from host download-manager interception. This mode
-    // explicitly does NOT verify normal HTTP transport, PWA caching or gameplay.
-    const manifest = JSON.parse(await readFile(new URL('../../src/content/audio-palette.json', import.meta.url), 'utf8'));
-    const assets = new Set(Object.values(manifest.assets).map(asset => asset.url));
-    await page.route('**/assets/audio/*', async route => {
-      const path = new URL(route.request().url()).pathname;
-      if (!assets.has(path)) return route.continue();
-      const body = await readFile(new URL(`../../public${path}`, import.meta.url));
-      await route.fulfill({ contentType: path.endsWith('.wav') ? 'audio/wav' : 'audio/mpeg', body });
-    });
-  }
+  const page = await app.context.newPage();
+  const base = app.url.replace(/\/$/, '');
   await page.route('**/audio-verification', route => route.fulfill({ contentType: 'text/html', body: '<title>Tenmulate audio verification</title>' }));
   await page.goto(`${base}/audio-verification`);
   const result = await page.evaluate(async () => {
@@ -85,8 +74,10 @@ try {
   assert.equal(result.loaded.buffers, 18); assert(result.loaded.decodedBytes < 32 * 1024 * 1024);
   assert.equal(result.cleared.buffers, 0); assert.equal(result.cleared.pending, 0);
 
-  // Reverse check: a real network failure must be visible and recover on retry.
-  await page.route('**/assets/audio/contact-0.*.wav', route => route.fulfill({ status: 404, body: 'injected missing audio' }));
+  // Same real Response/decoder path, with a memory-only 404 and no media request.
+  const manifest = JSON.parse(await readFile(new URL('../../src/content/audio-palette.json', import.meta.url), 'utf8'));
+  const contactPath = manifest.assets['contact-0'].url;
+  await page.evaluate(path => { globalThis.audioMemoryFaults[path] = 'missing'; }, contactPath);
   const failed = await page.evaluate(async () => {
     const { AudioPalette } = await import('/src/engine/audio/AudioPalette.ts');
     globalThis.qaPalette = new AudioPalette(new OfflineAudioContext(2, 48000, 48000));
@@ -94,7 +85,7 @@ try {
     return { status: globalThis.qaPalette.status, ...globalThis.qaPalette.metrics };
   });
   assert.equal(failed.status, 'fallback'); assert.deepEqual(failed.failed, ['contact-0']);
-  await page.unroute('**/assets/audio/contact-0.*.wav');
+  await page.evaluate(path => { delete globalThis.audioMemoryFaults[path]; }, contactPath);
   const recovered = await page.evaluate(async () => {
     await globalThis.qaPalette.load('contact-0');
     return { status: globalThis.qaPalette.status, ...globalThis.qaPalette.metrics };
@@ -170,5 +161,6 @@ try {
   assert.deepEqual(lifecycle.released, { captureLeases: 0, state: 'ended' });
   assert.equal(lifecycle.settled.voices, 0); assert.equal(lifecycle.settled.convolvers, 0); assert.equal(lifecycle.settled.cleanupTimers, 0);
   assert.equal(lifecycle.disposed.contextState, 'absent');
-  console.log(JSON.stringify({ passed: true, transport: localFixtures ? 'local byte fixtures; normal HTTP UNVERIFIED' : 'normal HTTP', ...result, faultInjection: { failed, recovered }, lifecycle }, null, 2));
-} finally { await browser.close(); }
+  assert.deepEqual(app.mediaRequests, []);
+  console.log(JSON.stringify({ passed: true, transport: 'memory-only audio; offline browser', mediaRequests: app.mediaRequests, ...result, faultInjection: { failed, recovered }, lifecycle }, null, 2));
+} finally { await app.close(); await browser.close(); }
