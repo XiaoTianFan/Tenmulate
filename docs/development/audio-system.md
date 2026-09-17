@@ -1,6 +1,12 @@
 # Venue-aware audio implementation
 
-Status: Implemented locally; full acceptance blocked. Last updated: 2026-09-17.
+Status (2026-09-18): locally implemented and technically qualified. Final Node 24
+check:release passed: 704 tests / 71 files, no failures/skips, TypeScript, production
+build and active motion/cache guard. The existing bundle-size warning remains.
+Actual production label/capture recheck and the rebuilt worker cache test passed.
+Owner listening and real Safari/iOS remain OPEN. No merge/deployment occurred.
+Historical blocked states below record the rejected HTTP approaches; all current
+browser media qualification uses the owner-authorized memory-only mechanism.
 
 Update 2026-09-18: owner-authorized memory-only qualification now passes actual
 gameplay timing and production Quick Practice/drill/capture. Browser audio is

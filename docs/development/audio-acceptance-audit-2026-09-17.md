@@ -1,7 +1,31 @@
 # Audio acceptance audit — 2026-09-17
 
-Status: incomplete, local implementation only. The owner stopped browser media
-requests/downloads after IDM popups. This audit does not authorize their resumption.
+## Updated qualification — 2026-09-18
+
+The owner authorized another testing mechanism. Renamed binary HTTP failed and
+was removed. Media is now supplied through local Response bytes/worker messages,
+never native fetch. Offline contexts and media request auditing enforce this.
+The following evidence supersedes the historical missing-evidence table below.
+
+| Gate | New evidence |
+| --- | --- |
+| Gameplay timing | 120 actual contacts/bounces, 30 per 0.5/0.75/1/1.25 rate; p95 10.18/10.97/10.36/20.71 ms, max 22.75 ms; base/output latency separately .01/.04 s |
+| Playback actions | Actual Quick Practice pause, both seek directions, resume, restart and exit pass without duplicates; actual drill dispatch and controlled visibility-event pause/resume/cleanup pass |
+| Production/capture | Built Quick Practice and drill playback pass; nonzero capture, mute/pause RMS zero; audio/video IDs survive routes, stop ends tracks; no page errors |
+| Bilingual/mobile | Desktop and 390x844 Chinese settings inspected; crowd toggle disables its slider; audio-specific Chinese contact/bounce labels corrected |
+| Cache/offline policy | Actual registered production Workbox strategy in a real worker: 15 warm entries, 15 byte-identical offline hits without sample delivery, 15 cold missing responses not cached, recovery restores all 15; zero browser/server media requests |
+| Pending-load lifecycle | 18 rapid venue/surface switches with delayed in-memory responses; cancelled generations leave zero buffers/pending work; next scene recovers; exit resources return to zero |
+| Engine budgets/recovery | Original broad DSP/capture verifier rerun with memory-only audio: six profiles, 18 audience states, stress limits, mute tails, ten cycles, completion cleanup, missing Response and retry pass |
+| Firefox | Installed Firefox 136 decodes and renders all six venues. Missing cancelAndHoldAtTime caused a real failure; compatible ramp fallback fixes it. Audible initial output and zero after mute pass. Its missing offline suspend is handled with an actual initial 40 ms fade test |
+| Listening artifacts | Actual 15-second production capture; paired -30 dBFS RMS baseline/outdoor/indoor renders use the same observed gameplay events and disclosed standardized gains. Review material is not owner acceptance |
+| Final local release | Node 24 check:release exits 0: 704 tests / 71 files, no failures/skips; TypeScript, Vite build, motion/cache guard pass. Corrected production labels/capture and rebuilt worker cache policy rechecked successfully |
+
+Owner listening, physical output latency and real Safari/iOS remain OPEN as
+permitted by the goal. Normal media HTTP through this host's IDM is unqualified;
+the authorized alternative verifies decoding, playback, capture and cache policy.
+No merge, push, public deployment or IDM setting change occurred.
+
+## Historical pre-bypass audit
 
 | Requirement | Current evidence | Remaining gate |
 | --- | --- | --- |

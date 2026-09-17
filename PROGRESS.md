@@ -12,6 +12,9 @@
 
 ## Live work
 
+- COMPLETE local technical goal (2026-09-18): final Node 24 check:release exited 0 with 704 tests / 71 files and no failures/skips; TypeScript, production build and motion/cache guard pass. Production label/capture and rebuilt cache-policy rechecks pass. No physics/session clock/renderer/motion asset changes, runtime dependency additions, merge, push or deployment.
+- Completion audit: docs/development/audio-acceptance-audit-2026-09-17.md (updated qualification supersedes historical gaps). Listening artifacts/method: docs/development/audio-listening-review.md. Owner listening and real Safari/iOS remain OPEN as explicitly allowed by the goal. Normal browser media HTTP through IDM remains unqualified; the owner-authorized memory-only mechanism provides the technical evidence without triggering media requests.
+
 - Final compatibility stage (2026-09-18): real Firefox 136 exposed missing AudioParam.cancelAndHoldAtTime. Added continuous-ramp fallback using the sampled current value; real six-profile renders now have audible attacks and zero after mute. Firefox also lacks OfflineAudioContext.suspend, so its test uses an actual initial 40 ms fade (no skipped assertions).
 - Actual production labels corrected to audio-specific Chinese names; rebuilt production Quick Practice/drill/capture and 390x844 settings pass again. Actual capture is 15 s stereo Opus, peak -20.7 dBFS, mean -49.3 dBFS. Matched baseline/outdoor/indoor listening renders at -30 dBFS RMS are available; see docs/development/audio-listening-review.md.
 - Real registered Workbox strategy in a worker passes 15 warm cache entries, 15 byte-identical offline hits without new payload delivery, 15 cold missing responses not cached, and recovery of all 15. Audio reaches the worker through messages/RAM, never a media HTTP request. Browser and server media counts are zero.
