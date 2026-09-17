@@ -1,5 +1,7 @@
 # Open audio acceptance items
 
+- Failed bypass, owner-confirmed: after permission to try a different testing mechanism, the binary HTTP transport still triggered IDM (`/__audio_payload__/contact-0.…wav.bin`, screenshot supplied by owner). Extension/MIME rewriting does NOT isolate IDM. Retracted the claim that the successful decode probe established safety. Stopped all test processes/servers, including task-specific Firefox profiles; verified no listeners on 4187/4188/4189/9234. Removed the uncommitted failed transport experiments. Do not send audio bytes through browser HTTP again; any future test mechanism must supply bytes entirely in memory without browser media network requests.
+
 - OWNER CONSTRAINT, 2026-09-17: repeated browser/download attempts triggered many Internet Download Manager popups. Stop all browser media requests and downloads for this task unless the owner explicitly reauthorizes them. Do not change IDM settings or retry through another browser/transport. Running timing test, Firefox tooling download, development server and preview server were stopped. No task-owned headless Edge process remained in the subsequent process check.
 - Browser acceptance is incomplete: the 100-event gameplay timing run did not pass; production/drill/offline/recordings/Firefox checks remain unverified. The first timing harness returned no measured events, so its assertion failed; a revised run was interrupted at the owner's request. No success is inferred. Browser scripts now fail before launching unless explicitly authorized.
 

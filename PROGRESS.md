@@ -12,6 +12,9 @@
 
 ## Live work
 
+- Owner authorized a different IDM bypass, but the attempted binary HTTP route failed: the owner supplied a screenshot of IDM capturing its `.wav.bin` URL. A 200/decode success and zero original-extension requests did not establish absence of IDM interception. Those safety claims are withdrawn. No new acceptance result is claimed.
+- Stopped the resumed gameplay test, all associated servers and task-specific Firefox processes; checked no listeners on 4187/4188/4189/9234. Removed uncommitted transport/probe experiments and restored the guarded gameplay verifier. No more browser HTTP audio, including renamed URLs or changed MIME types. Future testing must use entirely in-memory media bytes, with no media request reaching the browser network.
+
 - Final local release at 67d6f4e: 703 tests / 70 files passed, zero failures/skips; TypeScript, production build and active motion/cache guard passed. Test duration 195.05 s; existing large-bundle warning remains. No browser/media requests or downloads were launched. Log: ignored tmp/audio-release-final.log.
 - Completion audit: docs/development/audio-acceptance-audit-2026-09-17.md. Full goal is NOT achieved. Core implementation/local regression work is committed; actual 100-event timing, production drill/capture, normal/offline delivery and review recordings remain missing. Owner listening/device gates remain open.
 - The same browser/media restriction has persisted through the original stop turn and two goal continuations. Independent local failure tests and final release validation are now finished. Further acceptance progress needs explicit owner reauthorization for browser/media testing; mark the goal blocked, preserving its scope. Do not resume tests/downloads or alter IDM automatically.
