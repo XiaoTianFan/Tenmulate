@@ -12,6 +12,8 @@
 
 ## Live work
 
+- Local-only continuation: six new AudioPalette ownership/error tests pass without network or browsers. Covers coalesced loads/cache reuse, empty 204 interception, same-length corruption, decoder rejection/retry, stale uncancellable decode after exit, eight-second timeout cleanup. Combined audio suite: 18 tests / 4 files; TypeScript build check passed under Node 24.19.0. These are stubbed transport/decoder control-flow tests, not acoustic/device evidence.
+
 - OWNER STOP, 2026-09-17: no further browser media requests or downloads after repeated IDM popups. Stopped timing test (8187), Firefox download (73403), dev server (10446), preview (64115); process check found no remaining task-owned headless Edge. Preserve this constraint across goal continuations. Do not retry via another browser/transport or alter IDM.
 - Integration committed f57fc55. New gameplay timing harness is unqualified: first run reported zero measured events and failed, revised polling run was stopped before a result. No 100-event acceptance claim. Only offline/local code work may continue without renewed owner authorization for browser activity.
 - Browser verification entrypoints now guard before importing/launching Playwright, to prevent accidental reruns. Firefox download did not finish and no Firefox qualification occurred.
@@ -22,7 +24,7 @@
 - Asset research corrected the original racket candidate: MIKEJONESBONES 511825 is a swing/whoosh, not a contact.
 - Verified CC0 impact candidate kletton97 710041; acquired its openly served HQ MP3 preview (not the login-gated original). Public preview source is lossy and will be recorded as such.
 - Downloaded qubodup's CC0 Well Done FLAC from OpenGameArt; the source page explicitly relicensed the old CCBY3-named file to CC0 on 2024-10-05.
-- Source artifacts are ignored under tmp/audio-sources. Live playback is not changed yet.
+- Source artifacts are ignored under tmp/audio-sources. Live playback was unchanged at that historical palette stage; integration is now committed.
 - Palette stage: 15 hashed WAV/MP3 files, 552169 bytes, complete source/output provenance and deterministic builder. Recorded contact is one take with three tonal variants, not three independent recordings. Bounce is authored synthesis. Two applause variants derive from one CC0 recording. Crowd murmur is jayfrosting's CC0 studio-audience preview, filtered and loop-crossfaded.
 - Added six venue profiles and pure PCM functions for surface transients, environmental loops and impulse responses. These are artistic, not measured room acoustics.
 - Focused check: bundled Node 24 -> `node_modules/vitest/vitest.mjs run --maxWorkers=1 tests/audio-acoustics.test.ts tests/audio-palette.test.ts`: 7 passed / 2 files, 0 skipped.

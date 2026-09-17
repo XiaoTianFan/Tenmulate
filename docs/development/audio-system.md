@@ -68,3 +68,16 @@ capture, 100-event timing and review recordings remain.
 
 Owner audition and real Safari/iOS checks remain open. Source descriptions and
 waveform checks are not evidence of subjective listening quality.
+
+## Local failure-path checks after browser testing stopped
+
+Six additional AudioPalette tests exercise load coalescing/cache reuse, empty
+204 responses, same-size integrity corruption, decoder rejection and retry,
+late decode completion after exit, and eight-second timeout cleanup. All transport
+and decoder inputs are local test doubles; no browser or network runs. The combined
+audio suite passes 18 tests / 4 files with no skips, and TypeScript build checking
+passes under Node 24.19.0. The previous 697-test release result predates these six
+additive tests; it is not relabeled as a new full-suite run.
+
+These tests prove control-flow/error handling only. They do not establish real
+codec support, audible realism, playback timing, normal HTTP or offline caching.
