@@ -583,7 +583,6 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
 
         <aside className="inspector" aria-label={t("Practice configuration")}>
           <h2>{t("Practice configuration")}</h2>
-          <AudioSettings />
           <SetupSection title={t("Opponent shot")} subtitle={t("Shot type and spin")} open>
             <label className="select-field"><span>{t("Shot type")}</span><select aria-label={t("Shot type")} value={shotType} onChange={(event) => changeShotType(event.target.value as PracticeShotType)}>{(['groundstroke','serve','drop-shot','volley','lob','overhead'] as const).map(type=><option key={type} value={type}>{t(PRACTICE_SHOT_PROFILES[type].label)}</option>)}</select></label>
             <label className="select-field"><span>{t("Spin type")}</span><select aria-label={t("Spin type")} value={spin} onChange={(event) => changeSpin(event.target.value)}>{shotProfile.spins.map((option) => <option key={option} value={option}>{t(practiceSpinLabel(shotType, option))}</option>)}</select></label>
@@ -625,6 +624,7 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
             <button type="button" className="text-action" onClick={() => setDialog('display')}>{t("Use physical display measurements")}</button>
           </SetupSection>
           <SetupSection title={t("System")} subtitle={t("Quality and repeatability")}><label className="select-field"><span>{t("Quality")}</span><select value={quality} onChange={(event) => setQuality(event.target.value as QualityMode)}><option value="auto">{t("Auto adaptive")}</option><option value="performance">{t("Performance")}</option><option value="quality">{t("Quality")}</option></select></label><label className="text-field"><span>{t("Seed")}</span><input aria-label={t("Seed")} value={seed} inputMode="numeric" onChange={(event) => setSeed(event.target.value.replace(/\D/g, '').slice(0, 10) || '0')} /></label></SetupSection>
+          <AudioSettings />
           {preview.pending ? <p role="status">{t("Updating practice…")}</p> : preview.error || previewSession.planningIssues?.length ? <p role="alert">{translateMessage(preview.error || previewSession.planningIssues?.[0]?.message)}</p> : null}
           {launchError ? <p role="alert">{translateMessage(launchError)}</p> : null}
           <div className="inspector-actions"><button className="secondary-button" type="button" disabled={saving} onClick={() => void performSave(() => onSaveConfig(pendingPreferences.current))}><Save size={16}/>{saving ? t("Saving…") : t("Save config")}</button><button className="primary-button" type="button" disabled={launching || preview.pending || !!preview.error || !!previewSession.planningIssues?.length} onClick={requestStart}><Play size={16}/>{launching ? t("Preparing practice…") : t("Start practice")}</button></div>

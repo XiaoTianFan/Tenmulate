@@ -258,7 +258,6 @@ export function DrillEditorScreen({ environment, route, launching = false, initi
           onPreview={() => { if (viewDraft) commit(workingDrill); setViewDraft(null); setSequenceRange(null); setOverview(false); setSequence(value => !value); }}/>
       </section>
       <aside className="event-inspector">
-        <AudioSettings />
         <PlayerHandControls hand={playerHand} onChange={changePlayerHand}/>
         <details className="editor-section"><summary data-section-key="Drill configuration">{t("Drill configuration")}</summary>
           <label className="stack-field"><span>{t("Drill title")}</span><input value={drill.title} maxLength={100} onChange={e => updateDrill({ title: e.target.value })}/></label>
@@ -277,6 +276,7 @@ export function DrillEditorScreen({ environment, route, launching = false, initi
           {compiled?.timing && !preview.pending ? <p className="saved-shot-count">{t("Player contacts")} {compiled.timing.actual.toFixed(2)} {t("s apart")}{compiled.timing.limited ? t(" · requested {0} s", {"0": compiled.timing.requested.toFixed(2)}) : ''}.</p> : null}
           <button className="secondary-button full-width save-shot-button" type="button" onClick={() => setShotDraft({ mode: selected.presetId ? 'update' : 'new', event: snapshotPlayerShot({ ...selected, camera: isTransition ? selected.camera : previewCamera }, workingDrill) })}><Save size={16}/> {t("Save shot")}</button>
         </> : null}
+        <AudioSettings />
         {[...validation.errors, ...issues.map(issue => issue.message), ...shotIssues.map(issue => issue.message), ...(preview.error ? [preview.error] : [])].length ? <ul className="validation-errors">{[...new Set([...validation.errors, ...issues.map(issue => issue.message), ...shotIssues.map(issue => issue.message), ...(preview.error ? [preview.error] : [])])].map(error => <li key={error}>{translateMessage(error)}</li>)}</ul> : null}
         <div className="editor-primary-actions"><small className="project-save-status">{writable ? t("Draft retained here. Save drill to keep a library version.") : translateMessage(projectStatus)}</small><button className="primary-button" type="button" disabled={!validation.valid || !writable || saving} onClick={() => void saveDrill()}><Save size={17}/> {saving ? t("Saving…") : t("Save drill")}</button>
           <button className="secondary-button full-width" type="button" disabled={!validation.valid || preview.pending || !!issues.length || !!preview.error} onClick={() => onTest(workingDrill, showTrajectory)}><Play size={16}/> {t("Test drill")}</button></div>

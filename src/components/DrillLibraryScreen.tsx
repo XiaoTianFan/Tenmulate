@@ -113,7 +113,6 @@ export function DrillLibraryScreen({ environment, surface, route, drills, projec
             <dl><div><dt>{t("Category")}</dt><dd>{t(selected.category)}</dd></div>
               <div><dt>{t("Sequence")}</dt><dd>{selected.events.length} {t("player shots")}</dd></div>
               <div><dt>{t("Storage")}</dt><dd>{inProject ? t("Project default") : t("This browser")}</dd></div></dl>
-            <AudioSettings />
             <PlayerHandControls hand={playerHand} onChange={onPlayerHandChange}/>
             <RangeField label={t("Stroke rhythm")} value={rhythm} min={50} max={300} step={5} unit="%" onChange={setRhythmOverride}/>
             <RangeField label={t("Shot interval")} value={interval} min={1} max={30} step={.1} unit={t("s")} onChange={setIntervalOverride}/>
@@ -127,6 +126,7 @@ export function DrillLibraryScreen({ environment, surface, route, drills, projec
               <small aria-live="polite">{validSet ? t("{0} complete {1} · {2} player shots{3}", {"0": repetitions, "1": repetitions === 1 ? t('run') : t('runs'), "2": repetitions * selected.events.length, "3": repetitions > 1 ? t(' · {0}s rest between runs', { '0': restSeconds }) : t(' · no rest needed')})
                 : t("Enter 1–{0} whole repetitions and 0–120 seconds of rest.", {"0": maxRepetitions})}</small>
             </fieldset>
+            <AudioSettings />
             <button className="primary-button" type="button" disabled={busy || !validSet || !selected.events.length} onClick={() => onRun(selected, rhythm, interval, movement, { repetitions, restSeconds })}><Play size={17}/> {t("Run drill")}</button>
             <button className="secondary-button full-width" type="button" disabled={busy} onClick={() => onEdit(selected)}><PencilLine size={16}/> {t("Edit drill")}</button>
             <button className="secondary-button full-width" type="button" disabled={busy} onClick={() => {
