@@ -3,6 +3,10 @@
 Date: 2026-09-20. Research/design result; no replacement audio has been auditioned
 or accepted, and this document does not change the current runtime sound.
 
+Owner feedback: the racket contact sounds **too artificial or electronic**.
+Prioritize natural dry transients and suppression of synthetic tonal ringing;
+louder output or more reverb alone does not meet this request.
+
 ## Current implementation and limits
 
 - `scripts/audio/build-palette.mjs` trims one CC0 racket hit from an HQ MP3 preview
