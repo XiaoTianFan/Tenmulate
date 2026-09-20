@@ -9,6 +9,15 @@
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
+## Configuration panel alignment — 2026-09-20
+
+Quick Practice and Drill Editor use the existing parameter-row inset of 20 px on
+both sides. Titles, section headings, helper text and action rows share that inset;
+disclosure indicators sit on the right instead of indenting heading text.
+Desktop and 390 px mobile browser measurements confirm matching left edges and
+20 px padding on both sides, with no panel horizontal overflow. Vite build passes;
+browser checks use the memory-only audio transport.
+
 ## Audio during configuration — 2026-09-20
 
 Quick Practice and drill-editor ball previews are audible after an initial gesture.

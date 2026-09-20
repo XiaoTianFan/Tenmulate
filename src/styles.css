@@ -113,12 +113,12 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .preset-toolbar-actions { align-self: center; display: grid; justify-items: start; gap: 2px; }
 .reset-link { align-self: center; display: flex; align-items: center; gap: 7px; padding: 8px; border: 0; background: transparent; color: var(--blue); cursor: pointer; font-size: 11px; white-space: nowrap; }
 .preset-notice { position: absolute; right: 16px; bottom: 8px; padding: 5px 8px; border-radius: 4px; background: #173526; color: #9ce2b8; font-size: 9px; }
-.inspector { border-left: 1px solid var(--divider); padding: 26px 24px 90px; overflow-y: auto; position: relative; }
-.setup-section { margin: 0 -4px; border-top: 1px solid var(--divider); }
+.inspector { border-left: 1px solid var(--divider); padding: 26px 20px 90px; overflow-y: auto; position: relative; }
+.setup-section { margin: 0; border-top: 1px solid var(--divider); }
 .setup-section:last-of-type { border-bottom: 1px solid var(--divider); }
-.setup-section summary { position: relative; display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding: 15px 22px 15px 4px; color: #e4eaec; cursor: pointer; list-style: none; }
+.setup-section summary { position: relative; display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding: 15px 22px 15px 0; color: #e4eaec; cursor: pointer; list-style: none; }
 .setup-section summary::-webkit-details-marker { display: none; }
-.setup-section summary::after { content: "+"; position: absolute; right: 3px; top: 18px; color: var(--muted); font-size: 15px; }
+.setup-section summary::after { content: "+"; position: absolute; right: 0; top: 18px; color: var(--muted); font-size: 15px; }
 .setup-section[open] summary::after { content: "−"; }
 .setup-section summary span { font-size: 13px; font-weight: 650; }
 .setup-section summary small { color: var(--muted); font-size: 10px; font-weight: 450; }
@@ -154,7 +154,7 @@ html[lang="zh-CN"] .mode-switch::before { content: "模式"; }
 .inspector-section h2 { margin-left: 0; margin-bottom: 10px; }
 .text-action { border: 0; background: transparent; color: var(--blue); padding: 9px 0; font-size: 12px; cursor: pointer; }
 .text-action.centered { display: flex; align-items: center; justify-content: center; gap: 7px; width: 100%; }
-.inspector-actions { display: grid; gap: 10px; position: sticky; bottom: -90px; margin: 20px -24px -90px; padding: 14px 24px 20px; background: linear-gradient(transparent, #080d10 20%); }
+.inspector-actions { display: grid; gap: 10px; position: sticky; bottom: -90px; margin: 20px -20px -90px; padding: 14px 20px 20px; background: linear-gradient(transparent, #080d10 20%); }
 .inspector-actions > button { width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; }
 .inspector-actions > .secondary-button { font-size: 14px; font-weight: 600; }
 .primary-button { width: 100%; height: 48px; border: 0; border-radius: 6px; background: var(--accent); color: #11150c; font-size: 15px; font-weight: 720; cursor: pointer; }
@@ -534,3 +534,21 @@ html[lang="zh-CN"] .mode-switch::before { content: "模式"; }
 .editor-empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 2rem; gap: 1rem; }
 .editor-empty-state h1 { margin: 0; font-size: 1.5rem; }
 .editor-empty-state p { margin: 0 0 .5rem; max-width: 32rem; color: var(--text-muted, #8ca5b2); }
+
+/* Configuration titles and rows share the existing 20px parameter inset. */
+.inspector h2 { margin-inline: 0; }
+:is(.inspector, .event-inspector) .editor-section > summary {
+  position: relative;
+  list-style: none;
+  padding-inline: 0 22px;
+}
+:is(.inspector, .event-inspector) .editor-section > summary::-webkit-details-marker { display: none; }
+:is(.inspector, .event-inspector) .editor-section > summary::after {
+  content: "+";
+  position: absolute;
+  right: 0;
+  color: var(--muted);
+}
+:is(.inspector, .event-inspector) .editor-section[open] > summary::after { content: "−"; }
+.event-inspector .player-hand-controls legend { padding-inline: 0; }
+.event-inspector .saved-shot-count { margin-inline: 0; }
