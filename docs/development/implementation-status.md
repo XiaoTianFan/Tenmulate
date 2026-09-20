@@ -9,6 +9,15 @@
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
+## Audio during configuration — 2026-09-20
+
+Quick Practice and drill-editor ball previews are audible after an initial gesture.
+The Quick configuration panel, drill library and editor expose the shared Sound
+controls; mix and mute choices carry into rehearsal and back during this visit.
+Drill-library ambience is audible before launch. Memory-only browser checks verify
+preview impacts, looping, mute and launch continuity with zero browser media HTTP.
+See the [audio contract](audio-system.md). Local feature checkout only.
+
 ## Venue-aware audio — 2026-09-18
 
 Local gameplay uses licensed impacts/crowds, synthesized surface bounces and

@@ -150,3 +150,12 @@ See the [net rendering decision](decisions/0028-filtered-net-weave.md).
 Renderer diagnostics are available with `?profileRenderer=1`, including the actual
 GPU, drawing-buffer size, CPU stages and asynchronous GPU time. See the
 [performance investigation](development/renderer-performance-2026-09-08.md).
+
+## Sound while configuring practice
+
+Open **Sound** in Quick Practice, the drill library or the drill editor to adjust
+contact, bounce, training cues, ambience and crowd volume. Click **Tap to enable
+sound** if the browser has not enabled audio yet. Ball previews and venue ambience
+are audible before starting; the drill library plays the selected venue ambience.
+Use **Mute all sound** or disable **Crowd sound** independently. Your mix follows
+you into practice and back to setup for this app visit; reloading restores defaults.

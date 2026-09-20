@@ -1,5 +1,31 @@
 # Venue-aware audio implementation
 
+## Setup and editor previews — 2026-09-20
+
+Quick Practice configuration and the drill editor now play impacts from the actual
+rendered flights, including continuous preview batches and repeated editor loops.
+Venue ambience also plays on the drill library before launch. Browsers require an
+initial interaction; the Sound section provides an explicit enable button. Hidden
+pages and pending previews silence their mix, and route changes release the previous
+preview. Session completion cheers remain exclusive to completed practice.
+
+Sound is the last expandable configuration section, before save/launch actions.
+One shared, visit-scoped mix supplies countdown, contact, bounce, footwork, ambience,
+crowd volume, crowd enable and master mute in setup, the drill library/editor and
+rehearsal. Launch, exit and route changes retain it; a full reload resets defaults.
+Countdown/footwork controls apply to training cues during practice; preview impacts
+follow the ball rather than playing an unrelated demonstration loop.
+
+Validation: 704-test release suite/build, plus three new preview-clock tests
+(20 focused preview/spatial/localization tests pass); memory-only Edge
+checks cover actual Quick/editor impacts, editor looping, captured audible output,
+master-mute silence and level continuity through Quick and drill launches. The
+browser stays offline with media bytes supplied in RAM and zero native media HTTP.
+Harness: `scripts/audio/verify-memory-setup.mjs`. Production Quick/drill/capture
+and bilingual/mobile checks also pass. Browser DOM and screenshot checks confirm
+Sound is last in all three configuration panels. Owner listening remains separate.
+
+
 Status (2026-09-18): locally implemented and technically qualified. Final Node 24
 check:release passed: 704 tests / 71 files, no failures/skips, TypeScript, production
 build and active motion/cache guard. The existing bundle-size warning remains.

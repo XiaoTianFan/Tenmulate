@@ -52,7 +52,9 @@ try {
   const restarted = await metrics(); assert(restarted.dispatches.length > 0);
   assert.equal(new Set(restarted.dispatches.map(event => event.id)).size, restarted.dispatches.length);
   await button('Exit'); await page.waitForTimeout(150);
-  const idle = await metrics(); assert.equal(idle.voices, 0); assert.equal(idle.decodedBytes, 0);
+  const setup = await metrics(); assert.equal(setup.playback, 'playing', 'Exit returns to audible setup preview');
+  await button('Mute all sound'); await page.waitForTimeout(150);
+  const idle = await metrics(); assert.equal(idle.voices, 0);
   assert.deepEqual(errors, []);
   assert.deepEqual(app.mediaRequests, []);
   const report = { passed: true, browser: await page.evaluate(() => navigator.userAgent), transport: 'memory-only audio; browser offline', mediaRequests: app.mediaRequests, rates, paused, resumed, restarted, idle, errors };
