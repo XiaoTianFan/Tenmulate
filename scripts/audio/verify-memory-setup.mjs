@@ -11,11 +11,17 @@ try {
  await page.getByRole('button',{name:'Start practice',exact:true}).waitFor();
  await page.evaluate(async()=>{globalThis.audioUnderTest=(await import('/src/engine/audio/AudioCueEngine.ts')).practiceAudio;});
  await page.getByRole('button',{name:'Tap to enable sound',exact:true}).click();
+ await page.waitForFunction(()=>audioUnderTest.getSnapshot()==='ready');
+ await page.evaluate(()=>audioUnderTest.resetTimeline());
+ await page.waitForFunction(()=>audioUnderTest.metrics.dispatches.filter(x=>x.id.startsWith('contact')).length >= 4);
  await page.waitForFunction(()=>audioUnderTest.metrics.dispatches.some(x=>x.id.startsWith('bounce')));
  const quick=await page.evaluate(()=>audioUnderTest.metrics);
  await mkdir('tmp/audio-review',{recursive:true});
  await page.screenshot({path:'tmp/audio-review/quick-setup-audio.png'});
- assert(quick.dispatches.some(x=>x.id.startsWith('contact')));
+ const contacts=quick.dispatches.filter(x=>x.id.startsWith('contact'));
+ assert(contacts.every(x=>/^contact-\d+$/.test(x.source)), 'Actual preview must use recordings');
+ contacts.forEach((x,i)=>assert(!contacts.slice(Math.max(0,i-2),i).some(old=>old.source===x.source),'No recent take repeats'));
+
  await page.getByRole('slider',{name:'Contact volume',exact:true}).fill('0.3');
  // Observe actual post-master audio, with transport entirely in RAM.
  await page.evaluate(async()=>{

@@ -1,5 +1,51 @@
 # Venue-aware audio implementation
 
+## Recorded contact upgrade — 2026-09-20
+
+Twelve independent contacts replace the three pitch-shifted versions of one take:
+four forehands, four serves and four slices from Jamesdrake89's CC0 tennis pack.
+They are extracted from publicly available HQ MP3 previews, not lossless masters.
+The source title and description establish the shot categories; they do not
+establish calibrated impact velocity. Soft volleys/drop shots use the slice bank
+as an authored approximation; overheads use the serve bank. Owner listening remains
+open, including whether these extracted field recordings sound sufficiently dry.
+
+Both preview and rehearsal pass actual shot family/spin metadata. A seeded selector
+avoids the last two recordings in each group. Outgoing ball speed is explicitly an
+intensity proxy, controlling gain, low-pass cutoff (4.2–11 kHz) and decay (110–240 ms).
+Pitch variation is reduced to +/-0.5%. No extra contact is added, no impact timing
+is shifted, and contact position errors are not invented.
+
+The 12 short mono 48 kHz/16-bit WAVs are embedded as exact bytes in a lazy application
+chunk (~370 kB uncompressed / 184 kB gzip) and decoded once. Racket contacts make
+no media-file HTTP requests, preventing the previously observed IDM contact
+interception. Vite's existing JS precache includes this chunk. Hash/size validation,
+coalescing, timeout, generation cancellation and memory limits still apply. Public
+WAV copies retain standard editable/exportable assets and provenance; the budget
+counts both copies. Other sound transport is unchanged.
+
+If a requested contact is still loading, another decoded recording is preferred.
+Only an entirely unavailable contact bank uses the revised short noise/transient
+and damped-resonance fallback. Dispatch diagnostics record the actual source ID
+(or `procedural`) so tests cannot mistake fallback for sampled playback. Generic
+loading/failure UI no longer incorrectly claims every impact is synthesized when
+only a crowd/bounce asset failed.
+
+Verification: 711 tests / 73 files; TypeScript, production build and motion/cache
+guard pass. Memory-only actual Quick/editor playback verifies recorded source IDs,
+no recent-take repeats, mute and settings continuity. Six-venue DSP and pending-load
+cleanup tests pass within 32 MiB. Edge production capture and Firefox qualification
+pass. The generated service worker serves the contact application chunk offline;
+the twelve remaining media assets pass warm/offline/failure/recovery checks without
+media HTTP. Twelve equal-RMS comparison renders cover old
+recording, old fallback, new bank and new fallback in dry/open/indoor scenes; this
+is signal-level matching, not a claim of equal perceived loudness or owner approval.
+
+Rebuild: `node scripts/audio/build-contact-bank.mjs` (Node 24 + ffmpeg); full palette
+builder also invokes it. Source hashes are pinned. Contact playback/selection tests:
+`tests/audio-contact-bank.test.ts`. Review renders:
+`scripts/audio/render-contact-comparison.mjs`, output in ignored `tmp/contact-review`.
+
 ## Setup and editor previews — 2026-09-20
 
 Quick Practice configuration and the drill editor now play impacts from the actual

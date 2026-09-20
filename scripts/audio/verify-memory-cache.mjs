@@ -64,12 +64,16 @@ try {
     });
   });
   await page.waitForFunction(() => !!navigator.serviceWorker.controller);
-  const paths = Object.keys(payload);
+  const paths = Object.keys(payload).filter(path => !path.includes('/contact-'));
+  const contactChunk = worker.match(/assets\/contact-bank-[\w-]+\.js/)?.[0];
+  assert(contactChunk, 'Contact application chunk must be precached');
   const warm = await page.evaluate(paths => globalThis.askAudioWorker({ paths }), paths);
   assert(warm.replies.every(reply => reply.status === 200));
   const keys = await page.evaluate(async () => (await (await caches.open('tenmulate-audio-v1')).keys()).map(request => new URL(request.url).pathname));
   assert.deepEqual(keys.sort(), [...paths].sort());
   await context.setOffline(true);
+  const contactOffline = await page.evaluate(async path => { const response = await fetch('/' + path); return { status: response.status, bytes: (await response.arrayBuffer()).byteLength }; }, contactChunk);
+  assert.equal(contactOffline.status, 200); assert(contactOffline.bytes > 300000);
   const offline = await page.evaluate(paths => globalThis.askAudioWorker({ paths, fault: 'missing' }), paths);
   assert.deepEqual(offline.replies, warm.replies); assert.equal(offline.memory.delivered, warm.memory.delivered);
   await page.evaluate(() => caches.delete('tenmulate-audio-v1'));
@@ -79,6 +83,6 @@ try {
   const recovered = await page.evaluate(paths => globalThis.askAudioWorker({ paths, clearFaults: true }), paths);
   assert.deepEqual(recovered.replies, warm.replies);
   assert.equal(forbidden, 0); assert.deepEqual(requests, []);
-  const report = { passed: true, browser: await browser.version(), warmAssets: paths.length, offlineAssets: offline.replies.length, cold404s: cold.replies.length, restoredAssets: recovered.replies.length, mediaRequests: requests, serverMediaRequests: forbidden, method: 'Actual registered Workbox strategy via worker messages; RAM transport, no media HTTP' };
+  const report = { passed: true, browser: await browser.version(), contactOffline, warmAssets: paths.length, offlineAssets: offline.replies.length, cold404s: cold.replies.length, restoredAssets: recovered.replies.length, mediaRequests: requests, serverMediaRequests: forbidden, method: 'Actual registered Workbox strategy via worker messages; RAM transport, no media HTTP' };
   await writeFile('tmp/audio-memory-cache-result.json', JSON.stringify(report, null, 2)); console.log(JSON.stringify(report));
 } finally { await browser.close(); server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); }

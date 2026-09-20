@@ -1,7 +1,9 @@
 # Racket-contact realism: audit and next implementation
 
-Date: 2026-09-20. Research/design result; no replacement audio has been auditioned
-or accepted, and this document does not change the current runtime sound.
+Date: 2026-09-20. Original research/design below. The owner subsequently authorized
+implementation: see [the implemented contact upgrade](../development/audio-system.md).
+Twelve independent shot-category takes now ship; they are not calibrated soft/medium/
+hard velocity recordings. Owner listening/realism acceptance remains open.
 
 Owner feedback: the racket contact sounds **too artificial or electronic**.
 Prioritize natural dry transients and suppression of synthetic tonal ringing;

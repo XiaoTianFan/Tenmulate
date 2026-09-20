@@ -9,6 +9,17 @@
 
 This is the evidence ledger for the code-backed V1. “Implemented” means runnable code exists; “verified” additionally requires the named automated and browser evidence. The active player is the 1.88 m articulated mannequin with the 25-clip library. [ADR-0012](../decisions/0012-local-opponent-motion-pipeline.md) now makes tennis motion, racket, and connectors local production work in the sibling motion-analysis laboratory, using the supplied videos rather than online mocap services. See the [motion ledger](local-motion-pipeline.md) for current evidence. Venue fidelity is repository-owned implementation work under ADR-0005 rather than a generated-asset dependency.
 
+## Racket-contact recordings — 2026-09-20
+
+The contact bank now has twelve independent recorded forehand/serve/slice hits,
+selected without recent repeats. Intensity varies brightness and decay as well as
+level. Exact WAV bytes travel in a lazy application chunk, so contact playback
+makes no media-file HTTP requests. Both setup/editor previews and rehearsal use it.
+711 tests / 73 files and the production build pass; memory-only browser checks
+verify actual recorded source IDs, mute, venue DSP and cleanup. Equal-RMS comparison
+renders are available for owner listening; perceived realism is not yet accepted.
+See the [audio implementation](audio-system.md). Local feature checkout only.
+
 ## Configuration panel alignment — 2026-09-20
 
 Quick Practice and Drill Editor use the existing parameter-row inset of 20 px on
