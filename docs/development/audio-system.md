@@ -1,5 +1,10 @@
 # Venue-aware audio implementation
 
+Owner acceptance (2026-09-20): the owner reviewed the latest feature checkout,
+confirmed satisfaction with the results, and authorized merging into local main.
+This supersedes the earlier pending owner-listening statements below. Real Safari/
+iOS qualification remains separate; no public deployment is authorized by this merge.
+
 ## Recorded contact upgrade — 2026-09-20
 
 Twelve independent contacts replace the three pitch-shifted versions of one take:

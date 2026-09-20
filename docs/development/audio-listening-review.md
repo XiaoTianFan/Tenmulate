@@ -31,3 +31,9 @@ Reproduction: run `verify-memory-dsp.mjs`, `verify-gameplay.mjs`,
 24 and the existing Playwright installation via AUDIO_PLAYWRIGHT_MODULE. The
 gameplay verifier requires AUDIO_BROWSER_TESTS=explicitly-authorized. All media
 delivery is in memory; do not restore HTTP media or renamed binary URLs.
+
+## Owner acceptance — 2026-09-20
+
+The owner confirmed satisfaction with the latest recorded-contact upgrade and
+configuration UI, and requested commit/merge into local main. This closes the
+owner listening gate for this version. Earlier pending entries are historical.
