@@ -1,3 +1,5 @@
+import { AudioSettings } from './AudioSettings';
+import { usePreviewAudio } from '../hooks/usePreviewAudio';
 import { t, message as translateMessage } from '../i18n/locale';
 import { SaveCancelled } from '../storage/savePolicy';
 import { RangeField } from './RangeField';
@@ -206,6 +208,7 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
     surface, seed, spin, spinRateRpm, shotType, bounceFactor, opponentHand, workBlockSize, restSeconds,
     serveRhythm, landingZone, landingDepthM, aimDirectionDeg, opponentPosition, returnPatternActive, returnReceiverSide, windVelocity, rally, practiceReturn, practicePreset, eyeHeight]);
   const preview = usePracticePreview(drill, sessionSettings), previewSession = preview.session;
+  const onPreviewAudioFrame = usePreviewAudio(environment, surface, !launching && !preview.pending && !preview.error, previewSession);
   const resolvedPreview = (previewRepetition?.session === previewSession ? previewRepetition.repetition : previewSession.repetitions[0])!;
   const trajectory = resolvedPreview.trajectory;
   const previewGap = resolvedPreview.timing?.actual ?? (previewSession.repetitions[1] ? previewSession.repetitions[1].startTime - previewSession.repetitions[0]!.startTime : 0);
@@ -556,7 +559,7 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
 
         <section className="preview-column" aria-label={t("Live court preview")}>
           <div className="setup-court-view" ref={overviewContainer} data-camera-eye-height={eyeHeight.toFixed(3)}>
-            <CourtViewport camera={displayCamera} courtOverview={overview} trajectory={trajectory} surface={surface} environment={environment} quality={quality} running={!launching && !preview.pending && !preview.error} shotPreviewPending={launching || preview.pending} resetToken={resetToken} showTrajectory={trajectoryEnabled || overview} showOpponentLandingZone loopTrajectory session={launching ? undefined : previewSession} onSessionIndex={onPreviewIndex} onLandingZoneChange={changeLandingZone}
+            <CourtViewport onPreviewAudioFrame={onPreviewAudioFrame} camera={displayCamera} courtOverview={overview} trajectory={trajectory} surface={surface} environment={environment} quality={quality} running={!launching && !preview.pending && !preview.error} shotPreviewPending={launching || preview.pending} resetToken={resetToken} showTrajectory={trajectoryEnabled || overview} showOpponentLandingZone loopTrajectory session={launching ? undefined : previewSession} onSessionIndex={onPreviewIndex} onLandingZoneChange={changeLandingZone}
               followSessionCamera={!overview} nearLandingZone={nearZone} returnLandingZone={rallyLandingZone} onReturnLandingZoneChange={setRallyLandingZone}
               opponentPlacement={overview ? { ...opponentPosition, hand: opponentHand } : undefined} onOpponentPositionChange={overview ? changeRecoveryCenter : undefined}
               onCameraFovChange={overview ? zoomOverview : updateCameraFov} onCameraLookChange={overview ? undefined : updateCameraLook} onMetrics={onMetrics} />
@@ -580,6 +583,7 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
 
         <aside className="inspector" aria-label={t("Practice configuration")}>
           <h2>{t("Practice configuration")}</h2>
+          <AudioSettings />
           <SetupSection title={t("Opponent shot")} subtitle={t("Shot type and spin")} open>
             <label className="select-field"><span>{t("Shot type")}</span><select aria-label={t("Shot type")} value={shotType} onChange={(event) => changeShotType(event.target.value as PracticeShotType)}>{(['groundstroke','serve','drop-shot','volley','lob','overhead'] as const).map(type=><option key={type} value={type}>{t(PRACTICE_SHOT_PROFILES[type].label)}</option>)}</select></label>
             <label className="select-field"><span>{t("Spin type")}</span><select aria-label={t("Spin type")} value={spin} onChange={(event) => changeSpin(event.target.value)}>{shotProfile.spins.map((option) => <option key={option} value={option}>{t(practiceSpinLabel(shotType, option))}</option>)}</select></label>

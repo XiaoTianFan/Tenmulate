@@ -1,3 +1,5 @@
+import { useAudioSettings } from '../hooks/useAudioSettings';
+import { AudioSettings } from './AudioSettings';
 import { VENUE_LABELS } from '../domain/environment';
 import { defaultContentText } from '../i18n/content';
 import { t, message as translateMessage } from '../i18n/locale';
@@ -23,7 +25,7 @@ import {
   X,
 } from 'lucide-react';
 import type { SessionLaunch } from '../app/types';
-import { practiceAudio, DEFAULT_AUDIO_LEVELS } from '../engine/audio/AudioCueEngine';
+import { practiceAudio } from '../engine/audio/AudioCueEngine';
 import { usePracticeAudio } from '../hooks/usePracticeAudio';
 import { compileSession } from '../engine/session/compileSession';
 import { scaleCameraTimeline } from '../engine/session/cameraTimeline';
@@ -45,12 +47,10 @@ const speedOptions = [0.5, 0.75, 1, 1.25] as const;
 export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreenProps) {
   const contentText = (value: string) => launch.defaultContent ? defaultContentText(value) : value;
   const [playbackRate, setPlaybackRate] = useState(1);
-  const [soundEnabled, setSoundEnabled] = useState(true);
+  const { soundEnabled, setSoundEnabled, audioLevels, crowdEnabled } = useAudioSettings();
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [showTrajectory, setShowTrajectory] = useState(launch.trajectoryEnabled);
   const [cameraMotionScale, setCameraMotionScale] = useState(1);
-  const [audioLevels, setAudioLevels] = useState(DEFAULT_AUDIO_LEVELS);
-  const [crowdEnabled, setCrowdEnabled] = useState(true);
   const effectiveAudioLevels = useMemo(() => ({ ...audioLevels, crowd: crowdEnabled ? audioLevels.crowd : 0 }), [audioLevels, crowdEnabled]);
   const [highContrastBall, setHighContrastBall] = useState(false);
   const [showBallTrail, setShowBallTrail] = useState(false);
@@ -204,13 +204,7 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
           <label className="toggle-field"><span>{t("Trajectory")}</span><button type="button" role="switch" aria-label={t("Trajectory")} aria-checked={showTrajectory} className={showTrajectory ? 'toggle active' : 'toggle'} onClick={() => setShowTrajectory(value => !value)}><span /></button><small>{showTrajectory ? t("On") : t("Off")}</small></label>
           <details className="editor-section" open><summary>{t("Perspective")}</summary><BallFocusControls /></details>
           <label className="compact-range"><span>{t("Camera motion (restarts set)")}</span><input aria-label={t("Camera motion intensity")} type="range" min="0" max="1" step="0.25" value={cameraMotionScale} onChange={(event) => setCameraMotionScale(Number(event.target.value))} /><output>{Math.round(cameraMotionScale * 100)}%</output></label>
-          <label className="compact-range"><span>{t("Countdown")}</span><input aria-label={t("Countdown volume")} type="range" min="0" max="1" step="0.1" value={audioLevels.countdown} onChange={(event) => setAudioLevels((current) => ({ ...current, countdown: Number(event.target.value) }))} /><output>{Math.round(audioLevels.countdown * 100)}%</output></label>
-          <label className="compact-range"><span>{t("Ball contact")}</span><input aria-label={t("Contact volume")} type="range" min="0" max="1" step="0.1" value={audioLevels.contact} onChange={(event) => setAudioLevels((current) => ({ ...current, contact: Number(event.target.value) }))} /><output>{Math.round(audioLevels.contact * 100)}%</output></label>
-          <label className="compact-range"><span>{t("Ball bounce")}</span><input aria-label={t("Bounce volume")} type="range" min="0" max="1" step="0.1" value={audioLevels.bounce} onChange={(event) => setAudioLevels((current) => ({ ...current, bounce: Number(event.target.value) }))} /><output>{Math.round(audioLevels.bounce * 100)}%</output></label>
-          <label className="compact-range"><span>{t("Footwork")}</span><input aria-label={t("Footwork cue volume")} type="range" min="0" max="1" step="0.1" value={audioLevels.footwork} onChange={(event) => setAudioLevels((current) => ({ ...current, footwork: Number(event.target.value) }))} /><output>{Math.round(audioLevels.footwork * 100)}%</output></label>
-          <label className="compact-range"><span>{t("Ambience")}</span><input aria-label={t("Ambience volume")} type="range" min="0" max="1" step="0.1" value={audioLevels.ambience} onChange={(event) => setAudioLevels((current) => ({ ...current, ambience: Number(event.target.value) }))} /><output>{Math.round(audioLevels.ambience * 100)}%</output></label>
-          <label className="compact-check"><input type="checkbox" checked={crowdEnabled} onChange={event => setCrowdEnabled(event.target.checked)} /><span>{t("Crowd sound")}</span></label>
-          <label className="compact-range"><span>{t("Crowd")}</span><input aria-label={t("Crowd volume")} type="range" min="0" max="1" step="0.1" value={audioLevels.crowd} disabled={!crowdEnabled} onChange={event => setAudioLevels(current => ({ ...current, crowd: Number(event.target.value) }))} /><output>{Math.round(audioLevels.crowd * 100)}%</output></label>
+          <AudioSettings />
           <label className="compact-check"><input type="checkbox" checked={highContrastBall} onChange={(event) => setHighContrastBall(event.target.checked)} /><span>{t("High-contrast ball")}</span></label>
           <label className="compact-check"><input type="checkbox" checked={showBallTrail} onChange={(event) => setShowBallTrail(event.target.checked)} /><span>{t("Short ball trail")}</span></label>
         </aside>

@@ -1,3 +1,6 @@
+import { AudioSettings } from './AudioSettings';
+import { usePreviewAudio } from '../hooks/usePreviewAudio';
+import type { EnvironmentConfiguration } from '../domain/environment';
 import { t, message as translateMessage } from '../i18n/locale';
 import { SaveCancelled } from '../storage/savePolicy';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -27,6 +30,7 @@ import { CourtViewport } from './SharedCourt';
 import type { EditorDraft } from '../storage/editorDrafts';
 
 type Props = {
+  environment: EnvironmentConfiguration;
   launching?: boolean;
   route: AppRoute; initialDrill: DrillDefinitionV2; surface: SurfaceId;
   initialPlayerHand: OpponentHand; onPlayerHandChange: (hand: OpponentHand) => void;
@@ -40,7 +44,7 @@ const cloneEvent = (event: PlayerShotEventV2) => ({ ...structuredClone(event), i
 const noMetrics = () => undefined;
 
 const START_CLOCK = Object.freeze({ current: 0 });
-export function DrillEditorScreen({ route, launching = false, initialDrill, initialDraft, onDraftChange, writable, projectStatus, initialPlayerHand, onPlayerHandChange, surface, onRoute, onSave, onTest, savedShots, shotsWritable, shotsStatus, projectShotIds, onSaveShot, onDeleteShot }: Props) {
+export function DrillEditorScreen({ environment, route, launching = false, initialDrill, initialDraft, onDraftChange, writable, projectStatus, initialPlayerHand, onPlayerHandChange, surface, onRoute, onSave, onTest, savedShots, shotsWritable, shotsStatus, projectShotIds, onSaveShot, onDeleteShot }: Props) {
   const [drill, setDrill] = useState<DrillDefinitionV2>(() => {
     const copy = structuredClone(playerDrillForHand(initialDraft?.drill ?? initialDrill, initialPlayerHand));
     const fov = copy.events[0]?.camera.fov ?? DEFAULT_CAMERA.fov;
@@ -118,6 +122,7 @@ export function DrillEditorScreen({ route, launching = false, initialDrill, init
   }, [captureDraft]);
   const shotPreview = usePlayerDrillPreview(shotDrill, surface, selection, !!zoneDraft || !!viewDraft);
   const session = sequence ? preview.session : shotPreview.session;
+  const onPreviewAudioFrame = usePreviewAudio(environment, surface, !launching && !!session && (sequence ? preview.current : shotPreview.current), session);
   const compiled = preview.current ? preview.session?.playerEvents?.find(item => item.event.id === selected?.id) : undefined;
   const nextCompiled = preview.current ? preview.session?.playerEvents?.find(item => item.event.id === nextEvent?.id) : undefined;
   const transitionWindow = compiled && nextCompiled ? { start: compiled.startTime, end: nextCompiled.startTime } : undefined;
@@ -226,7 +231,7 @@ export function DrillEditorScreen({ route, launching = false, initialDrill, init
         onDelete={async id => { const name = savedShots.find(shot => shot.id === id)?.name; await onDeleteShot(id); setShotNotice(`Deleted “${name}” from the shot library.`); }}/>
       <section className="editor-stage">
         <div className="editor-scene" ref={sceneContainer}>
-          {trajectory && events.length ? <CourtViewport camera={displayCamera} courtOverview={overview} trajectory={trajectory} surface={surface} running={!launching} resetToken={0} showTrajectory={showTrajectory || overview} showOpponentLandingZone session={launching ? undefined : session!} sessionClock={launching ? START_CLOCK : clock} followSessionCamera={sequence && !overview}
+          {trajectory && events.length ? <CourtViewport onPreviewAudioFrame={onPreviewAudioFrame} camera={displayCamera} courtOverview={overview} trajectory={trajectory} surface={surface} running={!launching} resetToken={0} showTrajectory={showTrajectory || overview} showOpponentLandingZone session={launching ? undefined : session!} sessionClock={launching ? START_CLOCK : clock} followSessionCamera={sequence && !overview}
             shotPreviewPending={launching || (sequence ? !preview.current : !shotPreview.current)}
             nearLandingZone={sequence ? session?.repetitions[previewIndex]?.trajectory.intent.landingZone : nearZone} nearLandingZoneLimits={nearLimits} returnLandingZone={!sequence && zoneDraft?.role === 'player' ? zoneDraft.zone : (sequence ? playingEvent : selected)?.landingZone}
             onLandingZoneDraft={sequence || isTransition ? undefined : zone => setZoneDraft(zone ? { role: 'opponent', zone } : null)}
@@ -253,6 +258,7 @@ export function DrillEditorScreen({ route, launching = false, initialDrill, init
           onPreview={() => { if (viewDraft) commit(workingDrill); setViewDraft(null); setSequenceRange(null); setOverview(false); setSequence(value => !value); }}/>
       </section>
       <aside className="event-inspector">
+        <AudioSettings />
         <PlayerHandControls hand={playerHand} onChange={changePlayerHand}/>
         <details className="editor-section"><summary data-section-key="Drill configuration">{t("Drill configuration")}</summary>
           <label className="stack-field"><span>{t("Drill title")}</span><input value={drill.title} maxLength={100} onChange={e => updateDrill({ title: e.target.value })}/></label>

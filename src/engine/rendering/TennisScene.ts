@@ -1,3 +1,4 @@
+import type { PreviewAudioFrame } from '../audio/previewCues';
 import * as THREE from 'three';
 import { capturePixelRatio } from '../capture/CourtCapture';
 import { cameraRotationRadians } from '../../domain/camera';
@@ -712,6 +713,8 @@ export class TennisScene {
     this.camera.updateProjectionMatrix();
   }
 
+  onPreviewAudioFrame?: PreviewAudioFrame;
+
   setRunning(running: boolean): void {
     this.running = running;
     this.lastFrame = performance.now();
@@ -754,6 +757,7 @@ export class TennisScene {
     this.profiler?.mark('environment');
     let opponentRoot: MotionSample['root'] | undefined;
     let practiceRepetition: CompiledRepetition | undefined;
+    const audioFlights: { trajectory: ResolvedTrajectory; time: number }[] = [];
     if (this.trajectory) {
       const duration = this.trajectory.samples.at(-1)?.time ?? 0;
       let events = this.motionEvents;
@@ -766,6 +770,7 @@ export class TennisScene {
         this.canvas.dataset.previewCycle=String(frame?.cycle ?? 0);
         this.canvas.dataset.previewNextContact=String(frame?.nextContact ?? 0);
         visibleFlights.push(...flights);
+        audioFlights.push(...flights);
         this.canvas.dataset.ballPhase=flights[0]?.phase??'none';
         this.canvas.dataset.sessionTime=this.elapsed.toFixed(4);
         const repetition=frame?.repetition ?? this.session.repetitions.reduce((active,rep)=>motionTime>=rep.startTime?rep:active,this.session.repetitions[0]!);
@@ -865,6 +870,7 @@ export class TennisScene {
       };
       this.applyCamera();
     }
+    this.onPreviewAudioFrame?.(this.elapsed, audioFlights, this.cameraConfiguration);
     this.audience.update(this.elapsed);
     this.landingZoneControl.update();
     this.returnLandingZoneControl.update();

@@ -1,3 +1,4 @@
+import type { PreviewAudioFrame } from '../engine/audio/previewCues';
 import { t, message as translateMessage } from '../i18n/locale';
 import { useEffect, useLayoutEffect, useEffectEvent, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { cameraFovAfterWheel, cameraLookAfterDrag, type CameraLook } from '../domain/camera';
@@ -57,6 +58,7 @@ export type SceneViewportProps = Readonly<{
   onMetrics: (metrics: SceneMetrics) => void;
   onPointerActivity?: () => void;
   session?: CompiledSession;
+  onPreviewAudioFrame?: PreviewAudioFrame;
   sessionClock?: Readonly<{ current: number }>;
   onSessionIndex?: (index:number, repetition: CompiledRepetition)=>void;
 }>;
@@ -118,6 +120,7 @@ export function SceneViewport({
   onPointerActivity,
   session,
   sessionClock,
+  onPreviewAudioFrame,
   onSessionIndex,
 }: SceneViewportProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -210,6 +213,7 @@ export function SceneViewport({
   useEffect(() => sceneRef.current?.setOpponentLandingZoneVisible(showOpponentLandingZone), [showOpponentLandingZone]);
   useEffect(() => sceneRef.current?.setReturnLandingZone(returnLandingZone ?? null, onReturnLandingZoneChange ?? null), [returnLandingZone, onReturnLandingZoneChange]);
   useEffect(() => sceneRef.current?.setNearLandingZone(nearLandingZone ?? null, nearLandingZoneLimits), [nearLandingZone, nearLandingZoneLimits]);
+  useLayoutEffect(() => { if (sceneRef.current) sceneRef.current.onPreviewAudioFrame = onPreviewAudioFrame; }, [onPreviewAudioFrame]);
   useLayoutEffect(() => sceneRef.current?.setSession(session ?? null, sessionClock ?? null, onSessionIndex), [session, sessionClock, onSessionIndex]);
   useLayoutEffect(() => sceneRef.current?.setShotPreviewPending(shotPreviewPending), [shotPreviewPending]);
   useEffect(() => sceneRef.current?.landingZoneControl.setDraftListener(onLandingZoneDraft ?? null), [onLandingZoneDraft]);
