@@ -15,15 +15,16 @@ export function AudioSettings() {
     ['crowd', t('Crowd'), t('Crowd volume')],
   ] as const;
   return <details className="editor-section" open><summary>{t('Sound')}</summary>
-    <button type="button" className="secondary-button" onClick={() => {
-      if (!soundEnabled || status === 'locked' || status === 'idle') { setSoundEnabled(true); practiceAudio.unlock(); }
-      else setSoundEnabled(false);
-    }}>{!soundEnabled ? t('Unmute all sound') : status === 'locked' || status === 'idle' ? t('Tap to enable sound') : t('Mute all sound')}</button>
+
     {channels.map(([key, label, aria]) => <label className="compact-range" key={key}><span>{label}</span>
       <input aria-label={aria} type="range" min="0" max="1" step="0.1" value={audioLevels[key]} disabled={key === 'crowd' && !crowdEnabled}
         onChange={event => { practiceAudio.unlock(); setAudioLevels(current => ({ ...current, [key]: Number(event.target.value) })); }} />
       <output>{Math.round(audioLevels[key] * 100)}%</output></label>)}
     <label className="compact-check"><input type="checkbox" checked={crowdEnabled} onChange={event => { practiceAudio.unlock(); setCrowdEnabled(event.target.checked); }} /><span>{t('Crowd sound')}</span></label>
+    <button type="button" className="secondary-button sound-master-button" onClick={() => {
+      if (!soundEnabled || status === 'locked' || status === 'idle') { setSoundEnabled(true); practiceAudio.unlock(); }
+      else setSoundEnabled(false);
+    }}>{!soundEnabled ? t('Unmute all sound') : status === 'locked' || status === 'idle' ? t('Tap to enable sound') : t('Mute all sound')}</button>
     {status === 'fallback' ? <p role="status">{t('Some sounds unavailable · synthesized impacts active')} <button type="button" onClick={() => practiceAudio.retry()}>{t('Retry sound')}</button></p> : null}
     {status === 'unavailable' ? <p role="status">{t('Audio is unavailable in this browser')}</p> : null}
   </details>;

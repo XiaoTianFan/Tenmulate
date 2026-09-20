@@ -552,3 +552,13 @@ html[lang="zh-CN"] .mode-switch::before { content: "模式"; }
 :is(.inspector, .event-inspector) .editor-section[open] > summary::after { content: "−"; }
 .event-inspector .player-hand-controls legend { padding-inline: 0; }
 .event-inspector .saved-shot-count { margin-inline: 0; }
+
+.secondary-button.sound-master-button {
+  display: block;
+  width: 100%;
+  min-height: 32px;
+  margin-top: 8px;
+  padding: 5px 10px;
+  font-size: 12px;
+  line-height: 20px;
+}

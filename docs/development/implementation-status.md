@@ -16,7 +16,9 @@ both sides. Titles, section headings, helper text and action rows share that ins
 disclosure indicators sit on the right instead of indenting heading text.
 Desktop and 390 px mobile browser measurements confirm matching left edges and
 20 px padding on both sides, with no panel horizontal overflow. Vite build passes;
-browser checks use the memory-only audio transport.
+browser checks use the memory-only audio transport. The shared Sound section ends
+its controls with a compact, full-width master mute button below the sliders and
+crowd toggle.
 
 ## Audio during configuration — 2026-09-20
 
