@@ -1,4 +1,7 @@
 import { practiceDefaults } from '../app/practiceDefaults';
+
+import { AudioSettings } from './AudioSettings';
+import { usePreviewAudio } from '../hooks/usePreviewAudio';
 import { t, message as translateMessage } from '../i18n/locale';
 import { SaveCancelled } from '../storage/savePolicy';
 import { RangeField } from './RangeField';
@@ -208,6 +211,7 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
     surface, seed, spin, spinRateRpm, shotType, bounceFactor, opponentHand, workBlockSize, restSeconds,
     serveRhythm, landingZone, landingDepthM, aimDirectionDeg, opponentPosition, returnPatternActive, returnReceiverSide, windVelocity, rally, practiceReturn, practicePreset, eyeHeight]);
   const preview = usePracticePreview(drill, sessionSettings), previewSession = preview.session;
+  const onPreviewAudioFrame = usePreviewAudio(environment, surface, !launching && !preview.pending && !preview.error, previewSession);
   const resolvedPreview = (previewRepetition?.session === previewSession ? previewRepetition.repetition : previewSession.repetitions[0])!;
   const trajectory = resolvedPreview.trajectory;
   const previewGap = resolvedPreview.timing?.actual ?? (previewSession.repetitions[1] ? previewSession.repetitions[1].startTime - previewSession.repetitions[0]!.startTime : 0);
@@ -543,7 +547,7 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
 
         <section className="preview-column" aria-label={t("Live court preview")}>
           <div className="setup-court-view" ref={overviewContainer} data-camera-eye-height={eyeHeight.toFixed(3)}>
-            <CourtViewport camera={displayCamera} courtOverview={overview} trajectory={trajectory} surface={surface} environment={environment} quality={quality} running={!launching && !preview.pending && !preview.error} shotPreviewPending={launching || preview.pending} resetToken={resetToken} showTrajectory={trajectoryEnabled || overview} showOpponentLandingZone loopTrajectory session={launching ? undefined : previewSession} onSessionIndex={onPreviewIndex} onLandingZoneChange={changeLandingZone}
+            <CourtViewport onPreviewAudioFrame={onPreviewAudioFrame} camera={displayCamera} courtOverview={overview} trajectory={trajectory} surface={surface} environment={environment} quality={quality} running={!launching && !preview.pending && !preview.error} shotPreviewPending={launching || preview.pending} resetToken={resetToken} showTrajectory={trajectoryEnabled || overview} showOpponentLandingZone loopTrajectory session={launching ? undefined : previewSession} onSessionIndex={onPreviewIndex} onLandingZoneChange={changeLandingZone}
               followSessionCamera={!overview} nearLandingZone={nearZone} returnLandingZone={rallyLandingZone} onReturnLandingZoneChange={setRallyLandingZone}
               opponentPlacement={overview ? { ...opponentPosition, hand: opponentHand } : undefined} onOpponentPositionChange={overview ? changeRecoveryCenter : undefined}
               onCameraFovChange={overview ? zoomOverview : updateCameraFov} onCameraLookChange={overview ? undefined : updateCameraLook} onMetrics={onMetrics} />
@@ -608,6 +612,7 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
             <button type="button" className="text-action" onClick={() => setDialog('display')}>{t("Use physical display measurements")}</button>
           </SetupSection>
           <SetupSection title={t("System")} subtitle={t("Quality and repeatability")}><label className="select-field"><span>{t("Quality")}</span><select value={quality} onChange={(event) => setQuality(event.target.value as QualityMode)}><option value="auto">{t("Auto adaptive")}</option><option value="performance">{t("Performance")}</option><option value="quality">{t("Quality")}</option></select></label><label className="text-field"><span>{t("Seed")}</span><input aria-label={t("Seed")} value={seed} inputMode="numeric" onChange={(event) => setSeed(event.target.value.replace(/\D/g, '').slice(0, 10) || '0')} /></label></SetupSection>
+          <AudioSettings />
           {preview.pending ? <p role="status">{t("Updating practice…")}</p> : preview.error || previewSession.planningIssues?.length ? <p role="alert">{translateMessage(preview.error || previewSession.planningIssues?.[0]?.message)}</p> : null}
           {launchError ? <p role="alert">{translateMessage(launchError)}</p> : null}
           <div className="inspector-actions"><button className="secondary-button" type="button" disabled={saving || launching} onClick={resetConfig}><RotateCcw size={16}/>{t("Reset config")}</button><button className="secondary-button" type="button" disabled={saving} onClick={() => void performSave(() => onSaveConfig(pendingPreferences.current))}><Save size={16}/>{saving ? t("Saving…") : t("Save config")}</button><button className="primary-button" type="button" disabled={launching || preview.pending || !!preview.error || !!previewSession.planningIssues?.length} onClick={requestStart}><Play size={16}/>{launching ? t("Preparing practice…") : t("Start practice")}</button></div>

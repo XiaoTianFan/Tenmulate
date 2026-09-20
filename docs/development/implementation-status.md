@@ -19,6 +19,50 @@ and display/environment settings. It bypasses browser-saved overrides without
 deleting them; Save config explicitly replaces a saved config. Switching to an
 unsaved mode also loads a complete configuration instead of inheriting prior edits.
 
+## Racket-contact recordings — 2026-09-20
+
+The contact bank now has twelve independent recorded forehand/serve/slice hits,
+selected without recent repeats. Intensity varies brightness and decay as well as
+level. Exact WAV bytes travel in a lazy application chunk, so contact playback
+makes no media-file HTTP requests. Both setup/editor previews and rehearsal use it.
+711 tests / 73 files and the production build pass; memory-only browser checks
+verify actual recorded source IDs, mute, venue DSP and cleanup. Equal-RMS comparison
+renders are available. The owner accepted the latest results on 2026-09-20.
+See the [audio implementation](audio-system.md). Merged into local main with the
+Quick Practice configuration-reset work preserved. Merged-main verification passes 713 tests / 74 files, the production build and memory-only browser checks for preview audio, drill settings, Reset config and Sound section ordering, with zero media HTTP requests. No remote push or public deployment.
+
+## Configuration panel alignment — 2026-09-20
+
+Quick Practice and Drill Editor use the existing parameter-row inset of 20 px on
+both sides. Titles, section headings, helper text and action rows share that inset;
+disclosure indicators sit on the right instead of indenting heading text.
+Desktop and 390 px mobile browser measurements confirm matching left edges and
+20 px padding on both sides, with no panel horizontal overflow. Vite build passes;
+browser checks use the memory-only audio transport. The shared Sound section ends
+its controls with a compact, full-width master mute button below the sliders and
+crowd toggle.
+
+## Audio during configuration — 2026-09-20
+
+Quick Practice and drill-editor ball previews are audible after an initial gesture.
+The Quick configuration panel, drill library and editor expose the shared Sound
+controls; mix and mute choices carry into rehearsal and back during this visit.
+Drill-library ambience is audible before launch. Memory-only browser checks verify
+preview impacts, looping, mute and launch continuity with zero browser media HTTP.
+See the [audio contract](audio-system.md). Local feature checkout only.
+
+## Venue-aware audio — 2026-09-18
+
+Local gameplay uses licensed impacts/crowds, synthesized surface bounces and
+environmental layers, and six venue acoustic profiles. Separate crowd controls,
+translated retry and shared post-master capture preserve simulation/track
+ownership. Final release: 704 tests / 71 files, TypeScript/build/motion guard pass.
+Memory-only browser tests avoid IDM: 120 actual gameplay events meet the 40 ms p95
+budget; production Quick Practice/drill/capture, lifecycle and real-worker cache
+policy pass. Firefox 136 mute compatibility is fixed and verified. Owner listening
+and real Safari/iOS remain open; see the [audio ledger](audio-system.md) and
+[listening review](audio-listening-review.md). No merge or deployment.
+
 ## Fresh editor — 2026-09-16
 
 Without an existing browser draft, Editor opens an empty state directing users to

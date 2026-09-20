@@ -42,6 +42,11 @@ export default defineConfig({
           warnings: [],
         })],
         runtimeCaching: [{
+          urlPattern: /\/assets\/audio\/[a-z0-9-]+\.[a-f0-9]{12}\.(?:wav|mp3)$/,
+          handler: 'CacheFirst',
+          options: { cacheName: 'tenmulate-audio-v1', cacheableResponse: { statuses: [200] },
+            expiration: { maxEntries: 20, maxAgeSeconds: 30 * 24 * 60 * 60, purgeOnQuotaError: true } },
+        }, {
           urlPattern: /\/assets\/venues\/(hard-open-arena|clay-sunset-arena|grass-center-court|timber-hall|clay-stadium|covered-grass-arena)\/\1(?:\.performance)?\.[a-f0-9]{12}\.glb$/,
           handler: 'CacheFirst',
           options: { cacheName: 'tenmulate-venues-v1', cacheableResponse: { statuses: [200] },

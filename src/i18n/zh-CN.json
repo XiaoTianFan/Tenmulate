@@ -1,4 +1,7 @@
 {
+  "Some sounds unavailable · available sounds remain active": "部分声音不可用 · 其余声音仍可播放",
+  "Loading sounds…": "正在加载声音…",
+  "Sound": "声音",
   "Language": "语言",
   "Practice": "练习",
   "Drills": "训练",
@@ -7,6 +10,8 @@
   "About Tenmulate": "关于 Tenmulate",
   "Help": "帮助",
   "Contact": "联系",
+  "Ball contact": "击球",
+  "Ball bounce": "落地弹跳",
   "Created by": "作者",
   "A first-person tennis rehearsal tool for Quick Practice and custom drills.": "用于快速练习与自定义训练的第一人称网球演练工具。",
   "Drag the court": "拖动球场",
@@ -680,6 +685,16 @@
   "Reset config": "重置配置",
   "Incoming ball": "对手来球",
   "Configuration reset to defaults for this practice.": "已恢复当前练习的默认配置。",
-  "Choose the shot you want to practice. Opponent shot controls the ball coming to you.": "选择你想练习的击球类型。「对手击球」设置的是向你打来的球。"
+  "Choose the shot you want to practice. Opponent shot controls the ball coming to you.": "选择你想练习的击球类型。「对手击球」设置的是向你打来的球。",
 
+  "Mute all sound": "关闭所有声音",
+  "Unmute all sound": "开启所有声音",
+  "Crowd sound": "观众声音",
+  "Crowd": "观众",
+  "Crowd volume": "观众音量",
+  "Loading sounds · synthesized impacts for now": "正在加载声音 · 暂用合成触球音",
+  "Some sounds unavailable · synthesized impacts active": "部分声音不可用 · 正在使用合成触球音",
+  "Audio is unavailable in this browser": "当前浏览器无法播放声音",
+  "Tap to enable sound": "点击以开启声音",
+  "Retry sound": "重试声音"
 }

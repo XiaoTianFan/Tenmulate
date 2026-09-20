@@ -1,3 +1,5 @@
+import { useAudioSettings } from '../hooks/useAudioSettings';
+import { AudioSettings } from './AudioSettings';
 import { VENUE_LABELS } from '../domain/environment';
 import { defaultContentText } from '../i18n/content';
 import { t, message as translateMessage } from '../i18n/locale';
@@ -24,7 +26,7 @@ import {
 } from 'lucide-react';
 import type { SessionLaunch } from '../app/types';
 import { practiceAudio } from '../engine/audio/AudioCueEngine';
-import { crossedCues, sessionCues } from '../engine/audio/sessionCues';
+import { usePracticeAudio } from '../hooks/usePracticeAudio';
 import { compileSession } from '../engine/session/compileSession';
 import { scaleCameraTimeline } from '../engine/session/cameraTimeline';
 import { useSessionPlayer } from '../hooks/useSessionPlayer';
@@ -45,11 +47,11 @@ const speedOptions = [0.5, 0.75, 1, 1.25] as const;
 export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreenProps) {
   const contentText = (value: string) => launch.defaultContent ? defaultContentText(value) : value;
   const [playbackRate, setPlaybackRate] = useState(1);
-  const [soundEnabled, setSoundEnabled] = useState(true);
+  const { soundEnabled, setSoundEnabled, audioLevels, crowdEnabled } = useAudioSettings();
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [showTrajectory, setShowTrajectory] = useState(launch.trajectoryEnabled);
   const [cameraMotionScale, setCameraMotionScale] = useState(1);
-  const [audioLevels, setAudioLevels] = useState({ countdown: 1, contact: 1, bounce: 0.7, footwork: 0.6, ambience: 0 });
+  const effectiveAudioLevels = useMemo(() => ({ ...audioLevels, crowd: crowdEnabled ? audioLevels.crowd : 0 }), [audioLevels, crowdEnabled]);
   const [highContrastBall, setHighContrastBall] = useState(false);
   const [showBallTrail, setShowBallTrail] = useState(false);
   const [autoHideUI, setAutoHideUI] = useState(true);
@@ -58,9 +60,6 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
   const shellRef = useRef<HTMLElement>(null);
   const fullscreen = useFullscreen(shellRef);
   const toggleUI = useCallback(() => { setAutoHideUI(value => !value); setTouchControls(false); }, []);
-  const audioRef = useRef(practiceAudio);
-  const previousCueRef = useRef('');
-  const audioTimeRef = useRef(0);
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const effectiveCameraMotionScale = reducedMotion ? 0 : cameraMotionScale;
   const session = useMemo(() => {
@@ -68,7 +67,8 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
     if (!launch.session.playerEvents) return compileSession(launch.session.drill, { ...launch.session.settings, camera: launch.camera, cameraMotionScale: effectiveCameraMotionScale });
     return { ...launch.session, cameraTimeline: scaleCameraTimeline(launch.session.cameraTimeline, effectiveCameraMotionScale) };
   }, [effectiveCameraMotionScale, launch.session, launch.camera]);
-  const player = useSessionPlayer(session, playbackRate);
+  const rawPlayer = useSessionPlayer(session, playbackRate);
+  const { player, status: audioStatus } = usePracticeAudio(session, launch, rawPlayer, effectiveAudioLevels, soundEnabled);
   const playerEvent = session.playerEvents?.[Math.max(0, player.currentIndex)];
   const activeFlight = session.scheduledFlights?.find(flight => player.elapsed >= flight.startTime && player.elapsed < flight.endTime);
   const repetition = session.repetitions[playerEvent ? playerEvent.incomingIndex : player.currentIndex] ?? session.repetitions[0];
@@ -81,7 +81,6 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
   const openingBall = activeEvent?.event.openingFeed?.ball ?? (session.drill.schemaVersion === 2 ? session.drill.launch.ball : null);
   const metadataBall = opening ? openingBall : activeFlight?.phase === 'response' ? activeEvent?.event.opponentReturn.ball : activeEvent?.event.ball;
   const timing = playerEvent?.timing ?? repetition?.timing;
-  const timedCues = useMemo(() => sessionCues(session), [session]);
   const onMetrics = useCallback(() => undefined, []);
 
   useEffect(() => {
@@ -97,42 +96,6 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
     shell?.addEventListener('pointerdown', onPointerDown, true);
     return () => shell?.removeEventListener('pointerdown', onPointerDown, true);
   }, [autoHideUI, touchControls, showDiagnostics]);
-
-  useEffect(() => {
-    return () => audioRef.current.setAmbience(0);
-  }, []);
-
-  useEffect(() => {
-    const cueKey = `${player.status}:${player.countdown ?? ''}:${player.currentIndex}`;
-    if (cueKey === previousCueRef.current) return;
-    previousCueRef.current = cueKey;
-    if (player.status === 'countdown') audioRef.current?.play('countdown', soundEnabled ? audioLevels.countdown : 0);
-    if (player.status === 'completed') audioRef.current?.play('complete', soundEnabled ? audioLevels.countdown : 0);
-  }, [audioLevels.contact, audioLevels.countdown, player.countdown, player.currentIndex, player.status, soundEnabled]);
-
-  useEffect(() => audioRef.current?.setAmbience(soundEnabled ? audioLevels.ambience : 0), [audioLevels.ambience, soundEnabled]);
-
-  useEffect(() => {
-    let frame = 0;
-    const tick = () => {
-      const current = player.clock.current;
-      if (player.status !== 'paused' && player.status !== 'completed') {
-        for (const cue of crossedCues(timedCues, audioTimeRef.current, current)) audioRef.current.play(cue.kind, soundEnabled ? audioLevels[cue.kind] : 0);
-      }
-      audioTimeRef.current = current;
-      frame = requestAnimationFrame(tick);
-    };
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
-  }, [audioLevels, player.clock, player.status, soundEnabled, timedCues]);
-
-  useEffect(() => {
-    const onVisibility = () => {
-      if (document.hidden && player.status === 'playing') player.pause();
-    };
-    document.addEventListener('visibilitychange', onVisibility);
-    return () => document.removeEventListener('visibilitychange', onVisibility);
-  }, [player]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -213,7 +176,7 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
       <aside className="rehearsal-metadata" aria-label={t("Shot metadata")}>
         <div className="metadata-shot"><strong>{resolvedSpeed} <small>{t("km/h")}</small></strong>
           <span>{metadataBall ? `${t(ballOwner)} · ${t(metadataBall.spin)} · ${t(metadataBall.family)}` : `${t(shot.spin)} · ${t(shot.family)}`}</span>
-          <button type="button" aria-label={soundEnabled ? t("Mute cues") : t("Unmute cues")} title={soundEnabled ? t("Mute cues") : t("Unmute cues")} onClick={() => setSoundEnabled((value) => !value)}>{soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}</button>
+          <button type="button" aria-label={soundEnabled ? t("Mute all sound") : t("Unmute all sound")} title={soundEnabled ? t("Mute all sound") : t("Unmute all sound")} onClick={() => { if (!soundEnabled) practiceAudio.unlock(); setSoundEnabled((value) => !value); }}>{soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}</button>
         </div>
         <div className="metadata-placement"><span>{(metadataBall?.hand ?? shot.opponentHand) === 'left' ? t("Left") : t("Right")} {t("arm ·")} {t(metadataBall?.stroke ?? shot.stroke ?? 'Automatic')}</span><span>{playerEvent ? contentText(playerEvent.event.label) : repetition?.returnServePlacement
           ? t("{0} serve · {1}{2}", {"0": t(RETURN_SERVE_PLACEMENT_LABELS[repetition.returnServePlacement]), "1": t(shot.depth), "2": shot.serveRhythm ? ` · ${t(shot.serveRhythm)}` : ''})
@@ -222,6 +185,12 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
           {timing ? <span title={t("Shot interval")}>{timing.actual.toFixed(2)} {t("s")}</span> : null}
           <span>{t("Stroke")} {Math.round((repetition?.motionRate??1)*100)}%</span><span>{t("Move")} {Math.round((repetition?.movementRate??1)*100)}%</span></div>
         {paused ? <span className="metadata-state" role="status">{t("Paused")}</span> : null}
+        {soundEnabled && audioStatus !== 'ready' && audioStatus !== 'idle' ? <div className="metadata-note" role="status">
+          <span>{audioStatus === 'loading' ? t("Loading sounds…")
+            : audioStatus === 'fallback' ? t("Some sounds unavailable · available sounds remain active")
+              : audioStatus === 'unavailable' ? t("Audio is unavailable in this browser") : t("Tap to enable sound")}</span>
+          {audioStatus !== 'loading' && audioStatus !== 'unavailable' ? <button type="button" onClick={() => practiceAudio.retry()}>{t("Retry sound")}</button> : null}
+        </div> : null}
         {playerEvent ? <span className="metadata-note">{contentText(playerEvent.event.cue)}</span> : null}
         {timing?.limited ? <span className="metadata-note">{t("Requested")} {timing.requested.toFixed(2)} {t("s · resolved")} {timing.actual.toFixed(2)} {t("s")}</span> : null}
       </aside>
@@ -235,11 +204,7 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
           <label className="toggle-field"><span>{t("Trajectory")}</span><button type="button" role="switch" aria-label={t("Trajectory")} aria-checked={showTrajectory} className={showTrajectory ? 'toggle active' : 'toggle'} onClick={() => setShowTrajectory(value => !value)}><span /></button><small>{showTrajectory ? t("On") : t("Off")}</small></label>
           <details className="editor-section" open><summary>{t("Perspective")}</summary><BallFocusControls /></details>
           <label className="compact-range"><span>{t("Camera motion (restarts set)")}</span><input aria-label={t("Camera motion intensity")} type="range" min="0" max="1" step="0.25" value={cameraMotionScale} onChange={(event) => setCameraMotionScale(Number(event.target.value))} /><output>{Math.round(cameraMotionScale * 100)}%</output></label>
-          <label className="compact-range"><span>{t("Countdown")}</span><input aria-label={t("Countdown volume")} type="range" min="0" max="1" step="0.1" value={audioLevels.countdown} onChange={(event) => setAudioLevels((current) => ({ ...current, countdown: Number(event.target.value) }))} /><output>{Math.round(audioLevels.countdown * 100)}%</output></label>
-          <label className="compact-range"><span>{t("Contact")}</span><input aria-label={t("Contact volume")} type="range" min="0" max="1" step="0.1" value={audioLevels.contact} onChange={(event) => setAudioLevels((current) => ({ ...current, contact: Number(event.target.value) }))} /><output>{Math.round(audioLevels.contact * 100)}%</output></label>
-          <label className="compact-range"><span>{t("Bounce")}</span><input aria-label={t("Bounce volume")} type="range" min="0" max="1" step="0.1" value={audioLevels.bounce} onChange={(event) => setAudioLevels((current) => ({ ...current, bounce: Number(event.target.value) }))} /><output>{Math.round(audioLevels.bounce * 100)}%</output></label>
-          <label className="compact-range"><span>{t("Footwork")}</span><input aria-label={t("Footwork cue volume")} type="range" min="0" max="1" step="0.1" value={audioLevels.footwork} onChange={(event) => setAudioLevels((current) => ({ ...current, footwork: Number(event.target.value) }))} /><output>{Math.round(audioLevels.footwork * 100)}%</output></label>
-          <label className="compact-range"><span>{t("Ambience")}</span><input aria-label={t("Ambience volume")} type="range" min="0" max="1" step="0.1" value={audioLevels.ambience} onChange={(event) => setAudioLevels((current) => ({ ...current, ambience: Number(event.target.value) }))} /><output>{Math.round(audioLevels.ambience * 100)}%</output></label>
+          <AudioSettings />
           <label className="compact-check"><input type="checkbox" checked={highContrastBall} onChange={(event) => setHighContrastBall(event.target.checked)} /><span>{t("High-contrast ball")}</span></label>
           <label className="compact-check"><input type="checkbox" checked={showBallTrail} onChange={(event) => setShowBallTrail(event.target.checked)} /><span>{t("Short ball trail")}</span></label>
         </aside>

@@ -35,6 +35,14 @@ and 9.8 m from the net. Volley starts halfway between the T and net. **Reset vie
 restores those mode-specific positions. See the
 [Quick Practice return and camera contract](decisions/0051-quick-practice-returns-and-views.md).
 
+Practice sound starts with your Start gesture. Settings separates contact,
+bounce, training, ambience and crowd levels. **Crowd sound** can be disabled
+independently; an empty venue has no crowd sound. Indoor venues add damped
+reflections, while outdoor venues use shorter tails and configured weather/wind.
+**Mute all sound** also silences effects and captured audio. Pause/backgrounding
+fades sound; resume restores it. If sounds fail to load, the visible status
+identifies the synthesized fallback and offers **Retry sound**.
+
 **Cast** opens iOS Screen Mirroring instructions and an optional local court capture
 preview. Capture keeps the same canvas/video/audio tracks across setup and practice,
 with up to 720p at 30 fps. Direct AirPlay of that live capture is unavailable in
@@ -142,3 +150,12 @@ See the [net rendering decision](decisions/0028-filtered-net-weave.md).
 Renderer diagnostics are available with `?profileRenderer=1`, including the actual
 GPU, drawing-buffer size, CPU stages and asynchronous GPU time. See the
 [performance investigation](development/renderer-performance-2026-09-08.md).
+
+## Sound while configuring practice
+
+Open **Sound** in Quick Practice, the drill library or the drill editor to adjust
+contact, bounce, training cues, ambience and crowd volume. Click **Tap to enable
+sound** if the browser has not enabled audio yet. Ball previews and venue ambience
+are audible before starting; the drill library plays the selected venue ambience.
+Use **Mute all sound** or disable **Crowd sound** independently. Your mix follows
+you into practice and back to setup for this app visit; reloading restores defaults.

@@ -3,6 +3,7 @@ import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import type { DrillDefinitionV2 } from '../content/types';
 import { AppHeader, type AppRoute } from '../components/AppHeader';
 import { compileSession } from '../engine/session/compileSession';
+import { practiceAudio } from '../engine/audio/AudioCueEngine';
 import { compilePlayerDrillAsync } from '../engine/session/playerDrillClient';
 import { useAppData } from '../hooks/useAppData';
 import { defaultDrillSettings } from './defaults';
@@ -109,6 +110,7 @@ function AppRoutes({ appData }: { appData: ReturnType<typeof useAppData> }) {
   const drillLaunch = async (drill: DrillDefinitionV2, { rhythm, interval, movement, rerun, trajectoryEnabled = false, practiceSet, defaultContent = false }: {
     rhythm?: number; interval?: number; movement?: number; rerun?: SessionLaunch; trajectoryEnabled?: boolean; practiceSet?: DrillPracticeSet; defaultContent?: boolean;
   } = {}) => {
+    practiceAudio.unlock();
     calculation.current?.abort(); const controller = new AbortController(); calculation.current = controller; setBusy(true);
     try {
       const preferences = appData.data.preferences;
@@ -133,12 +135,12 @@ function AppRoutes({ appData }: { appData: ReturnType<typeof useAppData> }) {
         if (launch.session.drill.schemaVersion === 2) void drillLaunch(launch.session.drill, { rerun: launch });
         else setLaunch({ ...launch, session: compileSession(launch.session.drill, { ...launch.session.settings, seed: String(Number(launch.session.settings.seed || '0') + 1) }) });
       }}/>
-      : route === 'drills' ? <DrillLibraryScreen route={route} drills={drills} projectIds={projectIds}
+      : route === 'drills' ? <DrillLibraryScreen environment={appData.data.preferences.environment} surface={appData.data.preferences.surface} route={route} drills={drills} projectIds={projectIds}
         projectStatus={storageStatus} writable={true} onRoute={navigate}
         playerHand={appData.data.drillPlayerHand} onPlayerHandChange={appData.saveDrillPlayerHand} onPrepare={prepareDrill}
         onRun={(drill, rhythm, interval, movement, practiceSet) => void drillLaunch(drill, { rhythm, interval, movement, practiceSet, defaultContent: projectIds.includes(drill.id) })} onEdit={editDrill} onSave={saveDrill}
         onDelete={async id => { if (import.meta.env.DEV && project.writable && projectIds.includes(id)) await project.remove(id); appData.deleteDrill(id); drafts.remove(id); }}/>
-      : route === 'editor' ? editorDrill ? <DrillEditorScreen key={editorDrill.id} route={route} launching={busy} initialDrill={editorDrill} initialPlayerHand={appData.data.drillPlayerHand} onPlayerHandChange={appData.saveDrillPlayerHand} surface={appData.data.preferences.surface}
+      : route === 'editor' ? editorDrill ? <DrillEditorScreen environment={appData.data.preferences.environment} key={editorDrill.id} route={route} launching={busy} initialDrill={editorDrill} initialPlayerHand={appData.data.drillPlayerHand} onPlayerHandChange={appData.saveDrillPlayerHand} surface={appData.data.preferences.surface}
         initialDraft={drafts.get(editorDrill.id)} onDraftChange={cacheDraft} writable={true} projectStatus={storageStatus}
         savedShots={shots} shotsWritable={true} shotsStatus={storageStatus}
         projectShotIds={projectShotIds} onSaveShot={saveShot}

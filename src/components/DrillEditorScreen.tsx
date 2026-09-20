@@ -1,3 +1,6 @@
+import { AudioSettings } from './AudioSettings';
+import { usePreviewAudio } from '../hooks/usePreviewAudio';
+import type { EnvironmentConfiguration } from '../domain/environment';
 import { t, message as translateMessage } from '../i18n/locale';
 import { SaveCancelled } from '../storage/savePolicy';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -27,6 +30,7 @@ import { CourtViewport } from './SharedCourt';
 import type { EditorDraft } from '../storage/editorDrafts';
 
 type Props = {
+  environment: EnvironmentConfiguration;
   launching?: boolean;
   route: AppRoute; initialDrill: DrillDefinitionV2; surface: SurfaceId;
   initialPlayerHand: OpponentHand; onPlayerHandChange: (hand: OpponentHand) => void;
@@ -40,7 +44,7 @@ const cloneEvent = (event: PlayerShotEventV2) => ({ ...structuredClone(event), i
 const noMetrics = () => undefined;
 
 const START_CLOCK = Object.freeze({ current: 0 });
-export function DrillEditorScreen({ route, launching = false, initialDrill, initialDraft, onDraftChange, writable, projectStatus, initialPlayerHand, onPlayerHandChange, surface, onRoute, onSave, onTest, savedShots, shotsWritable, shotsStatus, projectShotIds, onSaveShot, onDeleteShot }: Props) {
+export function DrillEditorScreen({ environment, route, launching = false, initialDrill, initialDraft, onDraftChange, writable, projectStatus, initialPlayerHand, onPlayerHandChange, surface, onRoute, onSave, onTest, savedShots, shotsWritable, shotsStatus, projectShotIds, onSaveShot, onDeleteShot }: Props) {
   const [drill, setDrill] = useState<DrillDefinitionV2>(() => {
     const copy = structuredClone(playerDrillForHand(initialDraft?.drill ?? initialDrill, initialPlayerHand));
     const fov = copy.events[0]?.camera.fov ?? DEFAULT_CAMERA.fov;
@@ -118,6 +122,7 @@ export function DrillEditorScreen({ route, launching = false, initialDrill, init
   }, [captureDraft]);
   const shotPreview = usePlayerDrillPreview(shotDrill, surface, selection, !!zoneDraft || !!viewDraft);
   const session = sequence ? preview.session : shotPreview.session;
+  const onPreviewAudioFrame = usePreviewAudio(environment, surface, !launching && !!session && (sequence ? preview.current : shotPreview.current), session);
   const compiled = preview.current ? preview.session?.playerEvents?.find(item => item.event.id === selected?.id) : undefined;
   const nextCompiled = preview.current ? preview.session?.playerEvents?.find(item => item.event.id === nextEvent?.id) : undefined;
   const transitionWindow = compiled && nextCompiled ? { start: compiled.startTime, end: nextCompiled.startTime } : undefined;
@@ -226,7 +231,7 @@ export function DrillEditorScreen({ route, launching = false, initialDrill, init
         onDelete={async id => { const name = savedShots.find(shot => shot.id === id)?.name; await onDeleteShot(id); setShotNotice(`Deleted “${name}” from the shot library.`); }}/>
       <section className="editor-stage">
         <div className="editor-scene" ref={sceneContainer}>
-          {trajectory && events.length ? <CourtViewport camera={displayCamera} courtOverview={overview} trajectory={trajectory} surface={surface} running={!launching} resetToken={0} showTrajectory={showTrajectory || overview} showOpponentLandingZone session={launching ? undefined : session!} sessionClock={launching ? START_CLOCK : clock} followSessionCamera={sequence && !overview}
+          {trajectory && events.length ? <CourtViewport onPreviewAudioFrame={onPreviewAudioFrame} camera={displayCamera} courtOverview={overview} trajectory={trajectory} surface={surface} running={!launching} resetToken={0} showTrajectory={showTrajectory || overview} showOpponentLandingZone session={launching ? undefined : session!} sessionClock={launching ? START_CLOCK : clock} followSessionCamera={sequence && !overview}
             shotPreviewPending={launching || (sequence ? !preview.current : !shotPreview.current)}
             nearLandingZone={sequence ? session?.repetitions[previewIndex]?.trajectory.intent.landingZone : nearZone} nearLandingZoneLimits={nearLimits} returnLandingZone={!sequence && zoneDraft?.role === 'player' ? zoneDraft.zone : (sequence ? playingEvent : selected)?.landingZone}
             onLandingZoneDraft={sequence || isTransition ? undefined : zone => setZoneDraft(zone ? { role: 'opponent', zone } : null)}
@@ -271,6 +276,7 @@ export function DrillEditorScreen({ route, launching = false, initialDrill, init
           {compiled?.timing && !preview.pending ? <p className="saved-shot-count">{t("Player contacts")} {compiled.timing.actual.toFixed(2)} {t("s apart")}{compiled.timing.limited ? t(" · requested {0} s", {"0": compiled.timing.requested.toFixed(2)}) : ''}.</p> : null}
           <button className="secondary-button full-width save-shot-button" type="button" onClick={() => setShotDraft({ mode: selected.presetId ? 'update' : 'new', event: snapshotPlayerShot({ ...selected, camera: isTransition ? selected.camera : previewCamera }, workingDrill) })}><Save size={16}/> {t("Save shot")}</button>
         </> : null}
+        <AudioSettings />
         {[...validation.errors, ...issues.map(issue => issue.message), ...shotIssues.map(issue => issue.message), ...(preview.error ? [preview.error] : [])].length ? <ul className="validation-errors">{[...new Set([...validation.errors, ...issues.map(issue => issue.message), ...shotIssues.map(issue => issue.message), ...(preview.error ? [preview.error] : [])])].map(error => <li key={error}>{translateMessage(error)}</li>)}</ul> : null}
         <div className="editor-primary-actions"><small className="project-save-status">{writable ? t("Draft retained here. Save drill to keep a library version.") : translateMessage(projectStatus)}</small><button className="primary-button" type="button" disabled={!validation.valid || !writable || saving} onClick={() => void saveDrill()}><Save size={17}/> {saving ? t("Saving…") : t("Save drill")}</button>
           <button className="secondary-button full-width" type="button" disabled={!validation.valid || preview.pending || !!issues.length || !!preview.error} onClick={() => onTest(workingDrill, showTrajectory)}><Play size={16}/> {t("Test drill")}</button></div>

@@ -10,6 +10,12 @@ practice audio. Setup, Quick Practice, editor and drill playback retain the same
 source and tracks. Local capture and the manual iOS Screen Mirroring guide are
 implemented; direct website-to-existing-receiver transport remains blocked.
 
+**Venue audio (2026-09-17):** [ADR-0057](decisions/0057-venue-aware-practice-audio.md)
+adds one Web Audio graph with bounded voices, decoded buffers and venue reverb.
+The existing simulation clock drives spatial impact cues. Speaker and capture
+outputs share the same post-effects master. Rehearsal exit releases scene audio
+without closing capture tracks; see the [audio ledger](development/audio-system.md).
+
 ## 1. Architectural objective
 
 Build a deterministic tennis rehearsal engine whose ball, opponent, camera, and cues share one timeline while keeping the browser UI, render backend, and future tracking system replaceable.

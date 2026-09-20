@@ -1,3 +1,7 @@
+import { AudioSettings } from './AudioSettings';
+import { usePreviewAudio } from '../hooks/usePreviewAudio';
+import type { EnvironmentConfiguration } from '../domain/environment';
+import type { SurfaceId } from '../domain/court';
 import { t, message as translateMessage } from '../i18n/locale';
 import { SaveCancelled } from '../storage/savePolicy';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -16,6 +20,7 @@ import { Modal } from './Modal';
 import { maxDrillRepetitions, type DrillPracticeSet } from '../app/drillPracticeSet';
 
 type Props = {
+  environment: EnvironmentConfiguration; surface: SurfaceId;
   route: AppRoute; drills: readonly DrillDefinitionV2[]; projectIds: readonly string[];
   writable: boolean; projectStatus: string;
   playerHand: OpponentHand; onPlayerHandChange: (hand: OpponentHand) => void;
@@ -27,7 +32,7 @@ type Props = {
   onDelete: (id: string) => Promise<void>;
 };
 
-export function DrillLibraryScreen({ route, drills, projectIds, writable, projectStatus, playerHand, onPlayerHandChange, onRoute, onRun, onPrepare, onEdit, onSave, onDelete }: Props) {
+export function DrillLibraryScreen({ environment, surface, route, drills, projectIds, writable, projectStatus, playerHand, onPlayerHandChange, onRoute, onRun, onPrepare, onEdit, onSave, onDelete }: Props) {
   const [selectedId, setSelectedId] = useState(drills[0]?.id ?? '');
   const [rhythmOverride, setRhythmOverride] = useState<number | null>(null);
   const [intervalOverride, setIntervalOverride] = useState<number | null>(null);
@@ -38,6 +43,7 @@ export function DrillLibraryScreen({ route, drills, projectIds, writable, projec
   const inputRef = useRef<HTMLInputElement>(null);
   const authored = drills.find(drill => drill.id === selectedId) ?? drills[0];
   const selected = useMemo(() => authored && playerDrillForHand(authored, playerHand), [authored, playerHand]);
+  usePreviewAudio(environment, surface, !!selected);
   const inProject = !!selected && projectIds.includes(selected.id);
   const rhythm = rhythmOverride ?? selected?.defaultRhythmPercent ?? rhythmFromLegacyInterval(selected?.defaultInterval ?? 4.5);
   const interval = intervalOverride ?? selected?.defaultInterval ?? 4.5;
@@ -120,6 +126,7 @@ export function DrillLibraryScreen({ route, drills, projectIds, writable, projec
               <small aria-live="polite">{validSet ? t("{0} complete {1} · {2} player shots{3}", {"0": repetitions, "1": repetitions === 1 ? t('run') : t('runs'), "2": repetitions * selected.events.length, "3": repetitions > 1 ? t(' · {0}s rest between runs', { '0': restSeconds }) : t(' · no rest needed')})
                 : t("Enter 1–{0} whole repetitions and 0–120 seconds of rest.", {"0": maxRepetitions})}</small>
             </fieldset>
+            <AudioSettings />
             <button className="primary-button" type="button" disabled={busy || !validSet || !selected.events.length} onClick={() => onRun(selected, rhythm, interval, movement, { repetitions, restSeconds })}><Play size={17}/> {t("Run drill")}</button>
             <button className="secondary-button full-width" type="button" disabled={busy} onClick={() => onEdit(selected)}><PencilLine size={16}/> {t("Edit drill")}</button>
             <button className="secondary-button full-width" type="button" disabled={busy} onClick={() => {
