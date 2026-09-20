@@ -39,37 +39,46 @@
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "retrieved": "2026-09-17"
+    },
+    {
+      "id": "jamesdrake89-662263",
+      "title": "Tennis Forehand 2",
+      "author": "jamesdrake89",
+      "page": "https://freesound.org/people/jamesdrake89/sounds/662263/",
+      "url": "https://cdn.freesound.org/previews/662/662263_4980667-hq.mp3",
+      "sha256": "d154e00fee6b2fa7c49c9e4a0b8625b0571f9710072cafbf4eeb5ea1fdf56d9b",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "retrieved": "2026-09-20",
+      "note": "Public HQ MP3 preview of mono 48 kHz recording; lossy, not the login-gated WAV original. Author discloses wind/traffic. Four separate transients extracted."
+    },
+    {
+      "id": "jamesdrake89-662265",
+      "title": "Tennis Serves 1",
+      "author": "jamesdrake89",
+      "page": "https://freesound.org/people/jamesdrake89/sounds/662265/",
+      "url": "https://cdn.freesound.org/previews/662/662265_4980667-hq.mp3",
+      "sha256": "fbc7f32bcb125927005085b72f846b92753b67fda47f760cfd22bcacdb918aad",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "retrieved": "2026-09-20",
+      "note": "Public HQ MP3 preview of mono 48 kHz recording; lossy, not the login-gated WAV original. Author discloses wind/traffic. Four separate transients extracted."
+    },
+    {
+      "id": "jamesdrake89-662270",
+      "title": "Tennis Slices 1",
+      "author": "jamesdrake89",
+      "page": "https://freesound.org/people/jamesdrake89/sounds/662270/",
+      "url": "https://cdn.freesound.org/previews/662/662270_4980667-hq.mp3",
+      "sha256": "a86b35b016fca65407833a10e254cdaa3611b2ad3cdcfd73e454d4cb8fdad542",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "retrieved": "2026-09-20",
+      "note": "Public HQ MP3 preview of mono 48 kHz recording; lossy, not the login-gated WAV original. Author discloses wind/traffic. Four separate transients extracted."
     }
   ],
-  "generated": "scripts/audio/build-palette.mjs with src/engine/audio/synthesis.ts",
+  "generated": "scripts/audio/build-palette.mjs + scripts/audio/build-contact-bank.mjs",
   "assets": {
-    "contact-0": {
-      "url": "/assets/audio/contact-0.6033330a4782.wav",
-      "sha256": "6033330a47821644e2a2a443998ac25c7cc6643ba961699c6e25b74ff2badc87",
-      "bytes": 30012,
-      "source": "tennis-hit-preview",
-      "recipe": "atrim=start=0.476:end=0.78,asetpts=PTS-STARTPTS,asetrate=46800,aresample=48000,highpass=f=85,lowpass=f=7600,afade=t=out:st=0.20:d=0.08,volume=0.7",
-      "channels": 1,
-      "sampleRate": 48000
-    },
-    "contact-1": {
-      "url": "/assets/audio/contact-1.b7e5343be65d.wav",
-      "sha256": "b7e5343be65de2c74bfd8ec41e31b4ddd22f68017b951b60188e52c8ae58b413",
-      "bytes": 29262,
-      "source": "tennis-hit-preview",
-      "recipe": "atrim=start=0.476:end=0.78,asetpts=PTS-STARTPTS,asetrate=48000,aresample=48000,highpass=f=85,lowpass=f=6800,afade=t=out:st=0.20:d=0.08,volume=0.7",
-      "channels": 1,
-      "sampleRate": 48000
-    },
-    "contact-2": {
-      "url": "/assets/audio/contact-2.b0652dd3352c.wav",
-      "sha256": "b0652dd3352c2624ceabfe729190fefc1a02841b8f8b3bf559c97f6c33940180",
-      "bytes": 28552,
-      "source": "tennis-hit-preview",
-      "recipe": "atrim=start=0.476:end=0.78,asetpts=PTS-STARTPTS,asetrate=49199.99999999999,aresample=48000,highpass=f=85,lowpass=f=6000,afade=t=out:st=0.20:d=0.08,volume=0.7",
-      "channels": 1,
-      "sampleRate": 48000
-    },
     "bounce-hard-0": {
       "url": "/assets/audio/bounce-hard-0.e34a3fe91a71.wav",
       "sha256": "e34a3fe91a71988968995a302202c9afefcc049442ab3c09927f77ce5ecf28b8",
@@ -241,6 +250,234 @@
       "sampleRate": 48000,
       "duration": 8,
       "recipe": "First 8.8s, 200-2100Hz, gain .32, .8s tail/head crossfade, 128kbps MP3 with gapless metadata."
+    },
+    "contact-0": {
+      "url": "/assets/audio/contact-0.c116dc148a34.wav",
+      "sha256": "c116dc148a347c63ee2a2bf193502e4bf48c8f2eb5f2d2e18d3aff8e8a5d3edf",
+      "bytes": 23084,
+      "source": "jamesdrake89-662263",
+      "group": "drive",
+      "channels": 1,
+      "sampleRate": 48000,
+      "recipe": {
+        "startSample": 5283,
+        "durationSamples": 11520,
+        "sourcePeakSeconds": 0.13,
+        "filter": "70 Hz high-pass, 11 kHz low-pass",
+        "gain": 1.76162652573377,
+        "fadeInSamples": 24,
+        "fadeOutSamples": 2880,
+        "independentTake": true
+      }
+    },
+    "contact-1": {
+      "url": "/assets/audio/contact-1.0585c7ade962.wav",
+      "sha256": "0585c7ade962c75e1a4ee9553ab3766dc009cabd6a8c7a0cb1abc3f4aa50cdc2",
+      "bytes": 23084,
+      "source": "jamesdrake89-662263",
+      "group": "drive",
+      "channels": 1,
+      "sampleRate": 48000,
+      "recipe": {
+        "startSample": 32583,
+        "durationSamples": 11520,
+        "sourcePeakSeconds": 0.685,
+        "filter": "70 Hz high-pass, 11 kHz low-pass",
+        "gain": 1.5077835089893368,
+        "fadeInSamples": 24,
+        "fadeOutSamples": 2880,
+        "independentTake": true
+      }
+    },
+    "contact-2": {
+      "url": "/assets/audio/contact-2.1f0f8669cebd.wav",
+      "sha256": "1f0f8669cebd9415999a229fb7bc492f58a9fbb1f92f71a46259cd502117c3b2",
+      "bytes": 23084,
+      "source": "jamesdrake89-662263",
+      "group": "drive",
+      "channels": 1,
+      "sampleRate": 48000,
+      "recipe": {
+        "startSample": 64246,
+        "durationSamples": 11520,
+        "sourcePeakSeconds": 1.345,
+        "filter": "70 Hz high-pass, 11 kHz low-pass",
+        "gain": 1.825385804354552,
+        "fadeInSamples": 24,
+        "fadeOutSamples": 2880,
+        "independentTake": true
+      }
+    },
+    "contact-3": {
+      "url": "/assets/audio/contact-3.e452021ba1fe.wav",
+      "sha256": "e452021ba1fe325918b8b1bdb28a5d55e756092d2ecae991cb2985360329a021",
+      "bytes": 23084,
+      "source": "jamesdrake89-662263",
+      "group": "drive",
+      "channels": 1,
+      "sampleRate": 48000,
+      "recipe": {
+        "startSample": 94080,
+        "durationSamples": 11520,
+        "sourcePeakSeconds": 1.985,
+        "filter": "70 Hz high-pass, 11 kHz low-pass",
+        "gain": 1.845100113016166,
+        "fadeInSamples": 24,
+        "fadeOutSamples": 2880,
+        "independentTake": true
+      }
+    },
+    "contact-4": {
+      "url": "/assets/audio/contact-4.3687d5490453.wav",
+      "sha256": "3687d5490453042697d52d90676e8fb44f8ff6ef8b61b5771fbdb0979471b841",
+      "bytes": 23084,
+      "source": "jamesdrake89-662265",
+      "group": "serve",
+      "channels": 1,
+      "sampleRate": 48000,
+      "recipe": {
+        "startSample": 6800,
+        "durationSamples": 11520,
+        "sourcePeakSeconds": 0.14,
+        "filter": "70 Hz high-pass, 11 kHz low-pass",
+        "gain": 2.4033185050778765,
+        "fadeInSamples": 24,
+        "fadeOutSamples": 2880,
+        "independentTake": true
+      }
+    },
+    "contact-5": {
+      "url": "/assets/audio/contact-5.e62b3ba07498.wav",
+      "sha256": "e62b3ba07498193ffc56276ecef7d2352cd14cd88b03f10c8b800bdd796e4923",
+      "bytes": 23084,
+      "source": "jamesdrake89-662265",
+      "group": "serve",
+      "channels": 1,
+      "sampleRate": 48000,
+      "recipe": {
+        "startSample": 43786,
+        "durationSamples": 11520,
+        "sourcePeakSeconds": 0.91,
+        "filter": "70 Hz high-pass, 11 kHz low-pass",
+        "gain": 2.3116465090911698,
+        "fadeInSamples": 24,
+        "fadeOutSamples": 2880,
+        "independentTake": true
+      }
+    },
+    "contact-6": {
+      "url": "/assets/audio/contact-6.193bd02b5c67.wav",
+      "sha256": "193bd02b5c6737237e1eaf9bc535e2184d2811f9794f043d90a2d14811850737",
+      "bytes": 23084,
+      "source": "jamesdrake89-662265",
+      "group": "serve",
+      "channels": 1,
+      "sampleRate": 48000,
+      "recipe": {
+        "startSample": 80753,
+        "durationSamples": 11520,
+        "sourcePeakSeconds": 1.68,
+        "filter": "70 Hz high-pass, 11 kHz low-pass",
+        "gain": 2.5483609924848256,
+        "fadeInSamples": 24,
+        "fadeOutSamples": 2880,
+        "independentTake": true
+      }
+    },
+    "contact-7": {
+      "url": "/assets/audio/contact-7.2ff323aad3a3.wav",
+      "sha256": "2ff323aad3a3f666cd8c411c9fab5d7112b49b55a5cd554aee076070c2501631",
+      "bytes": 23084,
+      "source": "jamesdrake89-662265",
+      "group": "serve",
+      "channels": 1,
+      "sampleRate": 48000,
+      "recipe": {
+        "startSample": 125060,
+        "durationSamples": 11520,
+        "sourcePeakSeconds": 2.605,
+        "filter": "70 Hz high-pass, 11 kHz low-pass",
+        "gain": 2.2802157141193304,
+        "fadeInSamples": 24,
+        "fadeOutSamples": 2880,
+        "independentTake": true
+      }
+    },
+    "contact-8": {
+      "url": "/assets/audio/contact-8.5065ea93e1d5.wav",
+      "sha256": "5065ea93e1d5bc64aa683ef35febc9e4a2ad25d8fcd71d8cbf181e0bb5df3055",
+      "bytes": 23084,
+      "source": "jamesdrake89-662270",
+      "group": "slice",
+      "channels": 1,
+      "sampleRate": 48000,
+      "recipe": {
+        "startSample": 8695,
+        "durationSamples": 11520,
+        "sourcePeakSeconds": 0.18,
+        "filter": "70 Hz high-pass, 11 kHz low-pass",
+        "gain": 2.1525930428465005,
+        "fadeInSamples": 24,
+        "fadeOutSamples": 2880,
+        "independentTake": true
+      }
+    },
+    "contact-9": {
+      "url": "/assets/audio/contact-9.185c77fd88fa.wav",
+      "sha256": "185c77fd88fada36dca2525a8bc85bb5d21cf9c42e753c3e98ae11fa08d7fdbf",
+      "bytes": 23084,
+      "source": "jamesdrake89-662270",
+      "group": "slice",
+      "channels": 1,
+      "sampleRate": 48000,
+      "recipe": {
+        "startSample": 93669,
+        "durationSamples": 11520,
+        "sourcePeakSeconds": 1.97,
+        "filter": "70 Hz high-pass, 11 kHz low-pass",
+        "gain": 1.7979199126372178,
+        "fadeInSamples": 24,
+        "fadeOutSamples": 2880,
+        "independentTake": true
+      }
+    },
+    "contact-10": {
+      "url": "/assets/audio/contact-10.4682d0eba553.wav",
+      "sha256": "4682d0eba5534418122a9d8b6d43bf2b30f937e8015b6766c62d21cbb466643d",
+      "bytes": 23084,
+      "source": "jamesdrake89-662270",
+      "group": "slice",
+      "channels": 1,
+      "sampleRate": 48000,
+      "recipe": {
+        "startSample": 129688,
+        "durationSamples": 11520,
+        "sourcePeakSeconds": 2.715,
+        "filter": "70 Hz high-pass, 11 kHz low-pass",
+        "gain": 1.709416315255226,
+        "fadeInSamples": 24,
+        "fadeOutSamples": 2880,
+        "independentTake": true
+      }
+    },
+    "contact-11": {
+      "url": "/assets/audio/contact-11.79664af26856.wav",
+      "sha256": "79664af268560ad6ff783fb68069f1b281be96b69cdf234dd3b11326f5011639",
+      "bytes": 23084,
+      "source": "jamesdrake89-662270",
+      "group": "slice",
+      "channels": 1,
+      "sampleRate": 48000,
+      "recipe": {
+        "startSample": 181923,
+        "durationSamples": 11520,
+        "sourcePeakSeconds": 3.8,
+        "filter": "70 Hz high-pass, 11 kHz low-pass",
+        "gain": 1.6846821450626839,
+        "fadeInSamples": 24,
+        "fadeOutSamples": 2880,
+        "independentTake": true
+      }
     }
   }
 }

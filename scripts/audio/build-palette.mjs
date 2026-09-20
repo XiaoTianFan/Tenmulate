@@ -103,3 +103,6 @@ await writeFile(new URL('src/content/audio-palette.json', root), JSON.stringify(
 await writeFile(new URL('provenance.json', output), JSON.stringify({ version: 1, sources, generated: 'scripts/audio/build-palette.mjs with src/engine/audio/synthesis.ts', assets }, null, 2) + '\n');
 await writeFile(new URL('NOTICE.txt', output), 'Tenmulate audio palette\nRecorded sources: kletton97 (Tennis-Ball-Hit), qubodup (Well Done), jayfrosting (Murmur 1.wav).\nThese recordings are CC0 1.0: https://creativecommons.org/publicdomain/zero/1.0/\nSee provenance.json for exact source links, hashes, transformations and preview limitations.\nBounce samples are authored procedural effects, not recordings.\n');
 console.log(JSON.stringify({ assets: Object.keys(assets).length, shippedAudioBytes: bytes, ffmpeg: spawnSync('ffmpeg', ['-version'], { encoding: 'utf8' }).stdout.split('\n')[0] }, null, 2));
+
+const { buildContactBank } = await import('./build-contact-bank.mjs');
+await buildContactBank();
