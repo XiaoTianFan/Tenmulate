@@ -186,8 +186,8 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
           <span>{t("Stroke")} {Math.round((repetition?.motionRate??1)*100)}%</span><span>{t("Move")} {Math.round((repetition?.movementRate??1)*100)}%</span></div>
         {paused ? <span className="metadata-state" role="status">{t("Paused")}</span> : null}
         {soundEnabled && audioStatus !== 'ready' && audioStatus !== 'idle' ? <div className="metadata-note" role="status">
-          <span>{audioStatus === 'loading' ? t("Loading sounds · synthesized impacts for now")
-            : audioStatus === 'fallback' ? t("Some sounds unavailable · synthesized impacts active")
+          <span>{audioStatus === 'loading' ? t("Loading sounds…")
+            : audioStatus === 'fallback' ? t("Some sounds unavailable · available sounds remain active")
               : audioStatus === 'unavailable' ? t("Audio is unavailable in this browser") : t("Tap to enable sound")}</span>
           {audioStatus !== 'loading' && audioStatus !== 'unavailable' ? <button type="button" onClick={() => practiceAudio.retry()}>{t("Retry sound")}</button> : null}
         </div> : null}

@@ -9,7 +9,7 @@ export function previewFlightCues(time: number, flights: readonly PreviewFlight[
   return flights.flatMap(({ trajectory, time: age }, index) => {
     const start = time - age;
     const id = `${Math.round(start * 1000000)}:${index}`;
-    return [{ id: `contact:${id}`, kind: 'contact' as const, time: start, position: trajectory.intent.source, speedKmh: trajectory.resolved.launchSpeedKmh },
+    return [{ id: `contact:${id}`, kind: 'contact' as const, time: start, position: trajectory.intent.source, family: trajectory.intent.family ?? trajectory.intent.shotType, spin: trajectory.intent.spin, speedKmh: trajectory.resolved.launchSpeedKmh },
       ...trajectory.events.filter(event => event.type === 'bounce').map((event, i) => ({ id: `bounce:${id}:${i}`, kind: 'bounce' as const, time: start + event.time, position: event.position, speedKmh: event.speedKmh }))];
   });
 }

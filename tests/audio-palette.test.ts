@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync, readdirSync } from 'node:fs';
 import { expect, it } from 'vitest';
 import palette from '../src/content/audio-palette.json';
+import contactBank from '../src/content/contact-bank.json';
 import { AUDIO_LIMITS } from '../src/engine/audio/acoustics';
 
 it('ships only manifested, hash-matched audio within the complete transfer budget', () => {
@@ -16,7 +17,8 @@ it('ships only manifested, hash-matched audio within the complete transfer budge
     size += bytes.length;
   }
   expect(size).toBeGreaterThan(0);
-  expect(size).toBeLessThanOrEqual(AUDIO_LIMITS.shippedBytes);
+  // Include the application-carried contact payload as well as retained WAV assets.
+  expect(size + Buffer.byteLength(JSON.stringify(contactBank))).toBeLessThanOrEqual(AUDIO_LIMITS.shippedBytes);
 });
 
 it('retains useful non-clipped mono PCM impacts without a late attack', () => {
@@ -54,7 +56,8 @@ it('retains provenance for every recorded or procedural effect', () => {
     expect(asset.recipe).toBeTruthy();
     if (asset.source === 'authored') continue;
     const source = provenance.sources.find((source: { id: string }) => source.id === asset.source);
-    expect(source).toMatchObject({ license: 'CC0-1.0', retrieved: '2026-09-17' });
+    expect(source).toMatchObject({ license: 'CC0-1.0' });
+    expect(source.retrieved).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(source.sha256).toMatch(/^[a-f0-9]{64}$/);
     expect(source.page).toMatch(/^https:\/\//);
     expect(source.licenseUrl).toBe('https://creativecommons.org/publicdomain/zero/1.0/');

@@ -31,16 +31,23 @@ export function bouncePcm(sampleRate: number, frequency: number, decay: number, 
   return normalizePcm(result, .66);
 }
 
+/** Short stochastic excitation with damped resonances; no sustained two-tone beep. */
 export function contactPcm(sampleRate: number, seed: number) {
-  const samples = new Float32Array(Math.ceil(sampleRate * .2));
+  const samples = new Float32Array(Math.ceil(sampleRate * .18));
   const random = noiseRandom(seed);
-  let body = 0;
+  const modes = [180, 530, 970, 1430, 2380].map((frequency, i) => ({
+    frequency: frequency * (1 + random() * .045), decay: [.012, .009, .006, .004, .003][i]!,
+    weight: [.18, .13, .09, .05, .035][i]!, phase: random() * Math.PI,
+  }));
+  let low = 0, previous = 0;
   for (let i = 0; i < samples.length; i++) {
-    const t = i / sampleRate;
-    body += .4 * (random() - body);
-    samples[i] = Math.min(1, t / .0005) * (body * Math.exp(-t / .014)
-      + .4 * Math.sin(2 * Math.PI * 290 * t) * Math.exp(-t / .021)
-      + .16 * Math.sin(2 * Math.PI * 1170 * t) * Math.exp(-t / .011));
+    const t = i / sampleRate, noise = random();
+    low += .28 * (noise - low);
+    const transient = (noise - previous) * .12 * Math.exp(-t / .0014);
+    previous = noise;
+    const compression = low * .8 * Math.exp(-t / .006);
+    const modesValue = modes.reduce((sum, mode) => sum + mode.weight * Math.sin(2 * Math.PI * mode.frequency * t + mode.phase) * Math.exp(-t / mode.decay), 0);
+    samples[i] = Math.min(1, t / .00035) * (transient + compression + modesValue);
   }
   return normalizePcm(samples, .65);
 }

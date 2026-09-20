@@ -4,7 +4,7 @@ import { sessionCues, type TimedCue } from './sessionCues';
 import type { Vec3 } from '../../domain/vector';
 import { COURT } from '../../domain/court';
 
-export type SpatialCue = TimedCue & Readonly<{ id: string; position?: Vec3; speedKmh?: number }>;
+export type SpatialCue = TimedCue & Readonly<{ id: string; position?: Vec3; speedKmh?: number; family?: string; spin?: string }>;
 
 /** Adds physical metadata without changing the existing training cue contract. */
 export function spatialSessionCues(session: CompiledSession): SpatialCue[] {
@@ -18,7 +18,7 @@ export function spatialSessionCues(session: CompiledSession): SpatialCue[] {
   const cues: SpatialCue[] = [];
   flights.forEach((flight, index) => {
     cues.push({ id: `contact:${index}`, time: flight.start, kind: 'contact',
-      position: flight.trajectory.intent.source, speedKmh: flight.trajectory.resolved.launchSpeedKmh });
+      position: flight.trajectory.intent.source, family: flight.trajectory.intent.family ?? flight.trajectory.intent.shotType, spin: flight.trajectory.intent.spin, speedKmh: flight.trajectory.resolved.launchSpeedKmh });
     flight.trajectory.events.forEach((event, eventIndex) => {
       if (event.type !== 'bounce' || flight.start + event.time > flight.end) return;
       cues.push({ id: `bounce:${index}:${eventIndex}`, time: flight.start + event.time, kind: 'bounce',

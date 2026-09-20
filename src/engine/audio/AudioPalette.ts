@@ -39,6 +39,17 @@ export class AudioPalette {
 
   get(id: PaletteAsset): AudioBuffer | undefined { return this.buffers.get(id); }
 
+  private async response(id: PaletteAsset, signal: AbortSignal): Promise<Response> {
+    if (!id.startsWith('contact-')) return fetch(manifest.assets[id].url, { signal });
+    // A lazy application chunk carries exact WAV bytes. No media URL is requested.
+    const bank = (await import('../../content/contact-bank.json')).default;
+    if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
+    const encoded = bank[id as keyof typeof bank];
+    if (!encoded) throw new Error(`Missing embedded contact: ${id}`);
+    const bytes = Uint8Array.from(atob(encoded), char => char.charCodeAt(0));
+    return new Response(bytes, { headers: { 'content-type': 'audio/wav' } });
+  }
+
   load(id: PaletteAsset): Promise<AudioBuffer | null> {
     const existing = this.get(id);
     if (existing) return Promise.resolve(existing);
@@ -52,9 +63,14 @@ export class AudioPalette {
     lifetime.addEventListener('abort', abort, { once: true });
     const timeout = setTimeout(abort, 8000);
     this.status = 'loading'; this.changed();
+    let cancelResponse: (() => void) | undefined;
     const request = (async () => {
       try {
-        const response = await fetch(asset.url, { signal: controller.signal });
+        const cancelled = new Promise<never>((_resolve, reject) => {
+          cancelResponse = () => reject(new DOMException('Aborted', 'AbortError'));
+          controller.signal.addEventListener('abort', cancelResponse, { once: true });
+        });
+        const response = await Promise.race([this.response(id, controller.signal), cancelled]);
         if (!response.ok) throw new Error(`Audio ${response.status}: ${id}`);
         const data = await response.arrayBuffer();
         if (data.byteLength !== asset.bytes) throw new Error(`Invalid audio payload: ${id} (${data.byteLength}/${asset.bytes}, ${response.headers.get('content-type')})`);
@@ -80,6 +96,7 @@ export class AudioPalette {
         }
         return null;
       } finally {
+        if (cancelResponse) controller.signal.removeEventListener('abort', cancelResponse);
         clearTimeout(timeout); lifetime.removeEventListener('abort', abort);
         if (generation === this.generation) {
           this.pending.delete(id);
@@ -93,13 +110,24 @@ export class AudioPalette {
   }
 
   async prepare(surface: SurfaceId, crowd: boolean) {
-    const keys: PaletteAsset[] = [0, 1, 2].flatMap(i => [`contact-${i}`, `bounce-${surface}-${i}`] as PaletteAsset[]);
+    const keys: PaletteAsset[] = [...Array.from({ length: 12 }, (_, i) => `contact-${i}` as PaletteAsset),
+      ...[0, 1, 2].map(i => `bounce-${surface}-${i}` as PaletteAsset)];
     if (crowd) keys.push('murmur', 'cheer-0', 'cheer-1');
     await Promise.all(keys.map(key => this.load(key)));
   }
 
+  contactSource(variant: number): PaletteAsset | 'procedural' {
+    const preferred = `contact-${variant}` as PaletteAsset;
+    if (this.get(preferred)) return preferred;
+    // Partial loading retains recorded contact instead of unnecessarily using tones.
+    const group = Math.floor(variant / 4) * 4;
+    const candidates = [...Array.from({ length: 4 }, (_, i) => group + i), ...Array.from({ length: 12 }, (_, i) => i)];
+    return candidates.map(i => `contact-${i}` as PaletteAsset).find(id => this.get(id)) ?? 'procedural';
+  }
+
   contact(variant: number) {
-    return this.get(`contact-${variant}` as PaletteAsset) ?? this.pcm(`fallback-contact-${variant}`, () => contactPcm(this.context.sampleRate, 157 + variant));
+    const source = this.contactSource(variant);
+    return source === 'procedural' ? this.pcm(`fallback-contact-${variant % 4}`, () => contactPcm(this.context.sampleRate, 157 + variant % 4)) : this.get(source)!;
   }
 
   bounce(surface: SurfaceId, variant: number) {

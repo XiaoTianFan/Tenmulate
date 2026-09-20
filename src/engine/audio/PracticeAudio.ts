@@ -1,3 +1,4 @@
+import { ContactSelector } from './contactSelection';
 import type { SurfaceId } from '../../domain/court';
 import { DEFAULT_ENVIRONMENT, type EnvironmentConfiguration } from '../../domain/environment';
 import { audienceGain, cueVariation, environmentalLevels } from './acoustics';
@@ -27,9 +28,10 @@ export class AudioCueEngine {
   private loops = new Map<string, NonNullable<ReturnType<SoundscapeGraph['play']>>>();
   private cleanupTimer: ReturnType<typeof setTimeout> | null = null;
   private sequence = 0;
+  private readonly contacts = new ContactSelector();
   private generation = 0;
   private captureLeases = 0;
-  private dispatches: { id: string; eventTime: number; clockTime: number; latencyMs: number }[] = [];
+  private dispatches: { id: string; eventTime: number; clockTime: number; latencyMs: number; source?: string }[] = [];
 
   subscribe = (listener: () => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; };
   getSnapshot = () => this.status;
@@ -102,7 +104,7 @@ export class AudioCueEngine {
     this.audible = true;
     if (!this.context) { this.status = 'locked'; this.listeners.forEach(listener => listener()); return; }
     this.graph!.setMaster(!this.enabled, true); this.graph!.setVenue(this.environment.venue);
-    if (previous === 'idle') { this.dispatches = []; void this.prepare(); }
+    if (previous === 'idle') { this.contacts.reset(); this.dispatches = []; void this.prepare(); }
     if (playback === 'completed') {
       this.stopLoops();
       this.play('complete', this.levels.countdown);
@@ -151,10 +153,12 @@ export class AudioCueEngine {
     if (cue.kind === 'footwork') { this.play('footwork', volume); return; }
     const variation = cueVariation(cue.id, seed);
     const speed = Math.max(.45, Math.min(1, (cue.speedKmh ?? 85) / 140));
-    const buffer = cue.kind === 'contact' ? this.palette.contact(variation.variant) : this.palette.bounce(this.surface, variation.variant);
-    this.graph.play(buffer, cue.kind, { gain: volume * .42 * speed * variation.gain * spatial.gain,
-      rate: variation.rate, pan: spatial.pan });
-    this.dispatches.push({ id: cue.id, eventTime: cue.time, clockTime, latencyMs: (clockTime - cue.time) * 1000 });
+    const contact = cue.kind === 'contact' ? this.contacts.select(cue, seed) : null;
+    const source = contact ? this.palette.contactSource(contact.index) : undefined;
+    const buffer = cue.kind === 'contact' ? this.palette.contact(contact!.index) : this.palette.bounce(this.surface, variation.variant);
+    this.graph.play(buffer, cue.kind, { gain: volume * .42 * (contact?.gain ?? speed) * variation.gain * spatial.gain,
+      rate: contact?.rate ?? variation.rate, cutoff: contact?.cutoff, decay: contact?.decay, pan: spatial.pan });
+    this.dispatches.push({ id: cue.id, eventTime: cue.time, clockTime, latencyMs: (clockTime - cue.time) * 1000, ...(source ? { source } : {}) });
     if (this.dispatches.length > 512) this.dispatches.shift();
   }
 
@@ -163,7 +167,7 @@ export class AudioCueEngine {
   tick() { this.graph?.sweep(); }
   resetTimeline() {
     this.generation++; this.clearTimer(); this.dispatches = [];
-    this.graph?.silence(); this.loops.clear(); this.sequence = 0;
+    this.graph?.silence(); this.loops.clear(); this.sequence = 0; this.contacts.reset();
     if (this.enabled && this.audible) this.graph?.setVenue(this.environment.venue, true);
     this.syncLoops();
   }

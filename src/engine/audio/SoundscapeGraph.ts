@@ -3,7 +3,7 @@ import { impulsePcm } from './synthesis';
 import type { VenueId } from '../../domain/environment';
 
 export type AudioBus = 'contact' | 'bounce' | 'training' | 'ambience' | 'crowd';
-type Voice = { source: AudioBufferSourceNode; gain: GainNode; pan: StereoPannerNode;
+type Voice = { source: AudioBufferSourceNode; gain: GainNode; pan: StereoPannerNode; filter?: BiquadFilterNode;
   bus: AudioBus; loop: boolean; stopping: boolean; disposed: boolean };
 type Effect = { convolver: ConvolverNode; gain: GainNode; disposeAt: number; bytes: number };
 
@@ -105,7 +105,7 @@ export class SoundscapeGraph {
     for (const effect of [...this.effects]) if (effect.disposeAt <= this.context.currentTime) this.releaseEffect(effect);
   }
 
-  play(buffer: AudioBuffer, bus: AudioBus, options: { gain?: number; rate?: number; pan?: number; loop?: boolean; when?: number } = {}) {
+  play(buffer: AudioBuffer, bus: AudioBus, options: { gain?: number; rate?: number; pan?: number; loop?: boolean; when?: number; cutoff?: number; decay?: number } = {}) {
     if (this.disposed || this.muted || !this.active) return null;
     while (this.voices.size >= AUDIO_LIMITS.voices) {
       const voice = [...this.voices].find(voice => !voice.loop) ?? this.voices.values().next().value;
@@ -121,8 +121,15 @@ export class SoundscapeGraph {
     const level = Math.max(0, Math.min(.6, options.gain ?? .25));
     gain.gain.setValueAtTime(source.loop ? 0 : level, when);
     if (source.loop) gain.gain.linearRampToValueAtTime(level, when + .15);
-    source.connect(gain).connect(pan).connect(this.buses[bus]);
-    const voice: Voice = { source, gain, pan, bus, loop: source.loop, stopping: false, disposed: false };
+    const filter = options.cutoff !== undefined ? context.createBiquadFilter() : undefined;
+    if (filter) { filter.type = 'lowpass'; filter.Q.value = .5; filter.frequency.value = Math.min(context.sampleRate * .45, Math.max(1000, options.cutoff!)); source.connect(filter).connect(gain); }
+    else source.connect(gain);
+    gain.connect(pan).connect(this.buses[bus]);
+    if (!source.loop && options.decay && level > 0) {
+      gain.gain.setValueAtTime(level, when + .012);
+      gain.gain.exponentialRampToValueAtTime(Math.max(.00001, level * .015), when + Math.max(.03, options.decay));
+    }
+    const voice: Voice = { source, gain, pan, filter, bus, loop: source.loop, stopping: false, disposed: false };
     this.voices.add(voice);
     source.onended = () => this.releaseVoice(voice);
     source.start(when);
@@ -143,7 +150,7 @@ export class SoundscapeGraph {
     voice.disposed = true; voice.source.onended = null;
     try { voice.source.stop(); } catch { /* Already ended. */ }
     voice.source.disconnect(); voice.source.buffer = null;
-    voice.gain.disconnect(); voice.pan.disconnect(); this.voices.delete(voice);
+    voice.gain.disconnect(); voice.pan.disconnect(); voice.filter?.disconnect(); this.voices.delete(voice);
   }
 
   stopBus(bus: AudioBus) {

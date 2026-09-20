@@ -25,7 +25,7 @@ export function AudioSettings() {
       if (!soundEnabled || status === 'locked' || status === 'idle') { setSoundEnabled(true); practiceAudio.unlock(); }
       else setSoundEnabled(false);
     }}>{!soundEnabled ? t('Unmute all sound') : status === 'locked' || status === 'idle' ? t('Tap to enable sound') : t('Mute all sound')}</button>
-    {status === 'fallback' ? <p role="status">{t('Some sounds unavailable · synthesized impacts active')} <button type="button" onClick={() => practiceAudio.retry()}>{t('Retry sound')}</button></p> : null}
+    {status === 'fallback' ? <p role="status">{t('Some sounds unavailable · available sounds remain active')} <button type="button" onClick={() => practiceAudio.retry()}>{t('Retry sound')}</button></p> : null}
     {status === 'unavailable' ? <p role="status">{t('Audio is unavailable in this browser')}</p> : null}
   </details>;
 }
