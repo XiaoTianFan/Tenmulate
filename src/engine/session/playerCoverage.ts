@@ -3,7 +3,7 @@ import type { Vec3 } from '../../domain/vector';
 import type { CameraMotionDefinition } from '../../content/types';
 import { netHeightAt, type FlightSample, type ResolvedTrajectory } from '../trajectory/physics';
 
-/** Product calibration, with research provenance in docs/research/player-coverage.md.
+/** Product calibration, with research provenance in docs/technical-architecture.md#calibration-references-and-limits.
  * Height is independent of the movable camera's eye height. */
 export const PLAYER_COVERAGE = Object.freeze({ heightM: 1.75, reactionSeconds: .28,
   acceleration: 5.5, speedMps: 4.5, racketReachM: 1.05, minContactM: .25,

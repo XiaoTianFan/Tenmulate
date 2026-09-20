@@ -1,585 +1,133 @@
-# Technical architecture
-
-- **Status:** Proposed
-- **Last updated:** 2026-09-09
-
-**Persistent court capture (2026-09-09):** [ADR-0034](decisions/0034-persistent-court-capture.md)
-adds a route-independent capture controller to the existing shared canvas. Capture
-uses a 30 fps ceiling and a 720p drawing-buffer budget, with an optional tap of
-practice audio. Setup, Quick Practice, editor and drill playback retain the same
-source and tracks. Local capture and the manual iOS Screen Mirroring guide are
-implemented; direct website-to-existing-receiver transport remains blocked.
-
-**Venue audio (2026-09-17):** [ADR-0057](decisions/0057-venue-aware-practice-audio.md)
-adds one Web Audio graph with bounded voices, decoded buffers and venue reverb.
-The existing simulation clock drives spatial impact cues. Speaker and capture
-outputs share the same post-effects master. Rehearsal exit releases scene audio
-without closing capture tracks; see the [audio ledger](development/audio-system.md).
-
-## 1. Architectural objective
-
-Build a deterministic tennis rehearsal engine whose ball, opponent, camera, and cues share one timeline while keeping the browser UI, render backend, and future tracking system replaceable.
-
-The system should optimize for perceptual credibility and testability, not for general-purpose game physics.
-
-## 2. Proposed stack
-
-**Gameplay chrome (2026-09-08):** `RehearsalScreen` defaults to auto-hide. Persistent
-header/transport hit areas reveal both surfaces through CSS hover and visible
-keyboard focus, without pointer-move state updates. Touch capture follows the
-physical DOM because the shared renderer is a React portal; an initial reveal tap
-does not activate hidden controls. Shot metadata remains at bottom-right.
-`useFullscreen` owns native fullscreen for the gameplay container, synchronizes
-`fullscreenchange`, prevents concurrent requests, reports failures and releases
-fullscreen on session exit. The stable canvas stays inside the fullscreen target.
-See the [verification receipt](development/gameplay-hud-2026-09-08.md).
-
-**Measured renderer costs (2026-09-08):** [ADR-0031](decisions/0031-measured-renderer-cost-and-preview-preparation.md)
-adds opt-in CPU stage and asynchronous GPU timing with actual adapter/buffer
-metadata. Unlit fixture lights are excluded from shader generation and the physical
-sky draws after opaque depth. A single module worker prepares the next unused
-practice batch with the identical compiler, seeds and interval solver; the render
-thread applies it at the original boundary. Worker lifecycle follows session
-ownership. The [receipt](development/renderer-performance-2026-09-08.md) separates
-GPU execution cost, CPU stalls and browser presentation cadence.
-
-**Groundstroke inverse search (2026-09-08):** [ADR-0030](decisions/0030-groundstroke-net-clearance-search.md)
-replaces the old angle proxy and speed-first fitting. `ball-v7-net-clearance`
-fits Natural groundstroke speed/spin together, ranking actual clearance above
-the tape with a soft 3.5 m threshold. Groundstroke spin can decrease by 75%; zone
-pace keeps its ±50% envelope. First-flight search and final playback share forces;
-the selected result alone builds the complete trajectory. Exact, deliberate high
-clearances and Lob remain available. See the
-[receipt](development/groundstroke-net-clearance-2026-09-08.md).
-
-**Interval-first motion (2026-09-08):** [ADR-0029](decisions/0029-interval-first-motion.md)
-makes requested contact interval primary. A bounded search resolves stroke and
-movement preferences (50–300%) before extending an infeasible interval. The compiler
-and repeating preview share it; no hidden playback-only speed increase remains.
-Preparation advances during braking and arrives exactly at stroke entry. Racket
-anchors, uniform source clocks, independent ball physics and camera travel bounds
-remain. Current UI reports resolved rates/intervals; see the
-[verification receipt](development/interval-first-motion-2026-09-08.md).
-
-**Filtered net (2026-09-08):** [ADR-0028](decisions/0028-filtered-net-weave.md)
-replaces the displayed weave in both authored venue variants with one surface
-whose shader integrates thread coverage across the pixel footprint. Source bounds,
-sag, pitch, tape/posts and TypeScript collision authority remain. Subpixel weave
-converges to average coverage rather than disappearing at an alpha cutoff. The
-venue manager owns and disposes the replacement with its loaded GLB.
-
-**Optional ball highlight (2026-09-08):** [ADR-0027](decisions/0027-ball-only-highlight.md)
-removes all ball-focus postprocessing. Each frame changes only active ball materials'
-color/emission, then renders the scene directly. Trajectory, trail and landing-zone
-materials are independent and receive no highlight. The existing after-net approach
-curve and visible-frame gating supply highlight strength without changing gameplay
-timing. Perspective exposes one shared **Ball highlight** toggle. The persisted
-`ballFocus.enabled` key retains compatibility; obsolete blur values are discarded.
-Earlier lens ADRs and receipts are historical records, not active rendering paths.
-
-**Shared court and editing contract (2026-09-08):** [ADR-0020](decisions/0020-shared-court-and-transactional-zone-editing.md) moves renderer ownership to `SharedCourtProvider`. Route `CourtViewport` slots reuse the same portal, canvas, scene, WebGL context and unchanged assets. Parking or document hiding suspends rendering without disposal. `LandingZoneControl` previews translation and anchored edge/corner resizing using reusable scene geometry; it publishes one rectangle on release and restores the model on cancellation. Session identity guards prevent callback changes from rebuilding the preview. Editor edits become one undo entry, and practice preferences flush when leaving the page. The shipped corner/volley position presets carry a far-baseline `lookAt` target while retaining the selected FOV. The [verification receipt](development/shared-court-and-zone-resize-2026-09-08.md) records measured interaction latency and resource reuse.
-
-**Landing-zone contract (2026-09-08):** [ADR-0018](decisions/0018-uniform-landing-zones-and-continuous-preview.md) supersedes the fixed landing intent and CSS controls below. `landingZone.ts` clips court/service-box rectangles before independent uniform X/Z sampling. `compileSession` derives contact orientation and fitted launch parameters from that sample, using separate seeded streams. [ADR-0019](decisions/0019-direct-landing-zone-manipulation.md) replaces the axis arrows with `LandingZoneControl`: raycast the rendered area, retain the grab offset, and translate both court coordinates on one ground plane. `SceneViewport` captures either zone movement or camera look at primary-button press. `ContinuousPracticePreview` streams fresh batches on an absolute clock through the same recovery planner; launched sessions stay finite. The [direct-drag receipt](development/landing-zone-direct-drag-2026-09-08.md) records current interaction evidence.
-
-**Earlier practice contract (2026-09-08):** [ADR-0017](decisions/0017-independent-practice-clocks-and-natural-targets.md) makes recovery-root position, shot contact interval, stroke source clock and preferred travel pace independent inputs. `compileSession` derives moving racket contacts for a fixed landing intent; `opponentMovement` owns analytical acceleration/braking and schedule feasibility. Ordinary trajectories follow the low-angle branch with explicit Natural/Exact resolution. Setup handles edit court-space target axes with pointer capture. The [current receipt](development/practice-refinement-2026-09-08.md) records implementation and validation.
-
-**Motion production update (2026-09-05):** [ADR-0012](decisions/0012-local-opponent-motion-pipeline.md) replaces cloud mocap with local video analysis, constraint correction, and Blender baking in `F:/Codes/Tenmulate_motion_analysis`. Only versioned runtime assets/metadata and the session-time animation controller enter this frontend. Inference is never a browser runtime dependency. The implemented method and current binding contract are in section 8.
-
-| Layer | Proposed choice | Rationale |
-| --- | --- | --- |
-| App shell | React + TypeScript + Vite | Suitable for setup, drill selection, controls, local editor states, and a static deployment. |
-| 3D runtime | Direct Three.js integration behind a typed engine adapter | Keeps the fixed-step simulation and frame lifecycle explicit; avoids sending high-frequency state through React. |
-| Renderer | Three.js `WebGLRenderer` with WebGL 2 as the accepted V1 baseline behind a typed scene adapter | This is the verified implementation path; WebGPU remains a later production-asset benchmark rather than a release dependency. |
-| Shader/material path | Procedural GLSL layered onto Three.js physical materials | Keeps every venue surface compact, deterministic, dynamically relightable, and compatible with the accepted WebGL 2 baseline. |
-| Ball dynamics | Custom fixed-step 3D numerical solver | Tennis needs drag, spin-dependent lift, precise bounce targets, inverse authoring, and deterministic outputs more than general rigid-body contacts. |
-| General collision option | Rapier, only if later features need it | Provides WASM, CCD, SI-unit guidance, and cross-platform determinism for collision-heavy extensions. |
-| Runtime asset format | glTF/GLB | Designed for runtime delivery and carries meshes, PBR materials, skins, morphs, and animation clips. |
-| Environment format | Six Blender-authored venues, each with Quality/Performance GLBs | ADR-0013 replaces procedural venue sketches. Gameplay coordinates, atmosphere, lighting and efficient instanced 2D audiences stay TypeScript-owned. |
-| Asset DCC | Blender | Canonical cleanup, scale/orientation, retargeting, animation markers, optimization, and export, regardless of whether the source was modeled, licensed, scanned, or AI-generated. |
-| Asset delivery | Hashed static manifests + object/CDN origin candidate | Keeps large optional GLB/animation/venue payloads independently cacheable and lazy-loaded; provider selection follows measured egress/caching tests. |
-| Test layers | Vitest-style unit/property tests, browser E2E, frame-time harness, visual snapshots | Separates numerical truth, sequence behavior, runtime behavior, and visual fidelity. Exact test framework is selected during scaffold. |
-| V1 persistence | Versioned local JSON + browser storage + service-worker cache | Presets, calibration, custom drills, and selected offline content need no account; keeps public-free V1 deployable as a static application. |
-
-**Gameplay integration update (2026-09-08):** [ADR-0015](decisions/0015-mode-aware-gameplay-rhythm.md) and [ADR-0016](decisions/0016-bounded-rally-arcs-and-drill-pace.md) establish the mode-aware compiler: fixed-home practice, tactical recovery/direct routes, percentage rhythm, calibrated receiver coverage and physically solved return links. All application previews share that compiler. Compiled drill feeds now use fixed-speed angle resolution, while raw legacy asset/physics authoring remains available internally. See the [integration receipt](development/gameplay-rhythm-integration-2026-09-08.md) for the current evidence and limits.
-
-## 3. System boundaries
-
-```mermaid
-flowchart LR
-    UI[React application shell] --> CMD[Typed commands]
-    CMD --> SESSION[Session controller]
-    SESSION --> CLOCK[Fixed-step simulation clock]
-    SESSION --> TIMELINE[Drill timeline]
-    TIMELINE --> BALL[Ball trajectory engine]
-    TIMELINE --> ANIM[Opponent animation controller]
-    TIMELINE --> CAMERA[Camera rig]
-    TIMELINE --> AUDIO[Audio and cues]
-    BALL --> EVENTS[Contact, net, bounce, arrival events]
-    EVENTS --> TIMELINE
-    CLOCK --> SNAPSHOT[Interpolated render snapshot]
-    BALL --> SNAPSHOT
-    ANIM --> SNAPSHOT
-    CAMERA --> SNAPSHOT
-    SNAPSHOT --> RENDER[Three.js render adapter]
-    ASSETS[Validated GLB and textures] --> ANIM
-    ASSETS --> RENDER
-    STORE[Versioned local presets and calibration] --> SESSION
-```
-
-React owns menus and low-frequency state. The session controller owns active playback. The render adapter reads immutable/interpolated snapshots and never becomes the source of ball truth.
-
-## 4. World model and units
-
-- SI units everywhere: meters, seconds, kilograms, radians.
-- Right-handed coordinates:
-  - `x`: court width, positive toward court-left as seen by the near player looking toward the opponent; this never depends on user handedness.
-  - `y`: vertical, positive upward.
-  - `z`: court length, positive from the near baseline toward the opponent.
-- Court center at ground level below the net: `(0, 0, 0)`.
-- Near baseline at `z = -11.885`; far baseline at `z = +11.885`.
-- Singles sidelines at `x = ±4.115`; doubles sidelines at `x = ±5.485`.
-- Service lines at `z = ±6.40`.
-- Opponent placement extends through the ITF international-competition runoff to `x = ±9.145` and `z = ±18.285`, derived from 3.66 m sideline and 6.40 m baseline clearances. Rally defaults to `(0, 0, 12.885)`, one metre behind the far baseline; serve/net presets keep their authored origins.
-- A single validated surface identifier selects the matching visual material and bounce profile. Legacy independent appearance/physics preferences normalize to one canonical value during local-storage loading, with the former physics choice taking precedence when both exist.
-
-All geometry constants live in one tested court-domain module sourced from the current ITF rules and the [2026 ITF technical booklet](https://www.itftennis.com/media/15648/2026-technical-booklet.pdf), Table 5 on pages 43–44.
-
-## 5. Display and camera calibration
-
-For a physically calibrated display, the perspective camera should derive field of view from visible screen height `H` and eye-to-screen distance `D`:
-
-```text
-verticalFov = 2 * atan(H / (2 * D))
-```
-
-The horizontal field of view follows from aspect ratio. The product should expose:
-
-- **Physical-view mode:** geometry aligns to the user's real viewing cone. This can feel zoomed on smaller screens but preserves scale.
-- **Immersive mode:** a user-tunable FOV/zoom prioritizes court awareness and preference over physical 1:1 projection.
-
-Physical calibration is optional because the app must also work when users do not know screen dimensions or viewing distance. Camera location is independent of physical viewer distance. The realistic reset is provisionally 1.70 m eye height, centered, 1.5 m behind the near baseline, level horizon, and a default FOV selected during real-display testing.
-
-Camera positions (eye height plus lateral/longitudinal location) and perspectives (yaw, pitch, and FOV) are separate locally versioned preset collections. Users can combine either collection freely, move the setup camera, update an existing preset in place, or create a new preset. The renderer applies perspective as a local `YXZ` Euler orientation rather than recomputing a look-at point from a fixed court target, so position changes preserve the active aim. Left-button pointer capture accumulates yaw and pitch in 0.1° display increments and wraps each axis through 360°; right-button capture remains reserved for opponent-shot aiming. Wheel input over the court adjusts horizontal FOV through the shared 5°–160° clamp (up narrows/zooms in, down widens/zooms out), prevents page scrolling only while the pointer is on the canvas, and clears the selected perspective preset so the changed view can be saved explicitly. WASD movement derives forward and strafe basis vectors from the active yaw, normalizes diagonal input, then converts world z back into the stored behind-baseline coordinate; Ctrl+W/S reserves the forward axis for bounded 0.4–8.0 m eye-height movement. The top-down opponent planner retains its player-view/world-x conversion independently. Reset applies the first position plus the first perspective; a preference change cannot alter court geometry, shot coordinates, or event timing.
-
-Camera motion uses a rig with separate position and gaze/orientation tracks. It must not parent ball or court coordinates, and it should use capped velocity/acceleration plus reduced-motion alternatives.
-
-## 6. Ball trajectory engine
-
-### 6.1 State
-
-```ts
-type BallState = {
-  time: number;
-  position: Vec3;
-  velocity: Vec3;
-  angularVelocity: Vec3;
-};
-```
-
-Shot definitions store an authoring intent and a resolved launch solution. This lets content authors say “land deep cross-court and arrive shoulder-high” while tests preserve the exact resolved parameters.
-
-Quick Practice exposes only a target-practice authoring path: Groundstroke, Serve, Volley, Lob, or Overhead; launch speed; compatible spin type and continuous rpm; landing depth; direction; surface; and cadence. There is no user-facing raw-angle or manual-ballistics mode. A right-button drag is raycast from the current FPV camera onto the regulation court plane and converted through the shared player-view horizontal convention. `ball-v6-spin-target` treats launch speed as an exact magnitude, retains shot-profile net clearance as an internal safety constraint, samples the valid fixed-speed launch-angle envelope, and refines the closest first-bounce target. Groundstroke/Volley prefer the lower matching branch; Lob prefers the high branch; Serve clamps depth and direction inside the diagonally opposite service box. If the selected combination is impossible, the physical closest result is retained without changing speed or fabricating a target hit. Bundled/editor-authored V1 content retains its validated compatibility fields internally, but does not add a second Quick Practice control mode. Both paths use the same forces, bounce profiles, and event reporting.
-
-The four left-rail setup presets compose camera and feed choices rather than naming the opponent's stroke in every case. In particular, Volley selects the `position-net` user camera plus the standard behind-baseline Groundstroke profile. Choosing Volley in the explicit Shot type control remains the separate authoring path for a spin-free opponent volley from near the net.
-
-### 6.2 Free-flight forces
-
-The `ball-v6-spin-target` solver applies:
-
-- gravity `m * g`;
-- drag opposite the velocity vector, proportional to `0.5 * Cd * rho * A * v²`;
-- Magnus lift perpendicular to velocity and spin axes, proportional to `0.5 * Cl * rho * A * v²`;
-- quadratic drag and Magnus force relative to the configured world-space wind velocity; calm air remains the compatibility default.
-
-Wind direction is stored in the player-facing court frame: `0 degrees` moves air toward `+z` and `90 degrees` toward `+x`. The authoring solver finds the calm-air launch required for the intended target, then runtime air-relative forces apply the configured wind. This deliberately makes wind move the visible bounce/arrival instead of silently re-aiming every opponent shot.
-
-The implementation uses a 57.7 g, 67 mm ball, `Cd = 0.55`, and `Cl = min(0.35, 0.6 S)`, where `S = Rω/v`. Spin type supplies shot-local topspin and side-spin axes that rotate with launch heading; continuous rpm supplies their normalized magnitude. A Flat groundstroke is a low-topspin drive with a 760 rpm default and a non-zero 250–1,600 rpm control range, not a spin-free projectile. Flat, slice, and kick serve defaults approximate measured magnitudes of 123, 232, and 337 rad/s. Volley spin is always zero; Lob uses a lower-spin high-arc family so it does not inherit the ordinary groundstroke spin magnitude. Free-flight angular speed currently decays about 2% per 6.4 m. These constants, their source evidence, and remaining calibration limits are recorded in [Ball flight and impact calibration](research/ball-flight-impact-calibration.md).
-
-### 6.3 Integration and events
-
-- Fixed 1/240 s semi-implicit integration; endpoint, legality, determinism, and post-bounce invariants are covered by checked-in tests, while a high-resolution research comparison remains an external calibration gate.
-- Rendering interpolates between simulation states and does not advance the physics clock directly.
-- Court and net intersections are solved within a step instead of waiting for a sampled point to cross a plane.
-- Ball launch, net crossing/contact, court bounce, receiver-plane crossing, and shot completion are timestamped events.
-- Receiver-plane crossing is diagnostic, not terminal. Samples continue through repeated bounce/ground motion for at least three seconds after first ground contact; interval-based preview launches use a small shared-geometry ball pool so a new launch never truncates an earlier ball.
-- Spin decays continuously with distance before impact; the current 2% per 6.4 m coefficient remains an instrumented-calibration gate.
-- The renderer projects immutable trajectory samples into screen space for hover hit-testing. The tooltip interpolates the nearest sample and derives angle, apex, net clearance, landing error, bounce speeds, and receiver state without changing the simulation clock or React becoming the source of ball truth.
-
-The 2026 trajectory paper used 0.0001 s for research fitting and found increased fit error at 0.001 s. A consumer runtime can use a coarser step only after endpoint and timing error are measured against the reference solver.
-
-### 6.4 Bounce model
-
-Bounce is a discontinuity between two free-flight arcs. A surface profile provides:
-
-```ts
-type SurfacePhysics = {
-  id: string;
-  normalRestitution: number;
-  friction: number;
-  rollingResistance: number;
-};
-```
-
-Impact uses a `0.55 mR²` tennis-ball inertia model. It computes contact-point slip, caps the tangential impulse with Coulomb friction, transfers that impulse into both horizontal and angular velocity, and applies a bounded impact-speed correction to normal restitution. Hard, clay, and grass provide separate restitution, friction, and rolling resistance. The natural profile is resolved first; an optional Quick Practice factor then multiplies only the first rebound's normal velocity from 0.60× to 1.40×. Product-facing labels distinguish the 1.00× research-calibrated baseline from this explicit perceptual adjustment.
-
-### 6.5 Inverse authoring
-
-An offline authoring solver searches launch heading/elevation/speed/spin within declared bounds to satisfy:
-
-- intended landing point/zone;
-- net clearance range;
-- maximum launch-speed and spin profile;
-- desired bounce height or receiver-plane arrival window;
-- service-box legality for serves.
-
-Resolved shots are checked into source as versioned JSON. Runtime playback does not perform an expensive unconstrained optimizer.
-
-### 6.6 Determinism
-
-- Scenario definitions include schema version, solver version, surface profile, and random seed.
-- Random variations use a seeded PRNG and named ranges.
-- Golden snapshots record event timestamps and selected samples, not every render frame.
-- No outcome depends on display refresh rate, React render timing, or animation frame drops.
-
-## 7. Drill timeline
-
-**Current runtime (2026-09-09):** [ADR-0037](decisions/0037-player-first-drill-planning.md)
-uses `gameplay-player-drills-v11` for schema 2 drills. `PlayerShotEventV2` owns the
-player ball, camera and positive-z landing zone, plus the opponent response ball
-and negative-z return zone. `OpeningFeed` owns the initial opponent body position
-and a feed or serve; additional point openings are explicit event preludes. The
-21 player presets and 16 drill presets use these roles. The session interval now
-measures player contact to player contact. `CompiledSession.playerEvents` owns
-progress and seeking; `scheduledFlights` owns the alternating physical ball clock.
-Opponent `repetitions` remain an internal adapter to the shared mannequin planner.
-
-[ADR-0038](decisions/0038-player-handedness-mirroring.md) adds a shared player-hand
-choice. `playerHand` records stored drill/preset layout orientation (older records
-default to right); `drillPlayerHand` records the browser preference. The pure
-`playerHandedness` transform reflects x bounds, camera lateral/yaw and opening
-positions once, retaining names and opponent hands. Seeded horizontal landing
-quantiles reflect too. Saved-shot insertion converts from its stored orientation,
-and the editor saves/exports actual displayed coordinates. The physical planner
-recalculates contacts with the opponent's original hand and source clock.
-
-`courtFlight` rotates the physical solver into the player's direction, including
-wind, velocities and flight events. A player contact must lie on the incoming
-path inside a 1.4 m racket-contact neighborhood anchored to camera court position.
-The opponent contact must lie on that player flight and satisfy the actual motion
-budget. The search filters motion feasibility before downsampling, and rejects
-ankle-height opponent contacts that would sink the visible rig. It favors a
-comfortable contact over waiting for a very late bounce. No ball-time scaling or
-endpoint relocation is used. An impossible link stops compilation with an issue;
-playback starts only when the requested sequence is fully connected. The last
-player action ends the point and does not invent an extra opponent stroke.
-
-The editor compiles on a cancellable module worker, retaining its previous preview
-while new committed settings are solved. Both landing-zone meshes respond during
-dragging without compilation; sliders and WASD also commit on gesture release.
-Opening chips expose every new point, while the shot/spin sections, ball/rhythm
-sliders and perspective controls belong to the selected player action. Saved
-presets deep-copy both balls, both zones, camera and materialized timing defaults.
-Schema 1 remains the Quick Practice/import adapter. Migration maps old incoming
-shot 1 to the opening, each old pseudo-return to the player action, and the next
-incoming shot to its opponent response. Original `tenmulate.appData.v1` bytes remain
-untouched; new canonical records use `tenmulate.appData.v2`. See the
-[verification receipt](development/player-first-drills-2026-09-09.md).
-
-[ADR-0022](decisions/0022-continuous-drill-camera-and-reusable-shots.md)
-uses `CompiledSession.cameraTimeline`; [ADR-0033](decisions/0033-complete-short-running-steps.md)
-retains the complete short-running steps. The compiler
-reserves camera travel, gaze fades and next-stroke preparation in the same absolute
-schedule as opponent recovery and physics-solved returns. `TennisScene` samples the
-camera on the session clock, independently of React's HUD repetition updates.
-Rehearsal opts into this camera; Editor and MotionLab retain manual inspection views.
-Quintic travel bounds peak speed/acceleration and fixes angular branches through
-opponent-tracking fades, including authored views near the yaw wrap.
-
-Automatic opponent locomotion solves gait weights and cycle distance from the
-leg's speed, acceleration and cadence demand. Pose blending and fixed-length
-foot IK share one distance phase. The recovery/approach budget uses each owning
-shot's resolved movement rate; the interval-first search remains primary. Urgent
-short routes complete two anchored running placements, with the source cycle
-aligned to the first anatomical foot, rather than truncating a repeating stride.
-
-**Legacy schema 1 adapter:** `DrillEventV1.returnLandingZone` describes a positive-z court-space rectangle.
-`returnFlight` samples a bounce target, chooses a physical contact on the incoming
-path and resolves the pseudo-return. The next source is sampled from that return,
-then the next outgoing flight is resolved. Camera placement never moves the zone.
-The shared rhythm/recovery planner checks the exact contact clock and reserves
-camera travel before preparation. Impossible links remain explicit new feeds.
-Legacy `returnZone` and `opponentPosition` remain importable but do not drive drills.
-Quick Practice retains its home position and camera-coverage assessment.
-
-`DrillEventV1.returnShot` independently selects return type, spin and spin rate.
-The return profile defines contact eligibility, pace and net clearance; selected
-spin participates in Magnus and bounce response, including volleys. Ground/drop
-returns use post-bounce contacts; volley/overhead returns intercept before the
-bounce. Explicit settings never inherit the next opponent's stroke. Legacy absent
-settings retain their original groundstroke/lob default until materialized by a
-preset snapshot. Kick/sidespin are serve-only; legacy rally values normalize to
-topspin/slice. `drop-shot` adds a slow, short incoming profile and default preset.
-
-The editor uses a filtered shot library, drag/drop insertion and timeline reorder,
-right-click/Delete removal, and complete new/update preset snapshots. Two persistent
-`LandingZoneControl` meshes handle both court halves; compilation commits only at
-release. WASD and editor sliders likewise preview gestures before committing.
-The former `SavedShotV1` snapshots defaults in legacy local data; insertion deep-copies with a new
-id. Opponent and return shot/spin controls sit outside Ball & rhythm; Perspective
-follows the incoming flight/timing controls. See the [current receipt](development/return-shot-controls-2026-09-09.md).
-The outline below is the original conceptual model.
-
-One declarative timeline coordinates all domains:
-
-```ts
-type DrillEvent =
-  | { at: number; type: "opponent.clip"; clip: string; position?: { x: number; z: number }; playbackRate?: number; opponentHand?: "left" | "right" }
-  | { at: number; type: "ball.launch"; shotId: string }
-  | { at: number; type: "camera.path"; pathId: string }
-  | { at: number; type: "cue.play"; cueId: string }
-  | { at: number; type: "rest"; duration: number };
-```
-
-In practice, `ball.launch` is anchored to a named animation contact marker rather than a separately hand-entered timestamp. The compiled runtime timeline contains absolute event times and rejects missing/ambiguous markers.
-
-State machine outline:
-
-```text
-idle -> loading -> ready -> countdown -> playing -> interval -> playing
-                                  |          |           |
-                                  +------ paused <-------+
-                                             |
-                                      completed/error
-```
-
-Pause freezes the session clock, animation mixer, ball, camera, and cues as one operation.
-
-## 8. Opponent animation architecture
-
-### 8.1 Runtime model
-
-- One canonical humanoid skeleton per opponent family.
-- Skinned mesh and reusable animation clips in GLB.
-- `AnimationMixer`/actions for clip playback, fades, warps, and recovery blends.
-- Root-motion strategy decided per clip: extract root translation into the opponent controller or keep animation in-place and animate root separately; never mix strategies accidentally.
-- Racket is attached to a named hand/socket bone and is visible for the opponent.
-- Each stroke clip has sidecar metadata or exported extras for preparation start, contact, follow-through, recoverable end, opponent handedness, and valid playback-rate range.
-- Both opponent hands are represented by accepted distinct clips or by a mirror transform that has separately passed biomechanics, racket-hand, root-motion, and contact review.
-- Serve clips add `serveRhythm: "normal" | "compact"`, toss-release/trophy/contact markers, and rhythm-specific playback bounds. Serve rhythm is not encoded in the ball-speed field.
-
-### 8.2 Contact quality gate
-
-At the marker frame:
-
-- racket string-bed center is within the agreed distance of the launch point;
-- racket orientation and ball initial direction are plausible;
-- foot plant/root location match the authored court contact position;
-- no clip-rate change makes movement visibly unnatural;
-- camera review at normal speed and frame step both pass.
-
-### 8.3 Asset pipeline
-
-ADR-0013 extends the earlier Blender pilots to all six built-in venues and removes procedural venue presentation. Source, provenance, reproducible builds, variant budgets and seated audiences are documented in [Six authored venues](development/indoor-venues-and-performance.md). The visible court/net is authored in GLB, while regulation coordinates and gameplay authority stay in TypeScript. Each manager validates requested ID, hash, size and independent gameplay anchors. A failed/unavailable asset shows a retryable error, not a different venue.
-
-Motion production uses the independent local laboratory under ADR-0012; the current
-model/library contract is [ADR-0014](decisions/0014-articulated-player-and-complete-motion-library.md).
-The [motion runbook](development/local-motion-pipeline.md) is the operational authority.
-
-1. Inspect owner-supplied footage and record performer, view, source cadence and phase uncertainty.
-2. Author joint-space controls with anatomical constraints, keeping fixed segments and rigid grips.
-3. Bind the CC0 articulated mannequin to the established tennis armature; bake all 24 clips at 120 Hz.
-4. Validate exported transforms at 240 Hz, including contact, grip, stance and interval continuity.
-5. Publish the immutable combined model/motion GLB with matching provenance, clocks and calibration.
-6. Verify the actual frontend rig after blending/IK for both hands, then visually review playback.
-
-Recipes and source configuration are editable authority; Blender masters are reproducible
-outputs. Optional local pose extraction is diagnostic only. Cloud inference is not a
-production prerequisite, and no inference or reference-video fetch occurs during practice.
-
-### 8.4 Motion and character binding contract
-
-- The active 1.88 m articulated mannequin uses vertex-colored neutral panels and dark joints
-  on the existing 65-bone skeleton. Its source pack's animations are not imported.
-- Gameplay loads one hashed GLB containing the skinned model, separate rigid racket and
-  25 animation clips. The static carrier remains a build/provenance resource.
-- `src/content/opponent-motion.json` selects the runtime asset, clock and calibration;
-  `opponent-asset.json` selects model identity. Publication and the frontend integration
-  check enforce agreement with the published manifest.
-- The absolute session clock samples baked clips and the shared root-recovery planner.
-  Distance controls step cadence. Foot IK preserves knee planes; hand grips remain rigid.
-- [ADR-0021](decisions/0021-prepared-stroke-entry-after-travel.md) adds lab-authored
-  completed-unit-turn entries for both drives, slices and volleys. Incoming travel
-  blends into and holds that pose, fading locomotion foot constraints. The shared
-  planner reserves its blend and remaining lead to contact; the stroke continues
-  from the authored entry time. Stationary starts and serves retain full preparation.
-- `serve` and `serve-compact` are separate normal-rate clips. The selected release/contact
-  anchors drive a ballistic toss; outgoing ball physics remains independent of rhythm.
-- Groundstrokes, slices and volleys have dedicated clips. Half-volley, overhead and
-  one-handed-backhand labels retain documented proxies.
-- The build precaches the active combined opponent bundle only. Retained historical
-  bundles are not required offline downloads.
-- Technique acceptance requires normal-speed and phase-frame visual review in addition
-  to mechanics checks. Public source/provenance and target-device review remain release gates.
-
-Earlier provider comparisons are historical research in
-[Mocap to web opponent](research/mocap-to-web-character-pipeline.md).
-
-## 9. Rendering architecture
-
-- The renderer adapter owns initialization, resize, pixel ratio, render passes, color management, and capability reporting.
-- The scene layer owns regulation court geometry, net, ball, opponent, lighting, venue adapters, and debug overlays.
-- Standard PBR materials first. Custom effects must work on the chosen backend path or have a tested accessible fallback.
-- Gameplay visibility materials are renderer-owned. The ball uses one shared optic yellow-green PBR material for every overlapping instance; the opponent uses vertex-colored neutral panels/dark joints plus back-face outline clones bound to the source skinned meshes and skeletons; legacy uncolored carriers use a shared white fill. The outline writes no depth or shadow and never enters physics or collision state.
-- External asset loading is manifest-driven with explicit URL, byte size, hash, cache group, version, compatible skeleton/content versions, and a progress/error state.
-- The critical route loads UI, the selected Blender venue variant, ball and drill. Quality/Performance selection precedes GLB download; only one complete venue remains CPU/GPU-resident. Deselecting aborts transfers and releases completed geometry/materials/textures. Late parses are disposed. Invalid assets show retryable loading errors, with no procedural substitute.
-- Six authored identities cover hard, clay and grass variants of Outdoor Arena and Indoor Court. Packed Blender masters own architecture, access, seating, court/net, furniture and aligned fixture anchors. Separate low-detail exports retain registration, roof silhouette and seat positions while simplifying secondary detail, seats, nets and textures.
-- One renderer-owned atmosphere uses Three.js `Sky`, directional sun, hemispheric fill, fog, and a PMREM environment map. Time of day and light direction drive the solar state; clear/overcast/rain weather drives scattering, diffusion, fog, precipitation, and procedural wetness. Indoor halls hide the outdoor atmosphere, use four fixture-aligned lights and one lazily generated, cached PMREM room environment for bounce fill.
-- `venueLighting.ts` resolves one art-directed schedule for the sky, direct key, fill, environment, exposure and court fixtures across every venue. Day emphasizes directional roof/bowl shadows; dusk overlaps warm raking sunlight and floodlights without an unlit interval. Quality uses a 4096-pixel venue-wide directional shadow map; Auto/Performance use 2048, within device limits. The authored roof uses double-sided shadow casting without changing visible culling. Baked neutral AO supplies local contact depth, not directional light or full dynamic global illumination.
-- Native venue appearance uses exported PBR, original surface/wood/mineral maps, CC0 concrete where documented, and neutral baked local occlusion. Wetness updates PBR roughness; optional alternate playing surfaces borrow renderer-owned procedural materials without transferring ownership. No procedural venue geometry remains.
-- Meshopt and WebP delivery is lazy. Large GLBs and audience assets stay outside shell precache. Runtime cache bounds are twelve visited GLB URLs, six network-first manifests, and ten audience resources. Content hashes and byte budgets are verified before reveal.
-- Optional seated audiences use generated front/back atlases on spatially chunked instanced cards with opaque depth writes and GPU chroma-key cutout. Each person has two triangles, no skeleton or per-frame CPU work. Empty unloads/fetches nothing; Half is an exact stable subset of Full. Quality uses 1024 px artwork and subtle sway; Performance uses 512 px static artwork; reduced-motion preference disables sway.
-- Weather does not change bounce physics in V1. Wind changes air-relative drag and Magnus force; lighting and wetness remain presentation-only. Any future wet-court physics must be an explicit, calibrated surface profile.
-- Adaptive quality can lower pixel ratio, shadow map resolution, anisotropy, texture resolution, post-processing, and venue detail. It cannot reduce simulation frequency or change shot outcomes.
-
-Provisional, benchmark-only delivery budgets are no more than 5 MiB compressed for the initial application, canonical court modules, and local texture path, and no more than 15 MiB additional data to start the first neutral-opponent drill. The current combined opponent library is about 2.85 MiB and is precached; measured first-use and warm-cache behavior, not retained historical repository assets, determines acceptance.
-
-### 9.1 Future renderer reassessment matrix
-
-After the production opponent and venue representation are selected, benchmark the same representative scene using:
-
-1. Three.js `WebGPURenderer` with WebGPU.
-2. The same renderer forced to its WebGL 2 backend.
-3. Three.js `WebGLRenderer` if API/material parity allows a fair comparison.
-4. A production-density Three.js scene with the neutral humanoid and representative mocap clips.
-
-Capture initialization success, first frame, CPU/GPU frame time, dropped frames, memory, visual differences, shader/material gaps, and screenshot evidence on the supported browser/device matrix. Keep the accepted V1 WebGL 2 path unless another renderer produces a material, repeatable product benefit without losing browser or asset compatibility.
-
-### 9.2 Canonical scene composition
-
-Each `SceneDefinitionV1` selects reusable TypeScript builders for ground/runoff, enclosure, seating, architecture, access, lighting fixtures, vegetation, and court furniture. Builders return owned Three.js groups plus material handles and quality tags. Surface colors/textures are applied through a separate court-material controller, while environment selection controls only venue composition and presentation lighting.
-
-Procedural texture factories generate repeatable color/roughness/normal-scale cues locally and cache by descriptor. Repeated seating, fence posts, lamps, roof members, and planting use instancing or shared geometries/materials. Every group participates in one disposal registry so scene switching cannot leak GPU resources.
-
-Generated-world coordinates, splat renderers, panoramas, provider iframes, and interactive world models are prohibited in the runtime. The old alternatives remain documented in the dated research note and superseded ADR-0004.
-
-## 10. React integration
-
-- React creates the canvas host and sends typed commands to a long-lived engine instance.
-- High-frequency transforms stay in engine-owned typed structures; React receives throttled status summaries.
-- Global product state is divided into configuration, content selection, session status, and diagnostics.
-- The V1 drill editor edits immutable versioned definitions and compiles/validates them before playback.
-- Error boundaries and a renderer boot failure screen remain usable without the canvas.
-
-## 11. Data contracts and persistence
-
-Proposed top-level records:
-
-- `AppCalibrationV1`
-- `SurfaceProfileV1`
-- `ShotDefinitionV1`
-- `ResolvedTrajectoryV1`
-- `OpponentClipMetadataV1`
-- `CameraPathV1`
-- `DrillDefinitionV2`, `PlayerShotEventV2`, `SavedShotV2` (schema 1 retained for imports)
-- `AssetManifestV1`
-
-All persisted records have an explicit schema version. Bundled content definitions are immutable build assets; camera-position and perspective presets are locally customizable. User-created drills have separate IDs. Only opening shots author an opponent floor position; rally responses resolve it from ball contact. Player and response balls have independent type/spin validation, and zone coordinates are validated for the owning court half. JSON import rejects unknown fields, remote URLs, nonfinite values, out-of-envelope coordinates and unsupported schemas. Original schema 1 drills and saved shots migrate once into the schema 2 app-data envelope; they are retained in their original storage key.
-
-**Unified saves (2026-09-12):** [ADR-0053](decisions/0053-unified-save-destinations.md)
-routes explicit drill, shot, practice-config and preset saves through one destination
-coordinator. Development always asks for Project default or This browser; production
-saves directly to localStorage and never probes project APIs. Only development
-installs the three catalog endpoints. They share atomic writes and revision checks.
-Browser overrides take precedence over bundled defaults; project promotion removes
-the corresponding browser override. Quick Practice saves independently per mode.
-Its live form survives route changes without implicitly becoming a durable config;
-Save config persists it. Editor recovery remains independent of saved library data.
-See the [saving audit](development/saving-system.md) for every entry point and receipt.
-
-V1 stores calibration, preferences, custom drills, and offline-content selection locally. A service worker precaches the shell and explicitly selected drill asset groups, exposes storage/cache state, and degrades clearly when storage quota prevents an offline promise. No personal data leaves the device unless an explicitly initiated export or a later separately approved analytics/account feature does so.
-
-## 12. Future body-tracking boundary
-
-The tracking layer must eventually emit normalized product events rather than mutate the scene directly:
-
-```ts
-type PlayerTrackingFrame = {
-  timestamp: number;
-  confidence: number;
-  rootPosition?: Vec3;
-  landmarks?: readonly Landmark3D[];
-};
-```
-
-MediaPipe Pose Landmarker is a plausible browser candidate because it outputs 33 image/world landmarks. Its web calls are synchronous and can block the main thread, so any spike should use a worker and measure contention with rendering. Camera access requires HTTPS/localhost and explicit user permission. The eventual tracking adapter can influence camera/timeline behavior only through timestamped confidence-bearing commands with bounded latency and safe fallback. This is the defining V2 investigation, not a hidden V1 dependency.
-
-## 13. Verification strategy
-
-### Numerical tests
-
-- Regulation court constants and zone containment.
-- Gravity-only analytic sanity checks.
-- Drag/Magnus reference trajectories.
-- Exact court/net event solving.
-- Bounce conservation/loss bounds and surface ordering.
-- Same shot/seed across 30, 60, and 120 Hz render harnesses.
-- Inverse solver net clearance and landing tolerance.
-
-### Timeline tests
-
-- Contact marker compiles to launch timestamp.
-- Pause/resume freezes every subsystem.
-- Seeded variations remain inside declared ranges.
-- Invalid/missing assets and markers fail before a drill starts.
-
-### Asset tests
-
-- GLB loads, has the expected skeleton/bones/clips, stays within agreed triangle/texture budgets, and contains no unlicensed embedded data.
-- Animation contact position and foot-slide thresholds.
-- Texture formats and color-space declarations.
-- Venue assets register to court anchors, respect the central mask, expose valid proxy/depth data, declare lighting limits, and contain no generated court geometry used as collision authority.
-
-### Browser and performance tests
-
-- Primary drill flow, full screen, pause/restart, settings, and renderer fallback.
-- Chrome/Edge Windows reference; Safari macOS and Firefox Windows validation across agreed low/mid/high device tiers rather than one universal hardware promise.
-- 1080p, 1440p, and 4K/adaptive resolution captures.
-- 30-minute soak, context loss/recovery where feasible, tab visibility pause/resume, and reduced motion.
-- Performance artifacts include frame-time percentiles and renderer/backend/hardware metadata.
-
-### Visual fidelity tests
-
-Before UI implementation, approve a complete primary-screen concept and key states. Compare browser screenshots with that concept at matching dimensions and record copy, layout, typography, palette, court/asset treatment, responsive behavior, and interaction deviations.
-
-## 14. Proposed repository structure after the technical spike
-
-```text
-src/
-  app/                 React shell and routes
-  calibration/         Physical display and POV setup
-  content/             Versioned shot, drill, surface, and camera definitions
-  engine/
-    clock/
-    session/
-    timeline/
-    trajectory/
-    animation/
-    camera/
-    audio/
-    rendering/
-  assets/              Runtime manifests, cache groups, and generated bindings
-  diagnostics/         Debug overlay and evidence capture
-tests/
-  numerical/
-  integration/
-  browser/
-tools/
-  trajectory-authoring/
-  asset-validation/
-  asset-bakeoff/
-public/
-  assets/
-docs/
-```
-
-The exact scaffold is intentionally deferred until the visual, asset, and technical spikes prevent premature dependencies from becoming architecture.
+# Architecture
+
+Tenmulate is a static React/TypeScript/Vite application with a Three.js WebGL 2
+renderer. React owns configuration and low-frequency UI state; session planning,
+physics and the simulation clock supply playback. There is no runtime database,
+account service, body tracking or motion-inference service.
+
+## Ownership and data flow
+
+| Area | Authority |
+| --- | --- |
+| Routes and configuration | `src/app/`, `src/components/`, `src/hooks/` |
+| Authored drills, shots and defaults | `src/content/` |
+| Court, camera and environment definitions | `src/domain/` |
+| Trajectories and court collision | `src/engine/trajectory/` |
+| Contact planning, recovery and session compilation | `src/engine/session/` |
+| Scene, opponent rig and rendering | `src/engine/rendering/` |
+| Sound palette, events and mixing | `src/engine/audio/` |
+| Saves, migrations and draft recovery | `src/storage/` |
+| Fixed UI and built-in content translations | `src/i18n/` |
+
+`SharedCourtProvider` owns a persistent canvas/scene across setup, editor and
+playback. Routes supply viewport slots rather than recreating the renderer.
+Parking the court or hiding the document suspends work. Editing a zone previews
+the gesture and commits its rectangle on release; cancelled gestures restore it.
+
+## Session planning
+
+Quick Practice compiles incoming feeds and illustrative returns. Player-first
+drills assemble openings, player contacts, opponent responses and camera events.
+Both use physical trajectories and a shared movement/recovery planner. Ball pace
+is independent of animation rhythm. Contact timing must satisfy the appropriate
+bounce, height and travel constraints; infeasible authored setups report a problem
+rather than fabricating a connection.
+
+Seeded variation searches feasible candidates instead of stopping at the first
+unsolvable random sample. Opponent contacts must be reachable while grounded;
+where appropriate the planner waits for a later descending intercept rather than
+lifting the model. Serve jumps remain part of the authored motion. Opening serves
+preserve the authored receiving camera and incoming pace, including variation.
+
+Workers keep expensive compilation off the UI thread. Exact-input caches and
+in-flight deduplication let preview/configuration work prepare launch sessions.
+Cancellation belongs to each subscriber; stale results cannot replace new input.
+Continuous setup previews request future batches, while launched sets are finite
+and honor repetitions/rest. Start detaches the old preview and resets the new
+session clock before playback; unfinished calculations can still take time.
+
+## Court and physics
+
+Court-domain constants use metres and seconds. The net centre is the origin;
+`y` is up and positive `z` points toward the opponent. The renderer and physics
+share court coordinates. Moving the camera changes the virtual receiving position,
+not the dimensions of the court or the ball's world-space trajectory.
+
+The numerical flight model includes gravity, drag and spin-dependent lift.
+Inverse solving fits a trajectory to the landing zone and shot constraints.
+Natural and exact parameter modes retain distinct constraints. Player and
+opponent balls use the same court-bounce response. Bounce factor is a practice
+adjustment, not a ball-pressure measurement or a fixed rebound-height ratio.
+
+### Calibration references and limits
+
+The model is a rehearsal approximation, not an individualized biomechanics model
+or a measured reconstruction of a particular venue. The following sources inform
+calibration; their observations do not validate every simulation setting.
+
+- [ITF technical booklet](https://www.itftennis.com/media/15639/2026-technical-booklet.pdf):
+  reference ball-drop and court-testing methods. Reference-drop and angled court
+  impacts are different checks.
+- [Cross: Measurements of the horizontal and vertical speeds of tennis courts](https://www.physics.usyd.edu.au/~cross/PUBLICATIONS/23.%20CourtSpeed.PDF)
+  and [Measurement of the speed and bounce of tennis courts](https://www.physics.sydney.edu.au/~cross/PUBLICATIONS/52.%20SpeedAndBounce.pdf):
+  oblique restitution, grip and spin inform the coupled translation/spin response
+  in `courtBounce.ts`; surface parameters remain representative calibrations.
+- [Armstrong et al.: Lateral End-Range Movement Profile and Shot Effectiveness](https://pmc.ncbi.nlm.nih.gov/articles/PMC11730432/)
+  and [Filipcic et al.: Split-Step Timing of Professional and Junior Tennis Players](https://pmc.ncbi.nlm.nih.gov/articles/PMC5304278/):
+  movement and response-time context for the `playerCoverage.ts` heuristic.
+  Professional observations are not a guarantee of recreational-player reach.
+
+Coverage uses response delay, acceleration, speed and racket reach, constrained
+by legal contact height and bounce timing. Its numerical assumptions live in
+`PLAYER_COVERAGE`; they are not inferred from the viewer. An incoming ball can be
+reachable while the subsequent return connection remains infeasible.
+
+## Motion and assets
+
+The active opponent model and motion manifests are
+[`opponent-asset.json`](../src/content/opponent-asset.json) and
+[`opponent-motion.json`](../src/content/opponent-motion.json). The renderer consumes
+versioned GLB assets with source clocks, contact anchors and phase metadata.
+Racket grip, anatomical lengths, floor contact and handedness must remain valid
+after blending, world travel and IK. Runtime checks complement rendered review.
+Only the active opponent bundle is precached; detailed attribution belongs in
+[asset attribution](asset-attribution.md), not a duplicate asset-hash ledger.
+
+Six authored venue environments provide quality/performance variants. Court
+geometry, ball state, targets and gameplay collision remain engine-owned.
+Ball highlight affects ball materials rather than adding scene blur.
+
+## Sound and capture
+
+A shared Web Audio graph follows simulation events. A bounded decoded palette
+supplies recorded contacts/crowds and synthesized bounces/environment layers.
+Twelve recorded forehand/serve/slice contacts use seeded selection with recent-take
+avoidance. Volley/drop-shot and overhead mappings are authored approximations.
+Contact bytes load from a lazy application chunk; other palette assets use static
+media delivery. The procedural fallback is distinct from recorded playback.
+
+Venue responses shape reflections and ambience; they are not measured building
+acoustics. Category levels, crowd enable and master mute share one visit-scoped
+mix across setup and playback. Pausing, hiding or leaving a preview releases/fades
+its sound without inventing impacts or changing ball timing.
+
+Court capture reuses the canvas and post-effects audio mix across routes, with a
+720p drawing-buffer budget and 30 fps ceiling. This local media stream is separate
+from TV transport. Screen mirroring remains a device/receiver function.
+
+## Persistence, localization and delivery
+
+Production saves use versioned browser localStorage. Explicit configs are stored
+per Quick Practice mode; unfinished editor drafts are separate from saved drills.
+Saved browser overrides take precedence over bundled defaults. Reset config
+restores the mode defaults without deleting overrides; saving explicitly replaces
+them. Project-file writes are restricted to Vite development middleware and are
+absent from the deployed application. There is no silent destination fallback.
+
+English/Simplified Chinese fixed UI and built-in content share stable identities.
+User-authored names, descriptions and cues are never translated automatically.
+
+Vite produces static files with a service worker for cached/offline reuse. Runtime
+assets and their cache policies are versioned; uncached resources need a network.
+Build and delivery commands live in [AGENTS.md](../AGENTS.md). Device and broader
+acceptance limits are tracked in [open work](open-questions.md).

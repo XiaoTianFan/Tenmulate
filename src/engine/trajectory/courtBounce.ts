@@ -26,7 +26,7 @@ export const SURFACE_PROFILES: Record<SurfaceId, SurfaceProfile> = {
  * reference reproduces the ITF 2.54 m drop with air drag included. Cross's court
  * measurements show higher COR for oblique impacts than vertical drops. Blend
  * continuously by impact angle, using normal (not total) impact speed.
- * See docs/development/ball-bounce-research-2026-09-11.md for data and limits. */
+ * See docs/technical-architecture.md#calibration-references-and-limits for data and limits. */
 export const surfaceRestitution = (surface: SurfaceProfile, velocity: Vec3): number => {
   const normalSpeed = Math.max(0, -velocity.y);
   const horizontalSpeedSquared = velocity.x ** 2 + velocity.z ** 2;

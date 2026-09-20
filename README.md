@@ -1,80 +1,46 @@
 # Tenmulate
 
-First-person tennis rehearsal in your browser: visualize incoming balls, practice
-return timing, and build tactical drills from player shots, opponent returns and
-camera movements. Built with React, TypeScript, Vite and Three.js.
-
 **[Open Tenmulate](https://tenmulate.xiaotianfanx.com)**
 
-## Features
+A first-person tennis rehearsal tool for shadow-swing timing, reading incoming
+balls, and visualizing tactical shot sequences. Use a large display with enough
+clear space to move and swing safely.
 
-- Rally, Return, Volley and Overhead quick practice.
-- A drill editor with reusable shots, editable landing zones and camera transitions.
-- Complete-drill repetitions with configurable recovery breaks.
-- Six authored court environments, an articulated opponent and deterministic ball physics.
-- English and Simplified Chinese, selected from your browser language or the language selector.
-- Browser-local saves and offline caching after assets have loaded.
+## What you can practice
 
-Built-in drills, shots, camera positions and perspectives are bilingual. Your own
-names, descriptions and cues remain in the language you wrote them.
-See the [user guide](docs/user-guide.md) for controls and practice behavior.
+- **Quick Practice:** Rally, Return, Volley and Overhead describe the shot you
+  want to play. Configure the opponent's incoming ball, camera and landing zones;
+  Reset config restores the selected mode's defaults.
+- **Drills:** rehearse combinations of your shots, opponent returns and camera
+  movement, with configurable repetitions and rest.
+- **Editor:** open or create a drill from the library, arrange reusable shots,
+  and preview the sequence before practicing.
 
-## Run locally
+Six court environments, venue-aware sound, adjustable views and ball highlight
+support the rehearsal. The interface and built-in content support English and
+Simplified Chinese; your own content stays in the language you wrote it.
 
-Use **Node.js 24.x** and npm. No API keys, database, Blender installation or sibling
-motion project are required to run or build the frontend; delivery assets are tracked.
+## Saves and privacy
 
-```sh
-npm ci
-npm run dev
-```
+On the website, drills, shots, configurations and view presets save in this
+browser on this device. There is no account sync or cloud database. Clearing site
+data removes those saves; export important drills first. Previously loaded
+content can be reused offline, but uncached assets still need a connection.
 
-Open `http://127.0.0.1:4173/`. For verification and production output:
+## Scope
 
-```sh
-npm run check:release
-npm run preview
-```
+Tenmulate visualizes ball timing and tactical sequences. It does not track your
+body or racket, assess your actual reaction speed, or replace live-ball practice
+and coaching. Casting to a TV uses your device's screen-mirroring controls; the
+website cannot establish or verify that receiver connection.
 
-`check:release` runs the tests, TypeScript checks, Vite build and active motion/cache
-validation. The static output is `dist/`. Blender sources and asset-production tools
-are optional; see the [motion contract](docs/development/local-motion-pipeline.md).
+## Documentation
 
-## Saving and privacy
+- [User guide](docs/user-guide.md)
+- [Architecture](docs/technical-architecture.md)
+- [Known limitations and open work](docs/open-questions.md)
+- [Asset attribution](docs/asset-attribution.md)
+- [Build and contributor guidance](AGENTS.md)
 
-**Save drill**, **Save shot**, **Save config** and **Save preset** choose between
-project defaults and this browser in local development. Deployed builds save only
-to this browser's localStorage. There is no account sync or cloud database. Clearing
-site data removes local saves; export important drills before clearing it.
-
-Development project writes use local Vite middleware. That middleware is not
-available in a production build. The language preference and editor draft recovery
-are browser-local. See the [saving contract](docs/development/saving-system.md).
-
-## GitHub and Vercel
-
-The repository includes GitHub Actions release checks and a Vercel Vite configuration
-using Node 24, `npm ci`, `npm run build`, and `dist`. Import the repository into a
-new Vercel project; no environment variables are required. CLI uploads exclude local
-tools, temporary evidence and Blender source files while retaining runtime assets.
-
-[Release runbook](docs/development/release.md) records the live project, deployment
-checks, rollback procedure and remaining device/technique acceptance gates.
-
-## Limits and asset provenance
-
-This is a visualization and shadow-swing tool, not motion tracking or a validated
-biomechanics coach. Use a cleared practice area. iOS Screen Mirroring requires
-Control Center; the website cannot establish or verify the receiver connection.
-
-Third-party model/material notices and authored asset provenance are listed in
-[asset attribution](docs/asset-attribution.md). No repository-wide open-source
-license has been selected. Included third-party assets retain their own licenses.
-
-## Project documentation
-
-- [Documentation index](docs/README.md)
-- [Current implementation status](docs/development/implementation-status.md)
-- [Technical architecture](docs/technical-architecture.md)
-- [Internationalization](docs/development/internationalization.md)
-- [Contributor/agent instructions](AGENTS.md)
+The app uses React, TypeScript, Vite and Three.js. No repository-wide open-source
+license has been selected; third-party assets retain their own licenses.

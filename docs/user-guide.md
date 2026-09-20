@@ -1,161 +1,98 @@
-# Tenmulate user guide
+# User guide
 
-The interface supports English and Simplified Chinese. Chinese browser languages
-start in Chinese; other browser languages start in English. Use the header language
-selector (or playback Settings) to override this. Shipped drills, shots, camera
-positions and perspectives are bilingual; browser-created content keeps the text
-you wrote. See the [localization contract](development/internationalization.md).
+Tenmulate is for shadow-swing timing, incoming-ball judgment and tactical mental
+rehearsal. Use a large display and clear enough space for your full swing and
+movement. The app cannot check your room or measure your actual stroke.
 
-Tenmulate is a browser-based, first-person tennis visualization tool. It places a player at a calibrated on-court point of view and plays configurable incoming ball trajectories for shadow swinging, return preparation, and tactical mental rehearsal.
+## Quick Practice
 
-The repository contains the active V1 implementation: a deterministic Three.js court/ball simulation, complete starter shot library, rehearsal player, local drill editor, independently customizable camera-position and perspective presets, validated JSON exchange, and offline-capable app shell. All six built-in court environments use Blender-authored assets with Quality/Performance variants. A 1.88 m CC0 articulated mannequin runs the 25-clip tennis library, including normal/compact serves and a distinct backhand overhead, in actual gameplay. The ball machine remains the opponent load-failure fallback.
+Choose the shot you want to practice. **Opponent shot** controls the ball coming
+to you. Rally, Return, Volley and Overhead each have their own starting setup.
 
-Quick Practice and drills use editable uniform landing zones. Left-drag the interior
-to move, a side to resize one dimension, or a corner to resize both. Drag elsewhere
-to look around. The zone previews immediately and recalculates the full session once on
-release. The editor also updates isolated shot trajectories during zone gestures.
-Practice, Editor and drill playback share one mounted court; the library
-parks it without rendering. Setup previews stream fresh feeds continuously;
-launched sets honor their chosen repetitions and rests. See the
-[shared-court verification receipt](development/shared-court-and-zone-resize-2026-09-08.md).
+1. Choose a mode, then adjust the incoming shot, pace, spin or timing if needed.
+2. Drag a landing zone to move it; drag an edge or corner to resize it.
+   **Top-down court** makes the opponent and zones easier to place.
+3. Set repetitions, work blocks and rest under **Practice set**.
+4. Select **Start practice** to begin a fresh timed set.
 
-The blue player target zone stays visible during setup and playback. Yellow
-opponent landing zones appear while editing and hide during practice or drills.
-The Trajectory toggle controls lines independently of zones. Top-down editing
-always shows trajectories; returning to player view restores the toggle choice.
-Opening playback Settings does not change trajectory visibility. See
-[the visibility contract](decisions/0055-trajectory-and-zone-visibility.md).
+The yellow zone is the incoming ball's landing area. The blue zone is the target
+for your illustrative return. Blue stays visible during playback; yellow hides.
+**Trajectory** controls the incoming flight line independently of those zones.
+Top-down editing shows incoming trajectories; the illustrative Quick Practice
+return never shows its own trajectory line.
 
-All four Quick Practice modes animate your response. Configure its destination
-with the blue landing zone; player return trajectory lines and trails stay hidden,
-including in top-down view and playback settings. Rally connects exchanges;
-Return, Volley and Overhead retain independent feeds. Overhead starts at the T,
-looking upward and gently tracking the lob, with the opponent at 0.1 m sideways
-and 9.8 m from the net. Volley starts halfway between the T and net. **Reset view**
-restores those mode-specific positions. See the
-[Quick Practice return and camera contract](decisions/0051-quick-practice-returns-and-views.md).
+**Reset config**, above Save config, restores the current mode's defaults:
+camera, both zones, opponent, shot settings, timing, practice set and display/
+environment settings. It does not erase saved configs; select **Save config** to
+replace a saved setup with the reset one. **Reset view** changes only the view.
 
-Practice sound starts with your Start gesture. Settings separates contact,
-bounce, training, ambience and crowd levels. **Crowd sound** can be disabled
-independently; an empty venue has no crowd sound. Indoor venues add damped
-reflections, while outdoor venues use shorter tails and configured weather/wind.
-**Mute all sound** also silences effects and captured audio. Pause/backgrounding
-fades sound; resume restores it. If sounds fail to load, the visible status
-identifies the synthesized fallback and offers **Retry sound**.
+Your camera position represents your on-court receiving position. A ball may be
+physically valid yet too far from that position to receive, or your return may not
+connect to the next opponent contact. If edits produce an unreachable setup, Reset
+config provides a working starting point. Natural trajectory fitting can adjust
+pace/spin within bounds; exact settings can be impossible for a chosen target.
 
-**Cast** opens iOS Screen Mirroring instructions and an optional local court capture
-preview. Capture keeps the same canvas/video/audio tracks across setup and practice,
-with up to 720p at 30 fps. Direct AirPlay of that live capture is unavailable in
-iOS Safari; connecting to an existing receiver still requires Control Center.
-The app cannot verify that connection. See the
-[capture contract and remaining transport gate](decisions/0034-persistent-court-capture.md).
+Rally connects exchanges. Return, Volley and Overhead use independent feeds with
+an illustrative player response. Volley starts between the service T and net;
+Overhead starts near the T with an upward view. Starting a set clears the preview
+and resets the clock. A newly changed, complex setup can still need calculation.
 
-The drill editor plans **your shots**. **Edit drill** opens an existing library
-entry; copying is optional.
-Before **Run drill**, use **Practice set** to enter the total repetitions of the
-whole drill and rest between repetitions (0–120 seconds). One repetition includes
-every authored player shot. The final ball finishes before rest starts; the next
-run opens a new point, with no extra rest after the final run. These are launch
-settings; Replay same seed and New variation retain them.
-Use **Save drill**, **Save shot**, **Save config** and **Save preset**. In local
-**development**, every explicit save asks whether to save a **Project default** or
-to **This browser**. Production saves directly to durable browser localStorage.
-Project defaults are included in future builds; browser versions take precedence
-only in that browser. Saves report storage failures without switching destination.
+## Drills and editor
 
-Quick Practice saves one configuration per mode, including camera, ball, landing
-zones, environment and display settings. **Save config** keeps the current mode's
-setup; selecting a mode restores its saved config. Camera and perspective preset
-creation and right-click updates use the same save flow. Unfinished drill edits
-are recovered separately; they do not replace a saved library version until saved.
-Create/import actions remain at the bottom of the drill library. See the
-[unified saving architecture](development/saving-system.md).
+Drills rehearse a sequence of **your shots**, with opponent feeds/returns and
+movement between views. Choose an existing drill and **Edit drill**, or select
+**Create new drill**. A fresh editor with no recovered draft is blank.
 
-An opponent opening feed or serve starts
-each point; player presets then assemble the tactical sequence. **Top-down zones**
-edits your blue landing zone on the far court and the opponent's yellow return
-zone for your next shot. Each event owns both balls' settings and your camera
-position; the opponent meets the physical player flight automatically.
-Drop shots, volleys and overheads are available; kick/sidespin are serve-only.
-New/update presets retain both balls, zones, camera and timing.
-**Save shot** opens a form to create or replace a named preset. Both project and
-browser destinations retain both balls, zones, camera and timing. Later timeline
-additions use the saved preset; existing events keep their own settings. Older
-browser-only presets remain available.
-Use **Add New Shot** at the bottom of the left library to create a fresh preset.
-Right-click a library row, or use its three-dot menu, to delete it from the
-library permanently, including a system default.
-Playback follows the opponent while accelerating and braking between your configured shot views.
-Opponent returns wait for a supported contact height instead of lifting the model.
-If an apex is too high, contact moves to descent along the same ball flight, with
-movement and swing timing fitted to that later hit. See the
-[grounded contact contract](decisions/0050-grounded-opponent-contacts.md).
-For rally shots, final footwork adjusts each view within its contact neighborhood to meet the real
-incoming ball on the configured racket side, retaining your viewing direction.
-Opening serves keep their configured launch speed (including shot variation) and
-hold the exact authored return camera through the toss, serve and player contact.
-The illustrative player return adapts to the serve; it cannot slow the serve or
-recenter the view. Between-point camera moves finish before the next toss.
-Impossible serve speed/zone combinations are reported instead of slowed down.
-See the [opening serve contract](decisions/0052-opening-serve-authority.md).
-The editor labels isolated contact estimates; **Preview actual shot** shows the
-selected shot with its gameplay movement and contact. See the
-[contact-camera investigation](development/player-contact-camera-2026-09-12.md).
-Select the narrow **camera event between shots** to configure movement and focus
-independently. Keep Automatic, recover to neutral, travel directly, or stop at a
-custom position. Choose departure/continuation timing and separate focus targets
-before and after opponent contact. WASD and dragging frame an intermediate view;
-**Capture position** and **Capture direction** save it without changing the shot's
-contact camera. Preview a single transition or the full sequence. Camera transitions
-travel with saved shots, survive reload and mirror for left-handed play; zoom
-remains shared across the drill. See the [camera transition guide](development/camera-transitions-2026-09-10.md).
-Drill shots independently choose player/opponent contact timing:
-on the rise, at the apex, or early descent (the default). The interval solver fits
-within that phase; it does not switch to a quick rebound to meet a short interval.
-After an opening serve, the illustrative player return instead chooses the legal
-contact nearest the authored racket anchor, preserving the incoming serve.
-Quick Rally retains its opponent timing preference; Quick Practice player returns
-choose their shot family and contact automatically.
-Volleys/overheads stay in the air and half-volleys stay just after the bounce.
-Player volley and half-volley contact-height preferences follow **Eye height**;
-actual playback still meets the incoming ball. Both sides use direct net-shot
-arcs, with flat/downward high volleys and necessary lift on low contacts.
-Saved higher net clearance and **Exact speed & spin** still apply. See the
-[net-shot planning contract](decisions/0049-camera-relative-net-shot-planning.md).
-Bounce factor **1.0** uses the shared calibrated court response for both players:
-the hard reference passes the standard ball-drop range, and angled impacts retain
-more rebound height while accounting for court grip and spin. See the
-[bounce calibration and limits](development/ball-bounce-research-2026-09-11.md).
-Calculation runs in a cancellable worker. Impossible links are reported before
-playback. Old drills convert by physical role and original browser data is retained.
-See the [player-first drill contract and verification](development/player-first-drills-2026-09-09.md).
+- Add shots from the library to the timeline. Configure your blue landing zone,
+  the opponent's yellow return zone, each ball's settings and your shot view.
+- Configure the opening opponent feed/serve for each point. Opening serves retain
+  their authored receiving view and serve pace; the illustrative return adapts.
+- Select a narrow camera event between shots to configure movement and focus.
+  Capture an intermediate position or direction without changing the shot view.
+- **Preview actual shot** includes resolved contact and movement; **Preview
+  sequence** plays the complete authored sequence. Isolated previews are estimates.
+- **Player handedness** mirrors court setup for left-handed play while retaining
+  the opponent's chosen hand.
+- **Add New Shot** creates a preset; **Save shot** creates or updates a named one.
+  Right-click a shot-library item or use its menu to delete it. Existing timeline
+  shots retain their own settings when a library preset changes.
 
-**Player handedness** in Drills and Editor mirrors cameras, opening positions and
-both landing zones for left-handed play. Shot names and the opponent's configured
-hand are retained. The choice persists across drills and reloads; saved shots adapt
-once when reused in either orientation. See the
-[mirroring contract and verification](development/player-handedness-2026-09-09.md).
+Before **Run drill**, set the total repetitions of the whole drill and rest between
+repetitions. One repetition includes every authored player shot. The final ball
+finishes before rest; there is no extra rest after the last repetition.
 
-**Perspective → Ball highlight** makes the incoming ball lighter and more luminous
-as it approaches. It changes only the ball's material; trajectory lines and landing
-zones retain their normal appearance. The scene renders directly with no focus blur
-or postprocessing. The optional toggle stays shared across Practice, drill editing
-and playback, and preserves existing on/off choices. See the
-[ball-only highlight decision and verification](decisions/0027-ball-only-highlight.md).
+## View and playback
 
-The net uses filtered thread coverage in both Quality and Performance modes, so
-wide views and zoom changes retain the weave. Authored sag, tape and posts remain.
-See the [net rendering decision](decisions/0028-filtered-net-weave.md).
+Drag outside a zone to look around, use the wheel to zoom, and use WASD to move
+the setup camera. The displayed camera controls also allow height and direction
+changes. Camera-position and perspective presets can be saved separately.
+**Ball highlight** changes the approaching ball's appearance without blurring the
+court. Playback provides pause, seek, restart, variation and fullscreen controls.
 
-Renderer diagnostics are available with `?profileRenderer=1`, including the actual
-GPU, drawing-buffer size, CPU stages and asynchronous GPU time. See the
-[performance investigation](development/renderer-performance-2026-09-08.md).
+**Sound** is available while configuring and during playback. If prompted, select
+**Tap to enable sound**. Adjust contact, bounce, training cues, ambience and crowd
+levels; **Crowd sound** and **Mute all sound** are independent controls. The mix
+follows you between setup and playback for this visit; reload restores defaults.
+Pause/backgrounding fades sound. Loading/failure status offers **Retry sound**;
+procedural fallback keeps cues available when recorded samples are unavailable.
 
-## Sound while configuring practice
+**Cast** provides screen-mirroring instructions and an optional local court-capture
+preview. iOS uses Control Center to connect to a receiver. The app cannot establish
+or verify that connection. Capture can include practice audio; master mute also
+silences captured sound.
 
-Open **Sound** in Quick Practice, the drill library or the drill editor to adjust
-contact, bounce, training cues, ambience and crowd volume. Click **Tap to enable
-sound** if the browser has not enabled audio yet. Ball previews and venue ambience
-are audible before starting; the drill library plays the selected venue ambience.
-Use **Mute all sound** or disable **Crowd sound** independently. Your mix follows
-you into practice and back to setup for this app visit; reloading restores defaults.
+## Saving, language and offline use
+
+**Save drill**, **Save shot**, **Save config** and **Save preset** save to this
+browser on this device. Quick Practice keeps one saved config per mode. Camera
+position presets store location; perspective presets store viewing direction and
+field of view. In development only, the save dialog also offers project defaults.
+
+Unfinished editor drafts recover separately and do not overwrite saved drills.
+Export important drills as JSON before clearing browser data. Browser saves are
+not synchronized across devices. Previously loaded assets can work offline;
+missing assets still require a connection.
+
+Chinese browser languages start in Simplified Chinese; other browser languages
+start in English. Change this with the language selector. Built-in content has
+both languages; your own names, descriptions and cues remain as you wrote them.
