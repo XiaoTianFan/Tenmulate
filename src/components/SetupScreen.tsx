@@ -547,7 +547,10 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
 
         <section className="preview-column" aria-label={t("Live court preview")}>
           <div className="setup-court-view" ref={overviewContainer} data-camera-eye-height={eyeHeight.toFixed(3)}>
-            <CourtViewport onPreviewAudioFrame={onPreviewAudioFrame} camera={displayCamera} courtOverview={overview} trajectory={trajectory} surface={surface} environment={environment} quality={quality} running={!launching && !preview.pending && !preview.error} shotPreviewPending={launching || preview.pending} resetToken={resetToken} showTrajectory={trajectoryEnabled || overview} showOpponentLandingZone loopTrajectory session={launching ? undefined : previewSession} onSessionIndex={onPreviewIndex} onLandingZoneChange={changeLandingZone}
+            <CourtViewport onPreviewAudioFrame={onPreviewAudioFrame} camera={displayCamera} courtOverview={overview} playerCamera={camera} onPlayerCameraChange={overview ? next => {
+              setLateral(next.lateral); setBehindBaseline(next.behindBaseline); updateCameraYaw(next.yaw);
+              setSelectedPositionPreset(''); setSelectedPerspectivePreset('');
+            } : undefined} trajectory={trajectory} surface={surface} environment={environment} quality={quality} running={!launching && !preview.pending && !preview.error} shotPreviewPending={launching || preview.pending} resetToken={resetToken} showTrajectory={trajectoryEnabled || overview} showOpponentLandingZone loopTrajectory session={launching ? undefined : previewSession} onSessionIndex={onPreviewIndex} onLandingZoneChange={changeLandingZone}
               followSessionCamera={!overview} nearLandingZone={nearZone} returnLandingZone={rallyLandingZone} onReturnLandingZoneChange={setRallyLandingZone}
               opponentPlacement={overview ? { ...opponentPosition, hand: opponentHand } : undefined} onOpponentPositionChange={overview ? changeRecoveryCenter : undefined}
               onCameraFovChange={overview ? zoomOverview : updateCameraFov} onCameraLookChange={overview ? undefined : updateCameraLook} onMetrics={onMetrics} />

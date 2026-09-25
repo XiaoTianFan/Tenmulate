@@ -25,6 +25,8 @@ export type SceneViewportProps = Readonly<{
   captureActive?: boolean;
   camera: CameraConfiguration;
   courtOverview?: boolean;
+  playerCamera?: CameraConfiguration;
+  onPlayerCameraChange?: (camera: CameraConfiguration) => void;
   trajectory: ResolvedTrajectory;
   surface: SurfaceId;
   environment?: EnvironmentConfiguration;
@@ -65,7 +67,7 @@ export type SceneViewportProps = Readonly<{
 
 type CameraPointerDrag = {
   pointerId: number;
-  mode: 'look' | 'aim' | 'landing' | 'return' | 'opponent';
+  mode: 'look' | 'aim' | 'landing' | 'return' | 'opponent' | 'player';
   lastX: number;
   lastY: number;
   look: CameraLook;
@@ -86,6 +88,7 @@ export function SceneViewport({
   captureActive = false,
   camera,
   courtOverview = false,
+  playerCamera, onPlayerCameraChange,
   trajectory,
   surface,
   environment = DEFAULT_ENVIRONMENT,
@@ -193,6 +196,8 @@ export function SceneViewport({
     sceneRef.current?.landingZoneControl.leave();
     sceneRef.current?.returnLandingZoneControl.end(false);
     sceneRef.current?.returnLandingZoneControl.leave();
+    sceneRef.current?.playerCameraControl.end(false);
+    sceneRef.current?.playerCameraControl.leave();
     sceneRef.current?.opponentPositionControl.end(false);
     sceneRef.current?.opponentPositionControl.leave();
     const drag = pointerDrag.current, canvas = canvasRef.current;
@@ -207,6 +212,7 @@ export function SceneViewport({
   }, [active]);
 
   useLayoutEffect(() => sceneRef.current?.setCamera(camera), [camera, followSessionCamera, viewKey]);
+  useLayoutEffect(() => { sceneRef.current?.playerCameraControl.configure(courtOverview ? playerCamera ?? null : null, onPlayerCameraChange ?? null); }, [courtOverview, playerCamera, onPlayerCameraChange]);
   useEffect(() => sceneRef.current?.setCourtOverview(courtOverview), [courtOverview]);
   useEffect(() => sceneRef.current?.opponentPositionControl.configure(opponentPlacement ?? null, onOpponentPositionChange ?? null), [opponentPlacement, onOpponentPositionChange]);
   useEffect(() => sceneRef.current?.setBallFocus(ballFocus), [ballFocus]);
@@ -243,6 +249,7 @@ export function SceneViewport({
     const drag = pointerDrag.current;
     if (drag && drag.pointerId === event.pointerId) {
       setTrajectoryTooltip(null);
+      if (drag.mode === 'player') { sceneRef.current?.playerCameraControl.move(event.clientX, event.clientY); return; }
       if (drag.mode === 'opponent') {
         sceneRef.current?.opponentPositionControl.move(event.clientX, event.clientY); return;
       }
@@ -262,6 +269,9 @@ export function SceneViewport({
       pointerDrag.current = { ...drag, lastX: event.clientX, lastY: event.clientY, look };
       onCameraLookChange?.(look);
       return;
+    }
+    if (sceneRef.current?.playerCameraControl.hover(event.clientX, event.clientY)) {
+      sceneRef.current.opponentPositionControl.leave(); sceneRef.current.landingZoneControl.leave(); sceneRef.current.returnLandingZoneControl.leave(); setTrajectoryTooltip(null); return;
     }
     if (sceneRef.current?.opponentPositionControl.hover(event.clientX, event.clientY)) {
       sceneRef.current.landingZoneControl.leave(); sceneRef.current.returnLandingZoneControl.leave();
@@ -296,6 +306,7 @@ export function SceneViewport({
     if (pointerDrag.current?.pointerId !== event.pointerId) return;
     if (pointerDrag.current.mode === 'landing') sceneRef.current?.landingZoneControl.end(event.type === 'pointerup');
     if (pointerDrag.current.mode === 'return') sceneRef.current?.returnLandingZoneControl.end(event.type === 'pointerup');
+    if (pointerDrag.current.mode === 'player') sceneRef.current?.playerCameraControl.end(event.type === 'pointerup');
     if (pointerDrag.current.mode === 'opponent') sceneRef.current?.opponentPositionControl.end(event.type === 'pointerup');
     if (pointerDrag.current.mode === 'look' && event.type === 'pointerup') onCameraViewCommit?.({...camera,...pointerDrag.current.look});
     pointerDrag.current = null;
@@ -307,6 +318,7 @@ export function SceneViewport({
   };
 
   const interactionHint = [
+    onPlayerCameraChange ? 'Drag camera to move · Drag direction handle to turn' : null,
     onOpponentPositionChange ? 'Drag opponent to place' : null,
     onLandingZoneChange ? 'Drag zone to move · Edges to resize' : null,
     onCameraLookChange ? onLandingZoneChange ? 'Drag elsewhere to look' : 'Left-drag to look' : null,
@@ -333,9 +345,10 @@ export function SceneViewport({
         tabIndex={0}
         aria-label={onLandingZoneChange ? t("Live tennis court. Left-drag inside the landing zone to move; drag an edge or corner to resize; drag elsewhere to look. Enter selects the zone; arrow keys move it; Escape deselects.") : t("Live first-person tennis court preview")}
         onContextMenu={onAimChange ? (event) => event.preventDefault() : undefined}
-        onPointerDown={onLandingZoneChange || onAimChange || onCameraLookChange || onOpponentPositionChange ? (event) => {
+        onPointerDown={onLandingZoneChange || onAimChange || onCameraLookChange || onOpponentPositionChange || onPlayerCameraChange ? (event) => {
           if (pointerDrag.current) return;
-          const mode = event.button === 0 && sceneRef.current?.opponentPositionControl.begin(event.clientX, event.clientY)
+          const mode = event.button === 0 && sceneRef.current?.playerCameraControl.begin(event.clientX, event.clientY)
+            ? 'player' : event.button === 0 && sceneRef.current?.opponentPositionControl.begin(event.clientX, event.clientY)
             ? 'opponent' : event.button === 0 && sceneRef.current?.returnLandingZoneControl.begin(event.clientX, event.clientY, event.pointerType === 'touch')
             ? 'return' : event.button === 0 && sceneRef.current?.landingZoneControl.begin(event.clientX, event.clientY, event.pointerType === 'touch')
             ? 'landing' : event.button === 0 && onCameraLookChange
@@ -359,14 +372,14 @@ export function SceneViewport({
           event.currentTarget.setPointerCapture(event.pointerId);
           if (mode === 'aim') updateAimFromPointer(event);
         } : undefined}
-        onPointerMove={showTrajectory || onAimChange || onCameraLookChange || onPointerActivity || onOpponentPositionChange ? event => {
+        onPointerMove={showTrajectory || onAimChange || onCameraLookChange || onPointerActivity || onOpponentPositionChange || onPlayerCameraChange ? event => {
           onPointerActivity?.(); updateFromPointer(event);
         } : undefined}
         onPointerUp={finishPointer}
         onPointerCancel={finishPointer}
         onLostPointerCapture={finishPointer}
-        onPointerLeave={() => { if (!pointerDrag.current) { setTrajectoryTooltip(null); sceneRef.current?.landingZoneControl.leave(); sceneRef.current?.returnLandingZoneControl.leave(); sceneRef.current?.opponentPositionControl.leave(); } }}
-        onKeyDown={event => { if (sceneRef.current?.[keyboardZone.current].key(event.key)) { event.preventDefault(); event.stopPropagation(); } }}
+        onPointerLeave={() => { if (!pointerDrag.current) { setTrajectoryTooltip(null); sceneRef.current?.landingZoneControl.leave(); sceneRef.current?.returnLandingZoneControl.leave(); sceneRef.current?.opponentPositionControl.leave(); sceneRef.current?.playerCameraControl.leave(); } }}
+        onKeyDown={event => { if (event.key === 'Escape' && pointerDrag.current?.mode === 'player') { sceneRef.current?.playerCameraControl.end(false); const id = pointerDrag.current.pointerId; pointerDrag.current = null; if (event.currentTarget.hasPointerCapture(id)) event.currentTarget.releasePointerCapture(id); event.preventDefault(); event.stopPropagation(); return; } if (sceneRef.current?.[keyboardZone.current].key(event.key)) { event.preventDefault(); event.stopPropagation(); } }}
         onBlur={()=>{ sceneRef.current?.landingZoneControl.leave(); sceneRef.current?.returnLandingZoneControl.leave(); }}
       />
       {error ? <div className="renderer-error" role="alert"><strong>{t("3D renderer unavailable")}</strong><span>{translateMessage(error)}</span><small>{t("WebGL 2 and hardware acceleration are required. Setup and local drills remain available.")}</small></div> : null}

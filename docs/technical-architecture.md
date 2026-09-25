@@ -23,6 +23,9 @@ account service, body tracking or motion-inference service.
 playback. Routes supply viewport slots rather than recreating the renderer.
 Parking the court or hiding the document suspends work. Editing a zone previews
 the gesture and commits its rectangle on release; cancelled gestures restore it.
+The top-down player-camera marker follows the same commit-on-release contract.
+It edits the authored position and yaw, independently of the temporary overhead
+view; it preserves eye height, pitch and field of view.
 
 ## Session planning
 

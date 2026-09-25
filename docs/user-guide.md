@@ -11,7 +11,9 @@ to you. Rally, Return, Volley and Overhead each have their own starting setup.
 
 1. Choose a mode, then adjust the incoming shot, pace, spin or timing if needed.
 2. Drag a landing zone to move it; drag an edge or corner to resize it.
-   **Top-down court** makes the opponent and zones easier to place.
+   **Top-down court** makes the opponent and zones easier to place. Drag the blue
+   camera icon to move your receiving position; drag its direction handle to turn
+   your view. Release to apply, or press Escape to cancel the drag.
 3. Set repetitions, work blocks and rest under **Practice set**.
 4. Select **Start practice** to begin a fresh timed set.
 
@@ -45,6 +47,9 @@ movement between views. Choose an existing drill and **Edit drill**, or select
 
 - Add shots from the library to the timeline. Configure your blue landing zone,
   the opponent's yellow return zone, each ball's settings and your shot view.
+- In **Top-down zones**, drag the camera icon or its direction handle to edit the
+  selected shot's position or heading. Height, tilt and field of view stay unchanged.
+  For camera events, use the capture controls to store the adjusted intermediate view.
 - Configure the opening opponent feed/serve for each point. Opening serves retain
   their authored receiving view and serve pace; the illustrative return adapts.
 - Select a narrow camera event between shots to configure movement and focus.

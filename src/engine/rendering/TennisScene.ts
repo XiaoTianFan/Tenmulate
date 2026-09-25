@@ -1,3 +1,4 @@
+import { PlayerCameraControl } from './PlayerCameraControl';
 import type { PreviewAudioFrame } from '../audio/previewCues';
 import * as THREE from 'three';
 import { capturePixelRatio } from '../capture/CourtCapture';
@@ -167,6 +168,7 @@ export class TennisScene {
   private practicePreview: ContinuousPracticePreview | null = null;
   private previewCycle = -1;
   readonly landingZoneControl: LandingZoneControl;
+  readonly playerCameraControl: PlayerCameraControl;
   readonly opponentPositionControl: OpponentPositionControl;
   readonly returnLandingZoneControl: LandingZoneControl;
   private authoredNearLandingZone: LandingZone | null = null;
@@ -260,6 +262,8 @@ export class TennisScene {
     this.scene.add(court.group);
     this.landingZoneControl = new LandingZoneControl(this.camera, canvas, { sharedCursor: true });
     this.scene.add(this.landingZoneControl.root);
+    this.playerCameraControl = new PlayerCameraControl(this.camera, canvas);
+    this.scene.add(this.playerCameraControl.root);
     this.opponentPositionControl = new OpponentPositionControl(this.camera, canvas);
     this.scene.add(this.opponentPositionControl.root);
     this.returnLandingZoneControl = new LandingZoneControl(this.camera, canvas, { color: 0x48b8ff, name: 'ReturnLandingZone', showBounce: false, sharedCursor: true });
@@ -874,8 +878,10 @@ export class TennisScene {
     this.audience.update(this.elapsed);
     this.landingZoneControl.update();
     this.returnLandingZoneControl.update();
+    this.playerCameraControl.update();
+    this.canvas.dataset.playerCameraScreen = JSON.stringify(this.playerCameraControl.screenPoints());
     this.opponentPositionControl.update();
-    const cursor = this.opponentPositionControl.cursor || this.returnLandingZoneControl.cursor || this.landingZoneControl.cursor;
+    const cursor = this.playerCameraControl.cursor || this.opponentPositionControl.cursor || this.returnLandingZoneControl.cursor || this.landingZoneControl.cursor;
     if (this.canvas.style.cursor !== cursor) this.canvas.style.cursor = cursor;
     this.updateBallHighlight();
     this.profiler?.mark('presentation');

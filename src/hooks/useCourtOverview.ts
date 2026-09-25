@@ -12,7 +12,8 @@ export function useCourtOverview(camera: CameraConfiguration, enabled: boolean) 
     const observer = new ResizeObserver(([entry]) => { if (entry) setAspect(entry.contentRect.width / Math.max(1, entry.contentRect.height)); });
     observer.observe(container.current); return () => observer.disconnect();
   }, []);
-  const displayCamera = useMemo(() => enabled ? { eyeHeight: Math.max(11, (COURT.halfLength + 5) * aspect),
+  // Include the receiving camera behind the baseline, also in tall viewports.
+  const displayCamera = useMemo(() => enabled ? { eyeHeight: (COURT.halfLength + 8) * Math.max(1, aspect),
     behindBaseline: -COURT.halfLength, lateral: 0, pitch: -90, yaw: 0, fov: overviewFov } : camera, [camera, enabled, aspect, overviewFov]);
   return { container, displayCamera, zoomOverview };
 }
