@@ -32,6 +32,22 @@ Browser audio QA must use the guarded memory-only fixtures with no media HTTP
 requests or downloads. Do not bypass explicit test opt-in guards or change
 external download-manager settings.
 
+For storage maintenance, inventory the frontend and sibling motion laboratory
+separately; count shared Git storage only once. Report file lengths separately
+from physical disk allocation. Metadata-only inventory needs no YAML contents or
+media decoding. Do not follow junctions or symlinks out of the selected roots.
+
+Use an exact deletion manifest, check active processes and revalidate each path
+before deletion. Verify protected assets afterward. Ignored directories can hold
+authoring inputs and unique evidence: do not blanket-clean `assets/`, `artifacts/`,
+`.tools/`, or the lab's `work/` and `output/`. Preserve browser saves and source
+footage. Python bytecode is disposable only when its source remains available;
+expect a cold import after removal. Keep environments used by running processes.
+An unused extracted source format can be removed after verifying its exact bytes
+in the retained, checksum-pinned archive and checking build consumers. Retain the
+selected model, licenses and source archive. Raw venue exports require the full
+venue build to regenerate before using the optimizer or `-VariantsOnly`.
+
 ## Runtime invariants
 
 - Preserve source animation clocks, rigid grips, contact anchors, fixed bone

@@ -134,3 +134,46 @@ Vite produces static files with a service worker for cached/offline reuse. Runti
 assets and their cache policies are versioned; uncached resources need a network.
 Build and delivery commands live in [AGENTS.md](../AGENTS.md). Device and broader
 acceptance limits are tracked in [open work](open-questions.md).
+
+## Storage ownership and lifecycle
+
+| Location | Role and retention |
+| --- | --- |
+| `src/`, `server/`, `scripts/`, `docs/` | Application logic, authored content and contracts retained in Git. |
+| `assets/` | Venue Blender masters, textures, audience sources and provenance. Excluded from Vercel upload, but present in Git checkouts; ignored Blender backups can also live here. |
+| `public/assets/` | Static delivery. Vite copies every file into `dist/`, including historical opponent bundles excluded from precache. |
+| `artifacts/venue-build/` | Reproducible raw exports alongside historical models, validation records and visual evidence. These have different retention requirements. |
+| `artifacts/character-source/` | Pinned source archive, extracted model, character masters and earlier evidence. The character builder reads the selected source model and the neutral rig in `public/assets/opponents/`. |
+| `.tools/` | Installed Blender and its bridge; shared with the sibling laboratory. Tool installation and active bridge processes are independent of the web app. |
+| `node_modules/`, `dist/` | Reinstallable dependencies and generated deployment output. Asset-authoring dependencies currently share the frontend installation. |
+| Sibling motion laboratory | Recipes, fitting, source previews, motion candidates, editable masters and named comparison baselines. Its ignored `work/` and `output/` are not disposable as a whole. |
+
+Local workspace bytes, deployed bytes, browser storage and decoded CPU/GPU memory
+are separate budgets. Removing local intermediates does not reduce frame time.
+The service worker precaches only the selected opponent GLB; venues load on demand.
+Venue caching permits twelve model responses for thirty days, while audience and
+audio caches have their own limits. These are entry/age limits, not byte budgets.
+Browser drill/configuration saves are separate from these replaceable asset caches.
+
+Inactive venues release geometry, materials, textures and instance buffers. During
+a quality replacement, the old model stays drawable while the new model downloads
+and parses. The download path retains chunks and then assembles a contiguous
+buffer, so switch-time memory can exceed steady-state model memory. Adaptive
+resolution and performance variants already exist; profile their behavior before
+changing the renderer.
+
+Audio has a 32 MiB decoded-buffer limit with 4 MiB reserved for transitions and
+resampling. Contact WAV bytes also appear in a lazy application chunk to avoid
+browser media requests. The public WAVs remain authoring/verification inputs;
+removing one representation requires updating those consumers.
+
+Each session compiler retains three completed exact-input results and one idle
+worker. Practice preview, practice launch and player drills have separate compiler
+instances. This bounds result count per instance, not retained trajectory bytes or
+the number of concurrent distinct jobs. Cancellation remains subscriber-owned.
+
+Content-hashed publication updates selectors without retiring older public motion
+bundles. Historical bundles can still support laboratory evidence. A delivery
+allowlist and an explicit evidence archive would separate these responsibilities;
+changing precache rules alone does not shrink a deployment. Removing a tracked
+binary in a new commit also leaves its older versions in Git history.

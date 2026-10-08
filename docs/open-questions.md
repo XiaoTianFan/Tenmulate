@@ -13,6 +13,26 @@ schedule. Completed features belong in the user guide and architecture.
 - **Long-session and offline reliability:** extended mixed-session testing and
   a complete deployed service-worker upgrade/offline lifecycle check remain useful
   acceptance work. Uncached content cannot be promised offline.
+- **Delivery asset ownership:** introduce an explicit set of runtime assets derived
+  from active motion, venue, audience and audio manifests. Retain historical motion
+  evidence and character-authoring inputs outside that delivery set, with a tested
+  restore path. Validate all required URLs, hashes, licenses and service-worker
+  upgrades; distinguish deployment savings from Git history and GPU memory.
+- **Toolchain separation:** evaluate an optional asset-authoring package and an
+  external versioned tool location shared by the frontend and MotionLab. The lab's
+  production and pose-diagnostic requirements currently install into one environment;
+  separate them before retiring optional packages. Resolve the diagnostic lockfile's
+  overlapping OpenCV distributions rather than uninstalling one in place.
+- **Measured runtime budgets:** measure cold/warm startup, launch latency, venue
+  switch peaks, long-session memory and frame-time percentiles on target devices.
+  Evaluate byte-bounded session reuse, concurrency limits and fewer download-buffer
+  copies while preserving deterministic results, stale-result rejection and each
+  subscriber's cancellation. Existing quality variants and adaptive resolution are
+  the baseline.
+- **Renderer upgrades:** evaluate KTX2/Basis textures and measured geometry/shadow
+  budgets before a renderer migration. A WebGPU prototype needs explicit material,
+  custom-shader, capture and device-compatibility validation; it is not an assumed
+  speed improvement. Keep the current renderer available until parity is proven.
 - **Casting:** the current app offers local court capture and screen-mirroring
   instructions. Direct website-to-existing-TV-receiver transport is not provided;
   the website cannot confirm a mirroring connection.
