@@ -31,7 +31,8 @@ export type PlayerShotSelection = Readonly<{ eventId: string; opening: boolean; 
 export type ShotPreviewTrajectories = Readonly<{ player?: ResolvedTrajectory; opponent?: ResolvedTrajectory }>;
 export const MAX_PLAYER_DRILL_SHOTS = 200;
 
-export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSettings, selection?: PlayerShotSelection): CompiledSession {
+export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSettings, selection?: PlayerShotSelection,
+  onProgress?: (session: CompiledSession) => void): CompiledSession {
   if (!drill.events.length) throw new Error('A drill needs at least one player shot.');
   const count = Math.max(1, Math.min(MAX_PLAYER_DRILL_SHOTS, Math.floor(settings.repetitions)));
   const rhythm = normalizeRhythm(settings.rhythmPercent ?? drill.defaultRhythmPercent ?? 100);
@@ -234,6 +235,26 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
     }
   }
 
+  const snapshot = (playableUntil?: number): CompiledSession => {
+    const last = repetitions.at(-1);
+    return { solverVersion: 'ball-v12-opening-serve-pace', plannerVersion: 'gameplay-player-drills-v21', contentVersion: '2026.09.09',
+      drill, settings: { ...settings, mode: 'drill', rhythmPercent: rhythm, movementPercent: movement, shotIntervalSeconds: interval, workBlockSize: workBlock },
+      mode: 'drill', repetitions: [...repetitions], restPeriods: [...restPeriods], duration: Math.max(endTime, last ? planRecovery(motionEvent(last)).end + .15 : 3),
+      motionTimingAdjusted, rhythmPercent: rhythm, cameraTimeline: { initial: initialCamera ?? DEFAULT_DRILL_CAMERA,
+        transitions: [...transitions], ...(!selection ? { tennis: { exchanges: [...cameraExchanges], motionScale: cameraScale } } : {}) },
+      playerEvents: [...playerEvents], scheduledFlights: [...flights], planningIssues: [...issues],
+      ...(shotPreview ? { shotPreview } : {}), ...(opponentIdle ? { opponentIdle } : {}),
+      ...(playableUntil === undefined ? {} : { preparation: { playableUntil, totalRepetitions: count } }),
+    };
+  };
+  let publishedIndex = -3;
+  const publish = (index: number) => {
+    if (!onProgress || index - publishedIndex < 3 || index >= events.length - 1 || repetitions.length < 2 || issues.length) return;
+    // Leave both the unfinished opponent recovery and the next camera exchange
+    // beyond the playable boundary. Previously published motion stays immutable.
+    const playableUntil = Math.min(motionEvent(repetitions.at(-2)!).end, playerEvents.at(-1)!.startTime) - 1e-6;
+    if (playableUntil > 0) { onProgress(snapshot(playableUntil)); publishedIndex = index; }
+  };
   for (let index = 0; !selection && index < events.length; index++) {
     const event = events[index]!, next = events[index + 1];
     const newPoint = index === 0 || index % workBlock === 0 || !!event.openingFeed;
@@ -279,7 +300,7 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
     }
     // The last player action finishes the point. Its response configuration is
     // retained for reuse/reordering, but no extra opponent stroke is invented.
-    if (!continues) { addFlight('player', 'player', index, playerTime, playerFlight); continue; }
+    if (!continues) { addFlight('player', 'player', index, playerTime, playerFlight); publish(index); continue; }
     const requested = normalizeShotInterval(event.intervalSeconds ?? interval);
     const receiver = continues ? next : undefined;
     const cameraPlan = (opponentTime: number, nextContact: FlightSample) => planTennisCamera({ start: playerTime, opponentContact: opponentTime,
@@ -347,12 +368,7 @@ export function compilePlayerDrill(drill: DrillDefinitionV2, settings: SessionSe
     incoming = best.fit; incomingIndex = best.rep.index;
     lastCamera = receiver && best.fit.contact ? playerContactCamera(receiver, best.fit.contact.position) : contactCamera;
     if (solved.previous.motionRate !== previous.motionRate || solved.next.motionRate !== best.rep.motionRate || Math.abs(actual - requested) > .01) motionTimingAdjusted = true;
+    publish(index);
   }
-  const last = repetitions.at(-1);
-  return { solverVersion: 'ball-v12-opening-serve-pace', plannerVersion: 'gameplay-player-drills-v21', contentVersion: '2026.09.09',
-    drill, settings: { ...settings, mode: 'drill', rhythmPercent: rhythm, movementPercent: movement, shotIntervalSeconds: interval, workBlockSize: workBlock },
-    mode: 'drill', repetitions, restPeriods, duration: Math.max(endTime, last ? planRecovery(motionEvent(last)).end + .15 : 3),
-    motionTimingAdjusted, rhythmPercent: rhythm, cameraTimeline: { initial: initialCamera ?? DEFAULT_DRILL_CAMERA,
-      transitions, ...(!selection ? { tennis: { exchanges: cameraExchanges, motionScale: cameraScale } } : {}) },
-    playerEvents, scheduledFlights: flights, planningIssues: issues, ...(shotPreview ? { shotPreview } : {}), ...(opponentIdle ? { opponentIdle } : {}) };
+  return snapshot();
 }

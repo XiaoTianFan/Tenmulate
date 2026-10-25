@@ -10,6 +10,7 @@ class FakeWorker {
   postMessage(input: object) { this.requests.push(input); }
   terminate() { this.terminated = true; }
   complete(session: CompiledSession) { this.onmessage?.({ data: { session } } as MessageEvent); }
+  partial(session: CompiledSession) { this.onmessage?.({ data: { session, partial: true } } as MessageEvent); }
 }
 const session = { duration: 42 } as CompiledSession;
 function fixture(capacity = 3) {
@@ -65,4 +66,52 @@ it('does not retain failed calculations or start pre-aborted requests', async ()
   const failed = compile({}); workers[0]!.onmessage!({ data: { error: 'Invalid setup' } } as MessageEvent);
   await expect(failed).rejects.toThrow('Invalid setup'); expect(workers[0]!.terminated).toBe(true);
   const retry = compile({}); expect(workers).toHaveLength(2); workers[1]!.complete(session); await retry;
+});
+
+it('publishes readiness before completion, joins late launchers, and caches only the full result', async () => {
+  const { workers, compile } = fixture();
+  const warmup = compile({ seed: 1 });
+  const partial = { ...session, preparation: { playableUntil: 8, totalRepetitions: 12 } };
+  workers[0]!.partial(partial);
+  const launch = compile.prepare({ seed: 1 });
+  expect(await launch.ready).toBe(partial);
+  expect(launch.getSnapshot().session).toBe(partial);
+  let finished = false, updates = 0;
+  void launch.finished.then(() => { finished = true; });
+  const unsubscribe = launch.subscribe(() => { updates++; });
+  await Promise.resolve(); expect(finished).toBe(false);
+  workers[0]!.complete(session);
+  expect(await launch.finished).toBe(session); expect(await warmup).toBe(session);
+  expect(launch.getSnapshot().session).toBe(session); expect(updates).toBe(1); unsubscribe();
+  expect(await compile.prepare({ seed: 1 }).ready).toBe(session);
+});
+
+it.each(['worker', 'planning'])('surfaces a late %s failure without replacing the playable buffer or caching success', async kind => {
+  const { workers, compile } = fixture(), launch = compile.prepare({ seed: 1 });
+  const partial = { ...session, preparation: { playableUntil: 8, totalRepetitions: 12 } };
+  workers[0]!.partial(partial); await launch.ready;
+  if (kind === 'worker') {
+    workers[0]!.onmessage!({ data: { error: 'Late failure' } } as MessageEvent);
+    await expect(launch.finished).rejects.toThrow('Late failure');
+  } else {
+    workers[0]!.complete({ ...session, planningIssues: [{ index: 4, phase: 'response', message: 'Late failure' }] });
+    expect((await launch.finished).planningIssues).toHaveLength(1);
+  }
+  expect(launch.getSnapshot().error?.message).toBe('Late failure');
+  expect(launch.getSnapshot().session).toBe(partial);
+  const retry = compile.prepare({ seed: 1 });
+  expect(retry.getSnapshot()).toEqual({}); retry.cancel();
+});
+
+it('keeps streaming for the launch after warmup cancellation, and terminates when playback exits', async () => {
+  const { workers, compile } = fixture(), controller = new AbortController();
+  const warmup = compile({}, controller.signal), launch = compile.prepare({});
+  workers[0]!.partial({ ...session, preparation: { playableUntil: 8, totalRepetitions: 12 } });
+  await launch.ready; controller.abort(); await expect(warmup).rejects.toMatchObject({ name: 'AbortError' });
+  expect(workers[0]!.terminated).toBe(false);
+  const late = workers[0]!.onmessage!; launch.cancel();
+  await expect(launch.finished).rejects.toMatchObject({ name: 'AbortError' });
+  expect(workers[0]!.terminated).toBe(true);
+  late({ data: { session } } as MessageEvent);
+  expect(launch.getSnapshot().session?.preparation).toBeDefined();
 });

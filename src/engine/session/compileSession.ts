@@ -97,6 +97,8 @@ export type CompiledRepetition = MotionRepetition & Readonly<{
 }>;
 
 export type CompiledSession = Readonly<{
+  /** Only the clock before this boundary is immutable while the worker continues. */
+  preparation?: Readonly<{ playableUntil: number; totalRepetitions: number }>;
   previewLoop?: true;
   /** Prepared off-thread so mounting a rally never performs a seam solve. */
   previewNext?: Readonly<{ last: CompiledRepetition; next: CompiledSession }>;
@@ -136,8 +138,9 @@ export const compileSession = (
   drill: DrillDefinition,
   settings: SessionSettings,
   continuation?: CompiledRepetition,
+  onProgress?: (session: CompiledSession) => void,
 ): CompiledSession => {
-  if (drill.schemaVersion === 2) return compilePlayerDrill(drill, settings);
+  if (drill.schemaVersion === 2) return compilePlayerDrill(drill, settings, undefined, onProgress);
   const landingRandom = createSeededRandom(`${settings.seed}:landing`);
   const speedRandom = createSeededRandom(`${settings.seed}:speed`);
   const spinRandom = createSeededRandom(`${settings.seed}:spin`);
@@ -166,11 +169,11 @@ export const compileSession = (
       target);
     return { ...rep, rallyReturn: response?.rally, reachability: response ? { ...rep.reachability, reachable: true, reason: 'reachable', contact: response.contact } : rep.reachability };
   };
-  const addPracticeReturn = (rep: CompiledRepetition): CompiledRepetition => {
+  const addPracticeReturn = (rep: CompiledRepetition, target?: { x: number; z: number }): CompiledRepetition => {
     if (!practiceReturn) return rep;
     // Consume the same seeded target at the same point in planning. A connected
     // rally replaces this standalone response, so only solve it at an ending.
-    pendingReturns.set(rep.trajectory, sampleLandingZone(practiceReturn.landingZone, practiceReturnRandom));
+    pendingReturns.set(rep.trajectory, target ?? sampleLandingZone(practiceReturn.landingZone, practiceReturnRandom));
     return rally ? rep : finishPracticeReturn(rep);
   };
   if (continuation) repetitions.push(continuation);
@@ -188,7 +191,11 @@ export const compileSession = (
     ? PRACTICE_SHOT_PROFILES[settings.practiceShotType].opponentPosition
     : SHOT_BY_ID.get(sourceEvents[0]!.shotId)!.source);
 
-  for (let localIndex = 0; localIndex < settings.repetitions; localIndex += 1) {
+  // Draw all initial return targets before linked returns consume this stream.
+  // Lazy physics must preserve the exact eager compiler's random sequence.
+  const initialTargets = Array.from({ length: Math.ceil(settings.repetitions) }, () => practiceReturn
+    ? sampleLandingZone(practiceReturn.landingZone, practiceReturnRandom) : undefined);
+  const prepareRepetition = (localIndex: number) => {
     const index = localIndex + (continuation ? continuation.index + 1 : 0);
     const practiceType = rally && settings.practiceShotType === 'serve' && index > 0 ? 'groundstroke' : settings.practiceShotType;
     const sourceEvent = sourceEvents[index % sourceEvents.length];
@@ -324,10 +331,31 @@ export const compileSession = (
       returnLandingZone: rally ? settings.rally!.landingZone : practiceReturn?.landingZone ?? sourceEvent?.returnLandingZone ?? DEFAULT_RETURN_LANDING_ZONE,
       returnShot: resolveReturnShot(rally ? settings.rally!.shot : practiceReturn ? defaultReturnShot(practiceReturn.type) : sourceEvent?.returnShot, SHOT_BY_ID.get(sourceEvents[(index + 1) % sourceEvents.length]!.shotId)?.family),
       returnStatus: mode === 'quick-practice' ? 'quick-practice' : 'end',
-    }));
-  }
+    }, initialTargets[localIndex]));
+  };
+
+  const totalCount = Math.ceil(settings.repetitions) + (continuation ? 1 : 0);
+  let prepared = 0;
+  const prepareThrough = (index: number) => {
+    while (repetitions.length <= index && prepared < settings.repetitions) prepareRepetition(prepared++);
+  };
+  prepareThrough(onProgress ? 1 : totalCount - 1);
 
   let motionTimingAdjusted = false;
+  const snapshot = (playableUntil?: number): CompiledSession => {
+    const last = repetitions.at(-1);
+    return {
+      solverVersion: 'ball-v12-opening-serve-pace', plannerVersion: 'gameplay-opponent-footwork-v16', contentVersion: '2026.09.09',
+      drill, settings: { ...settings, rhythmPercent, shotIntervalSeconds: interval, movementPercent: movementRate * 100, mode },
+      repetitions: [...repetitions], restPeriods: [...restPeriods],
+      duration: last ? Math.max(planRecovery(motionEvent(last)).end + .15,
+        last.startTime + (last.rallyReturn ? last.rallyReturn.contactTime + last.rallyReturn.duration : last.trajectory.samples.at(-1)?.time ?? 0)) : startTime,
+      motionTimingAdjusted, rhythmPercent, mode,
+      cameraTimeline: { initial: repetitions[0]?.camera ?? baseCamera, transitions: [...cameraTransitions] },
+      ...(planningIssues.length ? { planningIssues: [...planningIssues] } : {}),
+      ...(playableUntil === undefined ? {} : { preparation: { playableUntil, totalRepetitions: totalCount } }),
+    };
+  };
   // The initial home approach also has to finish before preparation starts.
   const first = !continuation && repetitions[0] ? withPreparedApproach(null, repetitions[0]) : undefined;
   if (first?.home) {
@@ -335,7 +363,8 @@ export const compileSession = (
     const initial = { ...event, root: first.home, yaw: Math.PI, end: 0, recoveryPolicy: 'direct' as const };
     repetitions[0] = { ...first, startTime: Math.max(3, planRecovery(initial,event).requiredDuration + event.contactTime-event.start) };
   }
-  for (let index = 1; index < repetitions.length; index += 1) {
+  for (let index = 1; index < totalCount; index += 1) {
+    prepareThrough(index);
     let previous = repetitions[index - 1]!;
     const rest = repetitions[index]!.index % workBlockSize === 0 && restSeconds > 0;
     if (rally && (rest || repetitions[index]!.shot.family === 'serve')) {
@@ -501,25 +530,14 @@ export const compileSession = (
       cameraTransitions.push({ start: departure, end: departure+cameraTravel, from: previous.camera, to: next.camera });
     }
     if(Math.abs(gap-requestedGap)>.001)motionTimingAdjusted=true;
+    if (onProgress && (index - 1) % 3 === 0 && index < totalCount - 1) {
+      // The guard repetition may still change rate when connected to its next
+      // shot. Stop before recovery toward that guard can become visible.
+      onProgress(snapshot(motionEvent(repetitions[index - 1]!).end - 1e-6));
+    }
   }
   for (let index = 0; index < repetitions.length; index++) {
     if (repetitions[index]!.returnStatus !== 'linked') repetitions[index] = finishPracticeReturn(repetitions[index]!);
   }
-  const last = repetitions.at(-1);
-  const duration = last ? Math.max(planRecovery(motionEvent(last)).end + .15,
-    last.startTime + (last.rallyReturn ? last.rallyReturn.contactTime + last.rallyReturn.duration : last.trajectory.samples.at(-1)?.time ?? 0)) : startTime;
-
-  return {
-    solverVersion: 'ball-v12-opening-serve-pace',
-    plannerVersion: 'gameplay-opponent-footwork-v16',
-    contentVersion: '2026.09.09',
-    drill,
-    settings: { ...settings, rhythmPercent, shotIntervalSeconds: interval, movementPercent:movementRate*100, mode },
-    repetitions,
-    restPeriods,
-    duration,
-    motionTimingAdjusted, rhythmPercent, mode,
-    cameraTimeline: { initial: repetitions[0]?.camera ?? baseCamera, transitions: cameraTransitions },
-    ...(planningIssues.length ? { planningIssues } : {}),
-  };
+  return snapshot();
 };

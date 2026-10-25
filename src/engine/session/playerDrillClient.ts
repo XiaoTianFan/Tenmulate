@@ -4,6 +4,9 @@ import type { PlayerShotSelection } from './compilePlayerDrill';
 import { createSessionCompiler } from './sessionCompiler';
 
 const compile = createSessionCompiler(() => new Worker(new URL('./playerDrill.worker.ts', import.meta.url), { type: 'module' }));
+export function preparePlayerDrill(drill: DrillDefinitionV2, settings: SessionSettings, signal?: AbortSignal) {
+  return compile.prepare({ drill, settings, selection: undefined }, signal);
+}
 export function compilePlayerDrillAsync(drill: DrillDefinitionV2, settings: SessionSettings, signal?: AbortSignal, selection?: PlayerShotSelection): Promise<CompiledSession> {
   return compile({ drill, settings, selection }, signal);
 }
