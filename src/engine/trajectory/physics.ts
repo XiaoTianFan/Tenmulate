@@ -281,30 +281,44 @@ const firstFlight = (intent: ShotIntent, initialVelocity: Vec3): Readonly<{
   bounce: FlightSample;
   netCrossing: FlightSample | null;
 }> => {
-  const position = { ...intent.source };
-  const velocity = { ...initialVelocity };
-  const spin = { ...spinVector(intent, initialVelocity) };
-  const force = { x: 0, y: 0, z: 0 };
+  let px = intent.source.x, py = intent.source.y, pz = intent.source.z;
+  let vx = initialVelocity.x, vy = initialVelocity.y, vz = initialVelocity.z;
+  const initialSpin = spinVector(intent, initialVelocity);
+  let sx = initialSpin.x, sy = initialSpin.y, sz = initialSpin.z;
+  const wx = intent.windVelocity?.x ?? 0, wy = intent.windVelocity?.y ?? 0, wz = intent.windVelocity?.z ?? 0;
+  const radius = COURT.ballRadius;
   let netCrossing: FlightSample | null = null;
 
+  // Keep the hot inverse probe in scalar locals. These are the same force and
+  // fixed-step equations as accelerationInto, with no per-step vector access.
   for (let index = 1; index < 5 / FIXED_STEP; index += 1) {
-    accelerationInto(velocity, spin, intent.windVelocity, force);
-    velocity.x += force.x * FIXED_STEP; velocity.y += force.y * FIXED_STEP; velocity.z += force.z * FIXED_STEP;
-    const previousZ = position.z;
-    position.x += velocity.x * FIXED_STEP; position.y += velocity.y * FIXED_STEP; position.z += velocity.z * FIXED_STEP;
-    const decay = Math.exp(-SPIN_DECAY_PER_M * Math.sqrt(velocity.x ** 2 + velocity.y ** 2 + velocity.z ** 2) * FIXED_STEP);
-    spin.x *= decay; spin.y *= decay; spin.z *= decay;
-    if (!netCrossing && previousZ > 0 && position.z <= 0) {
-      netCrossing = { time: index * FIXED_STEP, position: { ...position }, velocity: { ...velocity }, bounced: false };
+    const x = vx - wx, y = vy - wy, z = vz - wz;
+    const speed = Math.sqrt(x * x + y * y + z * z);
+    if (speed < .001) vy += -9.81 * FIXED_STEP;
+    else {
+      const drag = -AERODYNAMIC_ACCELERATION_FACTOR * DRAG_COEFFICIENT * speed;
+      const spinMagnitude = Math.sqrt(sx * sx + sy * sy + sz * sz);
+      const spinParameter = radius * spinMagnitude / speed;
+      const liftCoefficient = Math.min(MAX_LIFT_COEFFICIENT, LIFT_COEFFICIENT_SLOPE * spinParameter);
+      const crossX = sy * z - sz * y, crossY = sz * x - sx * z, crossZ = sx * y - sy * x;
+      const crossMagnitude = Math.sqrt(crossX * crossX + crossY * crossY + crossZ * crossZ);
+      const magnus = crossMagnitude > 0 ? AERODYNAMIC_ACCELERATION_FACTOR * liftCoefficient * speed ** 2 / crossMagnitude : 0;
+      vx += (drag * x + magnus * crossX) * FIXED_STEP;
+      vy += (-9.81 + (drag * y + magnus * crossY)) * FIXED_STEP;
+      vz += (drag * z + magnus * crossZ) * FIXED_STEP;
     }
-    if (position.y <= COURT.ballRadius && velocity.y < 0) {
-      return {
-        bounce: { time: index * FIXED_STEP, position: vec3(position.x, COURT.ballRadius, position.z), velocity, bounced: true },
-        netCrossing,
-      };
+    const previousZ = pz;
+    px += vx * FIXED_STEP; py += vy * FIXED_STEP; pz += vz * FIXED_STEP;
+    const decay = Math.exp(-SPIN_DECAY_PER_M * Math.sqrt(vx ** 2 + vy ** 2 + vz ** 2) * FIXED_STEP);
+    sx *= decay; sy *= decay; sz *= decay;
+    if (!netCrossing && previousZ > 0 && pz <= 0) {
+      netCrossing = { time: index * FIXED_STEP, position: vec3(px, py, pz), velocity: vec3(vx, vy, vz), bounced: false };
+    }
+    if (py <= radius && vy < 0) {
+      return { bounce: { time: index * FIXED_STEP, position: vec3(px, radius, pz), velocity: vec3(vx, vy, vz), bounced: true }, netCrossing };
     }
   }
-  return { bounce: { time: 5, position, velocity, bounced: false }, netCrossing };
+  return { bounce: { time: 5, position: vec3(px, py, pz), velocity: vec3(vx, vy, vz), bounced: false }, netCrossing };
 };
 
 const directedVelocity = (intent: ShotIntent, stopAtTarget = false): Vec3 => {

@@ -58,6 +58,9 @@ not the dimensions of the court or the ball's world-space trajectory.
 
 The numerical flight model includes gravity, drag and spin-dependent lift.
 Inverse solving fits a trajectory to the landing zone and shot constraints.
+The hot first-flight inverse probe keeps its integration state in scalar locals
+using the same fixed step, drag, spin decay and lift equations as the sampled
+forward model. It preserves the search order and physical acceptance checks.
 Natural and exact parameter modes retain distinct constraints. Player and
 opponent balls use the same court-bounce response. Bounce factor is a practice
 adjustment, not a ball-pressure measurement or a fixed rebound-height ratio.
