@@ -5,6 +5,7 @@ import type { SurfaceId } from '../domain/court';
 
 export type SessionLaunch = Readonly<{
   session: CompiledSession;
+  preparation?: import('../engine/session/sessionCompiler').SessionPreparation;
   trajectoryEnabled: boolean;
   camera: CameraConfiguration;
   environment: EnvironmentConfiguration;

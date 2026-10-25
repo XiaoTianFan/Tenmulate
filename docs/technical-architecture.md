@@ -49,12 +49,25 @@ Workers keep expensive compilation off the UI thread. Exact-input caches and
 in-flight deduplication let preview/configuration work prepare launch sessions.
 Cancellation belongs to each subscriber; stale results cannot replace new input.
 Continuous setup previews request future batches, while launched sets are finite
-and honor repetitions/rest. Start detaches the old preview and resets the new
-session clock before playback; unfinished calculations can still take time.
-Start subscribes to the finite-session job before stopping preview/warmup
-subscriptions, so cancellation does not discard its work. Preview readiness is
-not a launch gate: only the finite session's planning result determines whether
-it can start. Edits during preparation abort the captured launch.
+and honor repetitions/rest. Finite compilers publish an opening buffer before
+finishing the session: two Quick Practice repetitions or one connected player event,
+with additional lookahead retained behind an immutable playback boundary. Short
+sessions can finish outright. Quick Practice prepares physics incrementally;
+seeded return targets are drawn in their original order before linking starts.
+The worker extends that same solve instead of recompiling shortened sessions.
+
+Start subscribes before stopping preview/warmup subscriptions and transfers its
+worker ownership to rehearsal. Preview readiness is not a launch gate. Edits
+before entry cancel the captured launch; exiting rehearsal cancels unfinished
+work. Only complete, valid sessions enter the completed cache. Later planning
+failures pause playback with an error rather than presenting a truncated success.
+
+The playable boundary excludes recovery toward an unfinished opponent stroke and
+unfinalized camera exchanges. Appending results preserves the simulation clock,
+renderer state and audio cursor. If playback catches up, the clock and audio
+pause until more validated content arrives; an explicit user pause stays paused.
+Seeks are clamped to the prepared buffer. Camera-motion controls rescale the
+timeline without recompiling physics, and new variations also compile off-thread.
 
 Quick Practice presents reps per set and set count, deriving the total for the
 compiler and existing browser/project save format (`repetitions`, `workBlockSize`).

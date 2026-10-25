@@ -16,7 +16,7 @@ import { DEFAULT_ENVIRONMENT, SCENE_DEFINITIONS, VENUE_LABELS, isOutdoorVenue, w
 import { RETURN_SERVE_PATTERN, RETURN_SERVE_PLACEMENT_LABELS, returnReceiverSideForCameraPreset, returnServerPosition, type ReturnReceiverSide } from '../domain/returnPractice';
 import type { CameraConfiguration, QualityMode, SceneMetrics } from '../engine/rendering/TennisScene';
 import type { CompiledRepetition, CompiledSession } from '../engine/session/compileSession';
-import { compilePracticeAsync } from '../engine/session/practiceSessionClient';
+import { preparePracticeSession } from '../engine/session/practiceSessionClient';
 import { usePracticePreview } from '../hooks/usePracticePreview';
 import { useCourtOverview } from '../hooks/useCourtOverview';
 import { defaultReturnShot } from '../engine/session/returnShot';
@@ -506,10 +506,12 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
     const controller = new AbortController(); launchCalculation.current = controller;
     setLaunching(true); setLaunchError(''); setResetToken(value => value + 1);
     try {
-      const session = await compilePracticeAsync(drill, sessionSettings, false, controller.signal);
+      const preparation = preparePracticeSession(drill, sessionSettings, controller.signal);
+      const session = await preparation.ready;
       if (controller.signal.aborted) return;
       if (session.planningIssues?.length) { setLaunchError(session.planningIssues[0]!.message); return; }
-      onStart({ session, trajectoryEnabled, camera, environment, surface, quality, defaultContent: true });
+      launchCalculation.current = null;
+      onStart({ session, preparation, trajectoryEnabled, camera, environment, surface, quality, defaultContent: true });
     } catch (error) { if (!controller.signal.aborted) setLaunchError(error instanceof Error ? error.message : String(error)); }
     finally { if (launchCalculation.current === controller) setLaunching(false); }
   };

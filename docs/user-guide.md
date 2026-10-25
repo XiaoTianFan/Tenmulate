@@ -42,6 +42,12 @@ Overhead starts near the T with an upward view. Starting a set clears the previe
 and resets the clock. A newly changed, complex setup can still need calculation.
 You can start while the live preview is updating; preparation uses your current
 settings. Editing those settings while preparing cancels the pending launch.
+Practice and drills begin once their opening shots are ready; later shots prepare
+in the background. If preparation falls behind playback, **Preparing next shots…**
+appears and the clock waits, then continues automatically. A manual pause stays
+paused. Skipping ahead reaches only prepared shots. If later settings cannot form
+a valid sequence, playback stops with an explanation so you can return and adjust
+them.
 Older saved totals are preserved, including a shorter final set. Changing reps
 per set or the number of sets switches that setup to complete sets.
 

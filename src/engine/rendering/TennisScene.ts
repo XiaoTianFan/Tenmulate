@@ -354,6 +354,13 @@ export class TennisScene {
   setSession(session: CompiledSession | null, clock: Readonly<{ current: number }> | null, onIndex?: (index:number, repetition: CompiledRepetition)=>void): void {
     this.onSessionIndex = onIndex ?? null;
     if (this.session === session && this.sessionClock === clock) return;
+    if (clock && this.sessionClock === clock && this.session && session && !this.session.previewLoop && !session.previewLoop) {
+      // Append the worker's validated buffer without restarting visible playback.
+      this.session = session;
+      this.motionEvents = session.repetitions.map(motionEvent);
+      this.canvas.dataset.sessionRevision = String(++this.sessionRevision);
+      return;
+    }
     this.profiler?.reset();
     this.landingZoneControl.acceptModel();
     this.canvas.dataset.sessionRevision = String(++this.sessionRevision);

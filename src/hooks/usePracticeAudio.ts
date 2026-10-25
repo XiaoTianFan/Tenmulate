@@ -20,12 +20,12 @@ export function usePracticeAudio(session: CompiledSession, launch: SessionLaunch
   useLayoutEffect(() => {
     cursor.current.reset(); countdown.current = null; practiceAudio.resetTimeline();
     return () => practiceAudio.setPlayback('idle');
-  }, [session]);
+  }, [launch.session]);
   useLayoutEffect(() => {
     practiceAudio.configure(launch.environment, launch.surface, levels, enabled);
   }, [launch.environment, launch.surface, levels, enabled]);
   useLayoutEffect(() => {
-    practiceAudio.setPlayback(document.hidden ? 'paused' : player.status);
+    practiceAudio.setPlayback(document.hidden || player.status === 'buffering' ? 'paused' : player.status);
     if (player.status === 'countdown' && player.countdown !== countdown.current) {
       countdown.current = player.countdown;
       if (!document.hidden && enabled) practiceAudio.play('countdown', levels.countdown);
@@ -37,7 +37,7 @@ export function usePracticeAudio(session: CompiledSession, launch: SessionLaunch
     const tick = () => {
       const { player, levels, enabled } = state.current;
       const current = player.clock.current;
-      const running = !document.hidden && player.status !== 'paused' && player.status !== 'completed';
+      const running = !document.hidden && player.status !== 'paused' && player.status !== 'buffering' && player.status !== 'completed';
       const crossed = cursor.current.advance(cues, current, running);
       if (enabled && crossed.length) {
         const opponent = session.opponentIdle ? { ...session.opponentIdle, y: 0 } : sampleOpponentTimeline(motion, current)?.root;

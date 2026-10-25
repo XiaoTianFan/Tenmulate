@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { CompiledSession } from '../engine/session/compileSession';
+import { playbackBoundary } from '../engine/session/playbackBoundary';
 
-export type PlayerStatus = 'countdown' | 'playing' | 'resting' | 'paused' | 'completed';
+export type PlayerStatus = 'countdown' | 'playing' | 'resting' | 'paused' | 'buffering' | 'completed';
 
 export type SessionPlayer = Readonly<{
   status: PlayerStatus;
@@ -20,7 +21,7 @@ export type SessionPlayer = Readonly<{
   next: () => void;
 }>;
 
-export const useSessionPlayer = (session: CompiledSession, playbackRate: number): SessionPlayer => {
+export const useSessionPlayer = (session: CompiledSession, playbackRate: number, identity: CompiledSession = session): SessionPlayer => {
   const [status, setStatus] = useState<PlayerStatus>('countdown');
   const [elapsed, setElapsed] = useState(0);
   const elapsedRef = useRef(0);
@@ -34,20 +35,21 @@ export const useSessionPlayer = (session: CompiledSession, playbackRate: number)
     setElapsed(0);
     setStatus('countdown');
   }, []);
+  const pause = useCallback(() => setStatus('paused'), []);
 
-  useLayoutEffect(() => restart(), [restart, session]);
+  useLayoutEffect(() => restart(), [restart, identity]);
 
   useEffect(() => {
     let frame = 0;
     const tick = (now: number) => {
-      if (status === 'countdown' || status === 'playing' || status === 'resting') {
+      if (status === 'countdown' || status === 'playing' || status === 'resting' || status === 'buffering') {
         const previous = lastFrameRef.current ?? now;
-        elapsedRef.current += Math.min(0.08, (now - previous) / 1000) * playbackRate;
+        const boundary = playbackBoundary(session, elapsedRef.current + (status === 'buffering' ? 0 : Math.min(0.08, (now - previous) / 1000) * playbackRate));
+        elapsedRef.current = boundary.time;
         lastFrameRef.current = now;
-        if (elapsedRef.current >= session.duration) {
-          elapsedRef.current = session.duration;
-          setElapsed(session.duration);
-          setStatus('completed');
+        if (boundary.buffering || boundary.completed) {
+          setElapsed(boundary.time);
+          setStatus(boundary.buffering ? 'buffering' : 'completed');
         } else {
           const resting = session.restPeriods.some((period) => elapsedRef.current >= period.startTime && elapsedRef.current < period.endTime);
           const nextStatus = elapsedRef.current < firstContact ? 'countdown' : resting ? 'resting' : 'playing';
@@ -64,7 +66,7 @@ export const useSessionPlayer = (session: CompiledSession, playbackRate: number)
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [playbackRate, session.duration, firstContact, session.restPeriods, status]);
+  }, [playbackRate, session, firstContact, status]);
 
   const actions = session.playerEvents ?? session.repetitions;
   const currentIndex = actions.reduce((active, repetition, index) => elapsed >= repetition.startTime ? index : active, session.playerEvents ? -1 : 0);
@@ -73,7 +75,7 @@ export const useSessionPlayer = (session: CompiledSession, playbackRate: number)
   const seekToIndex = useCallback((index: number) => {
     const actions = session.playerEvents ?? session.repetitions;
     const bounded = Math.min(actions.length - 1, Math.max(0, index));
-    const nextElapsed = index < 0 && session.playerEvents ? 0 : actions[bounded]?.startTime ?? 0;
+    const nextElapsed = playbackBoundary(session, index < 0 && session.playerEvents ? 0 : actions[bounded]?.startTime ?? 0).time;
     elapsedRef.current = nextElapsed;
     setElapsed(nextElapsed);
     setStatus('paused');
@@ -87,15 +89,15 @@ export const useSessionPlayer = (session: CompiledSession, playbackRate: number)
     countdown: status === 'countdown' ? Math.max(1, Math.ceil(firstContact - elapsed)) : null,
     restRemaining: activeRest ? Math.max(1, Math.ceil(activeRest.endTime - elapsed)) : null,
     currentSet: Math.floor(Math.max(0, currentIndex) / Math.max(1, session.settings.workBlockSize)) + 1,
-    setCount: Math.ceil(actions.length / Math.max(1, session.settings.workBlockSize)),
-    progress: session.duration <= 0 ? 0 : elapsed / session.duration,
+    setCount: Math.ceil((session.preparation?.totalRepetitions ?? actions.length) / Math.max(1, session.settings.workBlockSize)),
+    progress: session.preparation ? Math.max(0, currentIndex) / session.preparation.totalRepetitions : session.duration <= 0 ? 0 : elapsed / session.duration,
     play: () => {
       const resting = session.restPeriods.some((period) => elapsedRef.current >= period.startTime && elapsedRef.current < period.endTime);
       setStatus(elapsedRef.current < firstContact ? 'countdown' : resting ? 'resting' : 'playing');
     },
-    pause: () => setStatus('paused'),
+    pause,
     restart,
     previous: () => seekToIndex(currentIndex - 1),
     next: () => seekToIndex(currentIndex + 1),
-  }), [activeRest, currentIndex, elapsed, firstContact, restart, seekToIndex, session, status]);
+  }), [activeRest, currentIndex, elapsed, firstContact, pause, restart, seekToIndex, session, status]);
 };

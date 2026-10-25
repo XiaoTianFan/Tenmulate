@@ -3,7 +3,7 @@ import { AudioSettings } from './AudioSettings';
 import { VENUE_LABELS } from '../domain/environment';
 import { defaultContentText } from '../i18n/content';
 import { t, message as translateMessage } from '../i18n/locale';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { BallFocusControls } from './BallFocusControls';
 import { LanguageControl } from './LanguageControl';
 import {
@@ -27,7 +27,7 @@ import {
 import type { SessionLaunch } from '../app/types';
 import { practiceAudio } from '../engine/audio/AudioCueEngine';
 import { usePracticeAudio } from '../hooks/usePracticeAudio';
-import { compileSession } from '../engine/session/compileSession';
+import type { PreparationSnapshot } from '../engine/session/sessionCompiler';
 import { scaleCameraTimeline } from '../engine/session/cameraTimeline';
 import { useSessionPlayer } from '../hooks/useSessionPlayer';
 import { useFullscreen } from '../hooks/useFullscreen';
@@ -43,8 +43,13 @@ type RehearsalScreenProps = Readonly<{
 }>;
 
 const speedOptions = [0.5, 0.75, 1, 1.25] as const;
+const emptyPreparation: PreparationSnapshot = {};
+const noPreparation = () => emptyPreparation;
+const noSubscription = () => () => {};
 
 export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreenProps) {
+  const preparation = useSyncExternalStore(launch.preparation?.subscribe ?? noSubscription, launch.preparation?.getSnapshot ?? noPreparation);
+  const preparedSession = preparation.session ?? launch.session;
   const contentText = (value: string) => launch.defaultContent ? defaultContentText(value) : value;
   const [playbackRate, setPlaybackRate] = useState(1);
   const { soundEnabled, setSoundEnabled, audioLevels, crowdEnabled } = useAudioSettings();
@@ -63,18 +68,18 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const effectiveCameraMotionScale = reducedMotion ? 0 : cameraMotionScale;
   const session = useMemo(() => {
-    if (effectiveCameraMotionScale === (launch.session.settings.cameraMotionScale ?? 1)) return launch.session;
-    if (!launch.session.playerEvents) return compileSession(launch.session.drill, { ...launch.session.settings, camera: launch.camera, cameraMotionScale: effectiveCameraMotionScale });
-    return { ...launch.session, cameraTimeline: scaleCameraTimeline(launch.session.cameraTimeline, effectiveCameraMotionScale) };
-  }, [effectiveCameraMotionScale, launch.session, launch.camera]);
-  const rawPlayer = useSessionPlayer(session, playbackRate);
+    if (effectiveCameraMotionScale === (preparedSession.settings.cameraMotionScale ?? 1)) return preparedSession;
+    return { ...preparedSession, cameraTimeline: scaleCameraTimeline(preparedSession.cameraTimeline, effectiveCameraMotionScale) };
+  }, [effectiveCameraMotionScale, preparedSession]);
+  const rawPlayer = useSessionPlayer(session, playbackRate, launch.session);
+  useLayoutEffect(() => { if (preparation.error) rawPlayer.pause(); }, [preparation.error, rawPlayer.pause]);
   const { player, status: audioStatus } = usePracticeAudio(session, launch, rawPlayer, effectiveAudioLevels, soundEnabled);
   const playerEvent = session.playerEvents?.[Math.max(0, player.currentIndex)];
   const activeFlight = session.scheduledFlights?.find(flight => player.elapsed >= flight.startTime && player.elapsed < flight.endTime);
   const repetition = session.repetitions[playerEvent ? playerEvent.incomingIndex : player.currentIndex] ?? session.repetitions[0];
   const trajectory = activeFlight?.trajectory ?? repetition?.trajectory;
   const shot = repetition?.shot;
-  const eventCount = session.playerEvents?.length ?? session.repetitions.length;
+  const eventCount = session.preparation?.totalRepetitions ?? session.playerEvents?.length ?? session.repetitions.length;
   const opening = activeFlight?.phase === 'opening' || player.currentIndex < 0;
   const ballOwner = opening ? 'Opening opponent shot' : activeFlight?.owner === 'opponent' ? 'Opponent return' : 'Your shot';
   const activeEvent = session.playerEvents?.[activeFlight?.eventIndex ?? Math.max(0, player.currentIndex)];
@@ -157,6 +162,8 @@ export function RehearsalScreen({ launch, onExit, onRandomize }: RehearsalScreen
       </div>
 
       {player.countdown ? <div className="countdown" aria-live="assertive"><strong>{player.countdown}</strong><span>{t("Ready position")}</span></div> : null}
+      {player.status === 'buffering' ? <div className="countdown" role="status"><span>{t("Preparing next shots…")}</span></div> : null}
+      {preparation.error ? <Modal title={t("Practice preparation stopped")} onClose={onExit} actions={<button type="button" className="primary-button inline" onClick={onExit}>{t("Exit")}</button>}><p>{translateMessage(preparation.error.message)}</p></Modal> : null}
       {player.status === 'resting' ? <div className="countdown rest-countdown" aria-live="polite"><strong>{player.restRemaining}</strong><span>{t("Rest · next")} {session.playerEvents ? t("repetition") : t("set")} {t("follows")}</span></div> : null}
       <div className="rehearsal-transport-zone rehearsal-chrome-zone">
       <div className="rehearsal-transport rehearsal-chrome-content" role="group" aria-label={t("Playback controls")}>

@@ -2,9 +2,9 @@ import { t, message as translateMessage } from '../i18n/locale';
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import type { DrillDefinitionV2 } from '../content/types';
 import { AppHeader, type AppRoute } from '../components/AppHeader';
-import { compileSession } from '../engine/session/compileSession';
+import { preparePracticeSession } from '../engine/session/practiceSessionClient';
 import { practiceAudio } from '../engine/audio/AudioCueEngine';
-import { compilePlayerDrillAsync } from '../engine/session/playerDrillClient';
+import { compilePlayerDrillAsync, preparePlayerDrill } from '../engine/session/playerDrillClient';
 import { useAppData } from '../hooks/useAppData';
 import { defaultDrillSettings } from './defaults';
 import type { DrillPracticeSet } from './drillPracticeSet';
@@ -81,7 +81,13 @@ function AppRoutes({ appData }: { appData: ReturnType<typeof useAppData> }) {
     try { return createEditorDraftCache(window.localStorage); } catch { return createEditorDraftCache(); }
   });
   const [route, setRoute] = useState<AppRoute>('practice');
-  const [launch, setLaunch] = useState<SessionLaunch | null>(null);
+  const [launch, updateLaunch] = useState<SessionLaunch | null>(null);
+  const ownedLaunch = useRef<SessionLaunch | null>(null);
+  const setLaunch = (next: SessionLaunch | null) => {
+    if (ownedLaunch.current?.preparation !== next?.preparation) ownedLaunch.current?.preparation?.cancel();
+    ownedLaunch.current = next; updateLaunch(next);
+  };
+  useEffect(() => () => ownedLaunch.current?.preparation?.cancel(), []);
   const [editorDrill, setEditorDrill] = useState<DrillDefinitionV2 | null>(() => drafts.active()?.drill ?? null);
   const [busy, setBusy] = useState(false), [message, setMessage] = useState<string | null>(() => appStorageNotice() || null);
   const calculation = useRef<AbortController | null>(null);
@@ -116,12 +122,27 @@ function AppRoutes({ appData }: { appData: ReturnType<typeof useAppData> }) {
       const preferences = appData.data.preferences;
       const settings = rerun ? { ...rerun.session.settings, seed: String(Number(rerun.session.settings.seed || '0') + 1) }
         : { ...defaultDrillSettings(drill, rhythm, interval, movement, practiceSet), surface: preferences.surface };
-      const session = await compilePlayerDrillAsync(drill, settings, controller.signal);
+      const preparation = preparePlayerDrill(drill, settings, controller.signal);
+      const session = await preparation.ready;
       if (controller.signal.aborted) return;
       if (session.planningIssues?.length) { setMessage(session.planningIssues.map(issue => issue.message).join('\n')); return; }
-      setLaunch({ session, camera: drill.events[0]!.camera, environment: preferences.environment, quality: preferences.quality,
+      calculation.current = null; setBusy(false);
+      setLaunch({ session, preparation, camera: drill.events[0]!.camera, environment: preferences.environment, quality: preferences.quality,
         defaultContent: rerun?.defaultContent ?? defaultContent, surface: settings.surface, trajectoryEnabled: rerun?.trajectoryEnabled ?? trajectoryEnabled });
     } catch (error) { if (!controller.signal.aborted) setMessage(error instanceof Error ? error.message : 'Unable to prepare drill.'); }
+    finally { if (calculation.current === controller) setBusy(false); }
+  };
+  const randomizePractice = async (previous: SessionLaunch) => {
+    if (previous.session.drill.schemaVersion !== 1) return;
+    calculation.current?.abort(); const controller = new AbortController(); calculation.current = controller; setBusy(true);
+    try {
+      const preparation = preparePracticeSession(previous.session.drill, { ...previous.session.settings,
+        seed: String(Number(previous.session.settings.seed || '0') + 1) }, controller.signal);
+      const session = await preparation.ready;
+      if (controller.signal.aborted) return;
+      calculation.current = null; setBusy(false);
+      setLaunch({ ...previous, session, preparation });
+    } catch (error) { if (!controller.signal.aborted) setMessage(error instanceof Error ? error.message : String(error)); }
     finally { if (calculation.current === controller) setBusy(false); }
   };
   const editDrill = (drill: DrillDefinitionV2) => {
@@ -133,7 +154,7 @@ function AppRoutes({ appData }: { appData: ReturnType<typeof useAppData> }) {
     <Suspense fallback={<LoadingScreen/>}>
       {launch ? <RehearsalScreen launch={launch} onExit={() => { if (route === 'editor') setEditorDrill(drafts.active()?.drill ?? editorDrill); setLaunch(null); }} onRandomize={() => {
         if (launch.session.drill.schemaVersion === 2) void drillLaunch(launch.session.drill, { rerun: launch });
-        else setLaunch({ ...launch, session: compileSession(launch.session.drill, { ...launch.session.settings, seed: String(Number(launch.session.settings.seed || '0') + 1) }) });
+        else void randomizePractice(launch);
       }}/>
       : route === 'drills' ? <DrillLibraryScreen environment={appData.data.preferences.environment} surface={appData.data.preferences.surface} route={route} drills={drills} projectIds={projectIds}
         projectStatus={storageStatus} writable={true} onRoute={navigate}
