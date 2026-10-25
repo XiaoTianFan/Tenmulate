@@ -14,7 +14,9 @@ to you. Rally, Return, Volley and Overhead each have their own starting setup.
    **Top-down court** makes the opponent and zones easier to place. Drag the blue
    camera icon to move your receiving position; drag its direction handle to turn
    your view. Release to apply, or press Escape to cancel the drag.
-3. Set repetitions, work blocks and rest under **Practice set**.
+3. Under **Practice set**, choose **Reps per set**, **Number of sets**, and
+   **Rest between sets**. The total is calculated for you; a single set has no
+   rest break. **Timing variation** remains under **Ball & rhythm**.
 4. Select **Start practice** to begin a fresh timed set.
 
 The yellow zone is the incoming ball's landing area. The blue zone is the target
@@ -38,6 +40,10 @@ Rally connects exchanges. Return, Volley and Overhead use independent feeds with
 an illustrative player response. Volley starts between the service T and net;
 Overhead starts near the T with an upward view. Starting a set clears the preview
 and resets the clock. A newly changed, complex setup can still need calculation.
+You can start while the live preview is updating; preparation uses your current
+settings. Editing those settings while preparing cancels the pending launch.
+Older saved totals are preserved, including a shorter final set. Changing reps
+per set or the number of sets switches that setup to complete sets.
 
 ## Drills and editor
 

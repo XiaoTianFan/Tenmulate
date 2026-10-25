@@ -35,6 +35,9 @@ Both use physical trajectories and a shared movement/recovery planner. Ball pace
 is independent of animation rhythm. Contact timing must satisfy the appropriate
 bounce, height and travel constraints; infeasible authored setups report a problem
 rather than fabricating a connection.
+Standalone Quick Rally responses are solved only at set endings or failed links;
+connected exchanges supply their own return. Seeded target draws retain their
+original order even when a discarded standalone solve is skipped.
 
 Seeded variation searches feasible candidates instead of stopping at the first
 unsolvable random sample. Opponent contacts must be reachable while grounded;
@@ -48,6 +51,15 @@ Cancellation belongs to each subscriber; stale results cannot replace new input.
 Continuous setup previews request future batches, while launched sets are finite
 and honor repetitions/rest. Start detaches the old preview and resets the new
 session clock before playback; unfinished calculations can still take time.
+Start subscribes to the finite-session job before stopping preview/warmup
+subscriptions, so cancellation does not discard its work. Preview readiness is
+not a launch gate: only the finite session's planning result determines whether
+it can start. Edits during preparation abort the captured launch.
+
+Quick Practice presents reps per set and set count, deriving the total for the
+compiler and existing browser/project save format (`repetitions`, `workBlockSize`).
+Legacy partial final sets retain their total until a set-size/count edit. Set
+sliders commit on release so dragging does not repeatedly restart compilation.
 
 ## Court and physics
 

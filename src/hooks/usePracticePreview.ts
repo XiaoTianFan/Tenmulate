@@ -3,7 +3,7 @@ import type { DrillDefinitionV1 } from '../content/types';
 import { compileSession, type CompiledSession, type SessionSettings } from '../engine/session/compileSession';
 import { compilePracticeAsync } from '../engine/session/practiceSessionClient';
 
-export function usePracticePreview(drill: DrillDefinitionV1, settings: SessionSettings) {
+export function usePracticePreview(drill: DrillDefinitionV1, settings: SessionSettings, active = true) {
   // A newly selected mode must never inherit the previous mode's live session.
   // Keep a single-feed placeholder while the continuous sequence resolves off-thread.
   const [placeholder, setPlaceholder] = useState(() => ({ drill,
@@ -17,6 +17,7 @@ export function usePracticePreview(drill: DrillDefinitionV1, settings: SessionSe
     session: placeholder.session, source: null, error: '',
   }));
   useEffect(() => {
+    if (!active) return;
     const controller = new AbortController();
     const modeChanged = requestedDrill.current !== drill;
     requestedDrill.current = drill;
@@ -26,10 +27,11 @@ export function usePracticePreview(drill: DrillDefinitionV1, settings: SessionSe
         .catch(error => { if (!controller.signal.aborted) setResult(previous => ({ ...previous, source: settings, error: String(error.message ?? error) })); });
     }, modeChanged ? 0 : 50);
     return () => { clearTimeout(timer); controller.abort(); };
-  }, [drill, settings]);
+  }, [drill, settings, active]);
   const pending = result.source !== settings;
   const [prepared, setPrepared] = useState<SessionSettings | null>(null);
   useEffect(() => {
+    if (!active) return;
     const controller = new AbortController();
     const timer = setTimeout(() => {
       void compilePracticeAsync(drill, settings, false, controller.signal)
@@ -37,7 +39,7 @@ export function usePracticePreview(drill: DrillDefinitionV1, settings: SessionSe
         .catch(() => { /* Start reports planning failures; superseded warmups are silent. */ });
     }, 200);
     return () => { clearTimeout(timer); controller.abort(); };
-  }, [drill, settings]);
+  }, [drill, settings, active]);
   return { ...result, session: pending || result.error ? placeholder.session : result.session,
     error: pending ? '' : result.error, pending, prepared: prepared === settings };
 }

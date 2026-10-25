@@ -1,4 +1,5 @@
 import { practiceDefaults } from '../app/practiceDefaults';
+import { quickPracticeSet, quickPracticeSetTotal } from '../app/quickPracticeSet';
 
 import { AudioSettings } from './AudioSettings';
 import { usePreviewAudio } from '../hooks/usePreviewAudio';
@@ -121,6 +122,7 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
   const [variation, setVariation] = useState(initialPreferences.variation);
   const [timingVariation, setTimingVariation] = useState(initialPreferences.timingVariation);
   const [workBlockSize, setWorkBlockSize] = useState(initialPreferences.workBlockSize);
+  const practiceSet = quickPracticeSet(repetitions, workBlockSize);
   const [restSeconds, setRestSeconds] = useState(initialPreferences.restSeconds);
   const [surface, setSurface] = useState<SurfaceId>(() => legacyInitialPreferences.surface ?? legacyInitialPreferences.physicsSurface ?? legacyInitialPreferences.visualSurface ?? 'hard');
   const [shotType, setShotType] = useState<PracticeShotType>(initialPreferences.shotType);
@@ -210,7 +212,13 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
   }), [repetitions, interval, movementPercent, practiceStroke, trajectoryMode, rhythmPercent, lateral, behindBaseline, variation, timingVariation, launchSpeedKmh,
     surface, seed, spin, spinRateRpm, shotType, bounceFactor, opponentHand, workBlockSize, restSeconds,
     serveRhythm, landingZone, landingDepthM, aimDirectionDeg, opponentPosition, returnPatternActive, returnReceiverSide, windVelocity, rally, practiceReturn, practicePreset, eyeHeight]);
-  const preview = usePracticePreview(drill, sessionSettings), previewSession = preview.session;
+  const preview = usePracticePreview(drill, sessionSettings, !launching), previewSession = preview.session;
+  // Editing during preparation supersedes the captured launch, including its
+  // view/environment. A late worker result must never start the old setup.
+  useEffect(() => {
+    launchCalculation.current?.abort(); launchCalculation.current = null;
+    setLaunching(false); setLaunchError('');
+  }, [drill, sessionSettings, camera, environment, quality, trajectoryEnabled]);
   const onPreviewAudioFrame = usePreviewAudio(environment, surface, !launching && !preview.pending && !preview.error, previewSession);
   const resolvedPreview = (previewRepetition?.session === previewSession ? previewRepetition.repetition : previewSession.repetitions[0])!;
   const trajectory = resolvedPreview.trajectory;
@@ -579,6 +587,14 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
             <label className="select-field"><span>{t("Spin type")}</span><select aria-label={t("Spin type")} value={spin} onChange={(event) => changeSpin(event.target.value)}>{shotProfile.spins.map((option) => <option key={option} value={option}>{t(practiceSpinLabel(shotType, option))}</option>)}</select></label>
             {shotType!=='serve'?<label className="select-field"><span>{t("Stroke side")}</span><select aria-label={t("Stroke side")} value={practiceStroke} onChange={event=>setPracticeStroke(event.target.value as 'forehand'|'backhand'|'auto')}><option value="auto">{t("Automatic")}</option><option value="forehand">{t("Forehand")}</option><option value="backhand">{t("Backhand")}</option></select></label>:null}
           </SetupSection>
+          <SetupSection title={t("Practice set")} subtitle={t("Reps, sets and recovery")} open>
+            <RangeField label={t("Reps per set")} value={practiceSet.repsPerSet} min={1} max={Math.min(Math.max(20, practiceSet.repsPerSet), Math.floor(1000 / practiceSet.sets))} step={1} unit={t("reps")} commitOnRelease onChange={value => { setWorkBlockSize(value); setRepetitions(quickPracticeSetTotal(value, practiceSet.sets)); }} />
+            <RangeField label={t("Number of sets")} value={practiceSet.sets} min={1} max={Math.min(Math.max(20, practiceSet.sets), Math.floor(1000 / practiceSet.repsPerSet))} step={1} unit="" commitOnRelease onChange={value => setRepetitions(quickPracticeSetTotal(practiceSet.repsPerSet, value))} />
+            <RangeField label={t("Rest between sets")} value={restSeconds} min={0} max={120} step={5} unit={t("s")} commitOnRelease onChange={setRestSeconds} />
+            <small aria-live="polite">{t(practiceSet.lastSetReps === practiceSet.repsPerSet ? "{0} sets × {1} reps · {2} total" : "{0} sets · up to {1} reps per set · {2} total", { '0': practiceSet.sets, '1': practiceSet.repsPerSet, '2': repetitions })}
+              {practiceSet.lastSetReps !== practiceSet.repsPerSet ? t(" · saved final set: {0} reps", { '0': practiceSet.lastSetReps }) : ''}
+              {practiceSet.sets === 1 ? t(" · no rest needed") : ''}</small>
+          </SetupSection>
           <SetupSection title={t("Ball & rhythm")} subtitle={t("Flight, speed, timing")} open>
             <label className="toggle-field"><span>{t("Trajectory")}</span><button type="button" role="switch" aria-label={t("Trajectory")} aria-checked={trajectoryEnabled || overview} disabled={overview} title={overview ? t("Always shown in top-down view") : undefined} className={trajectoryEnabled || overview ? 'toggle active' : 'toggle'} onClick={() => setTrajectoryEnabled((value) => !value)}><span /></button><small>{trajectoryEnabled || overview ? t("On") : t("Off")}</small></label>
             {shotType === 'serve' ? <label className="select-field"><span>{t("Serve rhythm")}</span><select aria-label={t("Serve rhythm")} value={serveRhythm} onChange={(event) => setServeRhythm(event.target.value as 'normal' | 'compact')}><option value="normal">{t("Normal")}</option><option value="compact">{t("Compact")}</option></select></label> : null}
@@ -589,6 +605,7 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
             <label className="select-field"><span>{t("Trajectory style")}</span><select aria-label={t("Trajectory style")} value={trajectoryMode} onChange={event=>setTrajectoryMode(event.target.value as 'natural'|'exact')}><option value="natural">{t("Natural target")}</option><option value="exact">{t("Exact sampled speed & spin")}</option></select></label>
             <small className={`trajectory-resolution${trajectory.solution?.status==='unreachable'?' warning':''}`} role="status">{trajectory.solution?.status==='unreachable'?t("Sample outside this shot’s reach. Adjust speed, spin or zone."):t("Resolved {0} km/h · {1} rpm.", {"0": trajectory.resolved.launchSpeedKmh.toFixed(1), "1": Math.round(trajectory.resolved.spinRateRpm)})} {trajectoryMode==='exact'?t("Each sampled speed and spin stays fixed; some landings may be out of reach."):''}</small>
             <RangeField label={t("Shot interval")} value={interval} min={1} max={30} step={0.1} unit={t("s")} onChange={setInterval} />
+            <RangeField label={t("Timing variation")} value={timingVariation} min={0} max={30} step={1} unit="%" commitOnRelease onChange={setTimingVariation} />
             {rally ? <ContactTimingControl family={shotType === 'serve' ? 'groundstroke' : shotType} value={opponentContactTiming} label={t("Opponent contact timing")} onChange={setOpponentContactTiming}/> : null}
             <RangeField label={t("Stroke rhythm")} value={rhythmPercent} min={50} max={300} step={5} unit="%" onChange={setRhythmPercent} />
             <RangeField label={t("Movement pace")} value={movementPercent} min={50} max={300} step={5} unit="%" onChange={setMovementPercent} />
@@ -596,7 +613,7 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
           </SetupSection>
           <SetupSection title={t("Ball arrival")} subtitle={t("Surface response and perceived height")}><RangeField label={t("Bounce height")} value={bounceFactor} min={0.6} max={1.4} step={0.05} unit="×" onChange={setBounceFactor} /></SetupSection>
           <SetupSection title={t("Your return")} subtitle={t("Blue landing zone")} open><button type="button" className="text-action" onClick={() => setOverview(true)}>{t("Edit return landing zone on court")}</button></SetupSection>
-          <SetupSection title={t("Practice set")} subtitle={t("Repetitions and recovery")}><RangeField label={t("Repetitions")} value={repetitions} min={1} max={50} step={1} unit="" onChange={setRepetitions} /><RangeField label={t("Timing variation")} value={timingVariation} min={0} max={30} step={1} unit="%" onChange={setTimingVariation} /><RangeField label={t("Work block")} value={workBlockSize} min={1} max={20} step={1} unit={t("reps")} onChange={setWorkBlockSize} /><RangeField label={t("Rest")} value={restSeconds} min={0} max={120} step={5} unit={t("s")} onChange={setRestSeconds} /></SetupSection>
+
           <SetupSection title={t("Opponent")} subtitle={t("Position and delivery")} open><button type="button" className="configuration-action" onClick={() => setOverview(true)}><UserRound size={16} /><span>{t("Place opponent on court")}</span><small>{opponentPosition.x.toFixed(1)}, {opponentPosition.z.toFixed(1)} {t("m")}</small></button><label className="select-field"><span>{t("Hand")}</span><select value={opponentHand} onChange={(event) => setOpponentHand(event.target.value as 'left' | 'right')}><option value="right">{t("Right-handed")}</option><option value="left">{t("Left-handed")}</option></select></label></SetupSection>
           <SetupSection title={t("Venue")} subtitle={t("Court, light, weather")}>
             <label className="select-field"><span>{t("Venue")}</span><select value={venue} onChange={(event) => changeVenue(event.target.value as VenueId)}>{(Object.entries(VENUE_LABELS) as [VenueId, string][]).map(([id, label]) => <option key={id} value={id}>{t(label)}</option>)}</select></label>
@@ -618,7 +635,7 @@ export function SetupScreen({ route, cameraPositionPresets = DEFAULT_CAMERA_POSI
           <AudioSettings />
           {preview.pending ? <p role="status">{t("Updating practice…")}</p> : preview.error || previewSession.planningIssues?.length ? <p role="alert">{translateMessage(preview.error || previewSession.planningIssues?.[0]?.message)}</p> : null}
           {launchError ? <p role="alert">{translateMessage(launchError)}</p> : null}
-          <div className="inspector-actions"><button className="secondary-button" type="button" disabled={saving || launching} onClick={resetConfig}><RotateCcw size={16}/>{t("Reset config")}</button><button className="secondary-button" type="button" disabled={saving} onClick={() => void performSave(() => onSaveConfig(pendingPreferences.current))}><Save size={16}/>{saving ? t("Saving…") : t("Save config")}</button><button className="primary-button" type="button" disabled={launching || preview.pending || !!preview.error || !!previewSession.planningIssues?.length} onClick={requestStart}><Play size={16}/>{launching ? t("Preparing practice…") : t("Start practice")}</button></div>
+          <div className="inspector-actions"><button className="secondary-button" type="button" disabled={saving || launching} onClick={resetConfig}><RotateCcw size={16}/>{t("Reset config")}</button><button className="secondary-button" type="button" disabled={saving} onClick={() => void performSave(() => onSaveConfig(pendingPreferences.current))}><Save size={16}/>{saving ? t("Saving…") : t("Save config")}</button><button className="primary-button" type="button" disabled={launching} onClick={requestStart}><Play size={16}/>{launching ? t("Preparing practice…") : t("Start practice")}</button></div>
         </aside>
       </section>
       {dialog === 'safety' ? <Modal title={t("Make room to swing")} actions={<><button className="secondary-button" type="button" onClick={() => setDialog(null)}>{t("Cancel")}</button><button className="primary-button inline" type="button" disabled={!safetyChecked} onClick={() => { localStorage.setItem('tenmulate.safetyAcknowledged', 'true'); setDialog(null); launch(); }}>{t("Continue")}</button></>}><p>{t("Move furniture, people, pets, and breakable objects beyond your full racket-and-arm reach. Tenmulate does not measure your room.")}</p><label className="check-row"><input type="checkbox" checked={safetyChecked} onChange={(event) => setSafetyChecked(event.target.checked)} /> {t("I have cleared a safe practice area.")}</label></Modal> : null}

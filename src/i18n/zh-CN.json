@@ -1,4 +1,11 @@
 {
+  "{0} sets · up to {1} reps per set · {2} total": "{0} 组 · 每组最多 {1} 次 · 共 {2} 次",
+  "Reps, sets and recovery": "每组次数、组数与休息",
+  "Reps per set": "每组次数",
+  "Number of sets": "训练组数",
+  "Rest between sets": "组间休息",
+  "{0} sets × {1} reps · {2} total": "{0} 组 × 每组 {1} 次 · 共 {2} 次",
+  " · saved final set: {0} reps": " · 已保存的最后一组为 {0} 次",
   "Some sounds unavailable · available sounds remain active": "部分声音不可用 · 其余声音仍可播放",
   "Loading sounds…": "正在加载声音…",
   "Sound": "声音",
