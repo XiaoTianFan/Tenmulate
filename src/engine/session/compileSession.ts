@@ -157,11 +157,21 @@ export const compileSession = (
   const rally = mode === 'quick-practice' && drill.category === 'Quick Rally' && !!settings.rally;
   const practiceReturn = mode === 'quick-practice' ? settings.practiceReturn ?? {
     type: practiceReturnType(drill.category), landingZone: settings.rally?.landingZone ?? DEFAULT_RETURN_LANDING_ZONE } : undefined;
+  const pendingReturns = new WeakMap<ResolvedTrajectory, { x: number; z: number }>();
+  const finishPracticeReturn = (rep: CompiledRepetition): CompiledRepetition => {
+    const target = pendingReturns.get(rep.trajectory);
+    if (!practiceReturn || !target) return rep;
+    pendingReturns.delete(rep.trajectory);
+    const response = resolvePracticeReturn(rep.trajectory, practiceReturn, rep.camera,
+      target);
+    return { ...rep, rallyReturn: response?.rally, reachability: response ? { ...rep.reachability, reachable: true, reason: 'reachable', contact: response.contact } : rep.reachability };
+  };
   const addPracticeReturn = (rep: CompiledRepetition): CompiledRepetition => {
     if (!practiceReturn) return rep;
-    const response = resolvePracticeReturn(rep.trajectory, practiceReturn, rep.camera,
-      sampleLandingZone(practiceReturn.landingZone, practiceReturnRandom));
-    return { ...rep, rallyReturn: response?.rally, reachability: response ? { ...rep.reachability, reachable: true, reason: 'reachable', contact: response.contact } : rep.reachability };
+    // Consume the same seeded target at the same point in planning. A connected
+    // rally replaces this standalone response, so only solve it at an ending.
+    pendingReturns.set(rep.trajectory, sampleLandingZone(practiceReturn.landingZone, practiceReturnRandom));
+    return rally ? rep : finishPracticeReturn(rep);
   };
   if (continuation) repetitions.push(continuation);
   const rhythmPercent = normalizeRhythm(settings.rhythmPercent ?? (settings.interval !== undefined
@@ -328,6 +338,10 @@ export const compileSession = (
   for (let index = 1; index < repetitions.length; index += 1) {
     let previous = repetitions[index - 1]!;
     const rest = repetitions[index]!.index % workBlockSize === 0 && restSeconds > 0;
+    if (rally && (rest || repetitions[index]!.shot.family === 'serve')) {
+      previous = finishPracticeReturn(previous);
+      repetitions[index - 1] = previous;
+    }
     let schedulingPrevious = rest && mode === 'drill' ? { ...previous, recoveryPolicy: 'recover' as const } : previous;
     const variation = 1 + (timingRandom()*2-1)*Math.min(.5,Math.max(0,settings.timingVariationPercent/100));
     const requestedGap = previous.intervalSeconds*variation;
@@ -487,6 +501,9 @@ export const compileSession = (
       cameraTransitions.push({ start: departure, end: departure+cameraTravel, from: previous.camera, to: next.camera });
     }
     if(Math.abs(gap-requestedGap)>.001)motionTimingAdjusted=true;
+  }
+  for (let index = 0; index < repetitions.length; index++) {
+    if (repetitions[index]!.returnStatus !== 'linked') repetitions[index] = finishPracticeReturn(repetitions[index]!);
   }
   const last = repetitions.at(-1);
   const duration = last ? Math.max(planRecovery(motionEvent(last)).end + .15,

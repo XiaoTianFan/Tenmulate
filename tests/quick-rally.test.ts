@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import * as practiceReturns from '../src/engine/session/practiceReturn';
 import { DRILL_BY_CATEGORY } from '../src/content/bundled';
 import { compileSession, type SessionSettings } from '../src/engine/session/compileSession';
 import { preparePreviewBatch } from '../src/engine/session/practicePreview';
@@ -16,6 +17,19 @@ const settings: SessionSettings = { mode: 'quick-practice', repetitions: 6, work
   rally: { landingZone: DEFAULT_RETURN_LANDING_ZONE, shot: defaultReturnShot('groundstroke') } };
 const drill = DRILL_BY_CATEGORY.get('Quick Rally')!;
 describe('physical Quick Rally returns', () => {
+  it('solves standalone returns only at set endings, keeping the final ball before rest', () => {
+    const solve = vi.spyOn(practiceReturns, 'resolvePracticeReturn');
+    try {
+      const session = compileSession(drill, { ...settings, repetitions: 4, workBlockSize: 2, restSeconds: 5 });
+      expect(session.planningIssues ?? []).toEqual([]);
+      expect(solve).toHaveBeenCalledTimes(2);
+      expect(session.repetitions.map(rep => rep.returnStatus)).toEqual(['linked', 'rest', 'linked', 'quick-practice']);
+      expect(session.restPeriods).toHaveLength(1);
+      const ending = session.repetitions[1]!, final = session.repetitions[3]!;
+      expect(session.restPeriods[0]!.startTime).toBeGreaterThanOrEqual(ending.startTime + ending.rallyReturn!.contactTime + ending.rallyReturn!.duration);
+      expect(session.duration).toBeGreaterThanOrEqual(final.startTime + final.rallyReturn!.contactTime + final.rallyReturn!.duration);
+    } finally { solve.mockRestore(); }
+  });
   it.each([50, 60, 70])('keeps %s km/h intentions connected and low at short and long intervals', pace => {
     for (const interval of [2.5, 5]) {
       const session = compileSession(drill, { ...settings, repetitions: 4, shotIntervalSeconds: interval,
