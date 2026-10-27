@@ -1,5 +1,5 @@
 import { useRef, type PointerEvent } from 'react';
-import { ArrowLeft, ArrowRight, Crosshair, GripVertical, SkipBack, SkipForward, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Crosshair, GripVertical, X } from 'lucide-react';
 import { t } from '../i18n/locale';
 import { clamp, formatTime } from './timeline';
 import type { ComparisonClip } from './types';
@@ -55,16 +55,14 @@ export function ComparisonPane({ clip, frame, position, count, held, onFrame, on
         onPointerMove={event => { if (fine.current && event.currentTarget.hasPointerCapture(event.pointerId)) onFrame(clamp(fine.current.frame + Math.round((event.clientX - fine.current.x) / 8), 0, last)); }}
         onPointerUp={() => { fine.current = null; }} onPointerCancel={() => { fine.current = null; }}
         onKeyDown={event => { if (!clip.index || clip.error) return; if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) { event.preventDefault(); onFrame(event.key === 'Home' ? 0 : event.key === 'End' ? last : clamp(frame + (event.key === 'ArrowRight' ? 1 : -1), 0, last)); } }}>
-        <span>{t('Drag for frame-by-frame')}</span><span aria-hidden="true">↔</span>
+        <span className="comparison-fine-ticks" aria-hidden="true"/>
       </div>
-      <div className="comparison-frame-actions">
-        <button aria-label={t('Previous frame: {name}', { name: clip.name })} disabled={!clip.index || !!clip.error || frame === 0} onClick={() => onFrame(frame - 1)}><SkipBack size={16}/></button>
-        <output>{clip.index ? formatTime(clip.index.timestamps[frame]!) : '00:00.000'}</output>
-        <button aria-label={t('Next frame: {name}', { name: clip.name })} disabled={!clip.index || !!clip.error || frame === last} onClick={() => onFrame(frame + 1)}><SkipForward size={16}/></button>
-        <button className={clip.contact === frame ? 'contact-button is-contact' : 'contact-button'} disabled={!clip.index || !!clip.error} onClick={onContact}><Crosshair size={15}/>{t('Set contact')}</button>
+      <div className="comparison-settings">
+        <label className="comparison-speed"><span>{t('Clip speed')}</span><input type="range" min="0.1" max="2" step="0.05" value={clip.speed} disabled={!clip.index || !!clip.error} aria-label={t('Speed: {name}', { name: clip.name })} onChange={event => onSpeed(Number(event.target.value))}/><output>{clip.speed.toFixed(2)}×</output></label>
+        <button className={clip.contact === frame ? 'contact-button is-contact' : 'contact-button'} disabled={!clip.index || !!clip.error}
+          aria-pressed={clip.contact === frame} title={clip.contact === null ? t('Set contact') : t('Contact: frame {frame} · {time}', { frame: clip.contact + 1, time: formatTime(clip.index!.timestamps[clip.contact]!) })}
+          onClick={onContact}><Crosshair size={15}/>{t('Set contact')}</button>
       </div>
-      <div className="comparison-contact-info">{clip.contact === null ? t('Choose the racket–ball contact frame.') : t('Contact: frame {frame} · {time}', { frame: clip.contact + 1, time: formatTime(clip.index!.timestamps[clip.contact]!) })}</div>
-      <label className="comparison-speed"><span>{t('Clip speed')}</span><input type="range" min="0.1" max="2" step="0.05" value={clip.speed} disabled={!clip.index || !!clip.error} aria-label={t('Speed: {name}', { name: clip.name })} onChange={event => onSpeed(Number(event.target.value))}/><output>{clip.speed.toFixed(2)}×</output></label>
       <div className="comparison-pane-footer"><span>{t('Local clip')}</span><div>
         <button aria-label={t('Move {name} left', { name: clip.name })} disabled={position === 0} onClick={() => onMove(-1)}><ArrowLeft size={14}/></button>
         <button aria-label={t('Move {name} right', { name: clip.name })} disabled={position === count - 1} onClick={() => onMove(1)}><ArrowRight size={14}/></button>

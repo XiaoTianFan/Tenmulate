@@ -80,17 +80,20 @@ finishes before rest; there is no extra rest after the last repetition.
 
 ## Video Comparison
 
-Open **Video Comparison** beside Quick Practice, Drills and Editor. Choose local
-videos or drop up to five clips onto the page. Files are read on your device and
+Open **Video Comparison** beside Quick Practice, Drills and Editor. Click the empty
+video zone to choose local videos, or drop up to five clips onto the page. A vacant
+slot remains to the right of the loaded clips for adding more; at five clips it
+shows the limit until a clip is removed. Files are read on your device and
 never uploaded. Each video displays its full image without cropping, including
 portrait clips. Drag a pane's grip to reorder it and its right edge to change
 its width. Arrow buttons also reorder panes; a focused grip or resize edge accepts
 the left/right arrow keys. Wide arrangements scroll horizontally.
 
 1. Scrub each clip's thumbnail lane to find racket–ball contact. The narrow lane
-   below it provides fine adjustment (eight pixels per frame); arrow buttons or
-   the focused lane's left/right keys move one source frame at a time.
-2. Select **Set contact** in each pane. Once every clip has a contact, the timelines
+   below it provides fine adjustment (eight pixels per frame); its left/right
+   arrow keys move one source frame at a time when focused.
+2. Select **Set contact**, beside **Clip speed**, in each pane. The button's tooltip
+   shows the marked frame and time. Once every clip has a contact, the timelines
    link automatically and jump to contact time zero.
 3. Play/pause together, drag the shared timeline or any clip's lane, or use the
    shared frame-step buttons. The shared buttons move to the next/previous frame
