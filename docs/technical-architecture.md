@@ -146,6 +146,29 @@ Court capture reuses the canvas and post-effects audio mix across routes, with a
 720p drawing-buffer budget and 30 fps ceiling. This local media stream is separate
 from TV transport. Screen mirroring remains a device/receiver function.
 
+## Local video comparison
+
+`src/video-comparison/` owns a separate, lazily loaded review surface. A disposable
+worker reads local File objects with Mediabunny and indexes video presentation
+timestamps without decoding the video or uploading bytes. Frame rate is measured
+from those timestamps; variable-rate clips retain their individual frame spacing.
+Indexes are bounded to one million frames per clip. Twelve small local thumbnails
+per clip form the overview lane, independently of the review video element.
+
+Contact alignment maps comparison time to source time as
+`source = contactTimestamp + comparisonTime * clipSpeed`. Frame stepping uses
+actual presentation boundaries; the shared step chooses the next/previous boundary
+across all clips. Playback uses one wall clock with muted native video followers,
+per-clip playback rates and drift correction. Buffering pauses the group; clips
+outside their source range hold an edge frame. Native browser decoding/display is
+best effort during playback, not a hardware frame-lock guarantee.
+
+Clips and alignment settings live only in memory for the current app visit. The
+comparison surface remains mounted across navigation but pauses when hidden.
+Removing a clip or unmounting the app cancels indexing/thumbnail work, releases
+video decoders and revokes object URLs. No footage or derived frames enter saves,
+project-file middleware, service-worker caches or a remote service.
+
 ## Persistence, localization and delivery
 
 Production saves use versioned browser localStorage. Explicit configs are stored

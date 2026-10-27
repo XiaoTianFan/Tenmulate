@@ -10,6 +10,11 @@ schedule. Completed features belong in the user guide and architecture.
 - **Device coverage:** real Safari/iOS, lower-power hardware, TVs and projectors
   need broader performance, audio-latency, display-calibration and interaction
   testing. Desktop tests do not establish device-wide compatibility.
+- **Video comparison:** five high-resolution/high-frame-rate videos require
+  target-device decoder and memory testing. Native video playback is synchronized
+  with drift correction, not hardware frame lock. Browser codec support, HDR
+  rendering and phone slow-motion/edit metadata vary; encoded presentation timing
+  is used, not an inferred capture frame rate. Comparison sessions are visit-only.
 - **Long-session and offline reliability:** extended mixed-session testing and
   a complete deployed service-worker upgrade/offline lifecycle check remain useful
   acceptance work. Uncached content cannot be promised offline.

@@ -78,6 +78,42 @@ Before **Run drill**, set the total repetitions of the whole drill and rest betw
 repetitions. One repetition includes every authored player shot. The final ball
 finishes before rest; there is no extra rest after the last repetition.
 
+## Video Comparison
+
+Open **Video Comparison** beside Quick Practice, Drills and Editor. Choose local
+videos or drop up to five clips onto the page. Files are read on your device and
+never uploaded. Each video displays its full image without cropping, including
+portrait clips. Drag a pane's grip to reorder it and its right edge to change
+its width. Arrow buttons also reorder panes; a focused grip or resize edge accepts
+the left/right arrow keys. Wide arrangements scroll horizontally.
+
+1. Scrub each clip's thumbnail lane to find racket–ball contact. The narrow lane
+   below it provides fine adjustment (eight pixels per frame); arrow buttons or
+   the focused lane's left/right keys move one source frame at a time.
+2. Select **Set contact** in each pane. Once every clip has a contact, the timelines
+   link automatically and jump to contact time zero.
+3. Play/pause together, drag the shared timeline or any clip's lane, or use the
+   shared frame-step buttons. The shared buttons move to the next/previous frame
+   boundary across all clips, so a higher-rate clip may advance while a lower-rate
+   clip still shows its current frame. **Contact frame** returns every clip to its mark.
+4. Adjust each **Clip speed** from 0.10× to 2.00× to compare motion rhythms. Speed
+   changes pause and return to contact; the shared timeline and manual scrubbing
+   use the same factor. At 0.50×, one second after contact advances that source by
+   half a second. Uncheck **Link timelines** to adjust clips independently.
+
+Frame rate and frame stepping use the file's actual presentation timestamps,
+including variable-rate footage. The displayed FPS is an average. Shorter clips
+hold their first or last frame outside their coverage; the full comparison range
+remains available. Sound is muted. Buffering pauses all clips, and leaving the
+page or hiding the tab pauses playback. Ordinary playback follows browser decoding
+and display timing; pause/step for close frame inspection.
+
+Clips, contact marks, order, widths and speeds survive navigation within the app
+but are not saved across a reload or closing the app. Removing a clip releases
+its local resources. MP4/MOV/WebM support depends on the browser's codec support;
+an unsupported or unreadable file shows an error and can be removed. Very long
+files with more than one million video frames require a shorter excerpt.
+
 ## View and playback
 
 Drag outside a zone to look around, use the wheel to zoom, and use WASD to move

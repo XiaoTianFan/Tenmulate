@@ -29,6 +29,7 @@ const loadRehearsal = () => import('../components/RehearsalScreen').then(module 
 const RehearsalScreen = lazy(loadRehearsal);
 const DrillLibraryScreen = lazy(() => import('../components/DrillLibraryScreen').then(module => ({ default: module.DrillLibraryScreen })));
 const DrillEditorScreen = lazy(() => import('../components/DrillEditorScreen').then(module => ({ default: module.DrillEditorScreen })));
+const VideoComparisonScreen = lazy(() => import('../video-comparison/VideoComparisonScreen').then(module => ({ default: module.VideoComparisonScreen })));
 const LoadingScreen = () => <main className="route-loading" aria-live="polite"><strong>Tenmulate</strong><span>{t("Preparing court…")}</span></main>;
 
 export function App() {
@@ -81,6 +82,7 @@ function AppRoutes({ appData }: { appData: ReturnType<typeof useAppData> }) {
     try { return createEditorDraftCache(window.localStorage); } catch { return createEditorDraftCache(); }
   });
   const [route, setRoute] = useState<AppRoute>('practice');
+  const [comparisonOpened, setComparisonOpened] = useState(false);
   const [launch, updateLaunch] = useState<SessionLaunch | null>(null);
   const ownedLaunch = useRef<SessionLaunch | null>(null);
   const setLaunch = (next: SessionLaunch | null) => {
@@ -100,6 +102,7 @@ function AppRoutes({ appData }: { appData: ReturnType<typeof useAppData> }) {
   }, [drafts]);
   const cacheDraft = useCallback((draft: EditorDraft, previousId?: string) => { drafts.put(draft, previousId); }, [drafts]);
   const navigate = (next: AppRoute) => {
+    if (next === 'comparison') setComparisonOpened(true);
     drafts.flush();
     if (next === 'editor') {
       void projectShots.refresh();
@@ -176,10 +179,13 @@ function AppRoutes({ appData }: { appData: ReturnType<typeof useAppData> }) {
           <button type="button" className="primary-button inline" onClick={() => navigate('drills')}>{t('Go to Drills')}</button>
         </section>
       </main>
-      : <SetupScreen route={route} cameraPositionPresets={positions} perspectivePresets={perspectives}
+      : route === 'comparison' ? null : <SetupScreen route={route} cameraPositionPresets={positions} perspectivePresets={perspectives}
         initialPreferences={appData.data.preferences} onRoute={navigate} onStart={setLaunch} onSaveCameraPositionPreset={savePosition}
         onSavePerspectivePreset={savePerspective} onSaveConfig={saveConfig} onRestoreBallFocus={appData.saveBallFocus} projectPracticeConfigs={configs.snapshot.practiceConfigs} practiceConfigs={{ ...configs.snapshot.practiceConfigs, ...appData.data.practiceConfigs }} onPreferencesChange={appData.savePreferences}/>}
     </Suspense>
+    {comparisonOpened ? <Suspense fallback={route === 'comparison' ? <LoadingScreen/> : null}>
+      <VideoComparisonScreen active={route === 'comparison' && !launch} onRoute={navigate}/>
+    </Suspense> : null}
     {saves.ui}
     {busy ? <Modal title={t("Preparing drill")} onClose={cancel} actions={<button type="button" className="secondary-button" onClick={cancel}>{t("Cancel")}</button>}><p role="status">{t("Connecting your shots, opponent returns and camera movement…")}</p></Modal> : null}
     {message ? <Modal title={t("Drill planning")} onClose={() => setMessage(null)} actions={<button type="button" className="primary-button inline" onClick={() => setMessage(null)}>{t("Close")}</button>}><p className="drill-planning-message">{translateMessage(message)}</p></Modal> : null}

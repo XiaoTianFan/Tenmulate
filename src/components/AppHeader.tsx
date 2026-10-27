@@ -3,7 +3,7 @@ import { CastingButton } from './CastingButton';
 import { AboutButton } from './AboutButton';
 import { LanguageControl } from './LanguageControl';
 
-export type AppRoute = 'practice' | 'drills' | 'editor';
+export type AppRoute = 'practice' | 'drills' | 'editor' | 'comparison';
 
 type AppHeaderProps = Readonly<{
   route: AppRoute;
@@ -18,6 +18,7 @@ export function AppHeader({ route, onRoute }: AppHeaderProps) {
         <button className={route === 'practice' ? 'nav-item active' : 'nav-item'} type="button" onClick={() => onRoute('practice')}>{t("Quick Practice")}</button>
         <button className={route === 'drills' ? 'nav-item active' : 'nav-item'} type="button" onClick={() => onRoute('drills')}>{t("Drills")}</button>
         <button className={route === 'editor' ? 'nav-item active' : 'nav-item'} type="button" onClick={() => onRoute('editor')}>{t("Editor")}</button>
+        <button className={route === 'comparison' ? 'nav-item active' : 'nav-item'} type="button" onClick={() => onRoute('comparison')}>{t('Video Comparison')}</button>
       </nav>
       <div className="header-actions">
         <LanguageControl />

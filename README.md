@@ -15,6 +15,8 @@ clear space to move and swing safely.
   movement, with configurable repetitions and rest.
 - **Editor:** open or create a drill from the library, arrange reusable shots,
   and preview the sequence before practicing.
+- **Video Comparison:** review up to five local videos side by side, mark contact
+  frames and synchronize playback or frame stepping with independent clip speeds.
 
 Six court environments, venue-aware sound, adjustable views and ball highlight
 support the rehearsal. The interface and built-in content support English and

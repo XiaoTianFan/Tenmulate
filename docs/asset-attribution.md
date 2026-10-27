@@ -4,6 +4,15 @@ This inventory identifies shipped sources. It does not grant a license over
 Tenmulate source code or replace original third-party notices. No repository-wide
 open-source license has been selected.
 
+## Video file reader
+
+Local video comparison uses unmodified [Mediabunny](https://mediabunny.dev/)
+1.62.1 by Vanilagy, licensed under MPL-2.0. Its corresponding source is available
+in the [versioned npm package](https://www.npmjs.com/package/mediabunny/v/1.62.1)
+and [upstream repository](https://github.com/Vanilagy/mediabunny).
+The [license notice](../public/licenses/mediabunny.txt) ships with the app.
+User-selected videos are private local inputs and are not distributed with it.
+
 ## Opponent
 
 The articulated mannequin is based on Quaternius's CC0

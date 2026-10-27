@@ -6,6 +6,7 @@ import type { AppRoute } from './AppHeader';
 import './about.css';
 
 const routeHelp: Record<AppRoute, string> = {
+  comparison: 'Add local videos, choose a contact frame in each clip, then review them together. Unlink timelines to adjust contacts independently. Clip speeds scale time around contact. Videos stay in this tab until removed or the app closes.',
   practice: 'Choose your camera and incoming-ball settings, then start Quick Practice. Top-down court lets you drag the opponent and landing zones. Rally also includes your configured return ball toward the blue zone.',
   drills: 'Choose a drill to run, duplicate, export or edit. Custom drills stay in this browser.',
   editor: 'Select an opening or player shot to edit it. WASD moves its player camera; drag to look and wheel to zoom. In Top-down zones, drag the opening opponent, blue player landing or yellow opponent landing. Drag presets onto the timeline and right-click to remove a shot. Preview sequence below the court plays the full drill.',
