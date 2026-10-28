@@ -13,10 +13,12 @@
 .comparison-shell button:disabled { opacity: .35; cursor: not-allowed !important; }
 .comparison-shell button:not(:disabled):hover { filter: brightness(1.15); }
 .comparison-pane-header button { color: var(--muted); }
+.comparison-pane-header .comparison-mirror[aria-pressed="true"] { color: var(--accent); background: #2b2a15; border-color: #625d29; }
 .comparison-pane .comparison-grip { cursor: grab !important; touch-action: none; }
 .comparison-grip:active { cursor: grabbing !important; }
 .comparison-video-wrap { position: relative; height: clamp(200px, 35vh, 460px); background: #020405; }
 .comparison-video-wrap video { display: block; width: 100%; height: 100%; object-fit: contain; }
+.comparison-pane.is-mirrored .comparison-video-wrap video, .comparison-pane.is-mirrored .comparison-thumbnails img { transform: scaleX(-1); }
 .comparison-held { position: absolute; top: 10px; left: 10px; background: #080c0fcf; border: 1px solid var(--divider); padding: 5px 8px; border-radius: 4px; color: var(--muted); font-size: 10px; }
 .comparison-loading, .comparison-video-error { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; gap: 12px; text-align: center; font-size: 12px; background: #050a0dd9; color: var(--muted); }
 .comparison-video-error { color: #ffb2a6; }

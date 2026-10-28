@@ -89,6 +89,12 @@ portrait clips. Drag a pane's grip to reorder it and its right edge to change
 its width. Arrow buttons also reorder panes; a focused grip or resize edge accepts
 the left/right arrow keys. Wide arrangements scroll horizontally.
 
+Use the **Mirror video horizontally** button beside a clip's close button to flip
+that video and its thumbnail images left to right, for example to compare
+left-handed and right-handed swings. The button stays highlighted while mirroring
+is on; select it again to restore the original orientation. Each clip toggles
+independently, without changing playback, contact alignment or timeline direction.
+
 1. Scrub each clip's thumbnail lane to find racket–ball contact. The narrow lane
    below it provides fine adjustment (eight pixels per frame); its left/right
    arrow keys move one source frame at a time when focused.
@@ -111,8 +117,8 @@ remains available. Sound is muted. Buffering pauses all clips, and leaving the
 page or hiding the tab pauses playback. Ordinary playback follows browser decoding
 and display timing; pause/step for close frame inspection.
 
-Clips, contact marks, order, widths and speeds survive navigation within the app
-but are not saved across a reload or closing the app. Removing a clip releases
+Clips, contact marks, order, widths, speeds and mirror settings survive navigation
+within the app but are not saved across a reload or closing the app. Removing a clip releases
 its local resources. MP4/MOV/WebM support depends on the browser's codec support;
 an unsupported or unreadable file shows an error and can be removed. Very long
 files with more than one million video frames require a shorter excerpt.
