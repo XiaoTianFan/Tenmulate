@@ -87,7 +87,10 @@ shows the limit until a clip is removed. Files are read on your device and
 never uploaded. Each video displays its full image without cropping, including
 portrait clips. Drag a pane's grip to reorder it and its right edge to change
 its width. Arrow buttons also reorder panes; a focused grip or resize edge accepts
-the left/right arrow keys. Wide arrangements scroll horizontally.
+the left/right arrow keys. Wide arrangements scroll horizontally. The video area
+uses the available lane height and adapts when the window is resized or the device
+rotates. Scroll down within the lanes to reach each clip's thumbnails and controls;
+the shared playback controls stay visible below the lanes.
 
 Use the **Mirror video horizontally** button beside a clip's close button to flip
 that video and its thumbnail images left to right, for example to compare
@@ -109,17 +112,26 @@ independently, without changing playback, contact alignment or timeline directio
    changes pause and return to contact; the shared timeline and manual scrubbing
    use the same factor. At 0.50×, one second after contact advances that source by
    half a second. Uncheck **Link timelines** to adjust clips independently.
+5. Use **Playback speed** beside the shared controls to play the whole comparison
+   at 0.25×–2×. It multiplies each clip's speed: a 0.50× clip at 0.50× global speed
+   plays at 0.25× its source speed. Changing global speed during playback preserves
+   your position and contact alignment. Scrubbing and frame stepping keep their
+   original source-frame precision at every global speed.
 
 Frame rate and frame stepping use the file's actual presentation timestamps,
 including variable-rate footage. The displayed FPS is an average. Shorter clips
 hold their first or last frame outside their coverage; the full comparison range
-remains available. Sound is muted. Buffering pauses all clips, and leaving the
-page or hiding the tab pauses playback. Ordinary playback follows browser decoding
-and display timing; pause/step for close frame inspection.
+remains available. Sound is muted. Playback first waits for the starting frames,
+then follows a shared clock with native video playback. Small drift is corrected
+gradually; a lagging clip can recover without stopping the other clips. Leaving
+the page or hiding the tab pauses playback. Ordinary playback follows browser
+decoding and display timing; pause/step for close frame inspection. If a browser
+cannot play an extremely low combined speed, that clip advances by source frame
+at the requested rate instead.
 
-Clips, contact marks, order, widths, speeds and mirror settings survive navigation
-within the app but are not saved across a reload or closing the app. Removing a clip releases
-its local resources. MP4/MOV/WebM support depends on the browser's codec support;
+Clips, contact marks, order, widths, individual and global speeds, and mirror
+settings survive navigation within the app but are not saved across a reload or
+closing the app. Removing a clip releases its local resources. MP4/MOV/WebM support depends on the browser's codec support;
 an unsupported or unreadable file shows an error and can be removed. Very long
 files with more than one million video frames require a shorter excerpt.
 

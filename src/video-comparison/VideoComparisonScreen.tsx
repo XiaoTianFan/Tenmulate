@@ -12,6 +12,7 @@ import './comparison.css';
 export function VideoComparisonScreen({ active, onRoute }: { active: boolean; onRoute: (route: AppRoute) => void }) {
   const [clips, setClips] = useState<ComparisonClip[]>([]);
   const [time, setTime] = useState(0), [playing, setPlaying] = useState(false), [linked, setLinked] = useState(false);
+  const [rate, setRate] = useState(1);
   const [notice, setNotice] = useState(''), [dropping, setDropping] = useState(false);
   const input = useRef<HTMLInputElement>(null), row = useRef<HTMLDivElement>(null);
   const [videos] = useState(() => new Map<string, HTMLVideoElement>());
@@ -28,7 +29,7 @@ export function VideoComparisonScreen({ active, onRoute }: { active: boolean; on
     ? [{ index: clip.index, contact: clip.contact, speed: clip.speed }] : []);
   const allAligned = clips.length > 0 && aligned.length === clips.length;
   const range = comparisonRange(aligned);
-  const buffering = useComparisonPlayback({ clips, videos, time, linked, playing, active, onTime: setTime, onPause: pause, onError: setNotice });
+  const buffering = useComparisonPlayback({ clips, videos, time, rate, linked, playing, active, onTime: setTime, onPause: pause, onError: setNotice });
   const frameFor = (clip: ComparisonClip) => linked && clip.index && clip.contact !== null
     ? frameAt(clip.index, mediaTime({ index: clip.index, contact: clip.contact, speed: clip.speed }, time)) : clip.frame;
   const unlink = () => {
@@ -106,26 +107,26 @@ export function VideoComparisonScreen({ active, onRoute }: { active: boolean; on
       <input ref={input} type="file" hidden accept="video/*,.mp4,.mov,.m4v,.webm,.mkv" multiple aria-label={t('Choose local videos')}
         onChange={event => { addFiles(Array.from(event.target.files ?? [])); event.target.value = ''; }}/>
       {notice ? <div className="comparison-notice" role="alert"><span>{t(notice)}</span><button aria-label={t('Dismiss')} onClick={() => setNotice('')}><X size={16}/></button></div> : null}
-      {clips.length ? <div className="comparison-instructions"><span><Crosshair size={15}/>{linked ? t('Contacts aligned. Drag any lane to review together.') : t('Scrub each clip, then set its contact frame.')}</span>
-        <span>{t('Drag headers to reorder · drag edges to resize')}</span></div> : null}
-      <div className="comparison-panes" ref={row}>
-        {clips.map((clip, position) => {
-          const frame = frameFor(clip);
-          const sourceTime = clip.index && clip.contact !== null ? mediaTime({ index: clip.index, contact: clip.contact, speed: clip.speed }, time) : 0;
-          const held = linked && !!clip.index && (sourceTime < clip.index.timestamps[0]! - 1e-7 || sourceTime > clip.index.timestamps[clip.index.timestamps.length - 1]! + 1e-7);
-          return <ComparisonPane key={clip.id} clip={clip} frame={frame} position={position} count={clips.length} held={held}
-            onFrame={frame => selectFrame(clip, frame)} onContact={() => contact(clip)} onRemove={() => remove(clip.id)}
-            onSpeed={speed => { pause(); update(clip.id, { speed }); if (linked) setTime(0); }}
-            onResize={width => update(clip.id, { width })} onMove={direction => move(clip.id, position + direction)} onDrag={drag} onDragEnd={() => {}}
-            onVideo={(id, video) => { if (video) videos.set(id, video); else videos.delete(id); }}
-            onReady={() => update(clip.id, {})} onError={() => { pause(); setLinked(false); update(clip.id, { error: 'Your browser cannot play this video codec. Try H.264 MP4 or VP9 WebM.' }); }}/>
-        })}
-        <button type="button" className={`comparison-add-slot${clips.length ? '' : ' is-empty'}`} disabled={clips.length >= 5}
-          aria-label={t(clips.length >= 5 ? 'Video limit reached' : 'Choose videos')} onClick={() => input.current?.click()}>
-          <Plus size={30} strokeWidth={1.5}/>
-          <span>{t(clips.length >= 5 ? 'Remove a clip to add another.' : 'Drop videos or click to choose')}</span>
-          <small>{t('{count}/5 videos', { count: clips.length })}</small>
-        </button>
+      <div className="comparison-lanes-viewport" ref={row}>
+        <div className="comparison-panes">
+          {clips.map((clip, position) => {
+            const frame = frameFor(clip);
+            const sourceTime = clip.index && clip.contact !== null ? mediaTime({ index: clip.index, contact: clip.contact, speed: clip.speed }, time) : 0;
+            const held = linked && !!clip.index && (sourceTime < clip.index.timestamps[0]! - 1e-7 || sourceTime > clip.index.timestamps[clip.index.timestamps.length - 1]! + 1e-7);
+            return <ComparisonPane key={clip.id} clip={clip} frame={frame} position={position} count={clips.length} held={held}
+              onFrame={frame => selectFrame(clip, frame)} onContact={() => contact(clip)} onRemove={() => remove(clip.id)}
+              onSpeed={speed => { pause(); update(clip.id, { speed }); if (linked) setTime(0); }}
+              onResize={width => update(clip.id, { width })} onMove={direction => move(clip.id, position + direction)} onDrag={drag} onDragEnd={() => {}}
+              onVideo={(id, video) => { if (video) videos.set(id, video); else videos.delete(id); }}
+              onReady={() => update(clip.id, {})} onError={() => { pause(); setLinked(false); update(clip.id, { error: 'Your browser cannot play this video codec. Try H.264 MP4 or VP9 WebM.' }); }}/>
+          })}
+          <button type="button" className={`comparison-add-slot${clips.length ? '' : ' is-empty'}`} disabled={clips.length >= 5}
+            aria-label={t(clips.length >= 5 ? 'Video limit reached' : 'Choose videos')} onClick={() => input.current?.click()}>
+            <Plus size={30} strokeWidth={1.5}/>
+            <span>{t(clips.length >= 5 ? 'Remove a clip to add another.' : 'Drop videos or click to choose')}</span>
+            <small>{t('{count}/5 videos', { count: clips.length })}</small>
+          </button>
+        </div>
       </div>
     </section>
     <footer className="comparison-transport">
@@ -135,12 +136,19 @@ export function VideoComparisonScreen({ active, onRoute }: { active: boolean; on
         <button aria-label={t('Next synced frame')} disabled={!linked} onClick={() => seek(stepComparison(aligned, time, 1))}><SkipForward size={18}/></button>
         <button className="comparison-jump" disabled={!allAligned} onClick={() => { pause(); setLinked(true); setTime(0); }}><Crosshair size={17}/>{t('Contact frame')}</button>
       </div><output className="comparison-clock">{formatTime(time, true)}<small>{t('from contact')}</small></output>
-      <label className="comparison-link"><Link2 size={16}/><input type="checkbox" checked={linked} disabled={!allAligned} onChange={event => { if (event.target.checked) { pause(); setLinked(true); setTime(0); } else unlink(); }}/>{t('Link timelines')}</label></div>
+      <div className="comparison-transport-options">
+        <label className="comparison-global-speed"><span>{t('Playback speed')}</span>
+          <select value={rate} onChange={event => setRate(Number(event.target.value))} title={t('Multiplies each clip’s speed')}>
+            {[0.25, 0.5, 0.75, 1, 1.25, 1.5, 2].map(value => <option key={value} value={value}>{value}×</option>)}
+          </select>
+        </label>
+        <label className="comparison-link"><Link2 size={16}/><input type="checkbox" checked={linked} disabled={!allAligned} onChange={event => { if (event.target.checked) { pause(); setLinked(true); setTime(0); } else unlink(); }}/>{t('Link timelines')}</label>
+      </div></div>
       <div className="comparison-shared-lane"><span>{formatTime(range.start, true)}</span><div>
         <input type="range" aria-label={t('Shared comparison timeline')} min={range.start} max={range.end || 0.001} step="0.001" value={time} disabled={!linked} onChange={event => seek(Number(event.target.value))}/>
         {range.end > range.start ? <span className="comparison-zero" style={{ left: `${-range.start / (range.end - range.start) * 100}%` }} aria-hidden="true"/> : null}
       </div><span>{formatTime(range.end, true)}</span></div>
-      <p role="status">{buffering ? t('Waiting for video frames…') : linked ? t('All clips follow contact time. Shorter clips hold at their edges. Sound is muted.') : allAligned ? t('Timelines unlinked. Adjust each clip independently, then link to compare.') : t('Set a contact frame in every clip to unlock synchronized playback.')}</p>
+      <p role="status">{buffering ? t('Some video frames are still loading…') : linked ? t('All clips follow contact time. Shorter clips hold at their edges. Sound is muted.') : allAligned ? t('Timelines unlinked. Adjust each clip independently, then link to compare.') : t('Set a contact frame in every clip to unlock synchronized playback.')}</p>
     </footer>
   </main>;
 }
