@@ -121,18 +121,22 @@ independently, without changing playback, contact alignment or timeline directio
 Frame rate and frame stepping use the file's actual presentation timestamps,
 including variable-rate footage. The displayed FPS is an average. Shorter clips
 hold their first or last frame outside their coverage; the full comparison range
-remains available. Sound is muted. Playback first waits for the starting frames,
-then follows a shared clock with native video playback. Small drift is corrected
-gradually; a lagging clip can recover without stopping the other clips. Leaving
-the page or hiding the tab pauses playback. Ordinary playback follows browser
-decoding and display timing; pause/step for close frame inspection. If a browser
-cannot play an extremely low combined speed, that clip advances by source frame
-at the requested rate instead.
+remains available. Sound is muted. Playback decodes frames ahead and presents all
+clips at the same contact-relative time. The actual marked contact pictures appear
+together when playback crosses zero, as they do when scrubbing or stepping. Global
+and individual speeds use this same alignment, including very low combined speeds.
+If a decoder falls behind, **Preparing synchronized frames…** appears and the
+pictures and cursors wait together; playback resumes from that position without
+jumping ahead. On a device that cannot decode fast enough, playback may run slower
+than requested to preserve alignment. Leaving the page or hiding the tab pauses
+playback. Pause/step remains available for inspecting every source frame.
 
 Clips, contact marks, order, widths, individual and global speeds, and mirror
 settings survive navigation within the app but are not saved across a reload or
-closing the app. Removing a clip releases its local resources. MP4/MOV/WebM support depends on the browser's codec support;
-an unsupported or unreadable file shows an error and can be removed. Very long
+closing the app. Removing a clip releases its local resources. MP4/MOV/WebM support depends on the browser's codec support.
+Synchronized playback also requires WebCodecs support for the file's codec; if
+unavailable, the app explains this and native frame-by-frame review remains usable.
+An unreadable file shows an error and can be removed. Very long
 files with more than one million video frames require a shorter excerpt.
 
 ## View and playback

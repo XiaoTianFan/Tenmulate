@@ -16,6 +16,7 @@ export function VideoComparisonScreen({ active, onRoute }: { active: boolean; on
   const [notice, setNotice] = useState(''), [dropping, setDropping] = useState(false);
   const input = useRef<HTMLInputElement>(null), row = useRef<HTMLDivElement>(null);
   const [videos] = useState(() => new Map<string, HTMLVideoElement>());
+  const [canvases] = useState(() => new Map<string, HTMLCanvasElement>());
   const [resources] = useState(() => new Map<string, { url: string; controller: AbortController }>());
   const pause = () => setPlaying(false);
   useEffect(() => { if (!active) setPlaying(false); }, [active]);
@@ -29,7 +30,7 @@ export function VideoComparisonScreen({ active, onRoute }: { active: boolean; on
     ? [{ index: clip.index, contact: clip.contact, speed: clip.speed }] : []);
   const allAligned = clips.length > 0 && aligned.length === clips.length;
   const range = comparisonRange(aligned);
-  const buffering = useComparisonPlayback({ clips, videos, time, rate, linked, playing, active, onTime: setTime, onPause: pause, onError: setNotice });
+  const buffering = useComparisonPlayback({ clips, videos, canvases, time, rate, linked, playing, active, onTime: setTime, onPause: pause, onError: setNotice });
   const frameFor = (clip: ComparisonClip) => linked && clip.index && clip.contact !== null
     ? frameAt(clip.index, mediaTime({ index: clip.index, contact: clip.contact, speed: clip.speed }, time)) : clip.frame;
   const unlink = () => {
@@ -59,7 +60,7 @@ export function VideoComparisonScreen({ active, onRoute }: { active: boolean; on
     for (const file of files.slice(0, available)) {
       const id = crypto.randomUUID(), url = URL.createObjectURL(file), controller = new AbortController();
       resources.set(id, { url, controller });
-      setClips(current => [...current, { id, url, name: file.name, contact: null, frame: 0, speed: 1, width, thumbnails: [] }]);
+      setClips(current => [...current, { id, url, file, name: file.name, contact: null, frame: 0, speed: 1, width, thumbnails: [] }]);
       void indexVideo(file, controller.signal).then(async index => {
         if (controller.signal.aborted) return;
         update(id, { index });
@@ -118,6 +119,7 @@ export function VideoComparisonScreen({ active, onRoute }: { active: boolean; on
               onSpeed={speed => { pause(); update(clip.id, { speed }); if (linked) setTime(0); }}
               onResize={width => update(clip.id, { width })} onMove={direction => move(clip.id, position + direction)} onDrag={drag} onDragEnd={() => {}}
               onVideo={(id, video) => { if (video) videos.set(id, video); else videos.delete(id); }}
+              onCanvas={(id, canvas) => { if (canvas) canvases.set(id, canvas); else canvases.delete(id); }}
               onReady={() => update(clip.id, {})} onError={() => { pause(); setLinked(false); update(clip.id, { error: 'Your browser cannot play this video codec. Try H.264 MP4 or VP9 WebM.' }); }}/>
           })}
           <button type="button" className={`comparison-add-slot${clips.length ? '' : ' is-empty'}`} disabled={clips.length >= 5}
@@ -148,7 +150,7 @@ export function VideoComparisonScreen({ active, onRoute }: { active: boolean; on
         <input type="range" aria-label={t('Shared comparison timeline')} min={range.start} max={range.end || 0.001} step="0.001" value={time} disabled={!linked} onChange={event => seek(Number(event.target.value))}/>
         {range.end > range.start ? <span className="comparison-zero" style={{ left: `${-range.start / (range.end - range.start) * 100}%` }} aria-hidden="true"/> : null}
       </div><span>{formatTime(range.end, true)}</span></div>
-      <p role="status">{buffering ? t('Some video frames are still loading…') : linked ? t('All clips follow contact time. Shorter clips hold at their edges. Sound is muted.') : allAligned ? t('Timelines unlinked. Adjust each clip independently, then link to compare.') : t('Set a contact frame in every clip to unlock synchronized playback.')}</p>
+      <p role="status">{buffering ? t('Preparing synchronized frames…') : linked ? t('All clips follow contact time. Shorter clips hold at their edges. Sound is muted.') : allAligned ? t('Timelines unlinked. Adjust each clip independently, then link to compare.') : t('Set a contact frame in every clip to unlock synchronized playback.')}</p>
     </footer>
   </main>;
 }

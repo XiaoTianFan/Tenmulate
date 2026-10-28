@@ -10,9 +10,10 @@ type Props = {
   onRemove: () => void; onResize: (width: number) => void; onMove: (direction: number) => void;
   onDrag: (id: string, x: number, y: number) => void; onDragEnd: () => void;
   onVideo: (id: string, video: HTMLVideoElement | null) => void; onError: () => void; onReady: () => void;
+  onCanvas: (id: string, canvas: HTMLCanvasElement | null) => void;
 };
 
-export function ComparisonPane({ clip, frame, position, count, held, onFrame, onContact, onSpeed, onRemove, onResize, onMove, onDrag, onDragEnd, onVideo, onError, onReady }: Props) {
+export function ComparisonPane({ clip, frame, position, count, held, onFrame, onContact, onSpeed, onRemove, onResize, onMove, onDrag, onDragEnd, onVideo, onCanvas, onError, onReady }: Props) {
   const [mirrored, setMirrored] = useState(false);
   const resize = useRef<{ x: number; width: number } | null>(null);
   const fine = useRef<{ x: number; frame: number } | null>(null);
@@ -37,6 +38,7 @@ export function ComparisonPane({ clip, frame, position, count, held, onFrame, on
     <div className="comparison-video-wrap">
       <video ref={element => onVideo(clip.id, element)} src={clip.url} muted playsInline preload="auto" disablePictureInPicture
         onLoadedData={onReady} onError={onError} aria-label={t('Video: {name}', { name: clip.name })}/>
+      <canvas ref={element => onCanvas(clip.id, element)} className="comparison-playback-frame" hidden aria-hidden="true"/>
       {held ? <span className="comparison-held">{t('Holding edge frame')}</span> : null}
       {!clip.index && !clip.error ? <span className="comparison-loading" role="status">{t('Reading frame timestamps…')}</span> : null}
       {clip.error ? <div className="comparison-video-error" role="alert">{t(clip.error)}<button onClick={onRemove}>{t('Remove clip')}</button></div> : null}
