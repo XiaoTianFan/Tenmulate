@@ -159,24 +159,40 @@ Contact alignment maps comparison time to source time as
 `source = contactTimestamp + comparisonTime * clipSpeed`. Frame stepping uses
 actual presentation boundaries; the shared step chooses the next/previous boundary
 across all clips. Manual navigation seeks inside the selected presentation sample.
-Continuous playback owns a monotonic clock outside React state; UI time reports
-never feed back into that clock. Global playback speed scales comparison time and
-multiplies each native follower's clip speed. Rate changes re-anchor the clock
+Continuous playback owns a clock outside React state; UI time reports never feed
+back into that clock. Global playback speed scales comparison time and multiplies
+each clip's speed in the source-time mapping. Rate changes re-anchor the clock
 without resetting the contact alignment or current position.
 
-Playback waits for the starting frames once. Native followers then use bounded
-rate adjustments for small drift and infrequent continuous-time seeks for large
-drift. A follower's seeking/buffering state does not stall the shared clock or
-pause other followers. Clips outside their source range hold an edge frame.
-Browsers rejecting an effective playback rate use indexed frame presentation for
-that clip. Session ownership prevents stale play promises from pausing a newer
-session. Native browser decoding/display remains best effort, not hardware frame
-lock; slow devices may drop frames while catching up.
+Mediabunny VideoSampleSink decodes local File objects through WebCodecs. Monotonic
+sample requests use the same indexed frame interiors as manual navigation and
+decode packets sequentially, without repeated native video seeks. Each clip keeps
+a lookahead queue of at most twelve samples, bounded to 32 MiB plus one sample;
+the decoder also has its own small internal queue. Consumed samples are closed
+immediately. Startup and underrun recovery prime a short runway of decoded frames.
+
+One animation callback selects frames for a single comparison time, verifies all
+are decoded, then draws every clip to its canvas before publishing that time to
+the cursors. It explicitly presents time zero when crossing contact, so even a
+refresh that straddles zero shows all marked contact frames together. Shorter
+clips hold their edge frames. If any decoder falls behind, all displayed pictures
+and the shared clock wait together, then resume without a catch-up jump. Decode
+work continues during the wait; it does not repeatedly seek or restart. This
+preserves alignment under load but cannot guarantee the requested wall-clock rate
+when the device cannot decode fast enough. Browser display refresh can skip
+intermediate source frames at high effective speeds.
+
+Pause/scrub returns to the native video element only after its exact manual seek
+is ready, retaining the last canvas picture during the handoff. Canceling a session
+disposes inputs and queues; late decoded samples are closed and cannot draw over
+a new session. Unsupported WebCodecs codecs show a playback explanation while
+native manual frame review remains available. Rotation and pixel aspect metadata
+are applied when drawing; the pane's mirror transform applies to both surfaces.
 
 Clips and alignment settings live only in memory for the current app visit. The
 comparison surface remains mounted across navigation but pauses when hidden.
 Removing a clip or unmounting the app cancels indexing/thumbnail work, releases
-video decoders and revokes object URLs. No footage or derived frames enter saves,
+video decoders and decoded samples, and revokes object URLs. No footage or derived frames enter saves,
 project-file middleware, service-worker caches or a remote service.
 
 ## Persistence, localization and delivery

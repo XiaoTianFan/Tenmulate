@@ -1,224 +1,180 @@
 import { describe, expect, it, vi } from 'vitest';
-import { ComparisonPlayback, seekVideoFrame, type ComparisonVideo } from '../src/video-comparison/playback';
-import { createFrameIndex, frameAt, frameSeekTime, type AlignedClip } from '../src/video-comparison/timeline';
+import { ComparisonPlayback, seekVideoFrame, showManualFrame, type PlaybackSource } from '../src/video-comparison/playback';
+import { comparisonRange, createFrameIndex, frameAt, frameSeekTime, mediaTime, type AlignedClip } from '../src/video-comparison/timeline';
 
-class Video implements ComparisonVideo {
-  time = 0;
-  rate = 1;
-  paused = true;
-  seeking = false;
-  readyState = 4;
-  seeks: number[] = [];
-  playCalls = 0;
-  pauseCalls = 0;
-  minimumRate = 0;
-  playResult = () => Promise.resolve();
-  constructor(readonly fps = 30) {}
-  // Emulate browsers exposing time rounded to a source-frame boundary.
-  get currentTime() { return Math.floor((this.time + 1e-7) * this.fps) / this.fps; }
-  set currentTime(time: number) { this.time = time; this.seeks.push(time); this.seeking = true; this.readyState = 1; }
-  get playbackRate() { return this.rate; }
-  set playbackRate(rate: number) {
-    if (rate < this.minimumRate) throw new DOMException('Unsupported rate', 'NotSupportedError');
-    this.rate = rate;
-  }
-  play() { this.playCalls++; this.paused = false; return this.playResult(); }
-  pause() { this.pauseCalls++; this.paused = true; }
-  advance(seconds: number) { if (!this.paused && !this.seeking && this.readyState >= 3) this.time += seconds * this.rate; }
-  settleSeek() { this.seeking = false; this.readyState = 4; }
+class Frames implements PlaybackSource {
+  displayed = -1;
+  available = Infinity;
+  requested: number[] = [];
+  pictures: number[] = [];
+  dispose = vi.fn();
+  prepare(frame: number) { this.requested.push(frame); return frame <= this.available; }
+  present(frame: number) { this.displayed = frame; this.pictures.push(frame); }
 }
 const clip = (fps = 30, speed = 1, contact = 0, seconds = 10): AlignedClip => ({
   index: createFrameIndex(Array.from({ length: Math.ceil(fps * seconds) }, (_, i) => ({ timestamp: i / fps, duration: 1 / fps }))),
   speed, contact,
 });
+const vfr = (): AlignedClip => ({
+  index: createFrameIndex([0, 0.04, 0.1, 0.12, 0.27, 0.4, 0.51, 0.53, 0.7, 0.9, 1.2, 1.3, 1.5].map(timestamp => ({ timestamp, duration: 0.03 }))),
+  contact: 5, speed: 0.4,
+});
 
-describe('continuous comparison playback', () => {
-  it('runs mixed FPS and clip speeds without repeated seeking or group pauses', () => {
-    const clips = [clip(29.97, 1, 30), clip(60, 0.5, 120), clip(120, 1.5, 60)];
-    const videos = clips.map(c => { const video = new Video(c.index.fps); video.time = c.index.timestamps[c.contact]!; return video; });
-    const engine = new ComparisonPlayback(clips.map((c, i) => ({ clip: c, video: videos[i]! })), 0, 1, 0, vi.fn());
+describe('contact-synchronized frame presentation', () => {
+  it('hands playback back to manual scrubbing only after seek completion, even with a rounded media clock', () => {
+    const video = Object.assign(new EventTarget(), { currentTime: 0, readyState: 1, seeking: true, pause: vi.fn() });
+    const canvas = { hidden: false };
+    const cleanup = showManualFrame(video, clip().index, 5, canvas);
+    expect(canvas.hidden).toBe(false);
+    video.currentTime = 0.1; // A privacy-rounded value need not identify the decoded sample.
+    video.readyState = 4; video.seeking = false;
+    video.dispatchEvent(new Event('seeked'));
+    expect(canvas.hidden).toBe(true);
+    cleanup();
+    canvas.hidden = false;
+    video.dispatchEvent(new Event('seeked'));
+    expect(canvas.hidden).toBe(false); // An old manual seek cannot cover a new playback session.
+  });
+
+  it.each([0.25, 0.5, 1, 2])('presents the actual contact pictures together across mixed FPS/VFR and clip speeds at %s×', rate => {
+    const clips = [clip(29.97, 1, 30), clip(60, 0.5, 120), clip(120, 1.5, 180), vfr()];
+    const sources = clips.map(() => new Frames());
+    const engine = new ComparisonPlayback(clips.map((c, i) => ({ clip: c, source: sources[i]! })), -0.53, rate, 0, vi.fn());
     engine.tick(0);
-    for (let i = 1; i <= 300; i++) {
-      videos.forEach(video => video.advance(1 / 60));
+    let sawContact = false;
+    for (let i = 1; i <= Math.ceil(1.5 / rate * 60); i++) {
       const result = engine.tick(i * 1000 / 60);
-      expect(result.time).toBeCloseTo(i / 60);
       expect(result.buffering).toBe(false);
+      sources.forEach((source, n) => {
+        // Check the frame sent to the display, not a UI cursor or media clock.
+        expect(source.displayed).toBe(frameAt(clips[n]!.index, mediaTime(clips[n]!, result.time)));
+      });
+      if (result.time === 0) {
+        sawContact = true;
+        expect(sources.map(source => source.displayed)).toEqual(clips.map(c => c.contact));
+      }
     }
-    videos.forEach((video, i) => {
-      expect(video.playbackRate).toBeCloseTo(clips[i]!.speed);
-      expect(video.seeks).toHaveLength(0);
-      expect(video.playCalls).toBe(1);
-      expect(video.pauseCalls).toBe(1); // Initial alignment only.
-    });
+    expect(sawContact).toBe(true);
     engine.dispose();
   });
 
-  it('multiplies global and clip rates and changes global speed without jumping', () => {
-    const video = new Video();
-    const engine = new ComparisonPlayback([{ clip: clip(30, 0.5), video }], 0, 0.5, 0, vi.fn());
-    engine.tick(0);
-    expect(video.playbackRate).toBe(0.25);
-    video.advance(1);
-    engine.setRate(2, 1000);
-    expect(engine.tick(1000).time).toBe(0.5);
-    expect(video.playbackRate).toBe(1);
-    video.advance(1);
-    expect(engine.tick(2000).time).toBe(2.5);
-    expect(video.seeks).toHaveLength(0);
+  it('waits for differently delayed decoders before advancing any picture or cursor', () => {
+    const clips = [clip(30, 1, 30), clip(120, 0.5, 240)];
+    const sources = [new Frames(), new Frames()];
+    sources[1]!.available = -1;
+    const engine = new ComparisonPlayback(clips.map((c, i) => ({ clip: c, source: sources[i]! })), -0.5, 1, 0, vi.fn());
+    expect(engine.tick(0)).toEqual({ time: -0.5, buffering: true, ended: false });
+    expect(engine.tick(300).time).toBe(-0.5);
+    expect(sources.map(source => source.pictures.length)).toEqual([0, 0]);
+    sources[1]!.available = Infinity;
+    expect(engine.tick(350).time).toBe(-0.5);
+    expect(engine.tick(850).time).toBe(0);
+    expect(sources.map(source => source.displayed)).toEqual([30, 240]);
   });
 
-  it('uses elapsed wall time after a delayed render instead of losing elapsed time', () => {
-    const video = new Video();
-    const engine = new ComparisonPlayback([{ clip: clip(), video }], 0, 1, 0, vi.fn());
+  it('never lets a ready clip pass contact while another contact frame is unavailable', () => {
+    const a = new Frames(), b = new Frames();
+    const engine = new ComparisonPlayback([{ clip: clip(30, 1, 30), source: a }, { clip: clip(60, 0.5, 120), source: b }], -0.2, 1, 0, vi.fn());
     engine.tick(0);
-    video.advance(1.2);
-    expect(engine.tick(1200).time).toBe(1.2);
-    expect(video.seeks).toHaveLength(0);
+    engine.tick(150);
+    const before = [a.displayed, b.displayed];
+    b.available = 119;
+    expect(engine.tick(250)).toEqual({ time: -0.05000000000000002, buffering: true, ended: false });
+    expect([a.displayed, b.displayed]).toEqual(before);
+    expect(engine.tick(1000).buffering).toBe(true);
+    expect(a.displayed).toBeLessThan(30);
+    b.available = Infinity;
+    expect(engine.tick(1100).time).toBe(0);
+    expect([a.displayed, b.displayed]).toEqual([30, 120]);
+    expect(engine.tick(1200).time).toBeCloseTo(0.1); // No wall-clock catch-up jump.
   });
 
-  it('waits once for initial alignment before starting the comparison clock', () => {
-    const video = new Video();
-    const engine = new ComparisonPlayback([{ clip: clip(30, 1, 30), video }], 0, 1, 0, vi.fn());
-    expect(engine.tick(0)).toEqual({ time: 0, buffering: true, ended: false });
-    expect(engine.tick(100).time).toBe(0);
-    expect(video.seeks).toHaveLength(1);
-    video.settleSeek();
-    expect(engine.tick(200).buffering).toBe(false);
-    video.advance(1);
-    expect(engine.tick(1200).time).toBe(1);
+  it('preserves rate multiplication and position when global speed changes during play', () => {
+    const source = new Frames(), c = clip(60, 0.5, 120);
+    const engine = new ComparisonPlayback([{ clip: c, source }], -0.5, 0.5, 0, vi.fn());
+    engine.tick(0);
+    engine.setRate(2, 500);
+    expect(engine.tick(500).time).toBe(-0.25);
+    expect(source.displayed).toBe(112);
+    expect(engine.tick(625).time).toBe(0);
+    expect(source.displayed).toBe(c.contact);
+    expect(engine.tick(1000).time).toBe(0.75);
+    expect(source.displayed).toBe(frameAt(c.index, 2 + 0.75 * 0.5));
   });
 
-  it('corrects modest drift with a bounded rate change rather than a seek', () => {
-    const video = new Video();
-    const engine = new ComparisonPlayback([{ clip: clip(), video }], 0, 1, 0, vi.fn());
-    engine.tick(0);
-    video.time = 0.1;
-    engine.tick(250);
-    expect(video.playbackRate).toBe(1.05);
-    expect(video.seeks).toHaveLength(0);
-    video.time = 0.65;
-    engine.tick(500);
-    expect(video.playbackRate).toBe(0.95);
-    expect(video.seeks).toHaveLength(0);
+  it('can change rate while buffering without consuming undecoded time', () => {
+    const source = new Frames(); source.available = -1;
+    const engine = new ComparisonPlayback([{ clip: clip(), source }], 0, 1, 0, vi.fn());
+    engine.tick(0); engine.setRate(2, 500);
+    source.available = Infinity;
+    expect(engine.tick(1000).time).toBe(0);
+    expect(engine.tick(1500).time).toBe(1);
   });
 
-  it('limits large-drift seeks and never stalls another player while a seek completes', () => {
-    const slow = new Video(120), healthy = new Video(30);
-    const engine = new ComparisonPlayback([{ clip: clip(120), video: slow }, { clip: clip(), video: healthy }], 0, 1, 0, vi.fn());
+  it('retains elapsed time across delayed renders and explicitly presents contact on crossing', () => {
+    const source = new Frames();
+    const engine = new ComparisonPlayback([{ clip: clip(30, 1, 30), source }], -0.1, 1, 0, vi.fn());
     engine.tick(0);
-    healthy.advance(1.5);
-    engine.tick(1500);
-    expect(slow.seeks).toEqual([1.5]);
-    for (const now of [1600, 1800, 2100]) {
-      healthy.time = now / 1000;
-      expect(engine.tick(now).time).toBe(now / 1000);
-      expect(healthy.paused).toBe(false);
-    }
-    expect(slow.seeks).toHaveLength(1);
-    slow.settleSeek();
-    slow.time = 0;
-    healthy.time = 2.2;
-    engine.tick(2200);
-    expect(slow.seeks).toHaveLength(1); // Cooldown prevents a seek feedback loop.
-    expect(healthy.pauseCalls).toBe(1);
+    expect(engine.tick(150).time).toBe(0);
+    expect(source.displayed).toBe(30);
+    expect(engine.tick(200).time).toBeCloseTo(0.1);
+    expect(engine.tick(1200).time).toBeCloseTo(1.1);
   });
 
-  it('converges after a brief decoder lag without repeatedly snapping frames', () => {
-    const video = new Video(60);
-    const engine = new ComparisonPlayback([{ clip: clip(60), video }], 0, 1, 0, vi.fn());
+  it('starts at the same VFR frame as manual scrubbing, including between sample boundaries', () => {
+    const c = vfr(), source = new Frames();
+    const time = -0.675; // source time 0.13 lies inside the frame starting at 0.12.
+    const engine = new ComparisonPlayback([{ clip: c, source }], time, 1, 0, vi.fn());
     engine.tick(0);
-    for (let i = 1; i <= 360; i++) {
-      video.advance(1 / 60);
-      if (i === 60) video.time -= 0.2;
-      engine.tick(i * 1000 / 60);
-    }
-    expect(Math.abs(6 - video.currentTime)).toBeLessThan(0.08);
-    expect(video.seeks).toHaveLength(0);
-    expect(video.pauseCalls).toBe(1);
+    const manual = { currentTime: 0, readyState: 4, pause: vi.fn() };
+    seekVideoFrame(manual, c.index, frameAt(c.index, mediaTime(c, time)));
+    expect(source.displayed).toBe(frameAt(c.index, manual.currentTime));
+    expect(manual.currentTime).toBe(frameSeekTime(c.index, 3));
   });
 
-  it('keeps the clock and healthy videos running through follower buffering', () => {
-    const stalled = new Video(), healthy = new Video();
-    const engine = new ComparisonPlayback([{ clip: clip(), video: stalled }, { clip: clip(), video: healthy }], 0, 1, 0, vi.fn());
+  it('holds edge pictures and stops only at the end of the union', () => {
+    const short = clip(30, 1, 15, 1), long = clip(60, 0.5, 90, 3);
+    const sources = [new Frames(), new Frames()];
+    const clips = [short, long], range = comparisonRange(clips);
+    const engine = new ComparisonPlayback(clips.map((c, i) => ({ clip: c, source: sources[i]! })), range.start, 1, 0, vi.fn());
     engine.tick(0);
-    stalled.readyState = 1;
-    engine.tick(100);
-    healthy.advance(0.5);
-    expect(engine.tick(500)).toEqual({ time: 0.5, buffering: true, ended: false });
-    expect(healthy.paused).toBe(false);
-    stalled.readyState = 4;
-    stalled.time = healthy.time = 0.6;
-    expect(engine.tick(600).buffering).toBe(false);
-  });
-
-  it('holds shorter clips at their edges and stops at the end of the union', () => {
-    const short = new Video(), long = new Video();
-    const shortClip = clip(30, 1, 15, 1), longClip = clip(30, 1, 30, 3);
-    const engine = new ComparisonPlayback([{ clip: shortClip, video: short }, { clip: longClip, video: long }], -1, 1, 0, vi.fn());
-    engine.tick(0);
-    expect(short.paused).toBe(true);
-    expect(long.paused).toBe(false);
-    long.advance(1.6);
-    engine.tick(1600);
-    expect(short.paused).toBe(true);
-    expect(frameAt(shortClip.index, short.time)).toBe(29);
-    const end = engine.tick(4000);
+    expect(sources.map(s => s.displayed)).toEqual([0, 0]);
+    engine.tick(-range.start * 1000);
+    expect(sources.map(s => s.displayed)).toEqual([15, 90]);
+    const end = engine.tick((range.end - range.start) * 1000);
     expect(end.ended).toBe(true);
-    expect(end.time).toBeCloseTo(59 / 30);
-    expect(long.paused).toBe(true);
+    expect(sources.map(s => s.displayed)).toEqual([29, 179]);
+    sources.forEach(s => expect(s.dispose).toHaveBeenCalledOnce());
   });
 
-  it('uses scheduled frames when a browser rejects an extremely low combined rate', () => {
-    const video = new Video(); video.minimumRate = 0.0625;
-    const engine = new ComparisonPlayback([{ clip: clip(30, 0.1), video }], 0, 0.25, 0, vi.fn());
+  it('supports very low combined speeds without a native playbackRate limit', () => {
+    const source = new Frames();
+    const engine = new ComparisonPlayback([{ clip: clip(60, 0.1), source }], 0, 0.25, 0, vi.fn());
     engine.tick(0);
-    expect(video.paused).toBe(true);
     expect(engine.tick(2000).time).toBe(0.5);
-    expect(video.seeks).toEqual([frameSeekTime(clip().index, 1)]);
-    engine.tick(2100);
-    expect(video.seeks).toHaveLength(1);
+    expect(source.displayed).toBe(3); // 0.05 seconds of source time.
   });
 
-  it('does not let an old play promise pause a newer session', async () => {
-    const video = new Video();
-    let resolve!: () => void;
-    video.playResult = () => new Promise<void>(done => { resolve = done; });
-    const first = new ComparisonPlayback([{ clip: clip(), video }], 0, 1, 0, vi.fn());
-    first.tick(0);
-    const resolveFirst = resolve;
-    first.dispose();
-    const second = new ComparisonPlayback([{ clip: clip(), video }], 0, 1, 0, vi.fn());
-    second.tick(0);
-    const pauses = video.pauseCalls;
-    resolveFirst();
-    await Promise.resolve();
-    expect(video.pauseCalls).toBe(pauses);
-    expect(video.paused).toBe(false);
-    resolve();
-    second.dispose();
+  it('disposes once and never presents again after pause, removal or an obsolete session', () => {
+    const source = new Frames();
+    const engine = new ComparisonPlayback([{ clip: clip(), source }], 0, 1, 0, vi.fn());
+    engine.tick(0); engine.dispose(); engine.dispose();
+    expect(engine.tick(200).ended).toBe(true);
+    expect(source.pictures).toEqual([0]);
+    expect(source.dispose).toHaveBeenCalledOnce();
   });
 
-  it('reports startup timeout and playback rejection rather than hanging indefinitely', async () => {
-    const video = new Video(), onError = vi.fn();
-    video.readyState = 0;
-    const waiting = new ComparisonPlayback([{ clip: clip(), video }], 0, 1, 0, onError);
-    expect(waiting.tick(15_001).ended).toBe(true);
+  it('reports unavailable decoders and timed-out buffering without advancing the pictures', () => {
+    const source = new Frames(), onError = vi.fn();
+    source.available = -1;
+    const engine = new ComparisonPlayback([{ clip: clip(), source }], 0, 1, 0, onError);
+    expect(engine.tick(15_001).ended).toBe(true);
     expect(onError).toHaveBeenCalledOnce();
-    video.readyState = 4;
-    video.playResult = () => Promise.reject(new DOMException('Codec failure', 'NotSupportedError'));
-    const playing = new ComparisonPlayback([{ clip: clip(), video }], 0, 1, 0, onError);
-    playing.tick(0);
-    await Promise.resolve(); await Promise.resolve();
-    expect(onError).toHaveBeenCalledTimes(2);
-    expect(video.paused).toBe(true);
-  });
-
-  it('retains precise manual frame seeking for variable-rate footage', () => {
-    const index = createFrameIndex([0, 0.04, 0.1, 0.12].map(timestamp => ({ timestamp, duration: 0.02 })));
-    const video = new Video(1000); video.paused = false;
-    seekVideoFrame(video, index, 2);
-    expect(video.paused).toBe(true);
-    expect(video.time).toBe(0.101);
-    expect(frameAt(index, video.time)).toBe(2);
+    expect(source.pictures).toEqual([]);
+    const broken = new Frames(); broken.prepare = () => { throw new Error('Decoder unavailable'); };
+    const failed = new ComparisonPlayback([{ clip: clip(), source: broken }], 0, 1, 0, onError);
+    expect(failed.tick(0).ended).toBe(true);
+    expect(onError).toHaveBeenLastCalledWith('Decoder unavailable');
+    expect(broken.dispose).toHaveBeenCalledOnce();
   });
 });

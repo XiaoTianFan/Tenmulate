@@ -18,8 +18,10 @@
 /* Fill the lane viewport minus its 16px padding, 46px card header and 2px border.
    Controls remain below the video in the same scrollable lane. */
 .comparison-video-wrap { position: relative; height: max(120px, calc(100cqh - 64px)); background: #020405; }
-.comparison-video-wrap video { display: block; width: 100%; height: 100%; object-fit: contain; }
-.comparison-pane.is-mirrored .comparison-video-wrap video, .comparison-pane.is-mirrored .comparison-thumbnails img { transform: scaleX(-1); }
+.comparison-video-wrap video, .comparison-playback-frame { display: block; width: 100%; height: 100%; object-fit: contain; }
+.comparison-playback-frame { position: absolute; inset: 0; background: #020405; }
+.comparison-playback-frame[hidden] { display: none; }
+.comparison-pane.is-mirrored .comparison-video-wrap :is(video, canvas), .comparison-pane.is-mirrored .comparison-thumbnails img { transform: scaleX(-1); }
 .comparison-held { position: absolute; top: 10px; left: 10px; background: #080c0fcf; border: 1px solid var(--divider); padding: 5px 8px; border-radius: 4px; color: var(--muted); font-size: 10px; }
 .comparison-loading, .comparison-video-error { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; gap: 12px; text-align: center; font-size: 12px; background: #050a0dd9; color: var(--muted); }
 .comparison-video-error { color: #ffb2a6; }

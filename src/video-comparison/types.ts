@@ -4,6 +4,7 @@ export type ComparisonClip = {
   id: string;
   name: string;
   url: string;
+  file: File;
   index?: FrameIndex;
   contact: number | null;
   frame: number;

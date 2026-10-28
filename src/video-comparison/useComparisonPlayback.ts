@@ -1,11 +1,13 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { ComparisonClip } from './types';
 import { frameAt, mediaTime } from './timeline';
-import { ComparisonPlayback, seekVideoFrame } from './playback';
+import { ComparisonPlayback, showManualFrame } from './playback';
+import { decodeVideo } from './decodedVideo';
 
 type Props = {
   clips: ComparisonClip[];
   videos: Map<string, HTMLVideoElement>;
+  canvases: Map<string, HTMLCanvasElement>;
   time: number;
   rate: number;
   linked: boolean;
@@ -16,7 +18,7 @@ type Props = {
   onError: (message: string) => void;
 };
 
-/** Manual seeks and continuous native playback have separate ownership. */
+/** Manual seeks and shared decoded-frame playback have separate ownership. */
 export function useComparisonPlayback(props: Props): boolean {
   const latest = useRef(props);
   const [buffering, setBuffering] = useState(false);
@@ -24,6 +26,7 @@ export function useComparisonPlayback(props: Props): boolean {
 
   useEffect(() => {
     if (props.playing && props.active && props.linked) return;
+    const cleanups: (() => void)[] = [];
     for (const clip of props.clips) {
       const video = props.videos.get(clip.id);
       if (!video) continue;
@@ -31,9 +34,10 @@ export function useComparisonPlayback(props: Props): boolean {
       if (!clip.index || video.readyState < 1 || clip.error) continue;
       const frame = props.linked && clip.contact !== null
         ? frameAt(clip.index, mediaTime({ index: clip.index, contact: clip.contact, speed: clip.speed }, props.time)) : clip.frame;
-      seekVideoFrame(video, clip.index, frame);
+      cleanups.push(showManualFrame(video, clip.index, frame, props.canvases.get(clip.id)));
     }
-  }, [props.clips, props.videos, props.time, props.linked, props.playing, props.active]);
+    return () => cleanups.forEach(clean => clean());
+  }, [props.clips, props.videos, props.canvases, props.time, props.linked, props.playing, props.active]);
 
   useEffect(() => {
     if (!props.playing || !props.active || !props.linked) { setBuffering(false); return; }
@@ -41,8 +45,12 @@ export function useComparisonPlayback(props: Props): boolean {
     const state = latest.current;
     const followers = state.clips.flatMap(clip => {
       const video = state.videos.get(clip.id);
-      return video && clip.index && clip.contact !== null && !clip.error
-        ? [{ clip: { index: clip.index, contact: clip.contact, speed: clip.speed }, video }] : [];
+      const canvas = state.canvases.get(clip.id);
+      if (!video || !canvas || !clip.index || clip.contact === null || clip.error) return [];
+      video.pause();
+      const aligned = { index: clip.index, contact: clip.contact, speed: clip.speed };
+      const first = frameAt(clip.index, mediaTime(aligned, state.time));
+      return [{ clip: aligned, source: decodeVideo(clip.file, clip.index, first, canvas) }];
     });
     const engine = new ComparisonPlayback(followers, state.time, state.rate, performance.now(), message => {
       latest.current.onError(message); latest.current.onPause();
