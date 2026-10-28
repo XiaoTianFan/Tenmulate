@@ -1,5 +1,5 @@
-import { useRef, type PointerEvent } from 'react';
-import { ArrowLeft, ArrowRight, Crosshair, GripVertical, X } from 'lucide-react';
+import { useRef, useState, type PointerEvent } from 'react';
+import { ArrowLeft, ArrowRight, Crosshair, FlipHorizontal2, GripVertical, X } from 'lucide-react';
 import { t } from '../i18n/locale';
 import { clamp, formatTime } from './timeline';
 import type { ComparisonClip } from './types';
@@ -13,12 +13,13 @@ type Props = {
 };
 
 export function ComparisonPane({ clip, frame, position, count, held, onFrame, onContact, onSpeed, onRemove, onResize, onMove, onDrag, onDragEnd, onVideo, onError, onReady }: Props) {
+  const [mirrored, setMirrored] = useState(false);
   const resize = useRef<{ x: number; width: number } | null>(null);
   const fine = useRef<{ x: number; frame: number } | null>(null);
   const last = (clip.index?.timestamps.length ?? 1) - 1;
   const progress = last ? frame / last * 100 : 0;
   const capture = (event: PointerEvent<HTMLElement>) => event.currentTarget.setPointerCapture(event.pointerId);
-  return <article className="comparison-pane" data-clip-id={clip.id} style={{ width: clip.width }} aria-label={clip.name}>
+  return <article className={`comparison-pane${mirrored ? ' is-mirrored' : ''}`} data-clip-id={clip.id} style={{ width: clip.width }} aria-label={clip.name}>
     <header className="comparison-pane-header"
       onPointerDown={event => { if (!(event.target as HTMLElement).closest('button')) capture(event); }}
       onPointerMove={event => { if (event.currentTarget.hasPointerCapture(event.pointerId)) onDrag(clip.id, event.clientX, event.clientY); }}
@@ -29,6 +30,8 @@ export function ComparisonPane({ clip, frame, position, count, held, onFrame, on
         onKeyDown={event => { if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); onMove(event.key === 'ArrowLeft' ? -1 : 1); } }}><GripVertical size={18}/></button>
       <span className="comparison-number">{String(position + 1).padStart(2, '0')}</span>
       <h2 title={clip.name}>{clip.name}</h2>
+      <button type="button" className="comparison-mirror" aria-label={t('Mirror {name}', { name: clip.name })} aria-pressed={mirrored}
+        title={t(mirrored ? 'Restore original orientation' : 'Mirror video horizontally')} onClick={() => setMirrored(current => !current)}><FlipHorizontal2 size={17}/></button>
       <button aria-label={t('Remove {name}', { name: clip.name })} onClick={onRemove}><X size={17}/></button>
     </header>
     <div className="comparison-video-wrap">
