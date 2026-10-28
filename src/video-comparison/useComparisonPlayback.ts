@@ -1,11 +1,13 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { ComparisonClip } from './types';
-import { clamp, comparisonRange, frameAt, frameSeekTime, mediaTime } from './timeline';
+import { frameAt, mediaTime } from './timeline';
+import { ComparisonPlayback, seekVideoFrame } from './playback';
 
 type Props = {
   clips: ComparisonClip[];
   videos: Map<string, HTMLVideoElement>;
   time: number;
+  rate: number;
   linked: boolean;
   playing: boolean;
   active: boolean;
@@ -14,7 +16,7 @@ type Props = {
   onError: (message: string) => void;
 };
 
-/** One wall clock; media clocks are followers. Buffering pauses the whole group. */
+/** Manual seeks and continuous native playback have separate ownership. */
 export function useComparisonPlayback(props: Props): boolean {
   const latest = useRef(props);
   const [buffering, setBuffering] = useState(false);
@@ -29,53 +31,31 @@ export function useComparisonPlayback(props: Props): boolean {
       if (!clip.index || video.readyState < 1 || clip.error) continue;
       const frame = props.linked && clip.contact !== null
         ? frameAt(clip.index, mediaTime({ index: clip.index, contact: clip.contact, speed: clip.speed }, props.time)) : clip.frame;
-      const target = frameSeekTime(clip.index, frame);
-      if (Math.abs(video.currentTime - target) > 0.0001) video.currentTime = target;
+      seekVideoFrame(video, clip.index, frame);
     }
   }, [props.clips, props.videos, props.time, props.linked, props.playing, props.active]);
 
   useEffect(() => {
     if (!props.playing || !props.active || !props.linked) { setBuffering(false); return; }
-    let stopped = false, request = 0, previous = performance.now();
-    const pending = new Set<HTMLVideoElement>();
+    let stopped = false, request = 0;
+    const state = latest.current;
+    const followers = state.clips.flatMap(clip => {
+      const video = state.videos.get(clip.id);
+      return video && clip.index && clip.contact !== null && !clip.error
+        ? [{ clip: { index: clip.index, contact: clip.contact, speed: clip.speed }, video }] : [];
+    });
+    const engine = new ComparisonPlayback(followers, state.time, state.rate, performance.now(), message => {
+      latest.current.onError(message); latest.current.onPause();
+    });
     const tick = (now: number) => {
-      if (stopped) return;
-      const state = latest.current;
-      const ready = state.clips.flatMap(clip => clip.index && clip.contact !== null && !clip.error
-        ? [{ ...clip, index: clip.index, contact: clip.contact }] : []);
-      const range = comparisonRange(ready);
-      const followers = ready.map(clip => ({ clip, video: state.videos.get(clip.id), target: mediaTime(clip, state.time) }));
-      const isMoving = ({ clip, target }: typeof followers[number]) => target >= clip.index.timestamps[0]!
-        && target < clip.index.timestamps[clip.index.timestamps.length - 1]!;
-      const waiting = followers.some(item => isMoving(item) && (!item.video || item.video.seeking || item.video.readyState < 3));
-      setBuffering(waiting);
-      const time = clamp(state.time + (waiting ? 0 : Math.min((now - previous) / 1000, 0.1)), range.start, range.end);
-      previous = now;
-      for (const item of followers) {
-        const { clip, video } = item;
-        if (!video || video.readyState < 1) continue;
-        const target = mediaTime(clip, time);
-        const frame = frameAt(clip.index, target);
-        if (waiting || !isMoving({ ...item, target })) {
-          video.pause();
-          if (!waiting && !video.seeking && frameAt(clip.index, video.currentTime) !== frame) video.currentTime = frameSeekTime(clip.index, frame);
-          continue;
-        }
-        video.playbackRate = clip.speed;
-        if (!video.seeking && Math.abs(video.currentTime - target) > Math.max(0.04, 2 / clip.index.fps)) {
-          video.currentTime = frameSeekTime(clip.index, frame);
-        }
-        if (video.paused && !pending.has(video)) {
-          pending.add(video);
-          void video.play().then(() => { if (stopped) video.pause(); }).catch(error => {
-            if (!stopped && error?.name !== 'AbortError') {
-              state.onError('Playback could not start. Try another video codec.'); state.onPause();
-            }
-          }).finally(() => pending.delete(video));
-        }
+      if (stopped || !latest.current.playing || !latest.current.active || !latest.current.linked) {
+        engine.dispose(); return;
       }
-      state.onTime(time);
-      if (time >= range.end) { state.onPause(); return; }
+      engine.setRate(latest.current.rate, now);
+      const result = engine.tick(now);
+      latest.current.onTime(result.time);
+      setBuffering(result.buffering);
+      if (result.ended) { latest.current.onPause(); return; }
       request = requestAnimationFrame(tick);
     };
     request = requestAnimationFrame(tick);
@@ -83,7 +63,7 @@ export function useComparisonPlayback(props: Props): boolean {
     document.addEventListener('visibilitychange', hide);
     return () => {
       stopped = true; cancelAnimationFrame(request); document.removeEventListener('visibilitychange', hide);
-      for (const video of latest.current.videos.values()) video.pause();
+      engine.dispose();
     };
   }, [props.playing, props.active, props.linked]);
   return buffering;

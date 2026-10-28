@@ -158,10 +158,20 @@ per clip form the overview lane, independently of the review video element.
 Contact alignment maps comparison time to source time as
 `source = contactTimestamp + comparisonTime * clipSpeed`. Frame stepping uses
 actual presentation boundaries; the shared step chooses the next/previous boundary
-across all clips. Playback uses one wall clock with muted native video followers,
-per-clip playback rates and drift correction. Buffering pauses the group; clips
-outside their source range hold an edge frame. Native browser decoding/display is
-best effort during playback, not a hardware frame-lock guarantee.
+across all clips. Manual navigation seeks inside the selected presentation sample.
+Continuous playback owns a monotonic clock outside React state; UI time reports
+never feed back into that clock. Global playback speed scales comparison time and
+multiplies each native follower's clip speed. Rate changes re-anchor the clock
+without resetting the contact alignment or current position.
+
+Playback waits for the starting frames once. Native followers then use bounded
+rate adjustments for small drift and infrequent continuous-time seeks for large
+drift. A follower's seeking/buffering state does not stall the shared clock or
+pause other followers. Clips outside their source range hold an edge frame.
+Browsers rejecting an effective playback rate use indexed frame presentation for
+that clip. Session ownership prevents stale play promises from pausing a newer
+session. Native browser decoding/display remains best effort, not hardware frame
+lock; slow devices may drop frames while catching up.
 
 Clips and alignment settings live only in memory for the current app visit. The
 comparison surface remains mounted across navigation but pauses when hidden.
