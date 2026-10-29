@@ -134,10 +134,52 @@ playback. Pause/step remains available for inspecting every source frame.
 Clips, contact marks, order, widths, individual and global speeds, and mirror
 settings survive navigation within the app but are not saved across a reload or
 closing the app. Removing a clip releases its local resources. MP4/MOV/WebM support depends on the browser's codec support.
-Synchronized playback also requires WebCodecs support for the file's codec; if
-unavailable, the app explains this and native frame-by-frame review remains usable.
+Synchronized playback prefers WebCodecs decoding. If that API cannot decode the
+file, the app automatically uses the browser's native decoder in compatibility
+mode, keeping contact alignment. Compatibility playback can be slower because it
+prepares individual frames. A browser can support a file in its native video player
+without supporting the same codec/profile through WebCodecs. If neither decoder
+can read the file, try converting it to H.264 video in an MP4 container.
 An unreadable file shows an error and can be removed. Very long
 files with more than one million video frames require a shorter excerpt.
+
+### Export a comparison
+
+Select **Export** to the right of **Link timelines**. Opening the dialog pauses
+review; export uses separate local decoders and does not move the review cursors.
+
+- Choose **Grid video** or **Grid images**, and include/exclude individual clips.
+  Each included clip needs a contact mark. Excluding a clip affects only the export.
+- Set the start and end in seconds relative to contact. **Use full selected range**
+  fills the range from the included clips; shorter clips hold their edge frames.
+- For video, choose aspect ratio, resolution (or custom even width/height), 24–60
+  fps, playback speed, and Auto/MP4/WebM. Export speed multiplies each clip's speed.
+  Names and the contact-relative timecode can be hidden. Drag thumbnail grips
+  between clips or rows to reorder, create rows, or join rows. Each row can hold a
+  different number of clips. Select a clip and then an insertion point for a
+  keyboard/touch alternative; single-row, single-column and automatic presets
+  provide starting layouts. Each clip fits its cell without stretching or cropping.
+- For images, clips form columns and shared contact-relative times form rows.
+  Reorder columns, choose evenly spaced rows or every distinct synced frame, and
+  set cell width/aspect ratio. Contact gets a dedicated row whenever it lies in
+  the range, so the actual row count can be one greater than the sampling setting.
+  Column names and row timecodes are included. Large sheets split into PNG pages
+  with repeated headers, downloaded together in one ZIP; the dimension summary
+  shows the complete logical sheet and page count.
+
+Select **Start export**, then **Download export** when rendering finishes. Cancel
+or close the dialog to stop a job and release its decoders. Exports are silent and
+preserve clip speeds, contact alignment, and mirror settings. Processing and
+downloads stay on the device; there is no upload or server conversion.
+
+Auto output prefers H.264 MP4 and falls back to VP9/VP8 WebM according to the
+browser's encoder support at the chosen dimensions and frame rate. If no encoder
+is available, try a lower resolution, another browser, or grid images. Native
+compatibility decoding also works for export, where rendering can take longer
+without changing the exported timing. Video export accepts at most 36,000 frames;
+image sampling is bounded to 10,000 synced rows. PNG pages stay within 8192 pixels
+per side and 16 megapixels; completed output is limited to 256 MB. Reduce the time
+range, sampling density, or resolution if a limit is reached.
 
 ## View and playback
 

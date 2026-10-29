@@ -164,12 +164,18 @@ back into that clock. Global playback speed scales comparison time and multiplie
 each clip's speed in the source-time mapping. Rate changes re-anchor the clock
 without resetting the contact alignment or current position.
 
-Mediabunny VideoSampleSink decodes local File objects through WebCodecs. Monotonic
+The shared frame reader prefers Mediabunny VideoSampleSink through WebCodecs. Monotonic
 sample requests use the same indexed frame interiors as manual navigation and
 decode packets sequentially, without repeated native video seeks. Each clip keeps
 a lookahead queue of at most twelve samples, bounded to 32 MiB plus one sample;
 the decoder also has its own small internal queue. Consumed samples are closed
 immediately. Startup and underrun recovery prime a short runway of decoded frames.
+If the capability probe or decoding fails, the reader continues from the first
+undelivered request using an isolated native HTMLVideoElement. It seeks indexed
+sample interiors, snapshots them into owned canvases, and feeds the same bounded
+queue and presentation barrier. This covers files exposed by the native decoder
+but not WebCodecs; it is slower than sequential hardware decoding. Aborting wakes
+pending media waits, closes iterators, releases snapshots and revokes local URLs.
 
 One animation callback selects frames for a single comparison time, verifies all
 are decoded, then draws every clip to its canvas before publishing that time to
@@ -177,7 +183,7 @@ the cursors. It explicitly presents time zero when crossing contact, so even a
 refresh that straddles zero shows all marked contact frames together. Shorter
 clips hold their edge frames. If any decoder falls behind, all displayed pictures
 and the shared clock wait together, then resume without a catch-up jump. Decode
-work continues during the wait; it does not repeatedly seek or restart. This
+work continues during the wait; the scheduler does not restart decoders. This
 preserves alignment under load but cannot guarantee the requested wall-clock rate
 when the device cannot decode fast enough. Browser display refresh can skip
 intermediate source frames at high effective speeds.
@@ -185,8 +191,8 @@ intermediate source frames at high effective speeds.
 Pause/scrub returns to the native video element only after its exact manual seek
 is ready, retaining the last canvas picture during the handoff. Canceling a session
 disposes inputs and queues; late decoded samples are closed and cannot draw over
-a new session. Unsupported WebCodecs codecs show a playback explanation while
-native manual frame review remains available. Rotation and pixel aspect metadata
+a new session. Compatibility playback reports its performance tradeoff without
+disabling synchronized review. Rotation and pixel aspect metadata
 are applied when drawing; the pane's mirror transform applies to both surfaces.
 
 Clips and alignment settings live only in memory for the current app visit. The
@@ -194,6 +200,45 @@ comparison surface remains mounted across navigation but pauses when hidden.
 Removing a clip or unmounting the app cancels indexing/thumbnail work, releases
 video decoders and decoded samples, and revokes object URLs. No footage or derived frames enter saves,
 project-file middleware, service-worker caches or a remote service.
+
+### Compatibility and comparison export
+
+Container recognition, WebCodecs decoding, native video decoding, and output
+encoding are distinct capabilities. MP4/MOV extensions do not specify the codec,
+profile, level, bit depth or device decoder support. A successful native manual
+seek therefore does not imply `track.canDecode()` will succeed. The reader tries
+both decode paths, including recovery from runtime WebCodecs failure. Formats that
+cannot be indexed or decoded by either path require conversion, typically to
+H.264 MP4. Adding software/WASM codecs could extend local support at a download,
+CPU and memory cost; server transcoding would require a separate upload service
+and privacy model. Neither is part of the current local-only implementation.
+See [Mediabunny codec support](https://mediabunny.dev/guide/supported-formats-and-codecs)
+and [WebCodecs codec selection](https://developer.mozilla.org/en-US/docs/Web/API/WebCodecs_API/Codec_selection).
+
+Export plans snapshot included clips, contact marks, clip speeds, mirror flags,
+time range and layout. Stable row IDs support arbitrary per-row clip counts;
+moving a clip removes its old slot and any empty row. The compositor assigns equal
+row heights and equal cell widths within each row, then contains each source at
+its original aspect ratio. Image sheets instead flatten the chosen column order
+and sample shared comparison times down the vertical axis.
+
+Offline export uses the same indexed frame reader as playback, with monotonic
+requests for each output sample. Decoding is concurrent across clips; rendering
+waits for all pictures before writing a frame. The output clock is independent of
+render duration, so native fallback latency cannot alter export speed or alignment.
+Video encoding probes H.264/MP4, then VP9/VP8 WebM at the selected dimensions/FPS.
+Mediabunny CanvasSource writes explicit timestamps and durations to an append-only
+bounded output (fragmented MP4 or append-only WebM), without real-time screen
+recording. A refresh/sample interval crossing zero includes the marked contact
+pictures. Encoders and frame iterators are canceled on close, cancellation or failure.
+
+PNG sheets keep common row timecodes and column headers. A logical sheet larger
+than a safe canvas is partitioned into vertically consecutive pages, at most
+8192 pixels per side and 16 megapixels each. A ZIP32 store-only archive groups the
+already-compressed PNG pages; a single page downloads as PNG. Explicit work limits
+(36,000 video frames, 10,000 image rows) and a 256 MB result budget bound local work.
+Only an explicit download writes the result outside the session; outputs are not
+persisted in app saves or service-worker caches.
 
 ## Persistence, localization and delivery
 

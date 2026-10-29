@@ -1,4 +1,4 @@
-import { useRef, useState, type PointerEvent } from 'react';
+import { useRef, type PointerEvent } from 'react';
 import { ArrowLeft, ArrowRight, Crosshair, FlipHorizontal2, GripVertical, X } from 'lucide-react';
 import { t } from '../i18n/locale';
 import { clamp, formatTime } from './timeline';
@@ -11,10 +11,11 @@ type Props = {
   onDrag: (id: string, x: number, y: number) => void; onDragEnd: () => void;
   onVideo: (id: string, video: HTMLVideoElement | null) => void; onError: () => void; onReady: () => void;
   onCanvas: (id: string, canvas: HTMLCanvasElement | null) => void;
+  onMirror: () => void;
 };
 
-export function ComparisonPane({ clip, frame, position, count, held, onFrame, onContact, onSpeed, onRemove, onResize, onMove, onDrag, onDragEnd, onVideo, onCanvas, onError, onReady }: Props) {
-  const [mirrored, setMirrored] = useState(false);
+export function ComparisonPane({ clip, frame, position, count, held, onFrame, onContact, onSpeed, onRemove, onResize, onMove, onDrag, onDragEnd, onVideo, onCanvas, onMirror, onError, onReady }: Props) {
+  const mirrored = clip.mirrored ?? false;
   const resize = useRef<{ x: number; width: number } | null>(null);
   const fine = useRef<{ x: number; frame: number } | null>(null);
   const last = (clip.index?.timestamps.length ?? 1) - 1;
@@ -32,7 +33,7 @@ export function ComparisonPane({ clip, frame, position, count, held, onFrame, on
       <span className="comparison-number">{String(position + 1).padStart(2, '0')}</span>
       <h2 title={clip.name}>{clip.name}</h2>
       <button type="button" className="comparison-mirror" aria-label={t('Mirror {name}', { name: clip.name })} aria-pressed={mirrored}
-        title={t(mirrored ? 'Restore original orientation' : 'Mirror video horizontally')} onClick={() => setMirrored(current => !current)}><FlipHorizontal2 size={17}/></button>
+        title={t(mirrored ? 'Restore original orientation' : 'Mirror video horizontally')} onClick={onMirror}><FlipHorizontal2 size={17}/></button>
       <button aria-label={t('Remove {name}', { name: clip.name })} onClick={onRemove}><X size={17}/></button>
     </header>
     <div className="comparison-video-wrap">

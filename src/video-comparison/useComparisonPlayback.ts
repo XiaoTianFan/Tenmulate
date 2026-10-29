@@ -16,6 +16,7 @@ type Props = {
   onTime: (time: number) => void;
   onPause: () => void;
   onError: (message: string) => void;
+  onCompatibility: () => void;
 };
 
 /** Manual seeks and shared decoded-frame playback have separate ownership. */
@@ -50,7 +51,9 @@ export function useComparisonPlayback(props: Props): boolean {
       video.pause();
       const aligned = { index: clip.index, contact: clip.contact, speed: clip.speed };
       const first = frameAt(clip.index, mediaTime(aligned, state.time));
-      return [{ clip: aligned, source: decodeVideo(clip.file, clip.index, first, canvas) }];
+      return [{ clip: aligned, source: decodeVideo(clip.file, clip.index, first, canvas, () => {
+        if (!stopped) latest.current.onCompatibility();
+      }) }];
     });
     const engine = new ComparisonPlayback(followers, state.time, state.rate, performance.now(), message => {
       latest.current.onError(message); latest.current.onPause();

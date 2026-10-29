@@ -9,6 +9,7 @@ export type ComparisonClip = {
   contact: number | null;
   frame: number;
   speed: number;
+  mirrored?: boolean;
   width: number;
   thumbnails: string[];
   error?: string;
