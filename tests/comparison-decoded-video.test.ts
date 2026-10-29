@@ -41,6 +41,16 @@ const track = (timestamps: number[]) => ({ index: createFrameIndex(timestamps.ma
 beforeEach(() => { mock.tracks = []; mock.inputs = []; mock.calls = []; mock.native.mockReset(); });
 
 describe('decoded pictures connected to the shared scheduler', () => {
+  it('stops predecoding at the inclusive excerpt end', async () => {
+    const t = track([0, .04, .1, .12, .3]); mock.tracks.push(t);
+    const c = canvas(), source = decodeVideo(new File([], 'local.mp4'), t.index, 1, c.element, undefined, 2);
+    await flush();
+    expect(mock.calls[0]).toEqual([frameSeekTime(t.index, 1), frameSeekTime(t.index, 2)]);
+    expect(source.prepare(1)).toBe(true); source.present(1); expect(c.context.picture).toBe(1);
+    expect(source.prepare(2)).toBe(true); source.present(2); expect(c.context.picture).toBe(2);
+    source.dispose(); await flush();
+    t.samples.forEach(sample => expect(sample.close).toHaveBeenCalledOnce());
+  });
   it('draws contact pictures together, using the same sample interiors as manual navigation', async () => {
     const tracks = [track(Array.from({ length: 120 }, (_, i) => i / 60)), track([0, 0.03, 0.07, 0.1, 0.18, 0.3, 0.31, 0.5, 0.6, 0.9, 1.2])];
     const clips = tracks.map((t, i) => ({ index: t.index, contact: i ? 5 : 30, speed: i ? 0.5 : 1 }));

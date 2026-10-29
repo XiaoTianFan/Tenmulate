@@ -153,7 +153,17 @@ worker reads local File objects with Mediabunny and indexes video presentation
 timestamps without decoding the video or uploading bytes. Frame rate is measured
 from those timestamps; variable-rate clips retain their individual frame spacing.
 Indexes are bounded to one million frames per clip. Twelve small local thumbnails
-per clip form the overview lane, independently of the review video element.
+per clip form the overview lane, independently of the review video element. Up to
+nine clips can be loaded. A zoomed lane debounces replacement thumbnails for its
+visible source-frame interval and cancels obsolete work. Wheel/pinch zoom changes
+only the view; pointer and keyboard range handles edit inclusive source indices.
+
+Optional excerpt endpoints clamp every source-frame lookup. The shared range and
+frame-boundary stepping use those endpoints, while contact timestamps stay absolute.
+A contact excluded by an excerpt is intentionally not displayed; the nearest excerpt
+edge holds instead. Crop rectangles are normalized in the oriented, unmirrored source.
+Cards contain the cropped image using CSS; export clips the same normalized source
+rectangle into a contained destination and mirrors it afterward. No source is modified.
 
 Contact alignment maps comparison time to source time as
 `source = contactTimestamp + comparisonTime * clipSpeed`. Frame stepping uses
@@ -215,12 +225,22 @@ and privacy model. Neither is part of the current local-only implementation.
 See [Mediabunny codec support](https://mediabunny.dev/guide/supported-formats-and-codecs)
 and [WebCodecs codec selection](https://developer.mozilla.org/en-US/docs/Web/API/WebCodecs_API/Codec_selection).
 
-Export plans snapshot included clips, contact marks, clip speeds, mirror flags,
-time range and layout. Stable row IDs support arbitrary per-row clip counts;
+Export plans snapshot included clips, contact marks, excerpts, crops, clip speeds,
+mirror flags, time range and layout. Stable row IDs support arbitrary per-row clip counts;
 moving a clip removes its old slot and any empty row. The compositor assigns equal
 row heights and equal cell widths within each row, then contains each source at
-its original aspect ratio. Image sheets instead flatten the chosen column order
+its cropped aspect ratio. Image sheets instead flatten the chosen column order
 and sample shared comparison times down the vertical axis.
+
+The export dialog uses persistent random-access decoders for its timeline preview,
+with native fallback when WebCodecs is unavailable. Requests are serialized per
+clip and coalesced across rapid scrubs. A revision check prevents stale pictures
+from replacing newer configuration or timeline requests. All clips finish before
+a frame is composed. The preview and final render share crop, grid, label and
+image-row drawing functions. Preview canvases are bounded to 1280 × 720; the output
+uses the configured resolution. Starting export or closing the dialog releases
+preview decoders. Preview playback is capped at 30 refreshes/sec and waits under
+load; offline export preserves the chosen output FPS and duration.
 
 Offline export uses the same indexed frame reader as playback, with monotonic
 requests for each output sample. Decoding is concurrent across clips; rendering

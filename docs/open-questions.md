@@ -10,11 +10,11 @@ schedule. Completed features belong in the user guide and architecture.
 - **Device coverage:** real Safari/iOS, lower-power hardware, TVs and projectors
   need broader performance, audio-latency, display-calibration and interaction
   testing. Desktop tests do not establish device-wide compatibility.
-- **Video comparison:** five high-resolution/high-frame-rate videos require
+- **Video comparison:** nine high-resolution/high-frame-rate videos require
   target-device decoder and memory testing. Shared decoded-frame playback preserves
   contact alignment but can buffer under load; native compatibility decoding can
   be slower. Real-device codec/profile coverage, export encoder support and large
-  image-sheet memory use need broader validation. Browser codec support, canvas HDR
+  image-sheet memory use need broader validation. Browser codec support, untagged color profiles, canvas HDR
   rendering and phone slow-motion/edit metadata vary; encoded presentation timing
   is used, not an inferred capture frame rate. Comparison sessions are visit-only.
 - **Long-session and offline reliability:** extended mixed-session testing and

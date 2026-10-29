@@ -81,11 +81,11 @@ finishes before rest; there is no extra rest after the last repetition.
 ## Video Comparison
 
 Open **Video Comparison** beside Quick Practice, Drills and Editor. Click the empty
-video zone to choose local videos, or drop up to five clips onto the page. A vacant
-slot remains to the right of the loaded clips for adding more; at five clips it
+video zone to choose local videos, or drop up to nine clips onto the page. A vacant
+slot remains to the right of the loaded clips for adding more; at nine clips it
 shows the limit until a clip is removed. Files are read on your device and
-never uploaded. Each video displays its full image without cropping, including
-portrait clips. Drag a pane's grip to reorder it and its right edge to change
+never uploaded. Each video initially displays its full image, including portrait
+clips. Drag a pane's grip to reorder it and its right edge to change
 its width. Arrow buttons also reorder panes; a focused grip or resize edge accepts
 the left/right arrow keys. Wide arrangements scroll horizontally. The video area
 uses the available lane height and adapts when the window is resized or the device
@@ -97,6 +97,28 @@ that video and its thumbnail images left to right, for example to compare
 left-handed and right-handed swings. The button stays highlighted while mirroring
 is on; select it again to restore the original orientation. Each clip toggles
 independently, without changing playback, contact alignment or timeline direction.
+
+Use the **Crop video** button to the left of Mirror to enter crop mode. Drag on the
+image to draw a crop, move the selection, or drag its corners. **Draw crop** lets
+you replace the selection by drawing a new rectangle. Choose freehand,
+a preset aspect ratio, or **Fit preview zone**. Crop mode shows the original,
+unmirrored image so source coordinates stay consistent. **Done** applies the crop;
+**Cancel** restores the previous crop; **Reset crop** restores the full frame.
+The selection and corners support arrow keys (Shift for larger adjustments).
+The cropped image fits the card without stretching and is mirrored afterward.
+
+Scroll over a thumbnail lane or pinch with two fingers to zoom around that point.
+The +/− buttons also zoom; **Fit full timeline** zooms out. Shift-scroll, horizontal
+trackpad scrolling, or the pan slider moves the visible window. Zoomed views load
+thumbnails for the visible interval. Zoom never changes the clip or excerpt.
+
+Drag the yellow handles on a clip's lane to select an inclusive source-frame
+excerpt. **In** and **Out** use the current frame; **Reset excerpt** restores the
+whole clip. Handles support arrow keys and Home/End. Review, frame stepping,
+synchronized playback and export all stay within the excerpt; shorter excerpts
+hold their first/last selected frames. Contact marks keep their original source
+positions. If you trim contact out, the card reports it and holds the nearest
+excerpt boundary at contact time; reset/extend the excerpt to include contact again.
 
 1. Scrub each clip's thumbnail lane to find racket–ball contact. The narrow lane
    below it provides fine adjustment (eight pixels per frame); its left/right
@@ -131,8 +153,8 @@ jumping ahead. On a device that cannot decode fast enough, playback may run slow
 than requested to preserve alignment. Leaving the page or hiding the tab pauses
 playback. Pause/step remains available for inspecting every source frame.
 
-Clips, contact marks, order, widths, individual and global speeds, and mirror
-settings survive navigation within the app but are not saved across a reload or
+Clips, contact marks, order, widths, individual and global speeds, mirror, excerpt
+and crop settings survive navigation within the app but are not saved across a reload or
 closing the app. Removing a clip releases its local resources. MP4/MOV/WebM support depends on the browser's codec support.
 Synchronized playback prefers WebCodecs decoding. If that API cannot decode the
 file, the app automatically uses the browser's native decoder in compatibility
@@ -150,15 +172,22 @@ review; export uses separate local decoders and does not move the review cursors
 
 - Choose **Grid video** or **Grid images**, and include/exclude individual clips.
   Each included clip needs a contact mark. Excluding a clip affects only the export.
-- Set the start and end in seconds relative to contact. **Use full selected range**
-  fills the range from the included clips; shorter clips hold their edge frames.
+- The rendered preview below the layout shows the included clips with their crops,
+  mirrors and excerpts. Drag its timeline, step source frames, jump to contact, or
+  play/pause to review the selected layout. Image mode previews one time row.
+  Drag the yellow handles to set export start/end, or use **Start at cursor** and
+  **End at cursor**. Times remain relative to contact. The timeline also supports
+  zoom and pan. **Use full selected range** restores the included excerpts' range;
+  shorter excerpts hold their boundary frames. Preview waits for all decoded
+  pictures before advancing; it may run slower on busy devices. Export duration
+  remains deterministic regardless of preview or rendering speed.
 - For video, choose aspect ratio, resolution (or custom even width/height), 24–60
   fps, playback speed, and Auto/MP4/WebM. Export speed multiplies each clip's speed.
   Names and the contact-relative timecode can be hidden. Drag thumbnail grips
   between clips or rows to reorder, create rows, or join rows. Each row can hold a
-  different number of clips. Select a clip and then an insertion point for a
-  keyboard/touch alternative; single-row, single-column and automatic presets
-  provide starting layouts. Each clip fits its cell without stretching or cropping.
+  different number of clips, including a 3 × 3 arrangement for nine clips. Select a
+  clip and then an insertion point for a keyboard/touch alternative; single-row, single-column and automatic presets
+  provide starting layouts. Each edited clip fits its cell without stretching or further cropping.
 - For images, clips form columns and shared contact-relative times form rows.
   Reorder columns, choose evenly spaced rows or every distinct synced frame, and
   set cell width/aspect ratio. Contact gets a dedicated row whenever it lies in

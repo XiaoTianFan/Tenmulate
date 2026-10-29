@@ -21,18 +21,15 @@
 .comparison-video-wrap video, .comparison-playback-frame { display: block; width: 100%; height: 100%; object-fit: contain; }
 .comparison-playback-frame { position: absolute; inset: 0; background: #020405; }
 .comparison-playback-frame[hidden] { display: none; }
-.comparison-pane.is-mirrored .comparison-video-wrap :is(video, canvas), .comparison-pane.is-mirrored .comparison-thumbnails img { transform: scaleX(-1); }
+.comparison-pane.is-mirrored .comparison-thumbnails img { transform: scaleX(-1); }
 .comparison-held { position: absolute; top: 10px; left: 10px; background: #080c0fcf; border: 1px solid var(--divider); padding: 5px 8px; border-radius: 4px; color: var(--muted); font-size: 10px; }
 .comparison-loading, .comparison-video-error { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; gap: 12px; text-align: center; font-size: 12px; background: #050a0dd9; color: var(--muted); }
 .comparison-video-error { color: #ffb2a6; }
 .comparison-pane-controls { padding: 12px 12px 0; }
 .comparison-frame-info, .comparison-settings, .comparison-speed, .comparison-pane-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .comparison-frame-info { color: var(--muted); font-size: 10px; margin-bottom: 9px; font-variant-numeric: tabular-nums; }
-.comparison-filmstrip { height: 48px; position: relative; background: repeating-linear-gradient(90deg, #17222b 0px, #17222b 31px, #273641 32px); border-radius: 4px; }
 .comparison-thumbnails { width: 100%; height: 100%; display: flex; overflow: hidden; border-radius: inherit; }
 .comparison-thumbnails img { width: calc(100% / 12); min-width: 0; height: 100%; object-fit: cover; }
-.comparison-filmstrip input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: ew-resize; touch-action: none; }
-.comparison-filmstrip:focus-within { outline: 2px solid var(--accent); outline-offset: 3px; }
 .comparison-playhead { position: absolute; top: -2px; bottom: -2px; width: 3px; transform: translateX(-50%); background: white; border-radius: 2px; box-shadow: 0 0 0 1px #0008; pointer-events: none; }
 .comparison-contact-marker { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--accent); transform: translateX(-50%); pointer-events: none; }
 .comparison-contact-marker::before { content: ''; position: absolute; top: -2px; left: -3px; width: 8px; height: 8px; background: var(--accent); transform: rotate(45deg); }

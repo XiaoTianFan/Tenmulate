@@ -6,7 +6,7 @@ export type FrameIndex = Readonly<{
   variable: boolean;
 }>;
 
-export type AlignedClip = Readonly<{ index: FrameIndex; contact: number; speed: number }>;
+export type AlignedClip = Readonly<{ index: FrameIndex; contact: number; speed: number; trim?: { start: number; end: number } }>;
 export const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
 export function createFrameIndex(packets: readonly { timestamp: number; duration: number }[]): FrameIndex {
@@ -40,6 +40,18 @@ export function mediaTime(clip: AlignedClip, sharedTime: number): number {
   return clip.index.timestamps[clip.contact]! + sharedTime * clip.speed;
 }
 
+/** Inclusive source-frame excerpt. Contact remains an absolute source anchor. */
+export function clipFrameRange(clip: { index: FrameIndex; trim?: { start: number; end: number } }) {
+  const last = clip.index.timestamps.length - 1;
+  const start = clamp(Math.round(clip.trim?.start ?? 0), 0, last);
+  return { start, end: clamp(Math.round(clip.trim?.end ?? last), start, last) };
+}
+
+export function frameForTime(clip: AlignedClip, sharedTime: number): number {
+  const range = clipFrameRange(clip);
+  return clamp(frameAt(clip.index, mediaTime(clip, sharedTime)), range.start, range.end);
+}
+
 export function comparisonTime(clip: AlignedClip, frame: number): number {
   return (clip.index.timestamps[frame]! - clip.index.timestamps[clip.contact]!) / clip.speed;
 }
@@ -48,19 +60,20 @@ export function comparisonTime(clip: AlignedClip, frame: number): number {
 export function comparisonRange(clips: readonly AlignedClip[]): { start: number; end: number } {
   if (!clips.length) return { start: 0, end: 0 };
   return {
-    start: Math.min(...clips.map(c => comparisonTime(c, 0))),
-    end: Math.max(...clips.map(c => comparisonTime(c, c.index.timestamps.length - 1))),
+    start: Math.min(...clips.map(c => comparisonTime(c, clipFrameRange(c).start))),
+    end: Math.max(...clips.map(c => comparisonTime(c, clipFrameRange(c).end))),
   };
 }
 
 /** Step the densest timeline, so no distinct source frame boundary is skipped. */
 export function stepComparison(clips: readonly AlignedClip[], time: number, direction: -1 | 1): number {
   const candidates = clips.flatMap(clip => {
-    const frame = frameAt(clip.index, mediaTime(clip, time));
+    const range = clipFrameRange(clip);
+    const frame = frameForTime(clip, time);
     const at = comparisonTime(clip, frame);
     const next = direction === 1 ? (at > time + 1e-7 ? frame : frame + 1)
       : (at < time - 1e-7 ? frame : frame - 1);
-    return next >= 0 && next < clip.index.timestamps.length ? [comparisonTime(clip, next)] : [];
+    return next >= range.start && next <= range.end ? [comparisonTime(clip, next)] : [];
   });
   return candidates.length ? (direction === 1 ? Math.min(...candidates) : Math.max(...candidates)) : time;
 }

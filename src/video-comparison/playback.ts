@@ -1,4 +1,4 @@
-import { clamp, comparisonRange, frameAt, frameSeekTime, mediaTime, type AlignedClip } from './timeline';
+import { clamp, comparisonRange, frameForTime, frameSeekTime, type AlignedClip } from './timeline';
 
 export type ComparisonVideo = Pick<HTMLVideoElement, 'currentTime' | 'readyState' | 'pause'>;
 export type PlaybackSource = {
@@ -68,7 +68,7 @@ export class ComparisonPlayback {
     // A display refresh can straddle zero, especially at high playback rates.
     // Present every selected contact frame together, even in that case.
     if (this.time < 0 && target >= 0) target = 0;
-    const frames = this.followers.map(({ clip }) => frameAt(clip.index, mediaTime(clip, target)));
+    const frames = this.followers.map(({ clip }) => frameForTime(clip, target));
     try {
       // Request all clips before checking the barrier so decoders work concurrently.
       const ready = this.followers.map(({ source }, i) => source.prepare(frames[i]!));

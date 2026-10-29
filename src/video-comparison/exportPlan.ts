@@ -1,4 +1,4 @@
-import { frameAt, mediaTime, stepComparison, type AlignedClip } from './timeline';
+import { frameForTime, stepComparison, type AlignedClip } from './timeline';
 import type { ComparisonClip } from './types';
 import type { GridRow } from './exportLayout';
 
@@ -61,7 +61,7 @@ export function exportPlan(clips: readonly ComparisonClip[], config: ExportConfi
 }
 
 export function sourceFrames(clip: ExportClip, times: readonly number[]): number[] {
-  return times.map(time => frameAt(clip.index, mediaTime(clip, time)));
+  return times.map(time => frameForTime(clip, time));
 }
 
 export function imagePageLayout(columns: number, rows: number, cellWidth: number, aspect: number) {

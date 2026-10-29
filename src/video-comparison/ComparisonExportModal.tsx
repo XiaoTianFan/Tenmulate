@@ -2,8 +2,9 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Download, X } from 'lucide-react';
 import { t, useLocale } from '../i18n/locale';
-import { comparisonRange } from './timeline';
+import { clamp, comparisonRange } from './timeline';
 import { ExportGridEditor } from './ExportGridEditor';
+import { ExportPreview } from './ExportPreview';
 import { outputSize, type GridRow } from './exportLayout';
 import { exportPlan, imagePageLayout, type ExportConfig } from './exportPlan';
 import { renderComparison } from './exportRender';
@@ -14,9 +15,9 @@ type Props = { clips: ComparisonClip[]; rate: number; previews: Record<string, s
 export function ComparisonExportModal({ clips, rate, previews, onClose }: Props) {
   const locale = useLocale();
   const eligible = clips.filter(clip => clip.index && clip.contact !== null && !clip.error);
-  const bounds = comparisonRange(eligible.map(clip => ({ index: clip.index!, contact: clip.contact!, speed: clip.speed })));
+  const bounds = comparisonRange(eligible.map(clip => ({ ...clip, index: clip.index!, contact: clip.contact! })));
   const [included, setIncluded] = useState(() => eligible.map(clip => clip.id));
-  const [videoRows, setVideoRows] = useState<GridRow[]>(() => [{ id: 'first', clips: eligible.map(clip => clip.id) }]);
+  const [videoRows, setVideoRows] = useState<GridRow[]>(() => { const columns = Math.min(3, eligible.length || 1); return Array.from({ length: Math.ceil(eligible.length / columns) }, (_, i) => ({ id: `initial-${i}`, clips: eligible.slice(i * columns, (i + 1) * columns).map(c => c.id) })); });
   const [imageOrder, setImageOrder] = useState(() => eligible.map(clip => clip.id));
   const [aspect, setAspect] = useState('16:9'), [longEdge, setLongEdge] = useState(1920);
   const [options, setOptions] = useState<Omit<ExportConfig, 'rows'>>({ kind: 'video', format: 'auto', width: 1920, height: 1080, fps: 30,
@@ -50,6 +51,9 @@ export function ComparisonExportModal({ clips, rate, previews, onClose }: Props)
   useEffect(() => () => { if (result) URL.revokeObjectURL(result.url); }, [result]);
   const change = (patch: Partial<Omit<ExportConfig, 'rows'>>) => { setOptions(current => ({ ...current, ...patch })); setError(''); };
   const toggle = (id: string, checked: boolean) => {
+    const nextIncluded = checked ? [...included, id] : included.filter(value => value !== id);
+    const nextBounds = comparisonRange(eligible.filter(c => nextIncluded.includes(c.id)).map(c => ({ ...c, index: c.index!, contact: c.contact! })));
+    change({ start: clamp(options.start, nextBounds.start, nextBounds.end), end: clamp(options.end, nextBounds.start, nextBounds.end) });
     setIncluded(current => checked ? [...current, id] : current.filter(value => value !== id));
     setImageOrder(current => checked ? [...current, id] : current.filter(value => value !== id));
     setVideoRows(current => checked ? current.length ? current.map((row, i) => i === current.length - 1 ? { ...row, clips: [...row.clips, id] } : row) : [{ id: 'first', clips: [id] }]
@@ -73,14 +77,6 @@ export function ComparisonExportModal({ clips, rate, previews, onClose }: Props)
       <fieldset className="export-settings" disabled={running}>
         <label>{t('Output')}<select aria-label={t('Output')} value={options.kind} onChange={event => change({ kind: event.target.value as ExportConfig['kind'] })}>
           <option value="video">{t('Grid video')}</option><option value="images">{t('Grid images')}</option></select></label>
-        <div className="export-field-pair">
-          <label>{t('Start (s from contact)')}<input type="number" step="0.001" value={Number(options.start.toFixed(3))} onChange={event => change({ start: Number(event.target.value) })}/></label>
-          <label>{t('End (s from contact)')}<input type="number" step="0.001" value={Number(options.end.toFixed(3))} onChange={event => change({ end: Number(event.target.value) })}/></label>
-        </div>
-        <button type="button" className="export-text-button" onClick={() => {
-          const range = comparisonRange(eligible.filter(clip => included.includes(clip.id)).map(clip => ({ index: clip.index!, contact: clip.contact!, speed: clip.speed })));
-          change({ start: range.start, end: range.end });
-        }}>{t('Use full selected range')}</button>
         {options.kind === 'video' ? <>
           <label>{t('Aspect ratio')}<select aria-label={t('Aspect ratio')} value={aspect} onChange={event => { setAspect(event.target.value); if (event.target.value !== 'custom') change(outputSize(event.target.value, longEdge)); }}>
             {['16:9', '9:16', '1:1', '4:3', '3:4'].map(value => <option key={value}>{value}</option>)}<option value="custom">{t('Custom')}</option></select></label>
@@ -114,8 +110,9 @@ export function ComparisonExportModal({ clips, rate, previews, onClose }: Props)
         </div>
         <ExportGridEditor rows={rows} clips={clips} previews={previews} aspect={options.width / options.height} images={options.kind === 'images'}
           onChange={next => options.kind === 'video' ? setVideoRows(next) : setImageOrder(next.flatMap(row => row.clips))}/>
+        <ExportPreview clips={clips} config={config} disabled={running} onRange={change}/>
         <output className="export-dimensions">{description}</output>
-        <p className="export-hint">{t('Exports are silent. Contact alignment, clip speeds and mirror settings are preserved. Files stay on this device.')}</p>
+        <p className="export-hint">{t('Exports are silent. Contact alignment, excerpts, crops, clip speeds and mirror settings are preserved. Files stay on this device.')}</p>
       </fieldset>
     </div>
     <footer>

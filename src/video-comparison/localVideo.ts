@@ -1,5 +1,6 @@
 import type { FrameIndex } from './timeline';
 import { frameSeekTime } from './timeline';
+import { drawCropped, normalizeCrop, type CropRect } from './crop';
 
 export function indexVideo(file: File, signal: AbortSignal): Promise<FrameIndex> {
   return new Promise((resolve, reject) => {
@@ -34,7 +35,7 @@ function waitFor(video: HTMLVideoElement, event: string, signal: AbortSignal): P
 }
 
 /** Bounded local-only filmstrip; a separate decoder never moves the review video. */
-export async function makeFilmstrip(url: string, index: FrameIndex, signal: AbortSignal): Promise<string[]> {
+export async function makeFilmstrip(url: string, index: FrameIndex, signal: AbortSignal, first = 0, last = index.timestamps.length - 1, crop?: CropRect): Promise<string[]> {
   const video = document.createElement('video'); video.muted = true; video.playsInline = true; video.preload = 'auto';
   try {
     const loaded = waitFor(video, 'loadeddata', signal); video.src = url; await loaded;
@@ -43,14 +44,16 @@ export async function makeFilmstrip(url: string, index: FrameIndex, signal: Abor
     const images: string[] = [];
     for (let i = 0; i < 12; i++) {
       signal.throwIfAborted();
-      const time = frameSeekTime(index, Math.round(i / 11 * (index.timestamps.length - 1)));
+      const time = frameSeekTime(index, Math.round(first + i / 11 * (last - first)));
       if (Math.abs(video.currentTime - time) > 0.00001) {
         const seeked = waitFor(video, 'seeked', signal); video.currentTime = time; await seeked;
       }
       context.fillStyle = '#030607'; context.fillRect(0, 0, canvas.width, canvas.height);
-      const scale = Math.min(canvas.width / video.videoWidth, canvas.height / video.videoHeight);
-      const width = video.videoWidth * scale, height = video.videoHeight * scale;
-      context.drawImage(video, (canvas.width - width) / 2, (canvas.height - height) / 2, width, height);
+      const region = normalizeCrop(crop), sourceWidth = video.videoWidth * region.width, sourceHeight = video.videoHeight * region.height;
+      const scale = Math.min(canvas.width / sourceWidth, canvas.height / sourceHeight);
+      const width = sourceWidth * scale, height = sourceHeight * scale;
+      drawCropped(context, (x, y, w, h) => context.drawImage(video, x, y, w, h), region,
+        { x: (canvas.width - width) / 2, y: (canvas.height - height) / 2, width, height });
       images.push(canvas.toDataURL('image/jpeg', 0.65));
     }
     return images;

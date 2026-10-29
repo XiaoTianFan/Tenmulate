@@ -5,6 +5,7 @@ import { zipImages } from './exportZip';
 import { readVideoFrames, type ReviewFrame } from './videoFrames';
 import { formatTime } from './timeline';
 import type { ComparisonClip } from './types';
+import { drawCropped, normalizeCrop } from './crop';
 
 export type ExportResult = { blob: Blob; name: string };
 export async function chooseVideoEncoding(config: Pick<ExportConfig, 'format' | 'width' | 'height' | 'fps'>) {
@@ -20,14 +21,12 @@ export async function chooseVideoEncoding(config: Pick<ExportConfig, 'format' | 
 
 export function drawCell(context: CanvasRenderingContext2D, frame: ReviewFrame, clip: ExportClip, cell: Cell, label: boolean) {
   const labelHeight = label ? Math.min(32, cell.height * 0.15) : 0;
-  const rect = containRect(frame.width, frame.height, { ...cell, height: cell.height - labelHeight });
+  const crop = normalizeCrop(clip.crop);
+  const rect = containRect(frame.width * crop.width, frame.height * crop.height, { ...cell, height: cell.height - labelHeight });
   context.save();
   context.beginPath(); context.rect(cell.x, cell.y, cell.width, cell.height); context.clip();
   context.fillStyle = '#000'; context.fillRect(cell.x, cell.y, cell.width, cell.height);
-  context.save();
-  if (clip.mirrored) { context.translate(rect.x * 2 + rect.width, 0); context.scale(-1, 1); }
-  frame.draw(context, rect.x, rect.y, rect.width, rect.height);
-  context.restore();
+  drawCropped(context, (x, y, width, height) => frame.draw(context, x, y, width, height), crop, rect, clip.mirrored);
   if (label) {
     context.fillStyle = '#edf3f6'; context.font = `${Math.max(10, Math.floor(labelHeight * 0.55))}px sans-serif`;
     context.textBaseline = 'middle'; context.fillText(clip.name, cell.x + 6, cell.y + cell.height - labelHeight / 2, cell.width - 12);
@@ -36,6 +35,35 @@ export function drawCell(context: CanvasRenderingContext2D, frame: ReviewFrame, 
 }
 
 const png = (canvas: HTMLCanvasElement) => new Promise<Blob>((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Image is too large for this browser. Reduce the cell width.')), 'image/png'));
+
+/** Shared by the interactive preview and the offline video compositor. */
+export function drawGridFrame(context: CanvasRenderingContext2D, samples: readonly ReviewFrame[], clips: readonly ExportClip[], config: ExportConfig, time: number) {
+  context.fillStyle = '#080c0f'; context.fillRect(0, 0, config.width, config.height);
+  gridCells(config.rows, config.width, config.height).forEach(cell => {
+    const i = clips.findIndex(clip => clip.id === cell.id);
+    if (i >= 0 && samples[i]) drawCell(context, samples[i]!, clips[i]!, cell, config.labels);
+  });
+  if (config.labels) {
+    context.font = `${Math.max(12, Math.round(config.width / 90))}px monospace`; context.textBaseline = 'top';
+    const label = formatTime(time, true), size = context.measureText(label).width;
+    context.fillStyle = '#080c0fcc'; context.fillRect(8, 8, size + 12, Math.max(20, config.width / 60));
+    context.fillStyle = '#fff'; context.fillText(label, 14, 10);
+  }
+}
+
+export function drawImageHeader(context: CanvasRenderingContext2D, clips: readonly ExportClip[], config: ExportConfig, page: ReturnType<typeof imagePageLayout>) {
+  context.fillStyle = '#edf3f6'; context.font = '18px sans-serif'; context.textBaseline = 'middle';
+  clips.forEach((clip, i) => context.fillText(clip.name, page.timeWidth + i * (config.cellWidth + page.gap) + 6, page.header / 2, config.cellWidth - 12));
+}
+
+export function drawImageRow(context: CanvasRenderingContext2D, samples: readonly ReviewFrame[], clips: readonly ExportClip[], config: ExportConfig,
+  page: ReturnType<typeof imagePageLayout>, time: number, row: number) {
+  const y = page.header + row * page.rowHeight;
+  context.fillStyle = '#edf3f6'; context.font = '17px monospace'; context.textBaseline = 'middle';
+  context.fillText(formatTime(time, true), 8, y + page.cellHeight / 2, page.timeWidth - 16);
+  samples.forEach((sample, i) => drawCell(context, sample, clips[i]!, { id: clips[i]!.id,
+    x: page.timeWidth + i * (config.cellWidth + page.gap), y, width: config.cellWidth, height: page.cellHeight }, false));
+}
 
 export async function renderComparison(clips: readonly ComparisonClip[], config: ExportConfig, signal: AbortSignal,
   onProgress: (fraction: number) => void, onCompatibility: () => void): Promise<ExportResult> {
@@ -66,7 +94,6 @@ export async function renderComparison(clips: readonly ComparisonClip[], config:
       output.addVideoTrack(source, { frameRate: config.fps });
       await output.start();
     }
-    const cells = gridCells(config.rows, config.width, config.height);
     for (let row = 0; row < plan.times.length; row++) {
       signal.throwIfAborted();
       const results = await Promise.allSettled(iterators.map(iterator => iterator.next()));
@@ -81,27 +108,15 @@ export async function renderComparison(clips: readonly ComparisonClip[], config:
           if (pageRow === 0) {
             canvas.width = page.width; canvas.height = page.header + Math.min(page.pageRows, plan.times.length - row) * page.rowHeight;
             context.fillStyle = '#080c0f'; context.fillRect(0, 0, canvas.width, canvas.height);
-            context.fillStyle = '#edf3f6'; context.font = '18px sans-serif'; context.textBaseline = 'middle';
-            plan.clips.forEach((clip, i) => context.fillText(clip.name, page.timeWidth + i * (config.cellWidth + page.gap) + 6, page.header / 2, config.cellWidth - 12));
+            drawImageHeader(context, plan.clips, config, page);
           }
-          const y = page.header + pageRow * page.rowHeight;
-          context.fillStyle = '#edf3f6'; context.font = '17px monospace'; context.textBaseline = 'middle';
-          context.fillText(formatTime(plan.times[row]!, true), 8, y + page.cellHeight / 2, page.timeWidth - 16);
-          samples.forEach((sample, i) => drawCell(context, sample, plan.clips[i]!, { id: plan.clips[i]!.id,
-            x: page.timeWidth + i * (config.cellWidth + page.gap), y, width: config.cellWidth, height: page.cellHeight }, false));
+          drawImageRow(context, samples, plan.clips, config, page, plan.times[row]!, pageRow);
           if (pageRow === page.pageRows - 1 || row === plan.times.length - 1) {
             const blob = await png(canvas); limit(blob.size);
             pages.push({ name: `comparison-${String(pages.length + 1).padStart(3, '0')}.png`, blob });
           }
         } else {
-          context.fillStyle = '#080c0f'; context.fillRect(0, 0, canvas.width, canvas.height);
-          cells.forEach(cell => { const i = plan.clips.findIndex(clip => clip.id === cell.id); drawCell(context, samples[i]!, plan.clips[i]!, cell, config.labels); });
-          if (config.labels) {
-            context.font = `${Math.max(12, Math.round(config.width / 90))}px monospace`; context.textBaseline = 'top';
-            const label = formatTime(plan.times[row]!, true), size = context.measureText(label).width;
-            context.fillStyle = '#080c0fcc'; context.fillRect(8, 8, size + 12, Math.max(20, config.width / 60));
-            context.fillStyle = '#fff'; context.fillText(label, 14, 10);
-          }
+          drawGridFrame(context, samples, plan.clips, config, plan.times[row]!);
           await source!.add(row / config.fps, Math.min(1 / config.fps, plan.duration - row / config.fps));
         }
       } finally { samples.forEach(sample => sample.close()); }

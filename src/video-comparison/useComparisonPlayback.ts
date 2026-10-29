@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { ComparisonClip } from './types';
-import { frameAt, mediaTime } from './timeline';
+import { frameForTime, clipFrameRange } from './timeline';
 import { ComparisonPlayback, showManualFrame } from './playback';
 import { decodeVideo } from './decodedVideo';
 
@@ -34,7 +34,7 @@ export function useComparisonPlayback(props: Props): boolean {
       video.pause();
       if (!clip.index || video.readyState < 1 || clip.error) continue;
       const frame = props.linked && clip.contact !== null
-        ? frameAt(clip.index, mediaTime({ index: clip.index, contact: clip.contact, speed: clip.speed }, props.time)) : clip.frame;
+        ? frameForTime({ ...clip, index: clip.index, contact: clip.contact }, props.time) : clip.frame;
       cleanups.push(showManualFrame(video, clip.index, frame, props.canvases.get(clip.id)));
     }
     return () => cleanups.forEach(clean => clean());
@@ -49,11 +49,11 @@ export function useComparisonPlayback(props: Props): boolean {
       const canvas = state.canvases.get(clip.id);
       if (!video || !canvas || !clip.index || clip.contact === null || clip.error) return [];
       video.pause();
-      const aligned = { index: clip.index, contact: clip.contact, speed: clip.speed };
-      const first = frameAt(clip.index, mediaTime(aligned, state.time));
+      const aligned = { ...clip, index: clip.index, contact: clip.contact };
+      const first = frameForTime(aligned, state.time);
       return [{ clip: aligned, source: decodeVideo(clip.file, clip.index, first, canvas, () => {
         if (!stopped) latest.current.onCompatibility();
-      }) }];
+      }, clipFrameRange(aligned).end) }];
     });
     const engine = new ComparisonPlayback(followers, state.time, state.rate, performance.now(), message => {
       latest.current.onError(message); latest.current.onPause();

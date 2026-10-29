@@ -28,7 +28,7 @@ export function ExportGridEditor({ rows, clips, previews, aspect, images, onChan
   };
   return <div className={`export-grid-editor${selected ? ' is-arranging' : ''}`}>
     <div className={`export-grid-preview${images ? ' is-image-columns' : ''}`} style={{ aspectRatio: images ? undefined : aspect,
-      width: images ? undefined : `min(100%, ${480 * (aspect > 0 && Number.isFinite(aspect) ? aspect : 16 / 9)}px)` }}
+      width: images ? undefined : `min(100%, ${260 * (aspect > 0 && Number.isFinite(aspect) ? aspect : 16 / 9)}px)` }}
       onPointerMove={event => {
         if (!drag.current || Math.hypot(event.clientX - drag.current.x, event.clientY - drag.current.y) < 4) return;
         setGhost({ x: event.clientX, y: event.clientY, id: drag.current.id }); setHover(dropAt(event.clientX, event.clientY) ?? '');
