@@ -1,16 +1,19 @@
-import type { CropRect } from '../crop';
-
 /** All coordinates are normalized in the oriented, unmirrored source image. */
 export type Anchor = { frame: number; x: number; y: number; width: number; height: number; role?: 'start' | 'end' | 'correction' };
 export const OBSERVED = 1, MANUAL = 2, ESTIMATED = 3;
+export type JointSignal = { values: Float64Array; velocity: Float64Array; acceleration: Float64Array; states: Uint8Array; derivativeStates: Uint8Array };
 export type MotionSeries = {
   start: number; end: number; width: number; height: number; points: number;
   /** Packed x, y, confidence. State 0 means missing, never a measurement at zero. */
   values: Float32Array; states: Uint8Array; model: string;
   continuous?: boolean; corners?: number[]; rejected?: number;
+  /** Original pose observations remain available in Raw plots. */
+  observations?: { values: Float32Array; states: Uint8Array };
+  /** Default stabilized joint curves, prepared off the UI thread. */
+  angles?: Record<string, JointSignal>;
 };
 export type MotionTrack = { id: string; name: string; color: string; anchors: Anchor[]; revision: number; visible: boolean; result?: MotionSeries };
-export type PoseAnalysis = { region?: CropRect; regionFrame?: number; quality: 'draft' | 'full'; result?: MotionSeries };
+export type PoseAnalysis = { quality: 'draft' | 'full'; result?: MotionSeries };
 export type MotionVisibility = { tracks: boolean; skeleton: boolean; angles: boolean; plots: boolean };
 export type Metric = 'x' | 'y' | 'vx' | 'vy' | 'speed' | 'ax' | 'ay' | 'acceleration' | 'confidence' | 'angle' | 'angularVelocity' | 'angularAcceleration';
 export type MotionPlot = { id: string; target: string; metric: Metric; smoothing: number };
@@ -33,7 +36,7 @@ export const METRICS: Record<Metric, { name: string; unit: string }> = {
   ax: { name: 'Horizontal acceleration', unit: 'px/s²' }, ay: { name: 'Vertical acceleration', unit: 'px/s²' }, acceleration: { name: 'Acceleration', unit: 'px/s²' },
   confidence: { name: 'Confidence', unit: '' }, angle: { name: 'Joint angle', unit: '°' }, angularVelocity: { name: 'Angular velocity', unit: '°/s' }, angularAcceleration: { name: 'Angular acceleration', unit: '°/s²' },
 };
-export const newMotion = (): ClipMotion => ({ tracks: [], pose: { quality: 'draft' }, view: { tracks: true, skeleton: true, angles: true, plots: false }, trail: 0.5, joints: ['leftElbow', 'rightElbow'], plots: [] });
+export const newMotion = (): ClipMotion => ({ tracks: [], pose: { quality: 'draft' }, view: { tracks: true, skeleton: true, angles: true, plots: false }, trail: 0, joints: Object.keys(JOINTS), plots: [] });
 export function emptySeries(start: number, end: number, points: number, width: number, height: number, model: string): MotionSeries {
   const count = (end - start + 1) * points;
   if (!Number.isInteger(count) || count < 1 || end - start + 1 > 7200) throw new Error('Choose an excerpt of up to 60 seconds and 7200 frames for analysis.');

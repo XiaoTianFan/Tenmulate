@@ -15,7 +15,6 @@ export function MotionPanel({ clip, frame, view, linked, analysis, onEdit, onSel
   const [open, setOpen] = useState(false), [plotsOpen, setPlotsOpen] = useState(true), motion = clip.motion;
   const status = analysis.statuses[clip.id], busy = status && !status.error;
   const range = clip.index ? clipFrameRange({ ...clip, index: clip.index }) : { start: 0, end: 0 };
-  const poseSeedValid = !motion?.pose.region || motion.pose.regionFrame === undefined || motion.pose.regionFrame >= range.start && motion.pose.regionFrame <= range.end;
   const estimates = useMemo(() => Object.fromEntries((motion?.tracks ?? []).map(track => [track.id, estimatedRanges(track.result)])), [motion?.tracks]);
   const editTrack = (id: string, edit: (track: MotionTrack) => MotionTrack) => onEdit(m => ({ ...m, tracks: m.tracks.map(track => track.id === id ? edit(track) : track) }));
   const invalidatePose = (edit: (m: ClipMotion) => ClipMotion) => { analysis.cancel(clip.id); onEdit(edit); };
@@ -52,12 +51,10 @@ export function MotionPanel({ clip, frame, view, linked, analysis, onEdit, onSel
       <fieldset className="motion-pose"><legend>{t('Body pose')}</legend>
         <label>{t('Analysis quality')}<select value={motion.pose.quality} onChange={e => invalidatePose(m => ({ ...m, pose: { ...m.pose, quality: e.target.value as 'draft' | 'full', result: undefined } }))}>
           <option value="draft">{t('Draft · 15 samples/s')}</option><option value="full">{t('Every source frame')}</option></select></label>
-        <div className="motion-actions"><button type="button" onClick={() => onSelect({ type: 'region' })}>{t(motion.pose.region ? 'Change player region' : 'Select player region')}</button>
-          {motion.pose.region ? <button type="button" onClick={() => invalidatePose(m => ({ ...m, pose: { ...m.pose, region: undefined, regionFrame: undefined, result: undefined } }))}>{t('Use whole frame')}</button> : null}
-          <button type="button" disabled={!!busy || !poseSeedValid} onClick={() => { onPause(); analysis.run(clip, { kind: 'pose' }); }}>{t('Analyze pose')}</button>
+        <div className="motion-actions">
+          <button type="button" disabled={!!busy} onClick={() => { onPause(); analysis.run(clip, { kind: 'pose' }); }}>{t('Analyze pose')}</button>
           {motion.pose.result ? <button type="button" onClick={() => invalidatePose(m => ({ ...m, pose: { ...m.pose, result: undefined } }))}>{t('Clear pose')}</button> : null}</div>
-        {!poseSeedValid ? <p className="motion-help">{t('Select the player again inside this excerpt.')}</p> : null}
-        <p className="motion-help">{t('The selected region follows one player. Brief missing limbs may be estimated (dashed); detected points stay unchanged. Use every source frame for fast movement. The model downloads on first use.')}</p>
+        <p className="motion-help">{t('Analyzes one player across the full frame. Joint angles are stabilized; brief missing limbs are estimated (dashed). Raw plots retain the detections. Use every source frame for fast movement.')}</p>
       </fieldset>
       {status ? <div className="motion-status" role={status.error ? 'alert' : 'status'}>
         <span>{t(analysis.paused && !status.error ? 'Analysis paused during playback or export.' : status.message)}</span>
@@ -65,7 +62,7 @@ export function MotionPanel({ clip, frame, view, linked, analysis, onEdit, onSel
       </div> : null}
       <fieldset><legend>{t('Preview overlays')}</legend><div className="motion-checks">
         {(['tracks', 'skeleton', 'angles'] as const).map((key, i) => <label key={key}><input type="checkbox" checked={motion.view[key]} onChange={e => onEdit(m => ({ ...m, view: { ...m.view, [key]: e.target.checked } }))}/>{t(['Trajectories', 'Skeleton', 'Joint angles'][i])}</label>)}
-      </div><label>{t('Trail length')}<select value={motion.trail} onChange={e => onEdit(m => ({ ...m, trail: Number(e.target.value) }))}>
+      </div><label>{t('Trail length')}<select aria-label={t('Trail length')} value={motion.trail} onChange={e => onEdit(m => ({ ...m, trail: Number(e.target.value) }))}>
         <option value={.25}>{'0.25 s'}</option><option value={.5}>{'0.5 s'}</option><option value={1}>{'1 s'}</option><option value={0}>{t('Full trajectory')}</option></select></label>
         {motion.view.angles ? <div className="motion-checks">{Object.entries(JOINTS).map(([id, joint]) => <label key={id}><input type="checkbox" checked={motion.joints.includes(id)} onChange={e => onEdit(m => ({ ...m, joints: e.target.checked ? [...m.joints, id] : m.joints.filter(v => v !== id) }))}/>{t(joint.name)}</label>)}</div> : null}
       </fieldset>

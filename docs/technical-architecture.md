@@ -225,22 +225,33 @@ replacement for this browser-only desktop/mobile budget.
 
 A separate, opt-in pose worker loads a pinned MoveNet Lightning v4 graph through TFJS's single-thread WASM backend, avoiding WebGL contexts and cross-origin isolation. Worker entry points use static
 runtime imports to avoid circular entry-module reinitialization in WebKit. It downsizes to a 640-pixel long edge, pads a moving crop to square and feeds
-192×192 RGB. A selected region and source frame seed a torso-based follower;
-analysis proceeds forward and backward from that frame, resetting the follower
-without reloading the model. Reverse decoding retains at most four downscaled frames.
-Reliable torso motion predicts the next crop; visible limb extents expand it immediately,
-while shrinkage is gradual. Weak or edge-clipped detections retry a wider crop and
-then the whole frame, at most three inferences per sampled frame. Geometric center/scale
-gates reject distant bystanders; this is not person re-identification through long
-occlusions. Coordinates map back to the original source.
-Draft samples at 15 Hz plus seed/contact/end and marks short interpolation intervals;
-full quality processes every source frame. A separate conservative repair pass leaves
-all accepted direct detections unchanged. Missing points can interpolate relative to
-a visible parent within 160 ms, or extrapolate limb offsets for at most 80 ms from two
-confident detections. Source timestamps govern VFR limits; distance/confidence gates
-reject implausible motion, and estimates cannot seed further estimates. Missing torsos
-are not extrapolated and longer failures remain gaps. Estimates retain the shared
-hollow/dashed/≈ treatment in preview, plots and export. Source series record packed x/y/confidence and explicit observed,
+192×192 RGB. Every sample first inspects the full image, without user-region state.
+Weak detections can retry automatically followed crops (at most three inferences
+per sample), with torso center/scale gates for continuity. This is not persistent
+person re-identification. Coordinates map back to the original source.
+Draft samples at 15 Hz plus contact/end; full quality processes every source frame.
+The worker finalizes observations before playback: unsupported one/two-detection
+out-and-back excursions are rejected only with temporal support on both sides.
+A separate repair pass interpolates missing joints relative to a visible parent
+within 250 ms, or extrapolates limb offsets for up to 120 ms from two confident
+observations. Estimates cannot seed more estimates; whole missing bodies and long
+occlusions remain gaps. Unmodified observations (plus marked draft interpolation)
+are retained for Raw plots.
+
+Joint angles use confidence-weighted, source-time curvature regularization solved
+with a banded Cholesky system in O(n) memory/time. A natural cubic curve through
+those filtered angles supplies both angular derivatives, avoiding independent
+finite differences of noisy keypoints. Degenerate projected limbs have no angle;
+unsupported gaps split the curve. Endpoint accelerations are undefined rather than
+reported as natural-boundary zeros. Isolated angle excursions are downweighted;
+sustained changes and repeated turns are not capped by a fixed speed limit. The
+worker precomputes all eight default 100 ms curves. Labels, default plots and exports
+reuse those arrays; other plot windows use a cache keyed by series and frame index.
+Estimated influence propagates to ≈ readouts. Skeleton estimates keep hollow/dashed
+styling. All angles and full trajectory are on by default. Plot contact markers use
+source timestamps independently of playback rate, linking and crop/mirror state.
+
+Source series record packed x/y/confidence and explicit observed,
 manual, interpolated or missing states. Limits bound jobs to 60 seconds/7200 frames;
 UI limits six tracks and four plots per clip. Results are visit-only.
 

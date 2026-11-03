@@ -184,19 +184,24 @@ model/runtime resources from this site; subsequent requests can use the local ca
   spikes. Acceleration exactly at an inferred instantaneous impact is undefined;
   velocity uses the outgoing side. Contact marks align playback and do not instruct
   the tracker to invent a turn. Corrections still help when appearance is ambiguous.
-- **Analyze pose** estimates one player's 17 body landmarks. Use **Select player
-  region** on a clear frame to identify the player. The region follows the detected
-  body forward and backward through the excerpt and widens when detection weakens.
-  Re-select the player if the chosen frame is outside a newly trimmed excerpt.
-  **Draft** samples up to 15 times/second; **Every source frame** is preferable for
-  fast movement. Direct detections stay unchanged. Short missing limbs can be
-  interpolated for up to 160 ms or extrapolated for up to 80 ms when the surrounding
-  body remains visible. Hollow landmarks, dashed bones and ≈ readouts distinguish
-  these estimates and draft interpolation in preview and export. Longer losses
-  remain gaps. Severe blur, occlusion or crossing players can still require a
-  clearer/shorter excerpt. Racket heads use a separate point/region track.
+- **Analyze pose** estimates one player's 17 body landmarks automatically from the
+  full frame; there is no player-region selection. Weak detections may retry an
+  automatically followed body region. **Draft** samples up to 15 times/second;
+  **Every source frame** is preferable for fast movement.
+- Pose stabilization removes brief unsupported out-and-back landmark jumps and
+  repairs short missing joints using a visible parent/body. Interpolation spans at
+  most 250 ms; extrapolation stops after 120 ms and cannot extend itself. Longer
+  occlusions remain gaps. Hollow landmarks, dashed bones and **≈** distinguish
+  estimates in preview and export. Severe blur, crossing players or limbs pointing
+  directly toward the camera can still be ambiguous. Track racket heads separately.
+- Joint labels use a confidence-weighted temporal curve (100 ms by default).
+  Angular velocity and acceleration come from that same curve, reducing noise
+  amplification while retaining sustained fast motion and repeated turns. Original
+  model detections remain available with **Raw** in plots; draft intervals there
+  still use interpolation. Smoothing cannot make inferred motion into a measurement.
 - Toggle trajectories, skeleton and projected joint angles independently. Choose
-  a trailing duration or the full trajectory. Crop and mirror apply to overlays
+  a trailing duration or the full trajectory. All eight joint angles and the full
+  trajectory are enabled by default. Crop and mirror apply to overlays
   exactly as they do to the image. Completed analysis stays aligned while changing
   contact marks and clip/global playback rates; it does not run again during playback.
 - **Motion plots** opens independently of **Motion analysis**, so you can collapse
@@ -204,10 +209,14 @@ model/runtime resources from this site; subsequent requests can use the local ca
   per card. Select a track, body landmark or
   joint and a parameter: positions, velocity, speed, acceleration, confidence or
   joint angle and its derivatives. Plots follow the lane's zoom window and review cursor. Drag or use arrow keys in a plot to seek, including linked timelines.
+  A fixed dashed line and diamond mark the contact frame whenever it is inside
+  the zoom window; the solid cursor shows the current review frame. The marker
+  updates when contact changes and also appears in exported plots.
   Point positions and the overlay share the same reconstructed path. **Derivative
   smoothing** controls the time window for velocity/acceleration, without changing
-  that path. Fits stop at impacts and missing pose samples, and derivative readouts
-  influenced by estimated positions also show ≈.
+  that path. For joints, **Smoothing** controls a shared angle/velocity/acceleration
+  curve; 100 ms matches the overlay labels. Fits stop at point impacts and unsupported
+  pose gaps. Derivative readouts influenced by estimates also show ≈.
 
 Positions and derivatives use original source pixels and encoded source seconds,
 not resized preview pixels or slowed playback time. Y increases **upward** from

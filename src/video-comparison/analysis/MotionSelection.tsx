@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { t } from '../../i18n/locale';
 import type { Anchor } from './types';
 import type { CropRect } from '../crop';
-export type Selection = { type: 'track'; id?: string; role: 'start' | 'end' | 'correction' } | { type: 'region' };
+export type Selection = { type: 'track'; id?: string; role: 'start' | 'end' | 'correction' };
 export function MotionSelection({ selection, crop, mirrored, frame, ready, min, max, toolbar, onSelect, onCancel }: { selection: Selection; crop: CropRect; mirrored: boolean; frame: number; ready: boolean; min: number; max: number; toolbar: HTMLElement | null; onSelect: (anchor: Anchor) => void; onCancel: () => void }) {
   const surface = useRef<HTMLDivElement>(null);
   useEffect(() => { surface.current?.focus({ preventScroll: true }); }, []);
@@ -16,8 +16,8 @@ export function MotionSelection({ selection, crop, mirrored, frame, ready, min, 
     const center = mirrored ? 1 - x : x;
     onSelect({ frame, x: crop.x + center * crop.width, y: crop.y + y * crop.height, width: width * crop.width, height: height * crop.height });
   };
-  return <><div className="motion-selection" role="group" aria-label={t(selection.type === 'region' ? 'Select player region' : 'Select tracked point')}>
-    {selection.type === 'track' ? <strong className="motion-selection-step">{t(selection.role === 'start' ? '1. Select start position' : selection.role === 'end' ? '2. Select end position' : 'Select correction position')}</strong> : null}
+  return <><div className="motion-selection" role="group" aria-label={t('Select tracked point')}>
+    <strong className="motion-selection-step">{t(selection.role === 'start' ? '1. Select start position' : selection.role === 'end' ? '2. Select end position' : 'Select correction position')}</strong>
     <div ref={surface} className="motion-selection-surface" role="button" tabIndex={0} aria-label={t('Tap or drag a region. Arrow keys aim; Enter selects.')} aria-disabled={!ready}
       onKeyDown={event => { if (event.key === 'Escape') onCancel(); if (event.key === 'Enter' && ready) { event.preventDefault(); finish(aim.x, aim.y, .05, .05); } if (event.key.startsWith('Arrow')) { event.preventDefault(); const step = event.shiftKey ? .05 : .005; setAim(a => ({ x: Math.max(0, Math.min(1, a.x + (event.key === 'ArrowRight' ? step : event.key === 'ArrowLeft' ? -step : 0))), y: Math.max(0, Math.min(1, a.y + (event.key === 'ArrowDown' ? step : event.key === 'ArrowUp' ? -step : 0))) })); } }}
       onPointerDown={event => { if (!ready) return; event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId); start.current = point(event); }}
@@ -29,8 +29,8 @@ export function MotionSelection({ selection, crop, mirrored, frame, ready, min, 
     </div>
   </div>
     {toolbar ? createPortal(<div className="motion-selection-tools" role="group" aria-label={t('Tracking frame selection')}>
-      <strong>{selection.type === 'region' ? t('Select player region') : t(selection.role === 'start' ? '1. Select start position' : selection.role === 'end' ? '2. Select end position' : 'Select correction position')}</strong>
-      <p>{frame < min || frame > max ? t('Use the preview lane to choose a frame between {start} and {end}.', { start: min + 1, end: max + 1 }) : !ready ? t('Preparing frame…') : t(selection.type === 'region' ? 'Select the player in this frame. The region follows them through the clip.' : 'Use the preview lane to choose a frame, then tap the target or drag a small region around it.')}</p>
+      <strong>{t(selection.role === 'start' ? '1. Select start position' : selection.role === 'end' ? '2. Select end position' : 'Select correction position')}</strong>
+      <p>{frame < min || frame > max ? t('Use the preview lane to choose a frame between {start} and {end}.', { start: min + 1, end: max + 1 }) : !ready ? t('Preparing frame…') : t('Use the preview lane to choose a frame, then tap the target or drag a small region around it.')}</p>
       <div className="motion-selection-navigation"><output>{t('Frame {frame}', { frame: frame + 1 })}</output><button type="button" onClick={onCancel}>{t('Cancel')}</button></div>
     </div>, toolbar) : null}
   </>;

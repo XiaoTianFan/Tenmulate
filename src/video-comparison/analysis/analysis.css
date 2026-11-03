@@ -29,6 +29,10 @@
 .motion-plot-grid { stroke: #29343d; stroke-width: 1; }
 .motion-plot-line { stroke: #46d9ff; stroke-width: 1.5; }
 .motion-plot-cursor { stroke: #f6e62d; stroke-width: 1; }
+.motion-plot-contact { pointer-events: none; }
+.motion-plot-contact-line { stroke: #d5b96a; stroke-width: 1; stroke-dasharray: 4 4; }
+.motion-plot .motion-plot-contact-head { fill: #d5b96a; stroke: #d5b96a; }
+.motion-plot-contact-key { color: #d5b96a; }
 .motion-plot-axis { display: flex; justify-content: space-between; gap: 4px; color: #a6b3bb; font-size: 9px; }
 .comparison-source .motion-overlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; }
 .motion-selection { position: absolute; inset: 0; z-index: 5; }

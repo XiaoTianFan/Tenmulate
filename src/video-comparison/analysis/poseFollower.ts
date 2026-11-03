@@ -15,7 +15,7 @@ export function poseBody(values: Float32Array, width: number, height: number): B
   return { x: (sx + hx) / 2, y: (sy + hy) / 2, scale: Math.max(12, Math.hypot(sx - hx, sy - hy)), count, score: score / 17 };
 }
 
-/** The user's rectangle seeds identity; it is never a permanent clipping mask.
+/** Full-frame detections initialize automatic recovery regions.
  * Only accepted torso detections update the search and velocity. */
 export class PoseFollower {
   private crop: CropRect;
@@ -24,7 +24,7 @@ export class PoseFollower {
   private vx = 0;
   private vy = 0;
   private misses = 0;
-  constructor(private width: number, private height: number, private seed?: CropRect) { this.crop = normalizeCrop(seed); }
+  constructor(private width: number, private height: number) { this.crop = normalizeCrop(); }
   private rectangle(x: number, y: number, w: number, h: number): CropRect {
     return normalizeCrop({ x: (x - w / 2) / this.width, y: (y - h / 2) / this.height, width: w / this.width, height: h / this.height });
   }
@@ -54,7 +54,6 @@ export class PoseFollower {
       for (let p = 0; p < 17; p++) if (values[p * 3 + 2] >= .35) score += values[p * 3 + 2];
       return score / 17 * .8;
     }
-    if (!this.body && this.seed && (body.x < this.seed.x * this.width || body.x > (this.seed.x + this.seed.width) * this.width || body.y < this.seed.y * this.height || body.y > (this.seed.y + this.seed.height) * this.height)) return -1;
     if (this.body) {
       const predicted = this.prediction(time), elapsed = Math.min(.25, Math.abs(time - this.lastTime));
       // Do not reacquire a distant bystander after a long occlusion.

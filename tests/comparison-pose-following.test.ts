@@ -9,9 +9,9 @@ function pose(x = 200, y = 300, width = 1000, height = 600) {
   const offsets = [[0,-120],[-10,-125],[10,-125],[-20,-120],[20,-120],[-30,-60],[30,-60],[-50,0],[50,0],[-60,60],[60,60],[-25,40],[25,40],[-25,110],[25,110],[-25,180],[25,180]];
   return new Float32Array(offsets.flatMap(([dx,dy]) => [(x+dx)/width,(y+dy)/height,.9]));
 }
-describe('pose region follows a selected person', () => {
-  it.each([1,-1])('leaves the seed region in time direction %s without clipping limbs', direction => {
-    const follower = new PoseFollower(1000,600,{x:.12,y:.2,width:.16,height:.65});
+describe('automatic pose recovery follows the detected person', () => {
+  it.each([1,-1])('follows movement beyond the initial body bounds in time direction %s without clipping limbs', direction => {
+    const follower = new PoseFollower(1000,600);
     for(let i=0;i<10;i++) {
       const x=200+i*35, time=1+direction*i/15, points=pose(x);
       expect(follower.score(points,time)).toBeGreaterThan(0);
@@ -24,9 +24,9 @@ describe('pose region follows a selected person', () => {
     expect(follower.regions(1+direction*10/15)[0].x).toBeGreaterThan(.2);
   });
   it('widens after loss but rejects a distant bystander and implausible scale', () => {
-    const follower = new PoseFollower(1000,600,{x:.1,y:.2,width:.2,height:.65});
-    expect(follower.score(pose(850),0)).toBe(-1);
+    const follower = new PoseFollower(1000,600);
     follower.accept(pose(),0);
+    expect(follower.score(pose(850),0)).toBe(-1);
     const before=follower.regions(.05)[0]; follower.accept(undefined,.05); follower.accept(undefined,.1);
     expect(follower.regions(.15)[0].width).toBeGreaterThan(before.width);
     expect(follower.score(pose(850),.15)).toBe(-1);
@@ -35,7 +35,7 @@ describe('pose region follows a selected person', () => {
     expect(follower.score(giant,.15)).toBe(-1);
   });
   it('requests recovery for edge-clipped limbs or a weak torso, on portrait sources too', () => {
-    const follower = new PoseFollower(600,1000,{x:.2,y:.1,width:.6,height:.6}), values=pose(300,350,600,1000);
+    const follower = new PoseFollower(600,1000), values=pose(300,350,600,1000);
     follower.accept(values,0);
     const [r]=follower.regions(.03);
     expect(r.width*600).toBeCloseTo(r.height*1000,2);

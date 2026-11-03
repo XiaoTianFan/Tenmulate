@@ -1,5 +1,7 @@
 import type { FrameIndex } from '../timeline';
-import { emptySeries, ESTIMATED, JOINTS, MANUAL, putSample, sampleAt, type ClipMotion, type Metric, type MotionPlot, type MotionSeries, type MotionTrack } from './types';
+import { jointSignal } from './poseAngles';
+export { jointAngle } from './poseAngles';
+import { emptySeries, ESTIMATED, MANUAL, putSample, sampleAt, type ClipMotion, type Metric, type MotionPlot, type MotionSeries, type MotionTrack } from './types';
 
 export function manualSeries(track: MotionTrack, width: number, height: number): MotionSeries | undefined {
   if (!track.anchors.length) return;
@@ -23,15 +25,6 @@ export function fillDraft(series: MotionSeries, frames: readonly number[], index
       }
     }
   }
-}
-export function jointAngle(series: MotionSeries | undefined, frame: number, joint: string) {
-  const indices = JOINTS[joint]?.points;
-  if (!indices || !series) return null;
-  const [a, b, c] = indices.map(i => sampleAt(series, frame, i));
-  if (!a || !b || !c) return null;
-  const ax = (a.x - b.x) * series.width, ay = (a.y - b.y) * series.height, cx = (c.x - b.x) * series.width, cy = (c.y - b.y) * series.height;
-  const length = Math.hypot(ax, ay) * Math.hypot(cx, cy);
-  return length < 1e-8 ? null : Math.acos(Math.max(-1, Math.min(1, (ax * cx + ay * cy) / length))) * 180 / Math.PI;
 }
 /** Local quadratic least squares in actual source seconds (supports VFR).
  * Missing samples and marked impacts break the fitting window. Legacy sparse
@@ -72,22 +65,27 @@ function fit(times: Float64Array, values: (number | null)[], states: Uint8Array,
 export type PlotData = { start: number; values: (number | null)[]; estimated: boolean[]; min: number; max: number };
 export function plotData(motion: ClipMotion, plot: MotionPlot, index: FrameIndex): PlotData {
   const [type, id] = plot.target.split(':');
-  const series = type === 'track' ? motion.tracks.find(t => t.id === id)?.result : motion.pose.result;
+  let series = type === 'track' ? motion.tracks.find(t => t.id === id)?.result : motion.pose.result;
   if (!series) return { start: 0, values: [], estimated: [], min: 0, max: 1 };
+  if (type === 'joint') {
+    const signal = jointSignal(series, index, id, plot.smoothing);
+    const samples = plot.metric === 'angularVelocity' ? signal.velocity : plot.metric === 'angularAcceleration' ? signal.acceleration : signal.values;
+    const values = Array.from(samples, value => Number.isFinite(value) ? value : null), valid = values.filter((value): value is number => value !== null);
+    let min = valid.length ? Math.min(...valid) : 0, max = valid.length ? Math.max(...valid) : 1;
+    if (min === max) { min -= 1; max += 1; }
+    return { start: series.start, values, estimated: Array.from(plot.metric === 'angle' ? signal.states : signal.derivativeStates, state => state === ESTIMATED), min, max };
+  }
+  if (type === 'pose' && plot.smoothing === 0 && series.observations) series = { ...series, ...series.observations };
   const corners = new Set(series.corners ?? []);
   const count = series.end - series.start + 1, states = new Uint8Array(count), xs: (number | null)[] = [], ys: (number | null)[] = [], conf: (number | null)[] = [];
   for (let i = 0; i < count; i++) {
     const frame = series.start + i, p = sampleAt(series, frame, type === 'pose' ? Number(id) : 0);
-    if (type === 'joint') {
-      const joint = JOINTS[id], samples = joint?.points.map(p => sampleAt(series, frame, p));
-      xs.push(jointAngle(series, frame, id)); ys.push(null); conf.push(null);
-      states[i] = samples?.every(Boolean) ? samples.some(p => p?.state === ESTIMATED) ? ESTIMATED : 1 : 0;
-    } else { xs.push(p ? p.x * series.width : null); ys.push(p ? (1 - p.y) * series.height : null); conf.push(p?.confidence ?? null); states[i] = p?.state ?? 0; }
+    xs.push(p ? p.x * series.width : null); ys.push(p ? (1 - p.y) * series.height : null); conf.push(p?.confidence ?? null); states[i] = p?.state ?? 0;
   }
   const estimated = Array.from(states, s => s === ESTIMATED);
   const values = xs.map((x, i) => {
     if (x === null) return null;
-    const a = fit(index.timestamps, xs, states, series.start, i, plot.smoothing, series.continuous, corners), b = type === 'joint' ? a : fit(index.timestamps, ys, states, series.start, i, plot.smoothing, series.continuous, corners);
+    const a = fit(index.timestamps, xs, states, series.start, i, plot.smoothing, series.continuous, corners), b = fit(index.timestamps, ys, states, series.start, i, plot.smoothing, series.continuous, corners);
     const metric: Metric = plot.metric;
     if (metric === 'confidence') return conf[i];
     if (metric === 'x' || metric === 'angle') return series.continuous ? xs[i] : a[0]; if (metric === 'y') return series.continuous ? ys[i] : b[0];

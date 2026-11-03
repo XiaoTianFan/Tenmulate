@@ -4,6 +4,7 @@ import type { ComparisonClip } from '../types';
 import type { Cell } from '../exportLayout';
 import { plotData, type PlotData } from './series';
 import { JOINTS, LANDMARKS, METRICS, type ClipMotion, type MotionPlot } from './types';
+import { plotContactPosition } from './plotTimeline';
 const cache = new WeakMap<ClipMotion, Map<MotionPlot, PlotData>>();
 /** Export reuses the same source-frame measurements; model inference never runs here. */
 export function drawExportPlots(ctx: CanvasRenderingContext2D, clip: ComparisonClip, frame: number, rect: Omit<Cell, 'id'>) {
@@ -29,6 +30,12 @@ export function drawExportPlots(ctx: CanvasRenderingContext2D, clip: ComparisonC
       if (drawing) ctx.lineTo(x(f), y(v)); else ctx.moveTo(x(f), y(v)); drawing = true;
     }
     ctx.strokeStyle = '#46d9ff'; ctx.lineWidth = Math.max(1, rect.width / 600); ctx.stroke();
+    const contact = plotContactPosition(index, clip.contact, range.start, range.end);
+    if (contact !== null) {
+      const marker = rect.x + 5 + contact * (rect.width - 10);
+      ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(marker, graphTop); ctx.lineTo(marker, top + height - 3); ctx.strokeStyle = '#d5b96a'; ctx.stroke(); ctx.setLineDash([]);
+      ctx.beginPath(); ctx.moveTo(marker, graphTop); ctx.lineTo(marker + 3, graphTop + 3); ctx.lineTo(marker, graphTop + 6); ctx.lineTo(marker - 3, graphTop + 3); ctx.closePath(); ctx.fillStyle = '#d5b96a'; ctx.fill();
+    }
     ctx.beginPath(); ctx.moveTo(x(frame), graphTop); ctx.lineTo(x(frame), top + height - 3); ctx.strokeStyle = '#f6e62d'; ctx.stroke();
   }
   ctx.restore();

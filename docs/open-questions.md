@@ -63,9 +63,10 @@ schedule. Completed features belong in the user guide and architecture.
   detection still need broader real-footage evaluation, including long occlusion,
   severe motion blur and rapid racket rotation. Corrections remain useful when
   visually indistinguishable targets cross. MoveNet estimates one player's projected pose, not persistent
-  multi-person identity or racket geometry. The pose region follows the torso and
-  short missing limbs can be estimated, but severe blur, body occlusion and
-  crossing players still need broader real-footage and physical-device validation. Capture-time/slow-motion metadata,
+  multi-person identity or racket geometry. Full-frame pose recognition uses automatic
+  recovery regions and short missing limbs can be estimated. Temporal joint curves
+  reduce derivative noise, but severe blur, body occlusion and crossing players
+  still need broader real-footage and physical-device validation. Capture-time/slow-motion metadata,
   camera stabilization, calibrated physical units, 3D reconstruction and durable
   analysis-session storage are not implemented.
 

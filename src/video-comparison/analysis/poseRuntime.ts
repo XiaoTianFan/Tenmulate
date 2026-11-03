@@ -1,7 +1,7 @@
 import * as tf from '@tensorflow/tfjs-core';
 import { loadGraphModel, type GraphModel } from '@tensorflow/tfjs-converter';
 import { setThreadsCount, setWasmPaths } from '@tensorflow/tfjs-backend-wasm';
-import type { CropRect } from '../crop';
+import { FULL_CROP, type CropRect } from '../crop';
 import type { PixelFrame } from './tracker';
 import { PoseFollower } from './poseFollower';
 
@@ -13,10 +13,13 @@ export class PoseRuntime {
     await tf.setBackend('wasm'); await tf.ready();
     this.model = await loadGraphModel('/assets/analysis/movenet-lightning-v4/model.json', { onProgress: progress });
   }
-  async detect(frame: PixelFrame, time: number, region?: CropRect, reset = false): Promise<Float32Array> {
-    if (reset || !this.follower) this.follower = new PoseFollower(frame.width, frame.height, region);
+  async detect(frame: PixelFrame, time: number): Promise<Float32Array> {
+    if (!this.follower) this.follower = new PoseFollower(frame.width, frame.height);
     let best: Float32Array | undefined, score = -1;
-    for (const crop of this.follower.regions(time)) {
+    // Always inspect the full image. Automatic local retries can recover a weak
+    // limb, but no user-defined rectangle restricts the player's movement.
+    const retries = this.follower.regions(time).filter(r => r.width < .99 || r.height < .99);
+    for (const crop of [FULL_CROP, ...retries.slice(0, 2)]) {
       const candidate = await this.detectRegion(frame, crop), quality = this.follower.score(candidate, time);
       if (quality > score) { best = candidate; score = quality; }
       if (quality >= 0 && this.follower.sufficient(candidate, crop)) break;

@@ -1,6 +1,6 @@
 import type { FrameIndex } from '../timeline';
 import { BONES, ESTIMATED, JOINTS, sampleAt, type ClipMotion, type MotionVisibility } from './types';
-import { jointAngle } from './series';
+import { jointSignal } from './poseAngles';
 type Rect = { x: number; y: number; width: number; height: number };
 /** Shared source-coordinate renderer for native review, decoded playback and export. */
 export function drawMotion(context: CanvasRenderingContext2D, motion: ClipMotion | undefined, index: FrameIndex, frame: number, rect: Rect, visibility?: MotionVisibility, mirrored = false) {
@@ -51,9 +51,9 @@ export function drawMotion(context: CanvasRenderingContext2D, motion: ClipMotion
     context.setLineDash([]); for (let p = 0; p < 17; p++) { const point = sampleAt(pose, frame, p); if (point) dot(point); }
   }
   if (pose && view.angles) for (const id of motion.joints) {
-    const joint = JOINTS[id], value = jointAngle(pose, frame, id), point = joint && sampleAt(pose, frame, joint.points[1]);
-    if (value === null || !point) continue;
-    const estimated = joint.points.some(p => sampleAt(pose, frame, p)?.state === ESTIMATED);
+    const joint = JOINTS[id], signal = jointSignal(pose, index, id), value = signal.values[frame - pose.start], point = joint && sampleAt(pose, frame, joint.points[1]);
+    if (!Number.isFinite(value) || !point) continue;
+    const estimated = signal.states[frame - pose.start] === ESTIMATED;
     context.fillStyle = '#f6e62d'; label(`${estimated ? '≈' : ''}${value.toFixed(0)}°`, point);
   }
   context.restore();

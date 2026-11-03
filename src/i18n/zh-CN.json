@@ -1005,5 +1005,7 @@
   "Turns are detected automatically from the tracked motion. Lighter sections are estimates; use correction points if the target is lost. All processing stays on this device.": "系统会根据跟踪到的运动自动识别转向。浅色轨迹为估计值，目标丢失时可添加校正点。所有处理均在本设备上完成。",
   "Select the player in this frame. The region follows them through the clip.": "在当前帧选择球员，检测区域会随球员移动。",
   "Select the player again inside this excerpt.": "请在当前片段范围内重新选择球员。",
-  "The selected region follows one player. Brief missing limbs may be estimated (dashed); detected points stay unchanged. Use every source frame for fast movement. The model downloads on first use.": "所选区域会跟随一名球员。短暂缺失的肢体可能以估算补全（虚线），直接检测到的位置保持不变。快速运动建议分析每个源帧。首次使用时会下载模型。"
+  "The selected region follows one player. Brief missing limbs may be estimated (dashed); detected points stay unchanged. Use every source frame for fast movement. The model downloads on first use.": "所选区域会跟随一名球员。短暂缺失的肢体可能以估算补全（虚线），直接检测到的位置保持不变。快速运动建议分析每个源帧。首次使用时会下载模型。",
+  "Analyzes one player across the full frame. Joint angles are stabilized; brief missing limbs are estimated (dashed). Raw plots retain the detections. Use every source frame for fast movement.": "自动在完整画面中分析一名球员。关节角度经过稳定处理，短暂缺失的肢体以估算补全（虚线）。原始图表保留检测结果。快速运动建议分析每个源帧。",
+  "Stabilizing pose and joint angles…": "正在稳定姿态和关节角度…"
 }

@@ -4,6 +4,7 @@ import { frameAt, formatTime } from '../timeline';
 import type { ComparisonClip } from '../types';
 import { plotData, type PlotData } from './series';
 import { JOINTS, LANDMARKS, METRICS, type Metric, type MotionPlot } from './types';
+import { plotContactPosition } from './plotTimeline';
 
 export function targetName(clip: ComparisonClip, target: string): string {
   const [type, id] = target.split(':'); return type === 'track' ? clip.motion?.tracks.find(track => track.id === id)?.name ?? '' : type === 'pose' ? t(LANDMARKS[Number(id)] ?? '') : t(JOINTS[id]?.name ?? '');
@@ -26,6 +27,7 @@ export const MotionPlotCard = memo(function MotionPlotCard({ clip, plot, frame, 
   const start = Math.max(0, Math.floor(view.start)), end = Math.min(index.timestamps.length - 1, Math.ceil(view.end));
   const path = useMemo(() => plotPath(data, index.timestamps, start, end), [data, index, start, end]);
   const cursor = (index.timestamps[frame] - index.timestamps[start]) / (index.timestamps[end] - index.timestamps[start] || 1) * 1000;
+  const contact = plotContactPosition(index, clip.contact, start, end);
   const value = data.values[frame - data.start], estimated = data.estimated[frame - data.start];
   const angle = plot.target.startsWith('joint:'), metrics: Metric[] = angle ? ['angle', 'angularVelocity', 'angularAcceleration'] : ['x', 'y', 'vx', 'vy', 'speed', 'ax', 'ay', 'acceleration', 'confidence'];
   const continuous = plot.target.startsWith('track:') && motion.tracks.find(track => `track:${track.id}` === plot.target)?.result?.continuous;
@@ -47,10 +49,16 @@ export const MotionPlotCard = memo(function MotionPlotCard({ clip, plot, frame, 
       onKeyDown={event => { if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) { event.preventDefault(); onFrame(event.key === 'Home' ? start : event.key === 'End' ? end : Math.max(start, Math.min(end, frame + (event.key === 'ArrowRight' ? 1 : -1)))); } }}
       onPointerDown={event => { event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId); const r = event.currentTarget.getBoundingClientRect(); onFrame(frameAt(index, index.timestamps[start] + Math.max(0, Math.min(1, (event.clientX - r.left) / r.width)) * (index.timestamps[end] - index.timestamps[start]))); }}
       onPointerMove={event => { if (!event.currentTarget.hasPointerCapture(event.pointerId)) return; const r = event.currentTarget.getBoundingClientRect(); onFrame(frameAt(index, index.timestamps[start] + Math.max(0, Math.min(1, (event.clientX - r.left) / r.width)) * (index.timestamps[end] - index.timestamps[start]))); }}>
-      <path d="M0,115H1000M0,15H1000" className="motion-plot-grid"/><path d={path} className="motion-plot-line"/>
+      <path d="M0,115H1000M0,15H1000" className="motion-plot-grid"/>
+      {contact !== null ? <g className="motion-plot-contact" data-contact-frame={clip.contact} aria-label={t('Contact frame')}>
+        <title>{t('Contact frame')} · {t('Frame {frame}', { frame: clip.contact! + 1 })}</title>
+        <path d={`M${contact * 1000},9V140`} className="motion-plot-contact-line"/>
+        <path d={`M${contact * 1000},0l8,5l-8,5l-8,-5Z`} className="motion-plot-contact-head"/>
+      </g> : null}
+      <path d={path} className="motion-plot-line"/>
       {cursor >= 0 && cursor <= 1000 ? <path d={`M${cursor},0V140`} className="motion-plot-cursor"/> : null}
     </svg>
-    <div className="motion-plot-axis"><span>{labelTime(start)}</span><span>{t('Source-time units')}</span><span>{labelTime(end)}</span></div>
+    <div className="motion-plot-axis"><span>{labelTime(start)}</span><span>{contact !== null ? <span className="motion-plot-contact-key">◇ {t('Contact frame')} · </span> : null}{t('Source-time units')}</span><span>{labelTime(end)}</span></div>
     {!data.values.length ? <p>{t('Run analysis to populate this plot.')}</p> : null}
   </section>;
 });
