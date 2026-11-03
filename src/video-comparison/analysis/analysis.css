@@ -1,0 +1,46 @@
+.motion-panel { margin-top: 12px; border-top: 1px solid #29343d; color: #dce5ea; font-size: 12px; }
+.motion-panel button, .motion-panel select, .motion-panel input { font: inherit; }
+.motion-panel button { min-height: 34px; padding: 6px 9px; border: 1px solid #34424a; border-radius: 5px; background: #172127; color: inherit; cursor: pointer; }
+.motion-panel button:disabled { opacity: .45; cursor: default; }
+.motion-disclosure { width: 100%; display: flex; justify-content: space-between; margin-top: 10px; }
+.motion-panel-body { display: grid; gap: 12px; padding-top: 10px; }
+.motion-help { margin: 0; color: #a6b3bb; line-height: 1.5; }
+.motion-panel fieldset { min-width: 0; margin: 0; padding: 10px; border: 1px solid #34424a; border-radius: 6px; display: grid; gap: 10px; }
+.motion-panel legend { padding: 0 5px; }
+.motion-panel label { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.motion-panel select, .motion-track-title input:not([type=checkbox]) { min-width: 0; max-width: 100%; padding: 5px; border: 1px solid #34424a; border-radius: 4px; color: inherit; background: #0b1217; }
+.motion-track { border-left: 2px solid #50636e; padding-left: 10px; display: grid; gap: 7px; }
+.motion-track-title { display: flex; align-items: center; gap: 5px; }
+.motion-track-title input:not([type]) { flex: 1; width: 70px; }
+.motion-track-title input[type=color] { width: 30px; height: 30px; padding: 1px; }
+.motion-actions, .motion-checks, .motion-anchors { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
+.motion-anchors > span { display: inline-flex; gap: 1px; }
+.motion-anchors button { font-size: 10px; }
+.motion-coverage, .motion-plot-readout { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.motion-status { display: grid; gap: 8px; border: 1px solid #7e7431; padding: 9px; border-radius: 5px; }
+.motion-status progress { width: 100%; accent-color: #f6e62d; }
+.motion-plot { background: #090f13; padding: 8px; border: 1px solid #29343d; border-radius: 6px; }
+.motion-plot-controls { display: flex; gap: 4px; }
+.motion-plot-controls select { flex: 1; width: 30%; }
+.motion-plot-readout { margin: 8px 0; font-size: 10px; }
+.motion-plot-readout output { color: #f6e62d; font-variant-numeric: tabular-nums; }
+.motion-plot svg { width: 100%; height: 100px; touch-action: none; cursor: crosshair; overflow: hidden; }
+.motion-plot path { fill: none; vector-effect: non-scaling-stroke; }
+.motion-plot-grid { stroke: #29343d; stroke-width: 1; }
+.motion-plot-line { stroke: #46d9ff; stroke-width: 1.5; }
+.motion-plot-cursor { stroke: #f6e62d; stroke-width: 1; }
+.motion-plot-axis { display: flex; justify-content: space-between; gap: 4px; color: #a6b3bb; font-size: 9px; }
+.comparison-source .motion-overlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; }
+.motion-selection { position: absolute; inset: 0; z-index: 5; }
+.motion-selection-surface { position: absolute; inset: 0; cursor: crosshair; touch-action: none; outline: 2px solid #f6e62d; outline-offset: -2px; }
+.motion-selection-surface > span { position: absolute; border: 2px solid #f6e62d; background: #f6e62d22; pointer-events: none; }
+.motion-selection-hint { position: absolute; bottom: 0; left: 0; right: 0; padding: 8px; display: flex; align-items: center; gap: 8px; background: #080c0fe6; color: #fff; font-size: 12px; pointer-events: none; }
+.motion-selection-hint button { pointer-events: auto; border: 1px solid #89959c; padding: 8px; background: #172127; color: #fff; border-radius: 4px; }
+.export-motion-options { display: grid; gap: 10px; margin: 12px 0; }
+.export-motion-options fieldset { display: flex; flex-wrap: wrap; gap: 10px; border: 1px solid #34424a; padding: 10px; }
+.export-motion-options legend { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.export-motion-options label { display: flex; gap: 6px; align-items: center; }
+@media (pointer: coarse) { .motion-panel button, .motion-panel select { min-height: 40px; } }
+.motion-panel input[type=checkbox] { accent-color: #f6e62d; }
+.motion-selection-aim { display: none; position: absolute; transform: translate(-50%, -50%); color: #f6e62d; font-size: 24px; font-style: normal; pointer-events: none; }
+.motion-selection-surface:focus-visible .motion-selection-aim { display: block; }

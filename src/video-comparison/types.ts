@@ -1,5 +1,6 @@
 import type { FrameIndex } from './timeline';
 import type { CropRect } from './crop';
+import type { ClipMotion } from './analysis/types';
 
 export type ComparisonClip = {
   id: string;
@@ -16,4 +17,5 @@ export type ComparisonClip = {
   width: number;
   thumbnails: string[];
   error?: string;
+  motion?: ClipMotion;
 };

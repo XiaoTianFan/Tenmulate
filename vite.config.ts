@@ -1,4 +1,5 @@
 import { defineConfig } from 'vite';
+import { analysisAssetsPlugin } from './server/analysisAssets.ts';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import opponentMotion from './src/content/opponent-motion.json' with { type: 'json' };
@@ -8,6 +9,7 @@ import { projectShotsPlugin } from './server/projectShots.ts';
 
 export default defineConfig({
   plugins: [
+    analysisAssetsPlugin(),
     projectDrillsPlugin(),
     projectShotsPlugin(),
     projectConfigsPlugin(),
@@ -35,7 +37,7 @@ export default defineConfig({
         // evidence, not additional downloads required to start practice.
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         globPatterns: ['**/*.{js,css,html,svg,png,glb,json,txt}'],
-        globIgnores: ['assets/venues/**', 'assets/audience/**',
+        globIgnores: ['assets/analysis/**', 'assets/{analyze,analysis.worker,pose.worker,poseRuntime,tfjs}*', 'assets/venues/**', 'assets/audience/**',
           // Optional video tools should not compete with first-page downloads.
           'assets/{ComparisonExportModal,decodedVideo,videoFrames,indexVideo.worker}-*'],
         manifestTransforms: [async (entries) => ({
@@ -44,6 +46,11 @@ export default defineConfig({
           warnings: [],
         })],
         runtimeCaching: [{
+          urlPattern: /\/assets\/(?:analysis\/|(?:analyze|analysis\.worker|pose\.worker|poseRuntime|tfjs)[^/]*\.(?:js|css)$)/,
+          handler: 'CacheFirst',
+          options: { cacheName: 'tenmulate-analysis-v1', cacheableResponse: { statuses: [200] },
+            expiration: { maxEntries: 16, maxAgeSeconds: 30 * 24 * 60 * 60, purgeOnQuotaError: true } },
+        }, {
           urlPattern: /\/assets\/(?:ComparisonExportModal|decodedVideo|videoFrames|indexVideo\.worker)-[a-zA-Z0-9_-]+\.(?:js|css)$/,
           handler: 'CacheFirst',
           options: { cacheName: 'tenmulate-video-tools-v1', cacheableResponse: { statuses: [200] },
@@ -77,6 +84,7 @@ export default defineConfig({
       },
     }),
   ],
+  worker: { format: 'es' },
   server: {
     host: '127.0.0.1',
     port: 4173,

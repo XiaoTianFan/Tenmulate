@@ -53,5 +53,14 @@ schedule. Completed features belong in the user guide and architecture.
   Third-party asset notices remain in force; a broader distribution-rights review
   is separate from build success. See [asset attribution](asset-attribution.md).
 
-Body/racket tracking, automatic technique assessment, accounts, cloud sync and
-video-to-drill reconstruction are outside the current implementation.
+- **Motion-analysis acceptance:** real-device Safari/iOS memory, thermal and
+  preparation-time profiling remains necessary, especially with nine clips and
+  long high-FPS excerpts. Browser-only point tracking cannot guarantee fast-ball
+  reacquisition through occlusion or distinguish identical targets; manual anchors
+  remain essential. MoveNet estimates one player's projected pose, not persistent
+  multi-person identity or racket geometry. Capture-time/slow-motion metadata,
+  camera stabilization, calibrated physical units, 3D reconstruction and durable
+  analysis-session storage are not implemented.
+
+Automatic technique assessment, accounts, cloud sync and video-to-drill
+reconstruction are outside the current implementation.

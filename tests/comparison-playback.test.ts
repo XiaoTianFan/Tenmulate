@@ -24,12 +24,15 @@ describe('contact-synchronized frame presentation', () => {
   it('hands playback back to manual scrubbing only after seek completion, even with a rounded media clock', () => {
     const video = Object.assign(new EventTarget(), { currentTime: 0, readyState: 1, seeking: true, pause: vi.fn() });
     const canvas = { hidden: false };
-    const cleanup = showManualFrame(video, clip().index, 5, canvas);
+    const presented = vi.fn();
+    const cleanup = showManualFrame(video, clip().index, 5, canvas, presented);
+    expect(presented).not.toHaveBeenCalled();
     expect(canvas.hidden).toBe(false);
     video.currentTime = 0.1; // A privacy-rounded value need not identify the decoded sample.
     video.readyState = 4; video.seeking = false;
     video.dispatchEvent(new Event('seeked'));
     expect(canvas.hidden).toBe(true);
+    expect(presented).toHaveBeenCalledWith(5);
     cleanup();
     canvas.hidden = false;
     video.dispatchEvent(new Event('seeked'));

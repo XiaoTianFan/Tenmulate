@@ -96,7 +96,7 @@ describe('default content and authored data', () => {
 
 it('covers fixed JSX text and every literal translation key', () => {
   const files = readdirSync('src/components').filter(file => file.endsWith('.tsx')).map(file => `src/components/${file}`)
-    .concat('src/app/App.tsx', 'src/hooks/useSaveSystem.tsx', ...readdirSync('src/video-comparison').filter(file => file.endsWith('.tsx')).map(file => `src/video-comparison/${file}`));
+    .concat(...readdirSync('src/video-comparison/analysis').filter(file => file.endsWith('.tsx')).map(file => `src/video-comparison/analysis/${file}`), 'src/app/App.tsx', 'src/hooks/useSaveSystem.tsx', ...readdirSync('src/video-comparison').filter(file => file.endsWith('.tsx')).map(file => `src/video-comparison/${file}`));
   const missing: string[] = [];
   for (const file of files) {
     walk(parse(readFileSync(file, 'utf8'), { sourceType: 'module', plugins: ['typescript', 'jsx'] }), node => {

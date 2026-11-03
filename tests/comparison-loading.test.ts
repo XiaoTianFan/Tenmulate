@@ -76,4 +76,7 @@ it('ships the comparison shell with navigation while deferring codec and export 
   expect(graph.files.has(resolve('src/video-comparison/ComparisonExportModal.tsx'))).toBe(false);
   expect(graph.files.has(resolve('src/video-comparison/decodedVideo.ts'))).toBe(false);
   expect(graph.packages.has('mediabunny')).toBe(false);
+  expect(graph.packages.has('jsfeat')).toBe(false);
+  expect([...graph.packages].some(name => name.startsWith('@tensorflow/'))).toBe(false);
+  expect(graph.files.has(resolve('src/video-comparison/analysis/analyze.ts'))).toBe(false);
 });

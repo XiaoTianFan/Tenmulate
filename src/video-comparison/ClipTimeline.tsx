@@ -6,10 +6,11 @@ import { makeFilmstrip } from './localVideo';
 import type { ComparisonClip } from './types';
 import type { TimelineWindow } from './timelineView';
 
-export function ClipTimeline({ clip, frame, onFrame, onTrim }: { clip: ComparisonClip; frame: number; onFrame: (frame: number) => void; onTrim: (trim?: TimelineWindow) => void }) {
+export function ClipTimeline({ clip, frame, onFrame, onTrim, onView }: { clip: ComparisonClip; frame: number; onFrame: (frame: number) => void; onTrim: (trim?: TimelineWindow) => void; onView?: (view: TimelineWindow) => void }) {
   const last = (clip.index?.timestamps.length ?? 1) - 1;
   const selection = clip.index ? clipFrameRange({ ...clip, index: clip.index }) : { start: 0, end: 0 };
   const [view, setView] = useState<TimelineWindow>({ start: 0, end: last });
+  useEffect(() => { onView?.(view); }, [view.start, view.end, onView]);
   const cropKey = JSON.stringify(clip.crop);
   const [detail, setDetail] = useState<{ start: number; end: number; images: string[]; cropKey: string | undefined } | null>(null);
   useEffect(() => {

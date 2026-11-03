@@ -1,0 +1,25 @@
+{
+  "model": "MoveNet SinglePose Lightning",
+  "version": 4,
+  "format": "TensorFlow.js graph, float16 weights",
+  "source": "https://www.kaggle.com/models/google/movenet/tfJs/singlepose-lightning/4",
+  "download": "https://www.kaggle.com/api/v1/models/google/movenet/tfJs/singlepose-lightning/4/download",
+  "upstreamDocumentation": "https://github.com/tensorflow/tfhub.dev/blob/master/assets/docs/google/models/movenet/singlepose/lightning/4.md",
+  "license": "Apache-2.0",
+  "licenseUrl": "/licenses/tensorflow-movenet.txt",
+  "archiveSha256": "28b9a96dde847d2c5dd0d44ddd131d6dfd388b8a014a4535dc31b4059ce61765",
+  "files": {
+    "group1-shard1of2.bin": {
+      "bytes": 4194304,
+      "sha256": "b42c3232bf13b0efc691d3f0693dd3fc74404f709b1deee0a271828af6dbbea2"
+    },
+    "group1-shard2of2.bin": {
+      "bytes": 455912,
+      "sha256": "8253ab965aa3122c08f331777ca395ce9ca19bb9e7cb278b99de1c46dbdeb6dc"
+    },
+    "model.json": {
+      "bytes": 168013,
+      "sha256": "c65a3447162efa0c42af29498a4b151f4415b36ff3ae6fae2b28a32e840dcbfb"
+    }
+  }
+}

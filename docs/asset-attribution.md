@@ -13,6 +13,26 @@ and [upstream repository](https://github.com/Vanilagy/mediabunny).
 The [license notice](../public/licenses/mediabunny.txt) ships with the app.
 User-selected videos are private local inputs and are not distributed with it.
 
+## Browser motion analysis
+
+Opt-in comparison analysis uses [JSFeat 0.0.8](https://github.com/inspirit/jsfeat)
+by Eugene Zatepyakin (MIT; [notice](../public/licenses/jsfeat.txt)) for pyramidal
+Lucas–Kanade proposals, together with the app's normalized-template tracker.
+[TensorFlow.js 4.22.0](https://github.com/tensorflow/tfjs/tree/tfjs-v4.22.0)
+core, converter and single-threaded WASM backend run
+[Google MoveNet SinglePose Lightning v4](https://www.kaggle.com/models/google/movenet/tfJs/singlepose-lightning/4).
+The runtime and model are Apache-2.0; the [license](../public/licenses/tensorflow-movenet.txt)
+is included. The [upstream model documentation](https://github.com/tensorflow/tfhub.dev/blob/master/assets/docs/google/models/movenet/singlepose/lightning/4.md)
+specifies its license, 192×192 RGB input and 17-keypoint output.
+
+Unmodified model.json and the two float16 weight shards are served from this site.
+Their lengths, SHA-256 hashes and source archive hash are recorded in the
+[delivery manifest](../public/assets/analysis/movenet-lightning-v4/manifest.json).
+WASM delivery files are emitted from the exact npm-locked backend package at build
+time. Analysis assets are downloaded only when used and are not precached on app
+startup. Local frames and measurements are never uploaded. No example footage or
+research fixtures are shipped.
+
 ## Opponent
 
 The articulated mannequin is based on Quaternius's CC0

@@ -10,9 +10,10 @@ import { exportPlan, imagePageLayout, type ExportConfig } from './exportPlan';
 import { renderComparison } from './exportRender';
 import type { ComparisonClip } from './types';
 import './export.css';
+import { newMotion, type MotionVisibility } from './analysis/types';
 
-export type ComparisonExportProps = { clips: ComparisonClip[]; rate: number; previews: Record<string, string>; onClose: () => void; restoreFocusTo?: HTMLElement | null };
-export function ComparisonExportModal({ clips, rate, previews, onClose, restoreFocusTo }: ComparisonExportProps) {
+export type ComparisonExportProps = { pendingAnalysis?: boolean; clips: ComparisonClip[]; rate: number; previews: Record<string, string>; onClose: () => void; restoreFocusTo?: HTMLElement | null };
+export function ComparisonExportModal({ pendingAnalysis, clips, rate, previews, onClose, restoreFocusTo }: ComparisonExportProps) {
   const locale = useLocale();
   const eligible = clips.filter(clip => clip.index && clip.contact !== null && !clip.error);
   const bounds = comparisonRange(eligible.map(clip => ({ ...clip, index: clip.index!, contact: clip.contact! })));
@@ -21,6 +22,7 @@ export function ComparisonExportModal({ clips, rate, previews, onClose, restoreF
   const [imageOrder, setImageOrder] = useState(() => eligible.map(clip => clip.id));
   const [aspect, setAspect] = useState('16:9'), [longEdge, setLongEdge] = useState(1920);
   const [options, setOptions] = useState<Omit<ExportConfig, 'rows'>>({ kind: 'video', format: 'auto', width: 1920, height: 1080, fps: 30,
+    overlays: Object.fromEntries(clips.filter(clip => clip.motion).map(clip => [clip.id, { ...clip.motion!.view }])),
     rate, start: bounds.start, end: bounds.end, labels: true, sampling: 'even', imageRows: 12, cellWidth: 480, cellAspect: 16 / 9 });
   const [running, setRunning] = useState(false), [progress, setProgress] = useState(0), [error, setError] = useState(''), [compatibility, setCompatibility] = useState(false);
   const [result, setResult] = useState<{ url: string; name: string; key: string } | null>(null);
@@ -105,6 +107,13 @@ export function ComparisonExportModal({ clips, rate, previews, onClose, restoreF
           {previews[clip.id] || clip.thumbnails[0] ? <img src={previews[clip.id] || clip.thumbnails[0]} alt="" style={{ transform: clip.mirrored ? 'scaleX(-1)' : undefined }}/> : null}
           <span>{clip.name}{!eligible.some(item => item.id === clip.id) ? <small>{t('Set a contact frame to include this clip.')}</small> : null}</span>
         </label>)}</div>
+        {pendingAnalysis ? <p className="export-hint" role="status">{t('Analysis is paused. Only completed results are included; close export to resume.')}</p> : null}
+        <div className="export-motion-options">{clips.filter(clip => included.includes(clip.id) && clip.motion).map(clip => {
+          const visibility = options.overlays?.[clip.id] ?? newMotion().view;
+          return <fieldset key={clip.id}><legend>{clip.name} · {t('Export overlays')}</legend>
+            {(['tracks', 'skeleton', 'angles', 'plots'] as (keyof MotionVisibility)[]).map((key, i) => <label key={key}><input type="checkbox" checked={visibility[key]} onChange={e => change({ overlays: { ...options.overlays, [clip.id]: { ...visibility, [key]: e.target.checked } } })}/>{t(['Trajectories', 'Skeleton', 'Joint angles', 'Plots'][i])}</label>)}
+          </fieldset>;
+        })}</div>
         <div className="export-preview-heading"><h3>{t(options.kind === 'video' ? 'Video layout' : 'Column order')}</h3>
           {options.kind === 'video' ? <div className="export-layout-presets"><button type="button" disabled={!included.length} onClick={() => preset(included.length)}>{t('One row')}</button><button type="button" disabled={!included.length} onClick={() => preset(1)}>{t('One column')}</button><button type="button" disabled={!included.length} onClick={() => preset(Math.ceil(Math.sqrt(included.length)))}>{t('Auto grid')}</button></div> : null}
         </div>

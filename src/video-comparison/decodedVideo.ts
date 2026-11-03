@@ -4,7 +4,7 @@ import { readVideoFrames } from './videoFrames';
 
 /** Both decoders feed the same contact-synchronized presentation barrier. */
 export function decodeVideo(file: File, index: FrameIndex, first: number, canvas: HTMLCanvasElement,
-  onCompatibility?: () => void, last = index.timestamps.length - 1): FrameBuffer {
+  onCompatibility?: () => void, last = index.timestamps.length - 1, onPresented?: (frame: number) => void): FrameBuffer {
   const controller = new AbortController();
   async function* frames(): AsyncGenerator<BufferedFrame> {
     const context = canvas.getContext('2d', { alpha: false });
@@ -15,7 +15,7 @@ export function decodeVideo(file: File, index: FrameIndex, first: number, canvas
         if (controller.signal.aborted) return;
         if (canvas.width !== sample.width || canvas.height !== sample.height) { canvas.width = sample.width; canvas.height = sample.height; }
         sample.draw(context, 0, 0, sample.width, sample.height);
-        canvas.hidden = false;
+        canvas.hidden = false; onPresented?.(sample.frame);
       } };
     }
   }

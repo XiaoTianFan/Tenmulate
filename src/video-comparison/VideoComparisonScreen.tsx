@@ -10,6 +10,10 @@ import { useComparisonPlayback } from './useComparisonPlayback';
 import { ComparisonExportLoader } from './ComparisonExportLoader';
 import './comparison.css';
 import './editing.css';
+import './analysis/analysis.css';
+import { PresentedFrames } from './analysis/presentation';
+import { useAnalysis } from './analysis/useAnalysis';
+import { newMotion, type ClipMotion } from './analysis/types';
 import { drawCropped, normalizeCrop } from './crop';
 
 export function VideoComparisonScreen({ active, onRoute }: { active: boolean; onRoute: (route: AppRoute) => void }) {
@@ -17,13 +21,17 @@ export function VideoComparisonScreen({ active, onRoute }: { active: boolean; on
   const [time, setTime] = useState(0), [playing, setPlaying] = useState(false), [linked, setLinked] = useState(false);
   const [rate, setRate] = useState(1);
   const [notice, setNotice] = useState(''), [dropping, setDropping] = useState(false);
+  const [exportClips, setExportClips] = useState<ComparisonClip[]>([]);
   const [exporting, setExporting] = useState(false), [exportPreviews, setExportPreviews] = useState<Record<string, string>>({});
   const input = useRef<HTMLInputElement>(null), row = useRef<HTMLDivElement>(null);
   const [videos] = useState(() => new Map<string, HTMLVideoElement>());
+  const [presentation] = useState(() => new PresentedFrames());
+  const editMotion = (id: string, edit: (motion: ClipMotion) => ClipMotion) => setClips(current => current.map(clip => clip.id === id ? { ...clip, motion: edit(clip.motion ?? newMotion()) } : clip));
+  const analysis = useAnalysis(clips, playing || exporting || !active, editMotion);
   const [canvases] = useState(() => new Map<string, HTMLCanvasElement>());
   const [resources] = useState(() => new Map<string, { url: string; controller: AbortController }>());
   const pause = () => setPlaying(false);
-  useEffect(() => { if (!active) { setPlaying(false); setExporting(false); } }, [active]);
+  useEffect(() => { if (!active) { setPlaying(false); setExporting(false); setExportClips([]); setExportPreviews({}); } }, [active]);
   useEffect(() => () => {
     for (const video of videos.values()) { video.pause(); video.removeAttribute('src'); video.load(); }
     videos.clear();
@@ -35,6 +43,7 @@ export function VideoComparisonScreen({ active, onRoute }: { active: boolean; on
   const allAligned = clips.length > 0 && aligned.length === clips.length;
   const range = comparisonRange(aligned);
   const buffering = useComparisonPlayback({ clips, videos, canvases, time, rate, linked, playing, active, onTime: setTime, onPause: pause, onError: setNotice,
+    onPresented: (id, frame) => presentation.present(id, frame),
     onCompatibility: () => setNotice('Using compatibility playback. Contact alignment is preserved, but playback may be slower.') });
   const openExport = () => {
     pause();
@@ -52,7 +61,7 @@ export function VideoComparisonScreen({ active, onRoute }: { active: boolean; on
       if (context) drawCropped(context, (x, y, w, h) => context.drawImage(surface, x, y, w, h), crop, { x: 0, y: 0, width: snapshot.width, height: snapshot.height });
       previews[clip.id] = snapshot.toDataURL('image/jpeg', 0.8);
     }
-    setExportPreviews(previews); setExporting(true);
+    setExportClips(clips); setExportPreviews(previews); setExporting(true);
   };
   const frameFor = (clip: ComparisonClip) => linked && clip.index && clip.contact !== null
     ? frameForTime({ ...clip, index: clip.index, contact: clip.contact }, time) : clip.frame;
@@ -70,6 +79,7 @@ export function VideoComparisonScreen({ active, onRoute }: { active: boolean; on
   const trim = (clip: ComparisonClip, trim?: { start: number; end: number }) => {
     if (!clip.index) return;
     pause();
+    analysis.cancel(clip.id);
     const bounds = clipFrameRange({ index: clip.index, trim });
     const next = clips.map(item => item.id === clip.id ? { ...item, trim, frame: clamp(frameFor(item), bounds.start, bounds.end) } : item);
     setClips(next);
@@ -107,7 +117,7 @@ export function VideoComparisonScreen({ active, onRoute }: { active: boolean; on
     }
   };
   const remove = (id: string) => {
-    pause();
+    pause(); analysis.cancel(id); presentation.remove(id);
     const resource = resources.get(id); resource?.controller.abort();
     const video = videos.get(id); video?.pause(); video?.removeAttribute('src'); video?.load(); videos.delete(id);
     if (resource) URL.revokeObjectURL(resource.url); resources.delete(id);
@@ -147,7 +157,7 @@ export function VideoComparisonScreen({ active, onRoute }: { active: boolean; on
             const frame = frameFor(clip);
             const sourceTime = clip.index && clip.contact !== null ? mediaTime({ index: clip.index, contact: clip.contact, speed: clip.speed }, time) : 0;
             const held = linked && !!clip.index && (sourceTime < clip.index.timestamps[clipFrameRange({ ...clip, index: clip.index }).start]! - 1e-7 || sourceTime > clip.index.timestamps[clipFrameRange({ ...clip, index: clip.index }).end]! + 1e-7);
-            return <ComparisonPane key={clip.id} clip={clip} frame={frame} position={position} count={clips.length} held={held}
+            return <ComparisonPane presentation={presentation} analysis={analysis} linked={linked} onMotion={edit => editMotion(clip.id, edit)} key={clip.id} clip={clip} frame={frame} position={position} count={clips.length} held={held}
               onFrame={frame => selectFrame(clip, frame)} onContact={() => contact(clip)} onRemove={() => remove(clip.id)}
               onPause={pause} onTrim={value => trim(clip, value)} onCrop={crop => { pause(); update(clip.id, { crop }); }}
               onMirror={() => update(clip.id, { mirrored: !clip.mirrored })}
@@ -188,6 +198,6 @@ export function VideoComparisonScreen({ active, onRoute }: { active: boolean; on
       </div><span>{formatTime(range.end, true)}</span></div>
       <p role="status">{buffering ? t('Preparing synchronized frames…') : linked ? t('All clips follow contact time. Shorter clips hold at their edges. Sound is muted.') : allAligned ? t('Timelines unlinked. Adjust each clip independently, then link to compare.') : t('Set a contact frame in every clip to unlock synchronized playback.')}</p>
     </footer>
-    {exporting && active ? <ComparisonExportLoader clips={clips} rate={rate} previews={exportPreviews} onClose={() => setExporting(false)}/> : null}
+    {exporting && active ? <ComparisonExportLoader pendingAnalysis={Object.values(analysis.statuses).some(status => !status.error)} clips={exportClips} rate={rate} previews={exportPreviews} onClose={() => { setExporting(false); setExportClips([]); setExportPreviews({}); }}/> : null}
   </main>;
 }

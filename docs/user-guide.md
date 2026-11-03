@@ -140,6 +140,54 @@ excerpt boundary at contact time; reset/extend the excerpt to include contact ag
    your position and contact alignment. Scrubbing and frame stepping keep their
    original source-frame precision at every global speed.
 
+### Motion analysis
+
+Open **Motion analysis** below a card's controls. Select an excerpt first; short
+3–15 second strokes or rallies work best. Analysis is local, visit-only and opt-in.
+It supports up to 60 seconds / 7200 source frames per job. One clip analyzes at a
+time, yielding during playback, export or when the page is hidden. **Cancel analysis**
+stops it; closing a card cancels its jobs. First pose use downloads about 6 MB of
+model/runtime resources from this site; subsequent requests can use the local cache.
+
+- **Add point or region track** pauses review and brings the video into view. Tap
+  the ball/racket head or drag a small textured area around it. Keyboard users can
+  aim with arrows (Shift for larger steps) and press Enter. **Track excerpt**
+  analyzes forward and backward from the selected frame. Up to six tracks can
+  have their own names, colors and visibility. A point is the center of the selected
+  area, not an automatically recognized object boundary.
+- A lost/ambiguous target leaves a gap. **Next gap** locates missing frames. Scrub
+  to a visible target, choose **Set correction here**, place another anchor, then
+  rerun **Track excerpt**. Changing anchors clears the old result. Tiny, blurred,
+  occluded or very fast balls may require several corrections; the tracker cannot
+  recover motion that the recording does not resolve.
+- **Analyze pose** estimates one player's 17 body landmarks. Use **Select player
+  region** to exclude other players and keep that player inside the region for the
+  whole excerpt. **Draft** samples up to 15 times/second and interpolates short
+  intervals; **Every source frame** analyzes all selected frames. Hollow landmarks,
+  dashed bones and ≈ readouts distinguish draft interpolation. Detection failures
+  remain gaps. Racket heads use a separate point/region track.
+- Toggle trajectories, skeleton and projected joint angles independently. Choose
+  a trailing duration or the full trajectory. Crop and mirror apply to overlays
+  exactly as they do to the image. Completed analysis stays aligned while changing
+  contact marks and clip/global playback rates; it does not run again during playback.
+- **Add plot** adds up to four charts per card. Select a track, body landmark or
+  joint and a parameter: positions, velocity, speed, acceleration, confidence or
+  joint angle and its derivatives. Plots follow the lane's zoom window and review cursor. Drag or use arrow keys in a plot to seek, including linked timelines.
+  Smoothing uses the chosen time window; missing samples and manual corrections
+  break derivative fits.
+
+Positions and derivatives use original source pixels and encoded source seconds,
+not resized preview pixels or slowed playback time. Y increases downward. Angles
+are 2D projections, not 3D joint measurements; camera movement, perspective and
+tracking noise affect all measurements, especially acceleration. These tools provide
+visual review estimates, not calibrated real-world speed or technique assessment.
+
+**Export overlays** in the export dialog controls trajectories, skeleton, angles
+and plots independently for each included clip, for both grid video and grid images.
+The rendered preview and final output use the same cached source-frame data. An
+unfinished job pauses while the dialog is open; only completed results are included.
+Close export to resume analysis. No analysis survives closing/reloading the page.
+
 Frame rate and frame stepping use the file's actual presentation timestamps,
 including variable-rate footage. The displayed FPS is an average. Shorter clips
 hold their first or last frame outside their coverage; the full comparison range

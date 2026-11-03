@@ -5,6 +5,9 @@ import { zipImages } from './exportZip';
 import { readVideoFrames, type ReviewFrame } from './videoFrames';
 import { formatTime } from './timeline';
 import type { ComparisonClip } from './types';
+import { drawMotion } from './analysis/draw';
+import { drawExportPlots } from './analysis/exportPlots';
+import type { MotionVisibility } from './analysis/types';
 import { drawCropped, normalizeCrop } from './crop';
 
 export type ExportResult = { blob: Blob; name: string };
@@ -19,14 +22,20 @@ export async function chooseVideoEncoding(config: Pick<ExportConfig, 'format' | 
   throw new Error('This browser cannot encode the selected video output. Try a lower resolution, Auto format, another browser, or a grid image.');
 }
 
-export function drawCell(context: CanvasRenderingContext2D, frame: ReviewFrame, clip: ExportClip, cell: Cell, label: boolean) {
+export function drawCell(context: CanvasRenderingContext2D, frame: ReviewFrame, clip: ExportClip, cell: Cell, label: boolean, visibility?: MotionVisibility) {
   const labelHeight = label ? Math.min(32, cell.height * 0.15) : 0;
+  const overlay = visibility ?? clip.motion?.view;
+  const plotHeight = overlay?.plots && clip.motion?.plots.length ? cell.height * .32 : 0;
   const crop = normalizeCrop(clip.crop);
-  const rect = containRect(frame.width * crop.width, frame.height * crop.height, { ...cell, height: cell.height - labelHeight });
+  const rect = containRect(frame.width * crop.width, frame.height * crop.height, { ...cell, height: cell.height - labelHeight - plotHeight });
   context.save();
   context.beginPath(); context.rect(cell.x, cell.y, cell.width, cell.height); context.clip();
   context.fillStyle = '#000'; context.fillRect(cell.x, cell.y, cell.width, cell.height);
-  drawCropped(context, (x, y, width, height) => frame.draw(context, x, y, width, height), crop, rect, clip.mirrored);
+  drawCropped(context, (x, y, width, height) => {
+    frame.draw(context, x, y, width, height);
+    drawMotion(context, clip.motion, clip.index, frame.frame, { x, y, width, height }, overlay, clip.mirrored);
+  }, crop, rect, clip.mirrored);
+  if (plotHeight) drawExportPlots(context, clip, frame.frame, { x: cell.x, y: cell.y + cell.height - labelHeight - plotHeight, width: cell.width, height: plotHeight });
   if (label) {
     context.fillStyle = '#edf3f6'; context.font = `${Math.max(10, Math.floor(labelHeight * 0.55))}px sans-serif`;
     context.textBaseline = 'middle'; context.fillText(clip.name, cell.x + 6, cell.y + cell.height - labelHeight / 2, cell.width - 12);
@@ -41,7 +50,7 @@ export function drawGridFrame(context: CanvasRenderingContext2D, samples: readon
   context.fillStyle = '#080c0f'; context.fillRect(0, 0, config.width, config.height);
   gridCells(config.rows, config.width, config.height).forEach(cell => {
     const i = clips.findIndex(clip => clip.id === cell.id);
-    if (i >= 0 && samples[i]) drawCell(context, samples[i]!, clips[i]!, cell, config.labels);
+    if (i >= 0 && samples[i]) drawCell(context, samples[i]!, clips[i]!, cell, config.labels, config.overlays?.[clips[i]!.id]);
   });
   if (config.labels) {
     context.font = `${Math.max(12, Math.round(config.width / 90))}px monospace`; context.textBaseline = 'top';
@@ -62,7 +71,7 @@ export function drawImageRow(context: CanvasRenderingContext2D, samples: readonl
   context.fillStyle = '#edf3f6'; context.font = '17px monospace'; context.textBaseline = 'middle';
   context.fillText(formatTime(time, true), 8, y + page.cellHeight / 2, page.timeWidth - 16);
   samples.forEach((sample, i) => drawCell(context, sample, clips[i]!, { id: clips[i]!.id,
-    x: page.timeWidth + i * (config.cellWidth + page.gap), y, width: config.cellWidth, height: page.cellHeight }, false));
+    x: page.timeWidth + i * (config.cellWidth + page.gap), y, width: config.cellWidth, height: page.cellHeight }, false, config.overlays?.[clips[i]!.id]));
 }
 
 export async function renderComparison(clips: readonly ComparisonClip[], config: ExportConfig, signal: AbortSignal,

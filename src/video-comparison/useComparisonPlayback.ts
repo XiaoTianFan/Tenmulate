@@ -17,6 +17,7 @@ type Props = {
   onPause: () => void;
   onError: (message: string) => void;
   onCompatibility: () => void;
+  onPresented?: (id: string, frame: number) => void;
 };
 
 /** Manual seeks and shared decoded-frame playback have separate ownership. */
@@ -35,7 +36,7 @@ export function useComparisonPlayback(props: Props): boolean {
       if (!clip.index || video.readyState < 1 || clip.error) continue;
       const frame = props.linked && clip.contact !== null
         ? frameForTime({ ...clip, index: clip.index, contact: clip.contact }, props.time) : clip.frame;
-      cleanups.push(showManualFrame(video, clip.index, frame, props.canvases.get(clip.id)));
+      cleanups.push(showManualFrame(video, clip.index, frame, props.canvases.get(clip.id), frame => latest.current.onPresented?.(clip.id, frame)));
     }
     return () => cleanups.forEach(clean => clean());
   }, [props.clips, props.videos, props.canvases, props.time, props.linked, props.playing, props.active]);
@@ -70,7 +71,7 @@ export function useComparisonPlayback(props: Props): boolean {
         const first = frameForTime(aligned, state.time);
         return [{ clip: aligned, source: decodeVideo(clip.file, clip.index, first, canvas, () => {
           if (!stopped) latest.current.onCompatibility();
-        }, clipFrameRange(aligned).end) }];
+        }, clipFrameRange(aligned).end, frame => latest.current.onPresented?.(clip.id, frame)) }];
       });
       // Anchor only after the module is ready; network time must not advance clips.
       engine = new ComparisonPlayback(followers, state.time, state.rate, performance.now(), message => {

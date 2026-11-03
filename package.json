@@ -9,7 +9,7 @@
     "asset:venue:build": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/blender/build.ps1",
     "asset:venue:optimize": "node scripts/blender/optimize_venue.mjs",
     "dev": "vite",
-    "build": "tsc -b && vite build && node scripts/check-motion-integration.mjs --dist",
+    "build": "tsc -b && vite build && node scripts/check-motion-integration.mjs --dist && node scripts/check-analysis-integration.mjs",
     "check:motion": "node scripts/check-motion-integration.mjs",
     "test": "vitest run --maxWorkers=1",
     "test:watch": "vitest --maxWorkers=1",
@@ -17,6 +17,10 @@
     "check:release": "npm test && npm run build"
   },
   "dependencies": {
+    "@tensorflow/tfjs-backend-wasm": "4.22.0",
+    "@tensorflow/tfjs-converter": "4.22.0",
+    "@tensorflow/tfjs-core": "4.22.0",
+    "jsfeat": "0.0.8",
     "lucide-react": "^1.37.0",
     "mediabunny": "^1.62.1",
     "react": "^19.2.8",

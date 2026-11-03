@@ -171,6 +171,42 @@ edge holds instead. Crop rectangles are normalized in the oriented, unmirrored s
 Cards contain the cropped image using CSS; export clips the same normalized source
 rectangle into a contained destination and mirrors it afterward. No source is modified.
 
+`analysis/` adds opt-in, source-frame-indexed motion measurements. Selection points
+and regions are normalized in the oriented, unmirrored source. A serialized queue
+owns one disposable worker and one frame reader at a time. Cancellation aborts the
+reader, closes samples, terminates inference and rejects stale commits through
+per-clip tokens and per-track revisions. Jobs pause between frames during playback,
+export, inactive routes and hidden tabs. No API/backend receives footage.
+
+The point-tracking worker loads JSFeat for pyramidal Lucas–Kanade proposals and uses a
+fixed normalized appearance template, local prediction/search and forward/backward
+consistency. Low similarity or ambiguous alternatives stop a track until another
+manual anchor. Analysis uses at most a 1280-pixel long edge; reverse tracking decodes
+forward batches of four frames. A separate, opt-in pose worker loads a pinned MoveNet Lightning v4 graph through TFJS's single-thread WASM backend, avoiding WebGL contexts and cross-origin isolation. Worker entry points use static
+runtime imports to avoid circular entry-module reinitialization in WebKit. It downsizes to a 640-pixel long edge, applies the selected
+player region, pads to square and feeds 192×192 RGB. Coordinates map back to the
+original source. Draft samples at 15 Hz plus contact/end and marks short interpolation
+intervals; full quality processes every source frame. Neither mode fills failed
+pose detections. Source series record packed x/y/confidence and explicit observed,
+manual, interpolated or missing states. Limits bound jobs to 60 seconds/7200 frames;
+UI limits six tracks and four plots per clip. Results are visit-only.
+
+`PresentedFrames` publishes when the actual native seek completes or the decoded
+sample is drawn, not when a cursor requests it. Card overlays subscribe to that frame. Plot cursors follow the requested review
+frame: WebKit can defer a paused native seek while the video is scrolled out of
+view. During playback the review cursor is itself published only after the shared
+presentation barrier, preserving plot/overlay alignment. Data is immutable after completion, and local polynomial
+fits for derivatives use real presentation timestamps, breaking at missing samples
+and correction anchors. Measurements remain in source pixels/seconds as review
+speeds change. The renderer shared with export uses the same crop/mirror mapping;
+optional plot panels use cached derived series. Export is a snapshot of completed
+results and never calls inference. Body angles are image-plane projections only.
+
+The analysis worker, TF runtime, graph weights and WASM are excluded from initial
+imports and service-worker precaching. Optional assets use a bounded CacheFirst
+runtime cache. WASM comes from exact npm dependencies; model hashes and attribution
+are checked alongside lazy-import regression tests.
+
 Contact alignment maps comparison time to source time as
 `source = contactTimestamp + comparisonTime * clipSpeed`. Frame stepping uses
 actual presentation boundaries; the shared step chooses the next/previous boundary

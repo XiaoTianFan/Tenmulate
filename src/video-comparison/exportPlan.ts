@@ -1,12 +1,13 @@
 import { frameForTime, stepComparison, type AlignedClip } from './timeline';
 import type { ComparisonClip } from './types';
+import type { MotionVisibility } from './analysis/types';
 import type { GridRow } from './exportLayout';
 
 export type ExportClip = ComparisonClip & { index: NonNullable<ComparisonClip['index']>; contact: number };
 export type ExportConfig = {
   kind: 'video' | 'images'; format: 'auto' | 'mp4' | 'webm';
   width: number; height: number; fps: number; rate: number; start: number; end: number;
-  rows: GridRow[]; labels: boolean;
+  rows: GridRow[]; labels: boolean; overlays?: Record<string, MotionVisibility>;
   sampling: 'even' | 'frames'; imageRows: number; cellWidth: number; cellAspect: number;
 };
 export type ExportPlan = { clips: ExportClip[]; times: number[]; config: ExportConfig; duration: number };

@@ -21,8 +21,8 @@ export function seekVideoFrame(video: ComparisonVideo, clip: AlignedClip['index'
  * Event completion is authoritative: privacy settings can round currentTime.
  */
 export function showManualFrame(video: ComparisonVideo & Pick<HTMLVideoElement, 'seeking' | 'addEventListener' | 'removeEventListener'>,
-  index: AlignedClip['index'], frame: number, canvas?: Pick<HTMLCanvasElement, 'hidden'>): () => void {
-  const reveal = () => { if (canvas && !video.seeking && video.readyState >= 2) canvas.hidden = true; };
+  index: AlignedClip['index'], frame: number, canvas?: Pick<HTMLCanvasElement, 'hidden'>, onPresented?: (frame: number) => void): () => void {
+  const reveal = () => { if (!video.seeking && video.readyState >= 2) { if (canvas) canvas.hidden = true; onPresented?.(frame); } };
   video.addEventListener('seeked', reveal);
   video.addEventListener('loadeddata', reveal);
   seekVideoFrame(video, index, frame);
