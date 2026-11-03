@@ -149,17 +149,34 @@ time, yielding during playback, export or when the page is hidden. **Cancel anal
 stops it; closing a card cancels its jobs. First pose use downloads about 6 MB of
 model/runtime resources from this site; subsequent requests can use the local cache.
 
-- **Add point or region track** pauses review and brings the video into view. Tap
-  the ball/racket head or drag a small textured area around it. Keyboard users can
-  aim with arrows (Shift for larger steps) and press Enter. **Track excerpt**
-  analyzes forward and backward from the selected frame. Up to six tracks can
-  have their own names, colors and visibility. A point is the center of the selected
-  area, not an automatically recognized object boundary.
-- A lost/ambiguous target leaves a gap. **Next gap** locates missing frames. Scrub
-  to a visible target, choose **Set correction here**, place another anchor, then
-  rerun **Track excerpt**. Changing anchors clears the old result. Tiny, blurred,
-  occluded or very fast balls may require several corrections; the tracker cannot
-  recover motion that the recording does not resolve.
+- **Add point or region track** pauses review and brings the video into view.
+  Choose a start frame and tap the ball/racket head or drag a small textured area
+  around it. Then choose an end frame and select the same target there. The frame
+  slider and step buttons below the picture let you adjust either frame; the end
+  must be later than the start, inside the excerpt. Canceling the second selection
+  keeps the start so you can finish it with **End position**. Keyboard users can
+  aim with arrows (Shift for larger steps) and press Enter.
+- **Track between anchors** analyzes every source frame in both directions between
+  those two positions. Up to six tracks have their own names, colors and visibility.
+  A point is the center of the selected area, not a recognized object boundary.
+  Tracking can reacquire after loss. The two passes, color evidence and neighboring
+  motion reject inconsistent matches and short outward-and-back spikes, then fit
+  a continuous path through the exact manual positions. Nothing is extrapolated
+  beyond the chosen start and end.
+- Lighter solid trail sections, hollow markers and **≈** distinguish estimated
+  portions, including gaps filled without image evidence. Continuity is not proof
+  of accuracy: an obscured or indistinguishable target can still take an incorrect
+  inferred path. **Review estimates** jumps through these sections. At a visible
+  frame, choose **Set correction here**, place an anchor and rerun tracking. Changing
+  anchors clears the old result. Small, blurred or very fast balls can need several
+  corrections. The supported-frame count includes manual anchors and accepted matches.
+- Set the contact frame before analysis, or mark a correction **Motion changes here**
+  at a strike/bounce. These preserve a real velocity change instead of smoothing it
+  away. Stable one-sided motion can also identify an unmarked impact. Acceleration
+  exactly at a marked/inferred instantaneous impact is left undefined; velocity uses
+  the outgoing side. Changing contact afterward keeps the cached path aligned; rerun
+  tracking to apply the new contact as a smoothing boundary. Contact changes cancel
+  any job still running on that clip.
 - **Analyze pose** estimates one player's 17 body landmarks. Use **Select player
   region** to exclude other players and keep that player inside the region for the
   whole excerpt. **Draft** samples up to 15 times/second and interpolates short
@@ -170,14 +187,20 @@ model/runtime resources from this site; subsequent requests can use the local ca
   a trailing duration or the full trajectory. Crop and mirror apply to overlays
   exactly as they do to the image. Completed analysis stays aligned while changing
   contact marks and clip/global playback rates; it does not run again during playback.
-- **Add plot** adds up to four charts per card. Select a track, body landmark or
+- **Motion plots** opens independently of **Motion analysis**, so you can collapse
+  configuration while keeping charts visible. **Add plot** adds up to four charts
+  per card. Select a track, body landmark or
   joint and a parameter: positions, velocity, speed, acceleration, confidence or
   joint angle and its derivatives. Plots follow the lane's zoom window and review cursor. Drag or use arrow keys in a plot to seek, including linked timelines.
-  Smoothing uses the chosen time window; missing samples and manual corrections
-  break derivative fits.
+  Point positions and the overlay share the same reconstructed path. **Derivative
+  smoothing** controls the time window for velocity/acceleration, without changing
+  that path. Fits stop at impacts and missing pose samples, and derivative readouts
+  influenced by estimated positions also show ≈.
 
 Positions and derivatives use original source pixels and encoded source seconds,
-not resized preview pixels or slowed playback time. Y increases downward. Angles
+not resized preview pixels or slowed playback time. Y increases **upward** from
+the bottom of the original image; upward velocity and acceleration are positive.
+Crop and mirror change the view, not the measurement coordinate system. Angles
 are 2D projections, not 3D joint measurements; camera movement, perspective and
 tracking noise affect all measurements, especially acceleration. These tools provide
 visual review estimates, not calibrated real-world speed or technique assessment.

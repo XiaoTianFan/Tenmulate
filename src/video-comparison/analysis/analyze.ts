@@ -1,7 +1,8 @@
 import { readVideoFrames } from '../videoFrames';
 import { clipFrameRange } from '../timeline';
 import type { ComparisonClip } from '../types';
-import { emptySeries, MANUAL, putSample, type MotionSeries, type MotionTrack } from './types';
+import { emptySeries, putSample, type MotionSeries, type MotionTrack } from './types';
+import { trackingBounds, type TrackingPass } from './trajectory';
 import { fillDraft } from './series';
 import type { PixelFrame } from './tracker';
 
@@ -9,7 +10,11 @@ export type AnalysisRequest = { kind: 'track'; track: MotionTrack } | { kind: 'p
 export type AnalysisProgress = { progress: number; message: string };
 export async function analyze(clip: ComparisonClip, job: AnalysisRequest, signal: AbortSignal, ready: () => Promise<void>, progress: (value: AnalysisProgress) => void): Promise<MotionSeries> {
   if (!clip.index) throw new Error('Wait for video indexing before analysis.');
-  const index = clip.index, range = clipFrameRange({ ...clip, index });
+  const index = clip.index, excerpt = clipFrameRange({ ...clip, index });
+  const bounds = job.kind === 'track' ? trackingBounds(job.track.anchors) : excerpt;
+  if (!bounds) throw new Error('Choose a start and end position on two different frames.');
+  const range = bounds;
+  if (range.start < excerpt.start || range.end > excerpt.end) throw new Error('Tracking endpoints must be inside the selected excerpt.');
   if (range.end - range.start + 1 > 7200 || index.timestamps[range.end] - index.timestamps[range.start] > 60) throw new Error('Choose an excerpt of up to 60 seconds and 7200 frames for analysis.');
   const worker = job.kind === 'pose'
     ? new Worker(new URL('./pose.worker.ts', import.meta.url), { type: 'module' })
@@ -66,31 +71,28 @@ export async function analyze(clip: ComparisonClip, job: AnalysisRequest, signal
       return result;
     }
     const anchors = job.track.anchors.filter(a => a.frame >= range.start && a.frame <= range.end).sort((a, b) => a.frame - b.frame);
-    if (!anchors.length) throw new Error('Place a tracking anchor inside the selected excerpt.');
-    let result: MotionSeries | undefined, done = 0;
-    for (let i = 0; i < anchors.length; i++) {
-      const anchor = anchors[i], end = (anchors[i + 1]?.frame ?? range.end + 1) - 1;
-      for await (const item of pixels(sequence(anchor.frame, end))) {
-        result ??= emptySeries(range.start, range.end, 1, sourceWidth, sourceHeight, 'LK + normalized template');
-        const point = await call('track', item.pixels, { anchor: item.frame === anchor.frame ? anchor : undefined });
-        if (!point) break;
-        putSample(result, item.frame, 0, point.x, point.y, point.confidence, item.frame === anchor.frame ? MANUAL : 1);
-        progress({ progress: Math.min(.98, ++done / ((range.end - range.start + 1) * 2)), message: 'Tracking motion…' });
+    const length = range.end - range.start + 1, forward: TrackingPass = Array(length).fill(null), backward: TrackingPass = Array(length).fill(null);
+    let done = 0;
+    const impact = (frame: number) => (clip.contact !== null && Math.abs(frame - clip.contact) <= 2) || anchors.some(a => a.corner && Math.abs(frame - a.frame) <= 2);
+    const update = () => progress({ progress: Math.min(.94, .94 * ++done / (2 * (length + anchors.length))), message: 'Tracking from both endpoints…' });
+    for (let i = 0; i + 1 < anchors.length; i++) {
+      const start = anchors[i], end = anchors[i + 1];
+      for await (const item of pixels(sequence(start.frame, end.frame))) {
+        forward[item.frame - range.start] = await call('track', item.pixels, { anchor: item.frame === start.frame ? start : undefined, time: index.timestamps[item.frame], impact: impact(item.frame) });
+        update();
       }
-      // Backward review uses small forward-decoded batches, never the entire clip.
-      const start = (anchors[i - 1]?.frame ?? range.start - 1) + 1;
-      let lost = false;
-      for (let end = anchor.frame; end >= start && !lost; end -= 4) {
+      // Retain only four downscaled pictures while decoding the reverse pass.
+      // A lost match does not terminate the interval: appearance can reacquire it.
+      for (let last = end.frame; last >= start.frame; last -= 4) {
         const batch: { frame: number; pixels: PixelFrame }[] = [];
-        for await (const item of pixels(sequence(Math.max(start, end - 3), end))) batch.push(item);
+        for await (const item of pixels(sequence(Math.max(start.frame, last - 3), last))) batch.push(item);
         for (const item of batch.reverse()) {
-          const point = await call('track', item.pixels, { anchor: item.frame === anchor.frame ? anchor : undefined });
-          if (!point) { lost = true; break; }
-          if (!result!.states[item.frame - result!.start] || item.frame === anchor.frame) putSample(result!, item.frame, 0, point.x, point.y, point.confidence, item.frame === anchor.frame ? MANUAL : 1);
-          progress({ progress: Math.min(.98, ++done / ((range.end - range.start + 1) * 2)), message: 'Tracking motion…' });
+          backward[item.frame - range.start] = await call('track', item.pixels, { anchor: item.frame === end.frame ? end : undefined, time: index.timestamps[item.frame], impact: impact(item.frame) });
+          update();
         }
       }
     }
-    return result!;
+    progress({ progress: .95, message: 'Reconstructing continuous trajectory…' });
+    return await call('reconstruct', undefined, { index, anchors, forward, backward, width: sourceWidth, height: sourceHeight, contact: clip.contact }) as MotionSeries;
   } finally { signal.removeEventListener('abort', abort); abort(); canvas.width = canvas.height = 0; }
 }

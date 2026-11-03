@@ -34,14 +34,22 @@ export function jointAngle(series: MotionSeries | undefined, frame: number, join
   return length < 1e-8 ? null : Math.acos(Math.max(-1, Math.min(1, (ax * cx + ay * cy) / length))) * 180 / Math.PI;
 }
 /** Local quadratic least squares in actual source seconds (supports VFR).
- * Missing samples and manual correction boundaries break the fitting window. */
-function fit(times: Float64Array, values: (number | null)[], states: Uint8Array, offset: number, at: number, window: number): [number, number | null, number | null] {
+ * Missing samples and marked impacts break the fitting window. Legacy sparse
+ * manual series also break at corrections; continuous trajectories pass through them. */
+function fit(times: Float64Array, values: (number | null)[], states: Uint8Array, offset: number, at: number, window: number, continuous = false, corners = new Set<number>()): [number, number | null, number | null, boolean?] {
   const value = values[at];
   if (value === null) return [NaN, null, null];
   let left = at, right = at;
   const radius = window > 0 ? window / 2 : Infinity, countLimit = window > 0 ? 60 : 1;
-  while (left > 0 && at - left < countLimit && values[left - 1] !== null && states[left] !== MANUAL && times[offset + at] - times[offset + left - 1] <= radius) left--;
-  while (right + 1 < values.length && right - at < countLimit && values[right + 1] !== null && states[right + 1] !== MANUAL && times[offset + right + 1] - times[offset + at] <= radius) right++;
+  while (left > 0 && at - left < countLimit && values[left - 1] !== null && (continuous || states[left] !== MANUAL) && !corners.has(offset + left) && times[offset + at] - times[offset + left - 1] <= radius) left--;
+  while (right + 1 < values.length && right - at < countLimit && values[right + 1] !== null && (continuous || states[right + 1] !== MANUAL) && !(right > at && corners.has(offset + right)) && times[offset + right + 1] - times[offset + at] <= radius) right++;
+  // A continuous reconstructed path permits one-sided derivatives at endpoints
+  // and impacts, without crossing a change of motion or inventing an impulse.
+  if (continuous) {
+    while (right - left < 2 && right + 1 < values.length && values[right + 1] !== null && !(right > at && corners.has(offset + right))) right++;
+    while (right - left < 2 && left > 0 && values[left - 1] !== null && !corners.has(offset + left)) left--;
+    if (right - left === 1) return [value, (values[right]! - values[left]!) / (times[offset + right] - times[offset + left]), null, states.subarray(left, right + 1).includes(ESTIMATED)];
+  }
   if (right - left < 2) return [value, null, null];
   const sums = [0, 0, 0, 0, 0], rhs = [0, 0, 0];
   // Scale time for a well-conditioned solve even at 240 fps.
@@ -59,13 +67,14 @@ function fit(times: Float64Array, values: (number | null)[], states: Uint8Array,
     const d = a[c][c]; for (let j = c; j < 4; j++) a[c][j] /= d;
     for (let r = 0; r < 3; r++) if (r !== c) { const m = a[r][c]; for (let j = c; j < 4; j++) a[r][j] -= m * a[c][j]; }
   }
-  return [window > 0 ? a[0][3] : value, a[1][3] / scale, 2 * a[2][3] / scale ** 2];
+  return [window > 0 ? a[0][3] : value, a[1][3] / scale, 2 * a[2][3] / scale ** 2, states.subarray(left, right + 1).includes(ESTIMATED)];
 }
 export type PlotData = { start: number; values: (number | null)[]; estimated: boolean[]; min: number; max: number };
 export function plotData(motion: ClipMotion, plot: MotionPlot, index: FrameIndex): PlotData {
   const [type, id] = plot.target.split(':');
   const series = type === 'track' ? motion.tracks.find(t => t.id === id)?.result : motion.pose.result;
   if (!series) return { start: 0, values: [], estimated: [], min: 0, max: 1 };
+  const corners = new Set(series.corners ?? []);
   const count = series.end - series.start + 1, states = new Uint8Array(count), xs: (number | null)[] = [], ys: (number | null)[] = [], conf: (number | null)[] = [];
   for (let i = 0; i < count; i++) {
     const frame = series.start + i, p = sampleAt(series, frame, type === 'pose' ? Number(id) : 0);
@@ -73,22 +82,25 @@ export function plotData(motion: ClipMotion, plot: MotionPlot, index: FrameIndex
       const joint = JOINTS[id], samples = joint?.points.map(p => sampleAt(series, frame, p));
       xs.push(jointAngle(series, frame, id)); ys.push(null); conf.push(null);
       states[i] = samples?.every(Boolean) ? samples.some(p => p?.state === ESTIMATED) ? ESTIMATED : 1 : 0;
-    } else { xs.push(p ? p.x * series.width : null); ys.push(p ? p.y * series.height : null); conf.push(p?.confidence ?? null); states[i] = p?.state ?? 0; }
+    } else { xs.push(p ? p.x * series.width : null); ys.push(p ? (1 - p.y) * series.height : null); conf.push(p?.confidence ?? null); states[i] = p?.state ?? 0; }
   }
+  const estimated = Array.from(states, s => s === ESTIMATED);
   const values = xs.map((x, i) => {
     if (x === null) return null;
-    const a = fit(index.timestamps, xs, states, series.start, i, plot.smoothing), b = type === 'joint' ? a : fit(index.timestamps, ys, states, series.start, i, plot.smoothing);
+    const a = fit(index.timestamps, xs, states, series.start, i, plot.smoothing, series.continuous, corners), b = type === 'joint' ? a : fit(index.timestamps, ys, states, series.start, i, plot.smoothing, series.continuous, corners);
     const metric: Metric = plot.metric;
     if (metric === 'confidence') return conf[i];
-    if (metric === 'x' || metric === 'angle') return a[0]; if (metric === 'y') return b[0];
+    if (metric === 'x' || metric === 'angle') return series.continuous ? xs[i] : a[0]; if (metric === 'y') return series.continuous ? ys[i] : b[0];
+    estimated[i] ||= !!a[3] || !!b[3];
     if (metric === 'vx' || metric === 'angularVelocity') return a[1]; if (metric === 'vy') return b[1];
+    if (corners.has(series.start + i) && ['ax', 'ay', 'acceleration', 'angularAcceleration'].includes(metric)) return null;
     if (metric === 'ax' || metric === 'angularAcceleration') return a[2]; if (metric === 'ay') return b[2];
     const order = metric === 'speed' ? 1 : 2;
     return a[order] === null || b[order] === null ? null : Math.hypot(a[order]!, b[order]!);
   });
   let min = Infinity, max = -Infinity; for (const v of values) if (v !== null && Number.isFinite(v)) { min = Math.min(min, v); max = Math.max(max, v); }
   if (!Number.isFinite(min)) { min = 0; max = 1; } if (min === max) { min -= 1; max += 1; }
-  return { start: series.start, values, estimated: Array.from(states, s => s === ESTIMATED), min, max };
+  return { start: series.start, values, estimated, min, max };
 }
 
 /** Missing ranges stay compact even when a long source has only a few anchors. */

@@ -16,7 +16,7 @@ function patch(cx: number, cy: number, visible = true, ball = false): PixelFrame
   return { width, height, rgba };
 }
 describe('point tracking', () => {
-  it('follows a textured region and a fast small target, then stops at occlusion until reseeded', () => {
+  it('follows a textured region and a fast small target, rejects occlusion and can reacquire a visible target', () => {
     for (const ball of [false, true]) {
       const tracker = new PointTracker(), anchor = { frame: 0, x: 50 / 240, y: 80 / 160, width: 22 / 240, height: 22 / 160 };
       tracker.reset(patch(50, 80, true, ball), anchor);
@@ -26,10 +26,32 @@ describe('point tracking', () => {
         expect(point).not.toBeNull(); expect(point!.x * 240).toBeCloseTo(x, 0); expect(point!.y * 160).toBeCloseTo(y, 0);
       }
       expect(tracker.next(patch(0, 0, false))).toBeNull();
-      expect(tracker.next(patch(50, 80, true, ball))).toBeNull();
+      // Loss does not permanently disable the tracker; a manual anchor can also restart it.
       tracker.reset(patch(50, 80, true, ball), anchor);
       expect(tracker.next(patch(54, 82, true, ball))).not.toBeNull();
     }
+  });
+  it('reacquires after a short occlusion using timestamp-aware prediction in both directions', () => {
+    for (const direction of [1, -1]) {
+      const tracker = new PointTracker(), anchor = { frame: 0, x: 80 / 240, y: .5, width: 22 / 240, height: 22 / 160 };
+      tracker.reset(patch(80, 80), anchor, .5);
+      expect(tracker.next(patch(86, 80), .5 + direction * .02)?.x).toBeCloseTo(86 / 240, 3);
+      expect(tracker.next(patch(0, 0, false), .5 + direction * .04)).toBeNull();
+      const recovered = tracker.next(patch(104, 80), .5 + direction * .08);
+      expect(recovered?.x).toBeCloseTo(104 / 240, 3);
+    }
+  });
+  it('uses chroma to reject a similar gray distractor beside a moving colored ball', () => {
+    const colored = (cx: number, distractor: boolean) => {
+      const frame = patch(cx, 80, true, true);
+      for (let y = 0; y < 160; y++) for (let x = 0; x < 240; x++) {
+        if ((x - cx) ** 2 + (y - 80) ** 2 < 25) frame.rgba.set([190, 230, 30, 255], (y * 240 + x) * 4);
+        if (distractor && (x - 60) ** 2 + (y - 80) ** 2 < 25) frame.rgba.set([195, 195, 195, 255], (y * 240 + x) * 4);
+      }
+      return frame;
+    };
+    const tracker = new PointTracker(); tracker.reset(colored(60, false), { frame: 0, x: .25, y: .5, width: .06, height: .09 });
+    for (const x of [90, 120, 150]) expect(tracker.next(colored(x, true))?.x).toBeCloseTo(x / 240, 3);
   });
   it('rejects a textureless region instead of inventing a measurement', () => {
     const tracker = new PointTracker(); tracker.reset(patch(0, 0, false), { frame: 0, x: .5, y: .5, width: .1, height: .1 });
@@ -46,7 +68,7 @@ describe('source-time motion metrics', () => {
   it('fits velocity and acceleration using actual VFR timestamps and original source dimensions', () => {
     expect(plotData(motion, plot, index).values[3]).toBeCloseTo(30 + 40 * times[3], 2);
     expect(plotData(motion, { ...plot, metric: 'ax' }, index).values[3]).toBeCloseTo(40, 1);
-    expect(plotData(motion, { ...plot, metric: 'vy' }, index).values[3]).toBeCloseTo(40, 2);
+    expect(plotData(motion, { ...plot, metric: 'vy' }, index).values[3]).toBeCloseTo(-40, 2);
     expect(plotData(motion, { ...plot, metric: 'speed' }, index).values[3]).toBeCloseTo(Math.hypot(30 + 40 * times[3], 40), 2);
   });
   it('does not fit across missing samples or manual correction discontinuities', () => {

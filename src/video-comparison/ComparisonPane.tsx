@@ -12,6 +12,7 @@ import type { PresentedFrames } from './analysis/presentation';
 import type { AnalysisControls } from './analysis/useAnalysis';
 import { COLORS, type Anchor, type ClipMotion, type MotionTrack } from './analysis/types';
 import { manualSeries } from './analysis/series';
+import { setTrackAnchor } from './analysis/trajectory';
 import { FULL_CROP, normalizeCrop, type CropRect } from './crop';
 
 type Props = {
@@ -27,6 +28,7 @@ type Props = {
 
 export function ComparisonPane({ presentation, analysis, linked, onMotion, clip, frame, position, count, held, onFrame, onContact, onSpeed, onRemove, onResize, onMove, onDrag, onDragEnd, onVideo, onCanvas, onMirror, onCrop, onTrim, onPause, onError, onReady }: Props) {
   const displayed = usePresentedFrame(presentation, clip.id);
+  const selectionToolbar = useRef<HTMLDivElement>(null);
   const [selection, setSelection] = useState<Selection | null>(null);
   const [timelineView, setTimelineView] = useState({ start: 0, end: 0 });
   const mirrored = clip.mirrored ?? false;
@@ -46,18 +48,38 @@ export function ComparisonPane({ presentation, analysis, linked, onMotion, clip,
   const aspect = dimensions.width * crop.width / (dimensions.height * crop.height);
   const pictureWidth = Math.min(size.width, size.height * aspect), pictureHeight = pictureWidth / aspect;
   const imageStyle = { width: `${100 / crop.width}%`, height: `${100 / crop.height}%`, left: `${-crop.x / crop.width * 100}%`, top: `${-crop.y / crop.height * 100}%` };
-  const select = (value: Selection) => { onPause(); setCropping(false); setSelection(value); wrap.current?.scrollIntoView({ block: 'center', behavior: 'smooth' }); };
+  const selectionTrack = selection?.type === 'track' ? clip.motion?.tracks.find(track => track.id === selection.id) : undefined;
+  const startAnchor = selectionTrack?.anchors.find(a => a.role === 'start' && a.frame >= excerpt.start && a.frame < excerpt.end), endAnchor = selectionTrack?.anchors.find(a => a.role === 'end' && a.frame > excerpt.start && a.frame <= excerpt.end);
+  const selectionMin = selection?.type === 'track' && selection.role !== 'start' ? Math.max(excerpt.start, (startAnchor?.frame ?? excerpt.start - 1) + (selection.role === 'end' ? 1 : 0)) : excerpt.start;
+  const selectionMax = selection?.type === 'track' && selection.role !== 'end' ? Math.min(excerpt.end, (endAnchor?.frame ?? (selection.role === 'start' ? excerpt.end : excerpt.end + 1)) - (selection.role === 'start' ? 1 : 0)) : excerpt.end;
+  const select = (value: Selection) => {
+    onPause(); setCropping(false);
+    if (value.type === 'track') {
+      const track = clip.motion?.tracks.find(t => t.id === value.id), a = track?.anchors.find(a => a.role === 'start' && a.frame >= excerpt.start && a.frame < excerpt.end), b = track?.anchors.find(a => a.role === 'end' && a.frame > excerpt.start && a.frame <= excerpt.end);
+      const min = value.role === 'end' ? Math.max(excerpt.start, (a?.frame ?? excerpt.start) + 1) : value.role === 'correction' ? Math.max(excerpt.start, a?.frame ?? excerpt.start) : excerpt.start;
+      const max = value.role === 'start' ? Math.min(excerpt.end - 1, (b?.frame ?? excerpt.end) - 1) : value.role === 'correction' ? Math.min(excerpt.end, b?.frame ?? excerpt.end) : excerpt.end;
+      onFrame(clamp(value.role === 'end' ? b?.frame ?? excerpt.end : value.role === 'start' ? a?.frame ?? frame : frame, min, max));
+    }
+    setSelection(value); wrap.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  };
   const selected = (anchor: Anchor) => {
-    if (!selection) return;
+    if (!selection || anchor.frame < selectionMin || anchor.frame > selectionMax) return;
     analysis.cancel(clip.id);
     if (selection.type === 'region') onMotion(m => ({ ...m, pose: { ...m.pose, result: undefined, region: normalizeCrop({ x: anchor.x - anchor.width / 2, y: anchor.y - anchor.height / 2, width: anchor.width, height: anchor.height }) } }));
-    else onMotion(m => {
-      const existing = m.tracks.find(track => track.id === selection.id);
-      const track: MotionTrack = existing ?? { id: crypto.randomUUID(), name: t('Track {number}', { number: m.tracks.length + 1 }), color: COLORS[m.tracks.length % COLORS.length], anchors: [], revision: 0, visible: true };
-      const next = { ...track, anchors: [...track.anchors.filter(a => a.frame !== anchor.frame), anchor].sort((a, b) => a.frame - b.frame), revision: track.revision + 1 };
-      next.result = manualSeries(next, dimensions.width, dimensions.height);
-      return { ...m, tracks: existing ? m.tracks.map(value => value.id === track.id ? next : value) : [...m.tracks, next] };
-    });
+    else {
+      const id = selection.id ?? crypto.randomUUID();
+      onMotion(m => {
+        const existing = m.tracks.find(track => track.id === id);
+        const track: MotionTrack = existing ?? { id, name: t('Track {number}', { number: m.tracks.length + 1 }), color: COLORS[m.tracks.length % COLORS.length], anchors: [], revision: 0, visible: true };
+        const old = track.anchors.find(a => a.frame === anchor.frame);
+        const next = { ...track, anchors: setTrackAnchor(track.anchors.filter(a => a.frame >= excerpt.start && a.frame <= excerpt.end && !(selection.role === 'start' && a.role === 'end' && a.frame <= anchor.frame)), { ...anchor, corner: old?.corner }, selection.role), revision: track.revision + 1 };
+        next.result = manualSeries(next, dimensions.width, dimensions.height);
+        return { ...m, tracks: existing ? m.tracks.map(value => value.id === id ? next : value) : [...m.tracks, next] };
+      });
+      if (selection.role === 'start' && !endAnchor) {
+        onFrame(excerpt.end); setSelection({ type: 'track', id, role: 'end' }); return;
+      }
+    }
     setSelection(null);
   };
   const capture = (event: PointerEvent<HTMLElement>) => event.currentTarget.setPointerCapture(event.pointerId);
@@ -90,7 +112,7 @@ export function ComparisonPane({ presentation, analysis, linked, onMotion, clip,
           <canvas ref={element => onCanvas(clip.id, element)} className="comparison-playback-frame" hidden aria-hidden="true"/>
           {clip.motion && !cropping ? <MotionOverlay clip={clip} presentation={presentation} width={dimensions.width} height={dimensions.height}/> : null}
         </div>
-        {selection ? <MotionSelection selection={selection} crop={crop} mirrored={mirrored} frame={frame} ready={displayed === frame} onSelect={selected} onCancel={() => setSelection(null)}/> : null}
+        {selection ? <MotionSelection key={selection.type === 'track' ? `${selection.id}:${selection.role}` : 'region'} selection={selection} crop={crop} mirrored={mirrored} frame={frame} ready={displayed === frame && frame >= selectionMin && frame <= selectionMax} min={selectionMin} max={selectionMax} toolbar={selectionToolbar.current} onFrame={onFrame} onSelect={selected} onCancel={() => setSelection(null)}/> : null}
         {cropping ? <CropEditor crop={clip.crop} sourceAspect={dimensions.width / dimensions.height} viewportAspect={size.width / (size.height + 104)}
           toolbarTarget={wrap.current} onChange={onCrop} onDone={() => setCropping(false)} onCancel={() => { onCrop(originalCrop.current); setCropping(false); }}/> : null}
       </div>
@@ -98,6 +120,7 @@ export function ComparisonPane({ presentation, analysis, linked, onMotion, clip,
       {!clip.index && !clip.error ? <span className="comparison-loading" role="status">{t('Reading frame timestamps…')}</span> : null}
       {clip.error ? <div className="comparison-video-error" role="alert">{t(clip.error)}<button onClick={onRemove}>{t('Remove clip')}</button></div> : null}
     </div>
+    <div ref={selectionToolbar}/>
     <div className="comparison-pane-controls">
       <div className="comparison-frame-info"><span>{t('Frame {frame} / {total}', { frame: frame + 1, total: last + 1 })}</span>
         <span>{clip.index ? `${clip.index.fps.toFixed(2)} ${t(clip.index.variable ? 'fps · variable' : 'fps')}` : '—'}</span></div>

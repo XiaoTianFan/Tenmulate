@@ -1,12 +1,13 @@
 import type { CropRect } from '../crop';
 
 /** All coordinates are normalized in the oriented, unmirrored source image. */
-export type Anchor = { frame: number; x: number; y: number; width: number; height: number };
+export type Anchor = { frame: number; x: number; y: number; width: number; height: number; role?: 'start' | 'end' | 'correction'; corner?: boolean };
 export const OBSERVED = 1, MANUAL = 2, ESTIMATED = 3;
 export type MotionSeries = {
   start: number; end: number; width: number; height: number; points: number;
   /** Packed x, y, confidence. State 0 means missing, never a measurement at zero. */
   values: Float32Array; states: Uint8Array; model: string;
+  continuous?: boolean; corners?: number[]; rejected?: number;
 };
 export type MotionTrack = { id: string; name: string; color: string; anchors: Anchor[]; revision: number; visible: boolean; result?: MotionSeries };
 export type PoseAnalysis = { region?: CropRect; quality: 'draft' | 'full'; result?: MotionSeries };
@@ -46,5 +47,5 @@ export function putSample(series: MotionSeries, frame: number, point: number, x:
 export function sampleAt(series: MotionSeries | undefined, frame: number, point = 0) {
   if (!series || frame < series.start || frame > series.end || point >= series.points || point < 0) return null;
   const i = (frame - series.start) * series.points + point, state = series.states[i];
-  return state && series.values[i * 3 + 2] >= 0.25 ? { x: series.values[i * 3], y: series.values[i * 3 + 1], confidence: series.values[i * 3 + 2], state } : null;
+  return state && (state === ESTIMATED || series.values[i * 3 + 2] >= 0.25) ? { x: series.values[i * 3], y: series.values[i * 3 + 1], confidence: series.values[i * 3 + 2], state } : null;
 }

@@ -87,7 +87,7 @@ export function VideoComparisonScreen({ active, onRoute }: { active: boolean; on
     setTime(clamp(time, range.start, range.end));
   };
   const contact = (clip: ComparisonClip) => {
-    pause();
+    pause(); analysis.cancel(clip.id);
     const next = clips.map(item => item.id === clip.id ? { ...item, contact: frameFor(item), frame: frameFor(item) } : item);
     setClips(next);
     if (next.every(item => item.index && !item.error && item.contact !== null)) { setLinked(true); const bounds = comparisonRange(next.map(c => ({ ...c, index: c.index!, contact: c.contact! }))); setTime(clamp(0, bounds.start, bounds.end)); }

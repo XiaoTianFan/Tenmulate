@@ -178,11 +178,31 @@ reader, closes samples, terminates inference and rejects stale commits through
 per-clip tokens and per-track revisions. Jobs pause between frames during playback,
 export, inactive routes and hidden tabs. No API/backend receives footage.
 
-The point-tracking worker loads JSFeat for pyramidal Lucas–Kanade proposals and uses a
-fixed normalized appearance template, local prediction/search and forward/backward
-consistency. Low similarity or ambiguous alternatives stop a track until another
-manual anchor. Analysis uses at most a 1280-pixel long edge; reverse tracking decodes
-forward batches of four frames. A separate, opt-in pose worker loads a pinned MoveNet Lightning v4 graph through TFJS's single-thread WASM backend, avoiding WebGL contexts and cross-origin isolation. Worker entry points use static
+Point tracks require explicit start/end anchors on different source frames. Each
+interval between manual anchors runs in both directions. The JSFeat tracker uses
+nine-point pyramidal Lucas–Kanade proposals checked by round-trip error, a fixed
+normalized grayscale template, chroma checks and timestamp-aware motion prediction.
+It never learns from an uncertain match and can reacquire after a short loss.
+Analysis uses at most a 1280-pixel long edge; reverse tracking decodes batches of four
+frames to bound memory. Both passes are reconciled before an O(n) banded constrained
+fit reconstructs one continuous trajectory. Short return-to-trend excursions are
+rejected using neighboring velocity and Hermite predictions; disagreeing passes
+and occlusions become low-confidence estimates. Manual anchors are exact constraints.
+Actual VFR timestamps drive the acceleration penalty. Contact, explicitly marked
+motion changes and stable inferred impacts remove the penalty at the corner, preserving
+piecewise motion. No samples are extrapolated beyond the endpoint interval.
+
+The trajectory, position plots and exports use this same cached path. Inferred or
+substantially adjusted positions carry an estimated state (including low-confidence
+samples that must remain visible), lighter solid trails, hollow markers and ≈ labels.
+Smoothness cannot establish identity or recover hidden motion; review estimates and
+add corrections when evidence is insufficient. Round-trip proposal checks follow the
+[OpenCV round-trip optical-flow example](https://github.com/opencv/opencv/blob/4.x/samples/python/lk_track.py).
+Learned point trackers such as [CoTracker](https://github.com/facebookresearch/co-tracker)
+are possible future research, but the supplied PyTorch/GPU-oriented pipeline is not
+a drop-in replacement for the current browser-only desktop/mobile budget.
+
+A separate, opt-in pose worker loads a pinned MoveNet Lightning v4 graph through TFJS's single-thread WASM backend, avoiding WebGL contexts and cross-origin isolation. Worker entry points use static
 runtime imports to avoid circular entry-module reinitialization in WebKit. It downsizes to a 640-pixel long edge, applies the selected
 player region, pads to square and feeds 192×192 RGB. Coordinates map back to the
 original source. Draft samples at 15 Hz plus contact/end and marks short interpolation
@@ -196,9 +216,14 @@ sample is drawn, not when a cursor requests it. Card overlays subscribe to that 
 frame: WebKit can defer a paused native seek while the video is scrolled out of
 view. During playback the review cursor is itself published only after the shared
 presentation barrier, preserving plot/overlay alignment. Data is immutable after completion, and local polynomial
-fits for derivatives use real presentation timestamps, breaking at missing samples
-and correction anchors. Measurements remain in source pixels/seconds as review
-speeds change. The renderer shared with export uses the same crop/mirror mapping;
+fits for derivatives use real presentation timestamps. Continuous point paths permit
+one-sided fits at endpoints and impacts; fits do not cross impacts. Exact impact
+acceleration is undefined. Missing pose samples and legacy sparse manual corrections
+break fits. Estimated samples also mark derivative windows that depend on them.
+Measurements remain in source pixels/seconds as review speeds change. Storage and drawing use image-down coordinates; plots convert vertical
+position to height above the original image bottom, giving upward-positive vertical
+velocity/acceleration. Motion configuration and plots have separate disclosures.
+The renderer shared with export uses the same crop/mirror mapping;
 optional plot panels use cached derived series. Export is a snapshot of completed
 results and never calls inference. Body angles are image-plane projections only.
 

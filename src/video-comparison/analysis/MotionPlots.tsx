@@ -28,6 +28,8 @@ export const MotionPlotCard = memo(function MotionPlotCard({ clip, plot, frame, 
   const cursor = (index.timestamps[frame] - index.timestamps[start]) / (index.timestamps[end] - index.timestamps[start] || 1) * 1000;
   const value = data.values[frame - data.start], estimated = data.estimated[frame - data.start];
   const angle = plot.target.startsWith('joint:'), metrics: Metric[] = angle ? ['angle', 'angularVelocity', 'angularAcceleration'] : ['x', 'y', 'vx', 'vy', 'speed', 'ax', 'ay', 'acceleration', 'confidence'];
+  const continuous = plot.target.startsWith('track:') && motion.tracks.find(track => `track:${track.id}` === plot.target)?.result?.continuous;
+  const position = ['x', 'y', 'confidence'].includes(plot.metric);
   const labelTime = (f: number) => formatTime(linked && clip.contact !== null ? (index.timestamps[f] - index.timestamps[clip.contact]) / clip.speed : index.timestamps[f], linked);
   return <section className="motion-plot" aria-label={t('Motion plot')}>
     <div className="motion-plot-controls">
@@ -40,7 +42,7 @@ export const MotionPlotCard = memo(function MotionPlotCard({ clip, plot, frame, 
       <button type="button" aria-label={t('Remove plot')} onClick={onRemove}>×</button>
     </div>
     <div className="motion-plot-readout"><output>{value === null || value === undefined ? '—' : `${estimated ? '≈' : ''}${value.toFixed(1)} ${METRICS[plot.metric].unit}`}</output>
-      <label>{t('Smoothing')}<select value={plot.smoothing} onChange={event => onChange({ ...plot, smoothing: Number(event.target.value) })}><option value={0}>{t('Raw')}</option><option value={.05}>{'50 ms'}</option><option value={.1}>{'100 ms'}</option><option value={.2}>{'200 ms'}</option></select></label></div>
+      <label>{t(continuous ? 'Derivative smoothing' : 'Smoothing')}<select disabled={continuous && position} value={plot.smoothing} onChange={event => onChange({ ...plot, smoothing: Number(event.target.value) })}><option value={0}>{t('Raw')}</option><option value={.05}>{'50 ms'}</option><option value={.1}>{'100 ms'}</option><option value={.2}>{'200 ms'}</option></select></label></div>
     <svg viewBox="0 0 1000 140" preserveAspectRatio="none" role="slider" tabIndex={0} aria-label={t('Seek motion plot')} aria-valuemin={start + 1} aria-valuemax={end + 1} aria-valuenow={frame + 1}
       onKeyDown={event => { if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) { event.preventDefault(); onFrame(event.key === 'Home' ? start : event.key === 'End' ? end : Math.max(start, Math.min(end, frame + (event.key === 'ArrowRight' ? 1 : -1)))); } }}
       onPointerDown={event => { event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId); const r = event.currentTarget.getBoundingClientRect(); onFrame(frameAt(index, index.timestamps[start] + Math.max(0, Math.min(1, (event.clientX - r.left) / r.width)) * (index.timestamps[end] - index.timestamps[start]))); }}

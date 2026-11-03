@@ -56,8 +56,11 @@ schedule. Completed features belong in the user guide and architecture.
 - **Motion-analysis acceptance:** real-device Safari/iOS memory, thermal and
   preparation-time profiling remains necessary, especially with nine clips and
   long high-FPS excerpts. Browser-only point tracking cannot guarantee fast-ball
-  reacquisition through occlusion or distinguish identical targets; manual anchors
-  remain essential. MoveNet estimates one player's projected pose, not persistent
+  identity through occlusion or distinguish identical targets. Anchored reconstruction
+  now connects uncertain sections continuously, but estimated geometry is not recovered
+  visual evidence; manual corrections remain essential. Thresholds and inferred-impact
+  detection need broader real-footage evaluation, including motion blur and rapid
+  racket rotation. MoveNet estimates one player's projected pose, not persistent
   multi-person identity or racket geometry. Capture-time/slow-motion metadata,
   camera stabilization, calibrated physical units, 3D reconstruction and durable
   analysis-session storage are not implemented.

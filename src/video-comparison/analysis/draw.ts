@@ -22,17 +22,23 @@ export function drawMotion(context: CanvasRenderingContext2D, motion: ClipMotion
     const series = track.result; if (!series) continue;
     context.strokeStyle = context.fillStyle = track.color;
     const end = motion.trail === 0 ? series.end : Math.min(frame, series.end), after = motion.trail === 0 ? -Infinity : index.timestamps[frame] - motion.trail;
-    let started = false; context.beginPath();
-    // Bound geometry while still checking every missing interval before joining.
+    let previous: ReturnType<typeof sampleAt> = null, estimated = false; context.beginPath();
+    // Retain uncertainty transitions while bounding the live canvas geometry.
     const stride = Math.max(1, Math.ceil((end - series.start + 1) / 600));
+    const flush = () => { context.globalAlpha = estimated ? .45 : 1; context.stroke(); context.beginPath(); };
     for (let f = series.start; f <= end; f++) {
       const point = sampleAt(series, f);
-      if (!point || index.timestamps[f] < after) { started = false; continue; }
-      if (started && f % stride !== 0 && f !== end) continue;
-      const [x, y] = xy(point); if (started) context.lineTo(x, y); else context.moveTo(x, y); started = true;
+      if (!point || index.timestamps[f] < after) { if (previous) flush(); previous = null; continue; }
+      const inferred = point.state === ESTIMATED || previous?.state === ESTIMATED;
+      if (previous && inferred === estimated && f % stride !== 0 && f !== end) continue;
+      if (previous && inferred !== estimated) { flush(); context.moveTo(...xy(previous)); }
+      estimated = inferred;
+      if (previous) context.lineTo(...xy(point)); else context.moveTo(...xy(point)); previous = point;
     }
-    context.stroke(); const point = sampleAt(series, frame);
-    if (point) { dot(point); label(track.name, point); }
+    flush(); context.globalAlpha = 1;
+    const point = sampleAt(series, frame);
+    if (point) { dot(point); label(`${point.state === ESTIMATED ? '≈ ' : ''}${track.name}`, point); }
+
   }
   const pose = motion.pose.result;
   if (pose && view.skeleton) {
