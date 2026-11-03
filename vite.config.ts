@@ -80,6 +80,7 @@ export default defineConfig({
         // Review queries select client-side state, not a different HTML shell.
         ignoreURLParametersMatching: [/^utm_/, /^fbclid$/, /^(camera|version|venue|quality|audience)$/],
         navigateFallback: '/index.html',
+        navigateFallbackAllowlist: [/^\/(?:quick-practice|drills|editor|video-comparison|index\.html)\/?(?:\?|$)/, /^\/(?:\?|$)/],
         navigateFallbackDenylist: [/^\/venue-review\.html/, /^\/__tenmulate\//],
       },
     }),

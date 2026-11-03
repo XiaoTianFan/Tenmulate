@@ -8,6 +8,14 @@
     { "source": "/sw.js", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
     { "source": "/index.html", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
     { "source": "/", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
+    { "source": "/:page(quick-practice|drills|editor|video-comparison)", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
     { "source": "/(.*)", "headers": [{ "key": "X-Content-Type-Options", "value": "nosniff" }] }
+  ],
+  "trailingSlash": false,
+  "rewrites": [
+    { "source": "/quick-practice", "destination": "/index.html" },
+    { "source": "/drills", "destination": "/index.html" },
+    { "source": "/editor", "destination": "/index.html" },
+    { "source": "/video-comparison", "destination": "/index.html" }
   ]
 }

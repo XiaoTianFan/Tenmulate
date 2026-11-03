@@ -3,7 +3,17 @@
 Tenmulate is a static React/TypeScript/Vite application with a Three.js WebGL 2
 renderer. React owns configuration and low-frequency UI state; session planning,
 physics and the simulation clock supply playback. There is no runtime database,
-account service, body tracking or motion-inference service.
+account service or remote motion-inference service. Optional pose and point analysis
+runs locally in browser workers.
+
+The URL owns the active section: `/quick-practice`, `/drills`, `/editor`, and
+`/video-comparison`. Native navigation links preserve modified-click behavior;
+`useAppRoute` uses history pushState/popstate without remounting the shared court
+provider or an already opened comparison session. Route changes flush editor drafts
+and cancel pending session launches. Root and trailing slashes canonicalize to a
+section path. Vercel rewrites only these four paths to index.html; the service worker
+uses the same bounded navigation fallback. Assets and venue-review retain their own
+responses. Direct comparison entry avoids preloading the rehearsal runtime.
 
 ## Ownership and data flow
 
@@ -214,11 +224,23 @@ remain possible research, but their supplied PyTorch/GPU pipeline is not a drop-
 replacement for this browser-only desktop/mobile budget.
 
 A separate, opt-in pose worker loads a pinned MoveNet Lightning v4 graph through TFJS's single-thread WASM backend, avoiding WebGL contexts and cross-origin isolation. Worker entry points use static
-runtime imports to avoid circular entry-module reinitialization in WebKit. It downsizes to a 640-pixel long edge, applies the selected
-player region, pads to square and feeds 192×192 RGB. Coordinates map back to the
-original source. Draft samples at 15 Hz plus contact/end and marks short interpolation
-intervals; full quality processes every source frame. Neither mode fills failed
-pose detections. Source series record packed x/y/confidence and explicit observed,
+runtime imports to avoid circular entry-module reinitialization in WebKit. It downsizes to a 640-pixel long edge, pads a moving crop to square and feeds
+192×192 RGB. A selected region and source frame seed a torso-based follower;
+analysis proceeds forward and backward from that frame, resetting the follower
+without reloading the model. Reverse decoding retains at most four downscaled frames.
+Reliable torso motion predicts the next crop; visible limb extents expand it immediately,
+while shrinkage is gradual. Weak or edge-clipped detections retry a wider crop and
+then the whole frame, at most three inferences per sampled frame. Geometric center/scale
+gates reject distant bystanders; this is not person re-identification through long
+occlusions. Coordinates map back to the original source.
+Draft samples at 15 Hz plus seed/contact/end and marks short interpolation intervals;
+full quality processes every source frame. A separate conservative repair pass leaves
+all accepted direct detections unchanged. Missing points can interpolate relative to
+a visible parent within 160 ms, or extrapolate limb offsets for at most 80 ms from two
+confident detections. Source timestamps govern VFR limits; distance/confidence gates
+reject implausible motion, and estimates cannot seed further estimates. Missing torsos
+are not extrapolated and longer failures remain gaps. Estimates retain the shared
+hollow/dashed/≈ treatment in preview, plots and export. Source series record packed x/y/confidence and explicit observed,
 manual, interpolated or missing states. Limits bound jobs to 60 seconds/7200 frames;
 UI limits six tracks and four plots per clip. Results are visit-only.
 

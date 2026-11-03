@@ -15,6 +15,7 @@ export function MotionPanel({ clip, frame, view, linked, analysis, onEdit, onSel
   const [open, setOpen] = useState(false), [plotsOpen, setPlotsOpen] = useState(true), motion = clip.motion;
   const status = analysis.statuses[clip.id], busy = status && !status.error;
   const range = clip.index ? clipFrameRange({ ...clip, index: clip.index }) : { start: 0, end: 0 };
+  const poseSeedValid = !motion?.pose.region || motion.pose.regionFrame === undefined || motion.pose.regionFrame >= range.start && motion.pose.regionFrame <= range.end;
   const estimates = useMemo(() => Object.fromEntries((motion?.tracks ?? []).map(track => [track.id, estimatedRanges(track.result)])), [motion?.tracks]);
   const editTrack = (id: string, edit: (track: MotionTrack) => MotionTrack) => onEdit(m => ({ ...m, tracks: m.tracks.map(track => track.id === id ? edit(track) : track) }));
   const invalidatePose = (edit: (m: ClipMotion) => ClipMotion) => { analysis.cancel(clip.id); onEdit(edit); };
@@ -52,10 +53,11 @@ export function MotionPanel({ clip, frame, view, linked, analysis, onEdit, onSel
         <label>{t('Analysis quality')}<select value={motion.pose.quality} onChange={e => invalidatePose(m => ({ ...m, pose: { ...m.pose, quality: e.target.value as 'draft' | 'full', result: undefined } }))}>
           <option value="draft">{t('Draft · 15 samples/s')}</option><option value="full">{t('Every source frame')}</option></select></label>
         <div className="motion-actions"><button type="button" onClick={() => onSelect({ type: 'region' })}>{t(motion.pose.region ? 'Change player region' : 'Select player region')}</button>
-          {motion.pose.region ? <button type="button" onClick={() => invalidatePose(m => ({ ...m, pose: { ...m.pose, region: undefined, result: undefined } }))}>{t('Use whole frame')}</button> : null}
-          <button type="button" disabled={!!busy} onClick={() => { onPause(); analysis.run(clip, { kind: 'pose' }); }}>{t('Analyze pose')}</button>
+          {motion.pose.region ? <button type="button" onClick={() => invalidatePose(m => ({ ...m, pose: { ...m.pose, region: undefined, regionFrame: undefined, result: undefined } }))}>{t('Use whole frame')}</button> : null}
+          <button type="button" disabled={!!busy || !poseSeedValid} onClick={() => { onPause(); analysis.run(clip, { kind: 'pose' }); }}>{t('Analyze pose')}</button>
           {motion.pose.result ? <button type="button" onClick={() => invalidatePose(m => ({ ...m, pose: { ...m.pose, result: undefined } }))}>{t('Clear pose')}</button> : null}</div>
-        <p className="motion-help">{t('One player, 17 body landmarks. The pose model downloads on first use. Track the racket head separately.')}</p>
+        {!poseSeedValid ? <p className="motion-help">{t('Select the player again inside this excerpt.')}</p> : null}
+        <p className="motion-help">{t('The selected region follows one player. Brief missing limbs may be estimated (dashed); detected points stay unchanged. Use every source frame for fast movement. The model downloads on first use.')}</p>
       </fieldset>
       {status ? <div className="motion-status" role={status.error ? 'alert' : 'status'}>
         <span>{t(analysis.paused && !status.error ? 'Analysis paused during playback or export.' : status.message)}</span>

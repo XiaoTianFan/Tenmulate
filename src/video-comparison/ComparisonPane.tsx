@@ -65,7 +65,7 @@ export function ComparisonPane({ presentation, analysis, linked, onMotion, clip,
   const selected = (anchor: Anchor) => {
     if (!selection || anchor.frame < selectionMin || anchor.frame > selectionMax) return;
     analysis.cancel(clip.id);
-    if (selection.type === 'region') onMotion(m => ({ ...m, pose: { ...m.pose, result: undefined, region: normalizeCrop({ x: anchor.x - anchor.width / 2, y: anchor.y - anchor.height / 2, width: anchor.width, height: anchor.height }) } }));
+    if (selection.type === 'region') onMotion(m => ({ ...m, pose: { ...m.pose, result: undefined, regionFrame: anchor.frame, region: normalizeCrop({ x: anchor.x - anchor.width / 2, y: anchor.y - anchor.height / 2, width: anchor.width, height: anchor.height }) } }));
     else {
       const id = selection.id ?? crypto.randomUUID();
       onMotion(m => {

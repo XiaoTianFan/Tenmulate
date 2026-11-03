@@ -4,6 +4,11 @@ Tenmulate is for shadow-swing timing, incoming-ball judgment and tactical mental
 rehearsal. Use a large display and clear enough space for your full swing and
 movement. The app cannot check your room or measure your actual stroke.
 
+The main sections have their own URLs: `/quick-practice`, `/drills`, `/editor`, and
+`/video-comparison`. You can bookmark them, open them in a new tab, or use browser
+Back/Forward. Refresh keeps the current section. Local comparison videos and their
+analysis remain session-only; reselect the files after a refresh.
+
 ## Quick Practice
 
 Choose the shot you want to practice. **Opponent shot** controls the ball coming
@@ -180,11 +185,16 @@ model/runtime resources from this site; subsequent requests can use the local ca
   velocity uses the outgoing side. Contact marks align playback and do not instruct
   the tracker to invent a turn. Corrections still help when appearance is ambiguous.
 - **Analyze pose** estimates one player's 17 body landmarks. Use **Select player
-  region** to exclude other players and keep that player inside the region for the
-  whole excerpt. **Draft** samples up to 15 times/second and interpolates short
-  intervals; **Every source frame** analyzes all selected frames. Hollow landmarks,
-  dashed bones and ≈ readouts distinguish draft interpolation. Detection failures
-  remain gaps. Racket heads use a separate point/region track.
+  region** on a clear frame to identify the player. The region follows the detected
+  body forward and backward through the excerpt and widens when detection weakens.
+  Re-select the player if the chosen frame is outside a newly trimmed excerpt.
+  **Draft** samples up to 15 times/second; **Every source frame** is preferable for
+  fast movement. Direct detections stay unchanged. Short missing limbs can be
+  interpolated for up to 160 ms or extrapolated for up to 80 ms when the surrounding
+  body remains visible. Hollow landmarks, dashed bones and ≈ readouts distinguish
+  these estimates and draft interpolation in preview and export. Longer losses
+  remain gaps. Severe blur, occlusion or crossing players can still require a
+  clearer/shorter excerpt. Racket heads use a separate point/region track.
 - Toggle trajectories, skeleton and projected joint angles independently. Choose
   a trailing duration or the full trajectory. Crop and mirror apply to overlays
   exactly as they do to the image. Completed analysis stays aligned while changing

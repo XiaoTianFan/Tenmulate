@@ -1,3 +1,5 @@
+import { routeFromPath } from './routes';
+import { useAppRoute } from './useAppRoute';
 import { t, message as translateMessage } from '../i18n/locale';
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import type { DrillDefinitionV2 } from '../content/types';
@@ -81,8 +83,7 @@ function AppRoutes({ appData }: { appData: ReturnType<typeof useAppData> }) {
   const [drafts] = useState(() => {
     try { return createEditorDraftCache(window.localStorage); } catch { return createEditorDraftCache(); }
   });
-  const [route, setRoute] = useState<AppRoute>('practice');
-  const [comparisonOpened, setComparisonOpened] = useState(false);
+  const [comparisonOpened, setComparisonOpened] = useState(() => routeFromPath(window.location.pathname) === 'comparison');
   const [launch, updateLaunch] = useState<SessionLaunch | null>(null);
   const ownedLaunch = useRef<SessionLaunch | null>(null);
   const setLaunch = (next: SessionLaunch | null) => {
@@ -93,7 +94,8 @@ function AppRoutes({ appData }: { appData: ReturnType<typeof useAppData> }) {
   const [editorDrill, setEditorDrill] = useState<DrillDefinitionV2 | null>(() => drafts.active()?.drill ?? null);
   const [busy, setBusy] = useState(false), [message, setMessage] = useState<string | null>(() => appStorageNotice() || null);
   const calculation = useRef<AbortController | null>(null);
-  useEffect(() => { void loadRehearsal(); }, []);
+  const [route, setRoute] = useAppRoute(enterRoute);
+  useEffect(() => { if (route !== 'comparison') void loadRehearsal().catch(() => {}); }, [route]);
   useEffect(() => () => calculation.current?.abort(), []);
   useEffect(() => {
     const flush = () => { drafts.flush(); };
@@ -101,7 +103,8 @@ function AppRoutes({ appData }: { appData: ReturnType<typeof useAppData> }) {
     return () => { window.removeEventListener('pagehide', flush); flush(); };
   }, [drafts]);
   const cacheDraft = useCallback((draft: EditorDraft, previousId?: string) => { drafts.put(draft, previousId); }, [drafts]);
-  const navigate = (next: AppRoute) => {
+  function enterRoute(next: AppRoute) {
+    calculation.current?.abort(); setBusy(false); setLaunch(null);
     if (next === 'comparison') setComparisonOpened(true);
     drafts.flush();
     if (next === 'editor') {
@@ -110,8 +113,8 @@ function AppRoutes({ appData }: { appData: ReturnType<typeof useAppData> }) {
       if (active) { const restored = reconcileEditorDraft(active, drills.find(drill => drill.id === active.drill.id)); drafts.put(restored); setEditorDrill(restored.drill); }
     }
     if (next === 'drills') void project.refresh();
-    setRoute(next);
-  };
+  }
+  const navigate = (next: AppRoute) => { enterRoute(next); setRoute(next); };
   const cancel = () => { calculation.current?.abort(); setBusy(false); };
   const prepareDrill = useCallback(async (drill: DrillDefinitionV2, rhythm: number, interval: number, movement: number, practiceSet: DrillPracticeSet, signal: AbortSignal) => {
     await compilePlayerDrillAsync(drill, { ...defaultDrillSettings(drill, rhythm, interval, movement, practiceSet), surface: appData.data.preferences.surface }, signal);
@@ -149,6 +152,7 @@ function AppRoutes({ appData }: { appData: ReturnType<typeof useAppData> }) {
     finally { if (calculation.current === controller) setBusy(false); }
   };
   const editDrill = (drill: DrillDefinitionV2) => {
+    drafts.flush();
     const cached = drafts.get(drill.id), restored = cached && reconcileEditorDraft(cached, drill);
     if (restored) drafts.put(restored);
     setEditorDrill(restored?.drill ?? drill); setRoute('editor');

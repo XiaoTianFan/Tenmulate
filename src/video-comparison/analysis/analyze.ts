@@ -4,6 +4,7 @@ import type { ComparisonClip } from '../types';
 import { emptySeries, putSample, type MotionSeries, type MotionTrack } from './types';
 import { trackingBounds, type TrackingPass } from './trajectory';
 import { fillDraft } from './series';
+import { repairPose } from './poseSeries';
 import type { PixelFrame } from './tracker';
 
 export type AnalysisRequest = { kind: 'track'; track: MotionTrack } | { kind: 'pose' };
@@ -16,6 +17,9 @@ export async function analyze(clip: ComparisonClip, job: AnalysisRequest, signal
   const range = bounds;
   if (range.start < excerpt.start || range.end > excerpt.end) throw new Error('Tracking endpoints must be inside the selected excerpt.');
   if (range.end - range.start + 1 > 7200 || index.timestamps[range.end] - index.timestamps[range.start] > 60) throw new Error('Choose an excerpt of up to 60 seconds and 7200 frames for analysis.');
+  const pose = clip.motion?.pose;
+  const poseSeed = pose?.region ? pose.regionFrame ?? range.start : range.start;
+  if (job.kind === 'pose' && (poseSeed < range.start || poseSeed > range.end)) throw new Error('Select the player again inside this excerpt.');
   const worker = job.kind === 'pose'
     ? new Worker(new URL('./pose.worker.ts', import.meta.url), { type: 'module' })
     : new Worker(new URL('./analysis.worker.ts', import.meta.url), { type: 'module' });
@@ -58,17 +62,28 @@ export async function analyze(clip: ComparisonClip, job: AnalysisRequest, signal
     if (job.kind === 'pose') {
       progress({ progress: 0, message: 'Loading pose model…' }); await call('initPose');
       const frames: number[] = []; let last = -Infinity;
-      for (let f = range.start; f <= range.end; f++) if (clip.motion?.pose.quality === 'full' || index.timestamps[f] - last >= 1 / 15 - 1e-6 || f === range.end || f === clip.contact) { frames.push(f); last = index.timestamps[f]; }
+      for (let f = range.start; f <= range.end; f++) if (pose?.quality === 'full' || index.timestamps[f] - last >= 1 / 15 - 1e-6 || f === range.end || f === clip.contact || f === poseSeed) { frames.push(f); last = index.timestamps[f]; }
       let result: MotionSeries | undefined, done = 0;
-      for await (const item of pixels(frames)) {
+      const detect = async (item: { frame: number; pixels: PixelFrame }, reset: boolean) => {
         result ??= emptySeries(range.start, range.end, 17, sourceWidth, sourceHeight, 'MoveNet Lightning v4 / WASM');
-        const values = await call('pose', item.pixels, { region: clip.motion?.pose.region }) as Float32Array;
+        const values = await call('pose', item.pixels, { region: pose?.region, time: index.timestamps[item.frame], reset }) as Float32Array;
         for (let p = 0; p < 17; p++) if (values[p * 3 + 2] >= .25) putSample(result, item.frame, p, values[p * 3], values[p * 3 + 1], values[p * 3 + 2]);
-        progress({ progress: .15 + .85 * ++done / frames.length, message: 'Analyzing pose…' });
+        progress({ progress: .15 + .85 * ++done / (frames.length + (poseSeed > range.start ? 1 : 0)), message: 'Analyzing pose…' });
+      };
+      for await (const item of pixels(frames.filter(f => f >= poseSeed))) await detect(item, item.frame === poseSeed);
+      if (poseSeed > range.start) {
+        const reverse = frames.filter(f => f <= poseSeed);
+        // Decode small ascending batches, process backward from the chosen player.
+        // Keep the same model loaded, but reset identity/motion at the seed frame.
+        for (let end = reverse.length; end > 0; end -= 4) {
+          const batch: { frame: number; pixels: PixelFrame }[] = [];
+          for await (const item of pixels(reverse.slice(Math.max(0, end - 4), end))) batch.push(item);
+          for (const item of batch.reverse()) await detect(item, item.frame === poseSeed);
+        }
       }
       if (!result) throw new Error('No readable video frames.');
-      if (clip.motion?.pose.quality !== 'full') fillDraft(result, frames, index);
-      return result;
+      if (pose?.quality !== 'full') fillDraft(result, frames, index);
+      return repairPose(result, index);
     }
     const anchors = job.track.anchors.filter(a => a.frame >= range.start && a.frame <= range.end).sort((a, b) => a.frame - b.frame);
     const length = range.end - range.start + 1, forward: TrackingPass = Array(length).fill(null), backward: TrackingPass = Array(length).fill(null);

@@ -4,7 +4,7 @@ import type { CropRect } from '../crop';
 let pose: PoseRuntime | undefined;
 // This worker is constructed only for pose jobs. Keep its runtime imports static:
 // no model chunk may import an entry module and replace this message handler.
-self.onmessage = async ({ data }: MessageEvent<{ id: number; type: 'initPose' | 'pose'; frame?: PixelFrame; region?: CropRect }>) => {
+self.onmessage = async ({ data }: MessageEvent<{ id: number; type: 'initPose' | 'pose'; frame?: PixelFrame; region?: CropRect; time?: number; reset?: boolean }>) => {
   try {
     let result;
     if (data.type === 'initPose') {
@@ -12,7 +12,7 @@ self.onmessage = async ({ data }: MessageEvent<{ id: number; type: 'initPose' | 
       await pose.init(progress => self.postMessage({ id: data.id, progress })); result = true;
     } else {
       if (!pose || !data.frame) throw new Error('Pose model is not ready.');
-      result = await pose.detect(data.frame, data.region);
+      result = await pose.detect(data.frame, data.time ?? 0, data.region, data.reset);
     }
     self.postMessage({ id: data.id, result });
   } catch (error) { self.postMessage({ id: data.id, error: error instanceof Error ? error.message : 'Analysis failed. Try a shorter excerpt.' }); }

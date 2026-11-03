@@ -30,7 +30,7 @@ export function MotionSelection({ selection, crop, mirrored, frame, ready, min, 
   </div>
     {toolbar ? createPortal(<div className="motion-selection-tools" role="group" aria-label={t('Tracking frame selection')}>
       <strong>{selection.type === 'region' ? t('Select player region') : t(selection.role === 'start' ? '1. Select start position' : selection.role === 'end' ? '2. Select end position' : 'Select correction position')}</strong>
-      <p>{frame < min || frame > max ? t('Use the preview lane to choose a frame between {start} and {end}.', { start: min + 1, end: max + 1 }) : !ready ? t('Preparing frame…') : t(selection.type === 'region' ? 'Drag a region containing one player throughout the excerpt.' : 'Use the preview lane to choose a frame, then tap the target or drag a small region around it.')}</p>
+      <p>{frame < min || frame > max ? t('Use the preview lane to choose a frame between {start} and {end}.', { start: min + 1, end: max + 1 }) : !ready ? t('Preparing frame…') : t(selection.type === 'region' ? 'Select the player in this frame. The region follows them through the clip.' : 'Use the preview lane to choose a frame, then tap the target or drag a small region around it.')}</p>
       <div className="motion-selection-navigation"><output>{t('Frame {frame}', { frame: frame + 1 })}</output><button type="button" onClick={onCancel}>{t('Cancel')}</button></div>
     </div>, toolbar) : null}
   </>;

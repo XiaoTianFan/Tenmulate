@@ -1002,5 +1002,8 @@
   "Tracking endpoints must be inside the selected excerpt.": "跟踪端点必须位于所选片段内。",
   "Use the preview lane to choose a frame between {start} and {end}.": "请使用预览时间轴选择第 {start} 至 {end} 帧。",
   "Use the preview lane to choose a frame, then tap the target or drag a small region around it.": "使用预览时间轴选帧，然后点击目标或拖动框选其周围的小区域。",
-  "Turns are detected automatically from the tracked motion. Lighter sections are estimates; use correction points if the target is lost. All processing stays on this device.": "系统会根据跟踪到的运动自动识别转向。浅色轨迹为估计值，目标丢失时可添加校正点。所有处理均在本设备上完成。"
+  "Turns are detected automatically from the tracked motion. Lighter sections are estimates; use correction points if the target is lost. All processing stays on this device.": "系统会根据跟踪到的运动自动识别转向。浅色轨迹为估计值，目标丢失时可添加校正点。所有处理均在本设备上完成。",
+  "Select the player in this frame. The region follows them through the clip.": "在当前帧选择球员，检测区域会随球员移动。",
+  "Select the player again inside this excerpt.": "请在当前片段范围内重新选择球员。",
+  "The selected region follows one player. Brief missing limbs may be estimated (dashed); detected points stay unchanged. Use every source frame for fast movement. The model downloads on first use.": "所选区域会跟随一名球员。短暂缺失的肢体可能以估算补全（虚线），直接检测到的位置保持不变。快速运动建议分析每个源帧。首次使用时会下载模型。"
 }

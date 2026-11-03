@@ -3,7 +3,8 @@ import { CastingButton } from './CastingButton';
 import { AboutButton } from './AboutButton';
 import { LanguageControl } from './LanguageControl';
 
-export type AppRoute = 'practice' | 'drills' | 'editor' | 'comparison';
+import { APP_PATHS, isPlainNavigation, type AppRoute } from '../app/routes';
+export type { AppRoute } from '../app/routes';
 
 type AppHeaderProps = Readonly<{
   route: AppRoute;
@@ -15,10 +16,9 @@ export function AppHeader({ route, onRoute }: AppHeaderProps) {
     <header className="app-header">
       <strong className="wordmark">Tenmulate</strong>
       <nav aria-label={t("Primary navigation")}>
-        <button className={route === 'practice' ? 'nav-item active' : 'nav-item'} type="button" onClick={() => onRoute('practice')}>{t("Quick Practice")}</button>
-        <button className={route === 'drills' ? 'nav-item active' : 'nav-item'} type="button" onClick={() => onRoute('drills')}>{t("Drills")}</button>
-        <button className={route === 'editor' ? 'nav-item active' : 'nav-item'} type="button" onClick={() => onRoute('editor')}>{t("Editor")}</button>
-        <button className={route === 'comparison' ? 'nav-item active' : 'nav-item'} type="button" onClick={() => onRoute('comparison')}>{t('Video Comparison')}</button>
+        {([['practice', 'Quick Practice'], ['drills', 'Drills'], ['editor', 'Editor'], ['comparison', 'Video Comparison']] as const).map(([key, label]) =>
+          <a key={key} href={APP_PATHS[key]} className={route === key ? 'nav-item active' : 'nav-item'} aria-current={route === key ? 'page' : undefined}
+            onClick={event => { if (isPlainNavigation(event)) { event.preventDefault(); onRoute(key); } }}>{t(label)}</a>)}
       </nav>
       <div className="header-actions">
         <LanguageControl />

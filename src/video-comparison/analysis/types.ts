@@ -10,7 +10,7 @@ export type MotionSeries = {
   continuous?: boolean; corners?: number[]; rejected?: number;
 };
 export type MotionTrack = { id: string; name: string; color: string; anchors: Anchor[]; revision: number; visible: boolean; result?: MotionSeries };
-export type PoseAnalysis = { region?: CropRect; quality: 'draft' | 'full'; result?: MotionSeries };
+export type PoseAnalysis = { region?: CropRect; regionFrame?: number; quality: 'draft' | 'full'; result?: MotionSeries };
 export type MotionVisibility = { tracks: boolean; skeleton: boolean; angles: boolean; plots: boolean };
 export type Metric = 'x' | 'y' | 'vx' | 'vy' | 'speed' | 'ax' | 'ay' | 'acceleration' | 'confidence' | 'angle' | 'angularVelocity' | 'angularAcceleration';
 export type MotionPlot = { id: string; target: string; metric: Metric; smoothing: number };

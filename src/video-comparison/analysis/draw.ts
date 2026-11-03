@@ -53,7 +53,8 @@ export function drawMotion(context: CanvasRenderingContext2D, motion: ClipMotion
   if (pose && view.angles) for (const id of motion.joints) {
     const joint = JOINTS[id], value = jointAngle(pose, frame, id), point = joint && sampleAt(pose, frame, joint.points[1]);
     if (value === null || !point) continue;
-    context.fillStyle = '#f6e62d'; label(`${point.state === ESTIMATED ? '≈' : ''}${value.toFixed(0)}°`, point);
+    const estimated = joint.points.some(p => sampleAt(pose, frame, p)?.state === ESTIMATED);
+    context.fillStyle = '#f6e62d'; label(`${estimated ? '≈' : ''}${value.toFixed(0)}°`, point);
   }
   context.restore();
 }
