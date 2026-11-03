@@ -35,13 +35,20 @@ export default defineConfig({
         // evidence, not additional downloads required to start practice.
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         globPatterns: ['**/*.{js,css,html,svg,png,glb,json,txt}'],
-        globIgnores: ['assets/venues/**', 'assets/audience/**'],
+        globIgnores: ['assets/venues/**', 'assets/audience/**',
+          // Optional video tools should not compete with first-page downloads.
+          'assets/{ComparisonExportModal,decodedVideo,videoFrames,indexVideo.worker}-*'],
         manifestTransforms: [async (entries) => ({
           manifest: entries.filter(({ url }) => !url.startsWith('assets/opponents/')
             || !url.endsWith('.glb') || url === opponentMotion.url.slice(1)),
           warnings: [],
         })],
         runtimeCaching: [{
+          urlPattern: /\/assets\/(?:ComparisonExportModal|decodedVideo|videoFrames|indexVideo\.worker)-[a-zA-Z0-9_-]+\.(?:js|css)$/,
+          handler: 'CacheFirst',
+          options: { cacheName: 'tenmulate-video-tools-v1', cacheableResponse: { statuses: [200] },
+            expiration: { maxEntries: 24, maxAgeSeconds: 30 * 24 * 60 * 60, purgeOnQuotaError: true } },
+        }, {
           urlPattern: /\/assets\/audio\/[a-z0-9-]+\.[a-f0-9]{12}\.(?:wav|mp3)$/,
           handler: 'CacheFirst',
           options: { cacheName: 'tenmulate-audio-v1', cacheableResponse: { statuses: [200] },

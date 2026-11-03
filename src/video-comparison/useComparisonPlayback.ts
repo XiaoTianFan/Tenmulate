@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { ComparisonClip } from './types';
 import { frameForTime, clipFrameRange } from './timeline';
 import { ComparisonPlayback, showManualFrame } from './playback';
-import { decodeVideo } from './decodedVideo';
+import { loadVideoTools } from './loadVideoTools';
 
 type Props = {
   clips: ComparisonClip[];
@@ -43,22 +43,11 @@ export function useComparisonPlayback(props: Props): boolean {
   useEffect(() => {
     if (!props.playing || !props.active || !props.linked) { setBuffering(false); return; }
     let stopped = false, request = 0;
-    const state = latest.current;
-    const followers = state.clips.flatMap(clip => {
-      const video = state.videos.get(clip.id);
-      const canvas = state.canvases.get(clip.id);
-      if (!video || !canvas || !clip.index || clip.contact === null || clip.error) return [];
-      video.pause();
-      const aligned = { ...clip, index: clip.index, contact: clip.contact };
-      const first = frameForTime(aligned, state.time);
-      return [{ clip: aligned, source: decodeVideo(clip.file, clip.index, first, canvas, () => {
-        if (!stopped) latest.current.onCompatibility();
-      }, clipFrameRange(aligned).end) }];
-    });
-    const engine = new ComparisonPlayback(followers, state.time, state.rate, performance.now(), message => {
-      latest.current.onError(message); latest.current.onPause();
-    });
+    const controller = new AbortController();
+    let engine: ComparisonPlayback | undefined;
+    setBuffering(true);
     const tick = (now: number) => {
+      if (!engine) return;
       if (stopped || !latest.current.playing || !latest.current.active || !latest.current.linked) {
         engine.dispose(); return;
       }
@@ -69,12 +58,33 @@ export function useComparisonPlayback(props: Props): boolean {
       if (result.ended) { latest.current.onPause(); return; }
       request = requestAnimationFrame(tick);
     };
-    request = requestAnimationFrame(tick);
+    void loadVideoTools(() => import('./decodedVideo'), controller.signal).then(({ decodeVideo }) => {
+      if (stopped) return;
+      const state = latest.current;
+      const followers = state.clips.flatMap(clip => {
+        const video = state.videos.get(clip.id);
+        const canvas = state.canvases.get(clip.id);
+        if (!video || !canvas || !clip.index || clip.contact === null || clip.error) return [];
+        video.pause();
+        const aligned = { ...clip, index: clip.index, contact: clip.contact };
+        const first = frameForTime(aligned, state.time);
+        return [{ clip: aligned, source: decodeVideo(clip.file, clip.index, first, canvas, () => {
+          if (!stopped) latest.current.onCompatibility();
+        }, clipFrameRange(aligned).end) }];
+      });
+      // Anchor only after the module is ready; network time must not advance clips.
+      engine = new ComparisonPlayback(followers, state.time, state.rate, performance.now(), message => {
+        latest.current.onError(message); latest.current.onPause();
+      });
+      request = requestAnimationFrame(tick);
+    }).catch(error => {
+      if (!stopped) { latest.current.onError(error instanceof Error ? error.message : 'Could not load video tools. Check your connection and try again.'); latest.current.onPause(); }
+    });
     const hide = () => { if (document.hidden) latest.current.onPause(); };
     document.addEventListener('visibilitychange', hide);
     return () => {
       stopped = true; cancelAnimationFrame(request); document.removeEventListener('visibilitychange', hide);
-      engine.dispose();
+      controller.abort(); engine?.dispose();
     };
   }, [props.playing, props.active, props.linked]);
   return buffering;

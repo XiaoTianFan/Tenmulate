@@ -12,6 +12,7 @@ import { useLocale } from '../i18n/locale';
 import { localizeDefaultDrill, localizeDefaultShot, localizeDefaultPreset, localizeDefaults } from '../i18n/content';
 import type { SessionLaunch } from './types';
 import { SharedCourtProvider } from '../components/SharedCourt';
+import { VideoComparisonScreen } from '../video-comparison/VideoComparisonScreen';
 import { Modal } from '../components/Modal';
 import { appStorageNotice } from '../storage/appStorage';
 import { useProjectDrills } from '../hooks/useProjectDrills';
@@ -29,7 +30,6 @@ const loadRehearsal = () => import('../components/RehearsalScreen').then(module 
 const RehearsalScreen = lazy(loadRehearsal);
 const DrillLibraryScreen = lazy(() => import('../components/DrillLibraryScreen').then(module => ({ default: module.DrillLibraryScreen })));
 const DrillEditorScreen = lazy(() => import('../components/DrillEditorScreen').then(module => ({ default: module.DrillEditorScreen })));
-const VideoComparisonScreen = lazy(() => import('../video-comparison/VideoComparisonScreen').then(module => ({ default: module.VideoComparisonScreen })));
 const LoadingScreen = () => <main className="route-loading" aria-live="polite"><strong>Tenmulate</strong><span>{t("Preparing court…")}</span></main>;
 
 export function App() {
@@ -183,9 +183,7 @@ function AppRoutes({ appData }: { appData: ReturnType<typeof useAppData> }) {
         initialPreferences={appData.data.preferences} onRoute={navigate} onStart={setLaunch} onSaveCameraPositionPreset={savePosition}
         onSavePerspectivePreset={savePerspective} onSaveConfig={saveConfig} onRestoreBallFocus={appData.saveBallFocus} projectPracticeConfigs={configs.snapshot.practiceConfigs} practiceConfigs={{ ...configs.snapshot.practiceConfigs, ...appData.data.practiceConfigs }} onPreferencesChange={appData.savePreferences}/>}
     </Suspense>
-    {comparisonOpened ? <Suspense fallback={route === 'comparison' ? <LoadingScreen/> : null}>
-      <VideoComparisonScreen active={route === 'comparison' && !launch} onRoute={navigate}/>
-    </Suspense> : null}
+    {comparisonOpened ? <VideoComparisonScreen active={route === 'comparison' && !launch} onRoute={navigate}/> : null}
     {saves.ui}
     {busy ? <Modal title={t("Preparing drill")} onClose={cancel} actions={<button type="button" className="secondary-button" onClick={cancel}>{t("Cancel")}</button>}><p role="status">{t("Connecting your shots, opponent returns and camera movement…")}</p></Modal> : null}
     {message ? <Modal title={t("Drill planning")} onClose={() => setMessage(null)} actions={<button type="button" className="primary-button inline" onClick={() => setMessage(null)}>{t("Close")}</button>}><p className="drill-planning-message">{translateMessage(message)}</p></Modal> : null}

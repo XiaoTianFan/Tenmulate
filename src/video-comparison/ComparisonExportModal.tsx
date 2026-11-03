@@ -11,8 +11,8 @@ import { renderComparison } from './exportRender';
 import type { ComparisonClip } from './types';
 import './export.css';
 
-type Props = { clips: ComparisonClip[]; rate: number; previews: Record<string, string>; onClose: () => void };
-export function ComparisonExportModal({ clips, rate, previews, onClose }: Props) {
+export type ComparisonExportProps = { clips: ComparisonClip[]; rate: number; previews: Record<string, string>; onClose: () => void; restoreFocusTo?: HTMLElement | null };
+export function ComparisonExportModal({ clips, rate, previews, onClose, restoreFocusTo }: ComparisonExportProps) {
   const locale = useLocale();
   const eligible = clips.filter(clip => clip.index && clip.contact !== null && !clip.error);
   const bounds = comparisonRange(eligible.map(clip => ({ ...clip, index: clip.index!, contact: clip.contact! })));
@@ -25,7 +25,7 @@ export function ComparisonExportModal({ clips, rate, previews, onClose }: Props)
   const [running, setRunning] = useState(false), [progress, setProgress] = useState(0), [error, setError] = useState(''), [compatibility, setCompatibility] = useState(false);
   const [result, setResult] = useState<{ url: string; name: string; key: string } | null>(null);
   const controller = useRef<AbortController | null>(null), dialog = useRef<HTMLDialogElement>(null), titleId = useId();
-  const opener = useRef(document.activeElement as HTMLElement | null);
+  const opener = useRef(restoreFocusTo ?? document.activeElement as HTMLElement | null);
   const rows = options.kind === 'video' ? videoRows.filter(row => row.clips.length) : [{ id: 'images', clips: imageOrder }].filter(row => row.clips.length);
   const config: ExportConfig = { ...options, rows };
   const key = JSON.stringify(config);

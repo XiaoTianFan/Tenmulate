@@ -169,6 +169,10 @@ files with more than one million video frames require a shorter excerpt.
 
 Select **Export** to the right of **Link timelines**. Opening the dialog pauses
 review; export uses separate local decoders and does not move the review cursors.
+Switching to the comparison tab does not wait for video tools to download. Decoding
+and export tools load only when needed; first use needs a connection if they are not
+already cached. Export loading can be canceled. A stalled or failed tool download
+reports an error and allows a retry without discarding the loaded clips.
 
 - Choose **Grid video** or **Grid images**, and include/exclude individual clips.
   Each included clip needs a contact mark. Excluding a clip affects only the export.

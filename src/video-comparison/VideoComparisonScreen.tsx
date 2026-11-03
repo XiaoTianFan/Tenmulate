@@ -7,7 +7,7 @@ import { indexVideo, makeFilmstrip } from './localVideo';
 import { clamp, comparisonRange, comparisonTime, formatTime, frameForTime, clipFrameRange, mediaTime, stepComparison, type AlignedClip } from './timeline';
 import type { ComparisonClip } from './types';
 import { useComparisonPlayback } from './useComparisonPlayback';
-import { ComparisonExportModal } from './ComparisonExportModal';
+import { ComparisonExportLoader } from './ComparisonExportLoader';
 import './comparison.css';
 import './editing.css';
 import { drawCropped, normalizeCrop } from './crop';
@@ -188,6 +188,6 @@ export function VideoComparisonScreen({ active, onRoute }: { active: boolean; on
       </div><span>{formatTime(range.end, true)}</span></div>
       <p role="status">{buffering ? t('Preparing synchronized frames…') : linked ? t('All clips follow contact time. Shorter clips hold at their edges. Sound is muted.') : allAligned ? t('Timelines unlinked. Adjust each clip independently, then link to compare.') : t('Set a contact frame in every clip to unlock synchronized playback.')}</p>
     </footer>
-    {exporting && active ? <ComparisonExportModal clips={clips} rate={rate} previews={exportPreviews} onClose={() => setExporting(false)}/> : null}
+    {exporting && active ? <ComparisonExportLoader clips={clips} rate={rate} previews={exportPreviews} onClose={() => setExporting(false)}/> : null}
   </main>;
 }

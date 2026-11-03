@@ -885,5 +885,9 @@
   "Preparing preview…": "正在准备预览…",
   "Drag the yellow handles to choose the export range. Scroll or pinch to zoom.": "拖动黄色手柄选择导出范围，滚轮或双指缩放时间轴。",
   "Exports are silent. Contact alignment, excerpts, crops, clip speeds and mirror settings are preserved. Files stay on this device.": "导出内容无声，并保留触球对齐、片段范围、裁剪、各片速度和镜像设置。文件仅保留在本设备。",
-  "Draw crop": "绘制裁剪区域"
+  "Draw crop": "绘制裁剪区域",
+  "Loading export tools…": "正在加载导出工具…",
+  "Try again": "重试",
+  "Video tools are taking too long to load. Check your connection and try again.": "视频工具加载时间过长，请检查网络连接后重试。",
+  "Could not load video tools. Check your connection and try again.": "无法加载视频工具，请检查网络连接后重试。"
 }

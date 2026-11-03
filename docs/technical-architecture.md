@@ -148,7 +148,13 @@ from TV transport. Screen mirroring remains a device/receiver function.
 
 ## Local video comparison
 
-`src/video-comparison/` owns a separate, lazily loaded review surface. A disposable
+`src/video-comparison/` owns a separate review surface. Its lightweight shell is
+bundled with navigation, so entering the page cannot suspend behind a codec download.
+Playback decoders and the export dialog/encoders use separate dynamic imports,
+requested on Play and Export respectively. Optional tool loads are cancellable at
+the caller and time out after 20 seconds; late completion may populate the browser
+module cache but cannot start canceled playback or reopen a closed dialog.
+The playback clock starts only after its module is ready. A disposable
 worker reads local File objects with Mediabunny and indexes video presentation
 timestamps without decoding the video or uploading bytes. Frame rate is measured
 from those timestamps; variable-rate clips retain their individual frame spacing.
@@ -272,8 +278,11 @@ absent from the deployed application. There is no silent destination fallback.
 English/Simplified Chinese fixed UI and built-in content share stable identities.
 User-authored names, descriptions and cues are never translated automatically.
 
-Vite produces static files with a service worker for cached/offline reuse. Runtime
-assets and their cache policies are versioned; uncached resources need a network.
+Vite produces static files with a service worker for cached/offline reuse. Optional
+video decoder, export and indexing-worker chunks are excluded from installation
+precache so they do not compete with first-page downloads. A bounded cache stores
+their content-hashed JS/CSS after first use. Runtime assets and their cache policies
+are versioned; uncached resources need a network.
 Build and delivery commands live in [AGENTS.md](../AGENTS.md). Device and broader
 acceptance limits are tracked in [open work](open-questions.md).
 
