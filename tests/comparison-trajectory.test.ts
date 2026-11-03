@@ -1,14 +1,14 @@
 import { expect, it } from 'vitest';
 import { reconstructTrajectory, rejectExcursions, trackingBounds, setTrackAnchor, type TrackingPass } from '../src/video-comparison/analysis/trajectory';
 import { createFrameIndex } from '../src/video-comparison/timeline';
-import { ESTIMATED, MANUAL, newMotion, sampleAt, type Anchor, type MotionSeries } from '../src/video-comparison/analysis/types';
+import { ESTIMATED, MANUAL, OBSERVED, newMotion, sampleAt, type Anchor, type MotionSeries } from '../src/video-comparison/analysis/types';
 import { plotData } from '../src/video-comparison/analysis/series';
 const index = createFrameIndex(Array.from({ length: 121 }, (_, i) => ({ timestamp: i / 60, duration: 1 / 60 })));
 const point = (f: number) => ({ x: .15 + f / 600, y: .7 - .4 * f / 60 + .16 * (f / 60) ** 2, confidence: .95 });
 const anchor = (frame: number, role: Anchor['role']): Anchor => ({ ...point(frame), frame, role, width: .02, height: .02 });
 const anchors = [anchor(0, 'start'), anchor(120, 'end')];
 const pass = (): TrackingPass => Array.from({ length: 121 }, (_, i) => point(i));
-const result = (fwd: TrackingPass, back: TrackingPass, contact: number | null = null) => reconstructTrajectory(index, anchors, fwd, back, 1000, 1000, contact);
+const result = (fwd: TrackingPass, back: TrackingPass) => reconstructTrajectory(index, anchors, fwd, back, 1000, 1000);
 function metrics(series: MotionSeries, metric: 'x' | 'y' | 'vx' | 'vy' | 'ax' | 'ay' | 'speed') {
   const m = newMotion(); m.tracks = [{ id: 'ball', name: 'ball', color: '#fff', anchors, visible: true, revision: 1, result: series }];
   return plotData(m, { id: 'plot', target: 'track:ball', metric, smoothing: .1 }, index).values;
@@ -46,12 +46,13 @@ it('does not splice disagreeing forward/backward matches into a teleport', () =>
   const f = pass(), b = pass(); for (let i = 45; i < 65; i++) f[i] = { ...point(i), x: .8, y: .1 };
   const r = result(f, b);
   for (let i = 45; i < 65; i++) expect(Math.abs(sampleAt(r, i)!.x - point(i).x) * 1000).toBeLessThan(1);
-  expect(sampleAt(r, 55)?.state).toBe(ESTIMATED);
+  // The valid backward observation is retained instead of throwing both passes away.
+  expect(sampleAt(r, 55)?.state).toBe(OBSERVED);
 });
-it('preserves a genuine persistent speed change at contact with one-sided velocity and no fictitious finite impact acceleration', () => {
+it('automatically preserves a persistent speed change with one-sided velocity and no fictitious finite impact acceleration', () => {
   const p: TrackingPass = Array.from({ length: 121 }, (_, i) => ({ x: .1 + Math.min(i, 60) / 600 + Math.max(0, i - 60) / 120, y: .5, confidence: 1 }));
   const a: Anchor[] = [{ ...anchors[0], ...p[0]! }, { ...anchors[1], ...p[120]! }];
-  const r = reconstructTrajectory(index, a, p, p, 1000, 1000, 60), vx = metrics(r, 'vx'), ax = metrics(r, 'ax');
+  const r = reconstructTrajectory(index, a, p, p, 1000, 1000), vx = metrics(r, 'vx'), ax = metrics(r, 'ax');
   expect(vx[58]).toBeCloseTo(100, 1); expect(vx[60]).toBeCloseTo(500, 1); expect(vx[62]).toBeCloseTo(500, 1); expect(ax[60]).toBeNull();
   for (let i = 0; i < p.length; i++) expect(sampleAt(r, i)!.x).toBeCloseTo(p[i]!.x, 4);
 });
@@ -69,14 +70,14 @@ it('supports irregular frame timestamps and internal correction anchors without 
   const times = Array.from({ length: 121 }, (_, i) => i / 60 + (i % 2) * .003), vfr = createFrameIndex(times.map(timestamp => ({ timestamp, duration: .016 })));
   const p = times.map(t => ({ x: .1 + .2 * t, y: .4, confidence: 1 }));
   const a: Anchor[] = [0, 55, 120].map((frame, i) => ({ ...p[frame], frame, width: .02, height: .02, role: i === 0 ? 'start' : i === 2 ? 'end' : 'correction' }));
-  const r = reconstructTrajectory(vfr, a, p, p, 1000, 1000, null);
+  const r = reconstructTrajectory(vfr, a, p, p, 1000, 1000);
   for (let f = 0; f <= 120; f++) expect(sampleAt(r, f)?.x).toBeCloseTo(p[f].x, 5);
   expect(sampleAt(r, 55)?.state).toBe(MANUAL);
 });
 it('preserves an unmarked persistent strike and a smooth curved toss without fabricating impacts', () => {
   const p: TrackingPass = Array.from({ length: 121 }, (_, i) => ({ x: .1 + Math.min(i, 60) / 600 + Math.max(0, i - 60) / 120, y: .5, confidence: 1 }));
   const a = [{ ...anchors[0], ...p[0]! }, { ...anchors[1], ...p[120]! }];
-  const r = reconstructTrajectory(index, a, p, p, 1000, 1000, null);
+  const r = reconstructTrajectory(index, a, p, p, 1000, 1000);
   expect(r.corners).toContain(60); expect(metrics(r, 'vx')[60]).toBeCloseTo(500, 1);
   const arc = result(pass(), pass()); expect(arc.corners).toEqual([]);
   for (let f = 5; f < 116; f++) expect(sampleAt(arc, f)!.y).toBeCloseTo(point(f).y, 4);
@@ -98,12 +99,47 @@ it('rejects a 75 ms excursion at high frame rates using source time rather than 
   const points: TrackingPass = Array.from(fast.timestamps, t => ({ x: .1 + t * .2, y: .4, confidence: 1 }));
   for (let i = 80; i < 98; i++) points[i] = { ...points[i]!, x: points[i]!.x + .12 };
   const a: Anchor[] = [0, 240].map((frame, i) => ({ ...points[frame]!, frame, role: i === 0 ? 'start' : 'end', width: .02, height: .02 }));
-  const r = reconstructTrajectory(fast, a, points, points, 1000, 1000, null);
+  const r = reconstructTrajectory(fast, a, points, points, 1000, 1000);
   for (let i = 80; i < 98; i++) { expect(sampleAt(r, i)?.state).toBe(ESTIMATED); expect(sampleAt(r, i)?.x).toBeCloseTo(.1 + i / 240 * .2, 4); }
 });
-it('does not treat the contact marker as proof that a bad image match is valid', () => {
+it('does not mistake an isolated bad match for an automatic motion boundary', () => {
   const f = pass(), b = pass(); f[60] = b[60] = { ...point(60), x: .8 };
-  const r = result(f, b, 60);
+  const r = result(f, b);
   expect(sampleAt(r, 60)?.state).toBe(ESTIMATED); expect(sampleAt(r, 60)?.x).toBeCloseTo(point(60).x, 4);
-  expect(metrics(r, 'vx')[60]).toBeCloseTo(100, 1);
+  expect(metrics(r, 'vx')[60]).toBeCloseTo(100, 1); expect(r.corners).not.toContain(60);
+});
+it('keeps a figure-eight through directional disagreement instead of replacing its turns with the endpoint chord', () => {
+  const path = Array.from({ length: 121 }, (_, f) => ({ x: .5 + .25 * Math.sin(f / 120 * Math.PI * 2), y: .5 + .18 * Math.sin(f / 120 * Math.PI * 4), confidence: .96, verified: true }));
+  const a: Anchor[] = [0, 120].map((frame, i) => ({ ...path[frame], frame, width: .02, height: .02, role: i ? 'end' : 'start' }));
+  const bad = { x: .1, y: .1, confidence: .8 };
+  const f = path.map((p, i) => i > 80 ? bad : p), b = path.map((p, i) => i < 40 ? bad : p);
+  const r = reconstructTrajectory(index, a, f, b, 1000, 1000);
+  for (let i = 0; i <= 120; i++) expect(Math.hypot(sampleAt(r, i)!.x - path[i].x, sampleAt(r, i)!.y - path[i].y) * 1000).toBeLessThan(1);
+});
+it('chooses a coherent secondary image candidate across a distracting primary match', () => {
+  const f = pass(), b = pass();
+  for (let i = 35; i < 85; i++) f[i] = b[i] = { x: .8, y: .2, confidence: .97, alternatives: [point(i)] };
+  const r = result(f, b);
+  for (let i = 35; i < 85; i++) expect(Math.abs(sampleAt(r, i)!.x - point(i).x) * 1000).toBeLessThan(1);
+});
+it('automatically retains multiple sharp changes without contact or turn labels', () => {
+  const p = Array.from({ length: 121 }, (_, i) => ({ x: .15 + (i < 30 ? i : i < 80 ? 60 - i : i - 100) * .004, y: .4 + i * .001, confidence: .99 }));
+  const a: Anchor[] = [0, 120].map((frame, i) => ({ ...p[frame], frame, width: .02, height: .02, role: i ? 'end' : 'start' }));
+  const r = reconstructTrajectory(index, a, p, p, 1000, 1000);
+  expect(r.corners).toEqual(expect.arrayContaining([30, 80]));
+  for (let i = 0; i <= 120; i++) expect(sampleAt(r, i)!.x).toBeCloseTo(p[i].x, 4);
+});
+it('retains a short image-supported loop that returns to its original trend', () => {
+  const p = Array.from({ length: 121 }, (_, i) => {
+    const u = Math.max(0, Math.min(1, (i - 50) / 8));
+    return { x: .2 + i * .005 + .008 * Math.sin(u * Math.PI * 2), y: .4 + .012 * (1 - Math.cos(u * Math.PI * 2)), confidence: .98, verified: true };
+  });
+  const a: Anchor[] = [0, 120].map((frame, i) => ({ ...p[frame], frame, width: .02, height: .02, role: i ? 'end' : 'start' }));
+  const r = reconstructTrajectory(index, a, p, p, 1000, 1000);
+  for (let i = 50; i <= 58; i++) { expect(sampleAt(r, i)?.state).toBe(OBSERVED); expect(Math.abs(sampleAt(r, i)!.y - p[i].y) * 1000).toBeLessThan(1); }
+});
+it('uses observed tangents across a brief hidden apex instead of flattening its height', () => {
+  const f = pass(), b = pass(); for (let i = 70; i <= 80; i++) f[i] = b[i] = null;
+  const r = result(f, b); expect(sampleAt(r, 75)?.state).toBe(ESTIMATED);
+  expect(Math.abs(sampleAt(r, 75)!.y - point(75).y) * 1000).toBeLessThan(.5);
 });

@@ -58,9 +58,11 @@ schedule. Completed features belong in the user guide and architecture.
   long high-FPS excerpts. Browser-only point tracking cannot guarantee fast-ball
   identity through occlusion or distinguish identical targets. Anchored reconstruction
   now connects uncertain sections continuously, but estimated geometry is not recovered
-  visual evidence; manual corrections remain essential. Thresholds and inferred-impact
-  detection need broader real-footage evaluation, including motion blur and rapid
-  racket rotation. MoveNet estimates one player's projected pose, not persistent
+  visual evidence. Adaptive appearance and candidate-path selection retain observed
+  turns without manual turn labels, but confidence thresholds and inferred-impact
+  detection still need broader real-footage evaluation, including long occlusion,
+  severe motion blur and rapid racket rotation. Corrections remain useful when
+  visually indistinguishable targets cross. MoveNet estimates one player's projected pose, not persistent
   multi-person identity or racket geometry. Capture-time/slow-motion metadata,
   camera stabilization, calibrated physical units, 3D reconstruction and durable
   analysis-session storage are not implemented.

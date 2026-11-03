@@ -151,32 +151,34 @@ model/runtime resources from this site; subsequent requests can use the local ca
 
 - **Add point or region track** pauses review and brings the video into view.
   Choose a start frame and tap the ball/racket head or drag a small textured area
-  around it. Then choose an end frame and select the same target there. The frame
-  slider and step buttons below the picture let you adjust either frame; the end
-  must be later than the start, inside the excerpt. Canceling the second selection
+  around it. Then choose an end frame and select the same target there. Use the
+  existing preview lane or fine-scrub lane to navigate while selecting either point;
+  there is no separate selection slider. The end must be later than the start,
+  inside the excerpt. Canceling the second selection
   keeps the start so you can finish it with **End position**. Keyboard users can
   aim with arrows (Shift for larger steps) and press Enter.
 - **Track between anchors** analyzes every source frame in both directions between
   those two positions. Up to six tracks have their own names, colors and visibility.
   A point is the center of the selected area, not a recognized object boundary.
-  Tracking can reacquire after loss. The two passes, color evidence and neighboring
-  motion reject inconsistent matches and short outward-and-back spikes, then fit
-  a continuous path through the exact manual positions. Nothing is extrapolated
-  beyond the chosen start and end.
+  Tracking adapts to changing appearance, rotation and scale, and searches around
+  both the last position and predicted motion to follow reversals. Competing matches
+  from both directions are retained and compared across the range. Observed loops
+  and turns are kept; smoothing can move an observed position by at most 0.75 original
+  pixels. Nothing is extrapolated beyond the chosen start and end.
 - Lighter solid trail sections, hollow markers and **≈** distinguish estimated
-  portions, including gaps filled without image evidence. Continuity is not proof
+  portions, including gaps filled without image evidence. Short gaps use observed
+  entry/exit directions where available; longer gaps cannot reveal hidden turns. Continuity is not proof
   of accuracy: an obscured or indistinguishable target can still take an incorrect
   inferred path. **Review estimates** jumps through these sections. At a visible
   frame, choose **Set correction here**, place an anchor and rerun tracking. Changing
   anchors clears the old result. Small, blurred or very fast balls can need several
   corrections. The supported-frame count includes manual anchors and accepted matches.
-- Set the contact frame before analysis, or mark a correction **Motion changes here**
-  at a strike/bounce. These preserve a real velocity change instead of smoothing it
-  away. Stable one-sided motion can also identify an unmarked impact. Acceleration
-  exactly at a marked/inferred instantaneous impact is left undefined; velocity uses
-  the outgoing side. Changing contact afterward keeps the cached path aligned; rerun
-  tracking to apply the new contact as a smoothing boundary. Contact changes cancel
-  any job still running on that clip.
+- Turns and abrupt changes are detected automatically from the tracked motion;
+  there is no turn-frame checkbox. You do not need to add a correction at every
+  turn. Image-supported short loops are distinguished from unsupported outward-and-back
+  spikes. Acceleration exactly at an inferred instantaneous impact is undefined;
+  velocity uses the outgoing side. Contact marks align playback and do not instruct
+  the tracker to invent a turn. Corrections still help when appearance is ambiguous.
 - **Analyze pose** estimates one player's 17 body landmarks. Use **Select player
   region** to exclude other players and keep that player inside the region for the
   whole excerpt. **Draft** samples up to 15 times/second and interpolates short

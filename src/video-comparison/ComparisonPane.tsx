@@ -71,8 +71,7 @@ export function ComparisonPane({ presentation, analysis, linked, onMotion, clip,
       onMotion(m => {
         const existing = m.tracks.find(track => track.id === id);
         const track: MotionTrack = existing ?? { id, name: t('Track {number}', { number: m.tracks.length + 1 }), color: COLORS[m.tracks.length % COLORS.length], anchors: [], revision: 0, visible: true };
-        const old = track.anchors.find(a => a.frame === anchor.frame);
-        const next = { ...track, anchors: setTrackAnchor(track.anchors.filter(a => a.frame >= excerpt.start && a.frame <= excerpt.end && !(selection.role === 'start' && a.role === 'end' && a.frame <= anchor.frame)), { ...anchor, corner: old?.corner }, selection.role), revision: track.revision + 1 };
+        const next = { ...track, anchors: setTrackAnchor(track.anchors.filter(a => a.frame >= excerpt.start && a.frame <= excerpt.end && !(selection.role === 'start' && a.role === 'end' && a.frame <= anchor.frame)), anchor, selection.role), revision: track.revision + 1 };
         next.result = manualSeries(next, dimensions.width, dimensions.height);
         return { ...m, tracks: existing ? m.tracks.map(value => value.id === id ? next : value) : [...m.tracks, next] };
       });
@@ -112,7 +111,7 @@ export function ComparisonPane({ presentation, analysis, linked, onMotion, clip,
           <canvas ref={element => onCanvas(clip.id, element)} className="comparison-playback-frame" hidden aria-hidden="true"/>
           {clip.motion && !cropping ? <MotionOverlay clip={clip} presentation={presentation} width={dimensions.width} height={dimensions.height}/> : null}
         </div>
-        {selection ? <MotionSelection key={selection.type === 'track' ? `${selection.id}:${selection.role}` : 'region'} selection={selection} crop={crop} mirrored={mirrored} frame={frame} ready={displayed === frame && frame >= selectionMin && frame <= selectionMax} min={selectionMin} max={selectionMax} toolbar={selectionToolbar.current} onFrame={onFrame} onSelect={selected} onCancel={() => setSelection(null)}/> : null}
+        {selection ? <MotionSelection key={selection.type === 'track' ? `${selection.id}:${selection.role}` : 'region'} selection={selection} crop={crop} mirrored={mirrored} frame={frame} ready={displayed === frame && frame >= selectionMin && frame <= selectionMax} min={selectionMin} max={selectionMax} toolbar={selectionToolbar.current} onSelect={selected} onCancel={() => setSelection(null)}/> : null}
         {cropping ? <CropEditor crop={clip.crop} sourceAspect={dimensions.width / dimensions.height} viewportAspect={size.width / (size.height + 104)}
           toolbarTarget={wrap.current} onChange={onCrop} onDone={() => setCropping(false)} onCancel={() => { onCrop(originalCrop.current); setCropping(false); }}/> : null}
       </div>

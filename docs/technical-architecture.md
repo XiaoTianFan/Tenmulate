@@ -179,28 +179,39 @@ per-clip tokens and per-track revisions. Jobs pause between frames during playba
 export, inactive routes and hidden tabs. No API/backend receives footage.
 
 Point tracks require explicit start/end anchors on different source frames. Each
-interval between manual anchors runs in both directions. The JSFeat tracker uses
-nine-point pyramidal Lucas–Kanade proposals checked by round-trip error, a fixed
-normalized grayscale template, chroma checks and timestamp-aware motion prediction.
-It never learns from an uncertain match and can reacquire after a short loss.
-Analysis uses at most a 1280-pixel long edge; reverse tracking decodes batches of four
-frames to bound memory. Both passes are reconciled before an O(n) banded constrained
-fit reconstructs one continuous trajectory. Short return-to-trend excursions are
-rejected using neighboring velocity and Hermite predictions; disagreeing passes
-and occlusions become low-confidence estimates. Manual anchors are exact constraints.
-Actual VFR timestamps drive the acceleration penalty. Contact, explicitly marked
-motion changes and stable inferred impacts remove the penalty at the corner, preserving
-piecewise motion. No samples are extrapolated beyond the endpoint interval.
+interval between manual corrections runs in both directions. The JSFeat tracker
+uses nine-point pyramidal Lucas–Kanade flow checked by round-trip error. Translation
+and similarity-transform proposals cover rotation/scale; weighted appearance matching
+uses an immutable seed and two recent templates, updated only from unambiguous,
+visually verified matches. Distinctive-color components add candidates for small balls
+whose grayscale surroundings change. Search covers both the last observation and
+prediction, so reversals are not excluded by the previous velocity. Expensive appearance
+transforms run only around a few spatial proposals. Analysis stays at a 1280-pixel long
+edge; reverse decoding retains four frames at a time. No new model download is required.
 
-The trajectory, position plots and exports use this same cached path. Inferred or
-substantially adjusted positions carry an estimated state (including low-confidence
-samples that must remain visible), lighter solid trails, hollow markers and ≈ labels.
-Smoothness cannot establish identity or recover hidden motion; review estimates and
-add corrections when evidence is insufficient. Round-trip proposal checks follow the
-[OpenCV round-trip optical-flow example](https://github.com/opencv/opencv/blob/4.x/samples/python/lk_track.py).
+Each direction returns up to four spatial candidates rather than dropping every
+ambiguous frame. A second-order, bounded beam selects a path from this evidence across
+the range (24 states per observed frame), with exact manual anchors and robust motion
+costs. Directional disagreement is resolved by the surrounding evidence, not by
+discarding both matches or attracting points to an endpoint chord. A return-to-trend
+filter rejects isolated bad matches while preserving visually supported multi-frame
+loops. Sharp changes are inferred from stable incoming/outgoing velocities; contact
+marks do not define motion boundaries and no turn annotations are required.
+
+Only missing intervals need geometric reconstruction. Short gaps (up to 350 ms) use
+observed endpoint tangents where available; longer gaps use explicitly uncertain
+interpolation, which cannot recover unseen loops. A lightweight banded fit suppresses
+small jitter but can move an observed position by no more than 0.75 source pixels;
+manual positions and inferred sharp turns are unchanged. The trajectory, position
+plots and exports use this same cached path. Inferred positions carry low confidence,
+lighter solid trails, hollow markers and ≈ labels. No samples are extrapolated outside
+the selected range. Continuity cannot prove target identity or recover hidden motion.
+
+Round-trip proposal checks follow the
+[OpenCV optical-flow example](https://github.com/opencv/opencv/blob/4.x/samples/python/lk_track.py).
 Learned point trackers such as [CoTracker](https://github.com/facebookresearch/co-tracker)
-are possible future research, but the supplied PyTorch/GPU-oriented pipeline is not
-a drop-in replacement for the current browser-only desktop/mobile budget.
+remain possible research, but their supplied PyTorch/GPU pipeline is not a drop-in
+replacement for this browser-only desktop/mobile budget.
 
 A separate, opt-in pose worker loads a pinned MoveNet Lightning v4 graph through TFJS's single-thread WASM backend, avoiding WebGL contexts and cross-origin isolation. Worker entry points use static
 runtime imports to avoid circular entry-module reinitialization in WebKit. It downsizes to a 640-pixel long edge, applies the selected
@@ -217,8 +228,7 @@ frame: WebKit can defer a paused native seek while the video is scrolled out of
 view. During playback the review cursor is itself published only after the shared
 presentation barrier, preserving plot/overlay alignment. Data is immutable after completion, and local polynomial
 fits for derivatives use real presentation timestamps. Continuous point paths permit
-one-sided fits at endpoints and impacts; fits do not cross impacts. Exact impact
-acceleration is undefined. Missing pose samples and legacy sparse manual corrections
+one-sided fits at endpoints and impacts; fits do not cross impacts. Acceleration exactly at an inferred impact is undefined. Missing pose samples and legacy sparse manual corrections
 break fits. Estimated samples also mark derivative windows that depend on them.
 Measurements remain in source pixels/seconds as review speeds change. Storage and drawing use image-down coordinates; plots convert vertical
 position to height above the original image bottom, giving upward-positive vertical

@@ -1,6 +1,7 @@
+import { selectTrackingPath } from './trackingPath';
 import type { FrameIndex } from '../timeline';
 import { emptySeries, ESTIMATED, MANUAL, OBSERVED, putSample, type Anchor, type MotionSeries } from './types';
-export type TrackingPoint = { x: number; y: number; confidence: number };
+export type TrackingPoint = { x: number; y: number; confidence: number; verified?: boolean; alternatives?: TrackingPoint[] };
 export type TrackingPass = (TrackingPoint | null)[];
 const distance = (a: TrackingPoint, b: TrackingPoint, width: number, height: number) => Math.hypot((a.x - b.x) * width, (a.y - b.y) * height);
 const median = (values: number[]) => { const sorted = values.slice().sort((a, b) => a - b); return sorted.length ? sorted[Math.floor(sorted.length / 2)] : 0; };
@@ -19,7 +20,8 @@ export function setTrackAnchor(anchors: readonly Anchor[], anchor: Anchor, role:
 }
 
 /** A short excursion followed by a return to the previous trend is different
- * from a lasting velocity change. Never reject a manual anchor or marked impact. */
+ * from a lasting velocity change. Verified multi-frame turns are retained;
+ * manual anchors are never rejected. */
 export function rejectExcursions(points: TrackingPass, times: Float64Array, start: number, width: number, height: number, protectedFrames: ReadonlySet<number>): number {
   const original = points.slice(), rejected = new Set<number>();
   const step = median(Array.from({ length: points.length - 1 }, (_, i) => times[start + i + 1] - times[start + i]));
@@ -40,6 +42,13 @@ export function rejectExcursions(points: TrackingPass, times: Float64Array, star
     if (Math.hypot(vx - wx, vy - wy) > Math.max(30, .5 * Math.max(speed, nextSpeed))) continue;
     const expected = { x: left.x + (vx + wx) * .5 * dt / width, y: left.y + (vy + wy) * .5 * dt / height, confidence: 1 };
     if (distance(expected, right, width, height) > Math.max(4, step * .9)) continue;
+    // A short loop can return to its entry trend too. Unlike an isolated wrong
+    // match, it has image support throughout and evenly spaced intervening steps.
+    const span = original.slice(i - 1, j + 2);
+    if (length >= 3 && span.every(Boolean)) {
+      const hops = span.slice(1).map((p, k) => distance(p!, span[k]!, width, height));
+      if (span.filter(p => p?.verified).length >= span.length * .75 && Math.max(...hops) <= Math.max(3, median(hops) * 2.5)) continue;
+    }
     const threshold = Math.max(3, step * .8);
     const excursions: number[] = [];
     for (let f = i; f <= j; f++) {
@@ -68,7 +77,7 @@ function motionCorners(points: TrackingPass, times: Float64Array, start: number,
     const before = velocity(i - 2, i - 1), incoming = velocity(i - 1, i), outgoing = velocity(i, i + 1), after = velocity(i + 1, i + 2);
     const variation = Math.max(distance(before, incoming, 1, 1), distance(outgoing, after, 1, 1));
     const change = distance(incoming, outgoing, 1, 1);
-    if (change > Math.max(100, variation * 4, Math.min(Math.hypot(incoming.x, incoming.y), Math.hypot(outgoing.x, outgoing.y)) * .6)) result.push(start + i);
+    if (change > Math.max(30, variation * 4, Math.min(Math.hypot(incoming.x, incoming.y), Math.hypot(outgoing.x, outgoing.y)) * .6)) result.push(start + i);
   }
   return result;
 }
@@ -110,51 +119,48 @@ function smooth(values: number[], weights: number[], times: Float64Array, start:
 
 /** Reconcile independent directions, remove return-to-trend outliers, then solve
  * one continuous path. No frames outside the two chosen endpoints are invented. */
-export function reconstructTrajectory(index: FrameIndex, anchors: readonly Anchor[], forward: TrackingPass, backward: TrackingPass, width: number, height: number, contact: number | null, smoothing = .06): MotionSeries {
+export function reconstructTrajectory(index: FrameIndex, anchors: readonly Anchor[], forward: TrackingPass, backward: TrackingPass, width: number, height: number, smoothing = .025): MotionSeries {
   const bounds = trackingBounds(anchors);
   if (!bounds) throw new Error('Choose a start and end position on two different frames.');
   const { start, end } = bounds, n = end - start + 1;
   const manual = anchors.filter(a => a.frame >= start && a.frame <= end).sort((a, b) => a.frame - b.frame);
-  const protectedFrames = new Set(manual.map(a => a.frame)), corners = new Set(manual.filter(a => a.corner).map(a => a.frame));
-  // Contact permits a real velocity change; it is not a trusted position measurement.
-  if (contact !== null && contact > start && contact < end) corners.add(contact);
-  const fwd = forward.slice(), back = backward.slice();
-  rejectExcursions(fwd, index.timestamps, start, width, height, protectedFrames);
-  rejectExcursions(back, index.timestamps, start, width, height, protectedFrames);
-  const points: TrackingPass = Array(n).fill(null); let segment = 0;
-  for (let i = 0; i < n; i++) {
-    const f = start + i; while (segment + 1 < manual.length - 1 && f > manual[segment + 1].frame) segment++;
-    const a = manual[segment], b = manual[segment + 1], left = fwd[i], right = back[i];
-    const u = (index.timestamps[f] - index.timestamps[a.frame]) / (index.timestamps[b.frame] - index.timestamps[a.frame]);
-    const tolerance = Math.max(3, Math.min(12, Math.hypot(a.width * width, a.height * height) * .3));
-    if (left && right) {
-      if (distance(left, right, width, height) > tolerance) continue;
-      const wl = (1 - u) ** 2 * left.confidence, wr = u ** 2 * right.confidence, total = wl + wr || 1;
-      points[i] = { x: (left.x * wl + right.x * wr) / total, y: (left.y * wl + right.y * wr) / total, confidence: Math.min(left.confidence, right.confidence) };
-    } else points[i] = left ?? right;
-  }
-  for (const a of manual) points[a.frame - start] = { x: a.x, y: a.y, confidence: 1 };
-  for (const f of motionCorners(points, index.timestamps, start, width, height)) { corners.add(f); protectedFrames.add(f); }
+  const protectedFrames = new Set(manual.map(a => a.frame));
+  const points = selectTrackingPath(forward, backward, manual, index.timestamps, start, width, height);
+  for (const a of manual) points[a.frame - start] = { x: a.x, y: a.y, confidence: 1, verified: true };
   const rejected = rejectExcursions(points, index.timestamps, start, width, height, protectedFrames);
-  // Interpolation supplies a weak prior, not a fabricated high-confidence observation.
+  const corners = new Set(motionCorners(points, index.timestamps, start, width, height));
+  // Keep observed turns. Only gaps need reconstruction; short gaps can use the
+  // measured entry/exit tangents (including a toss apex), not an endpoint chord.
   const xs = new Array<number>(n), ys = new Array<number>(n), weights = new Array<number>(n), estimated = new Uint8Array(n);
-  let previous = 0;
-  for (let i = 0; i < n; i++) if (points[i]) {
-    const p = points[i]!;
-    for (let j = previous; j <= i; j++) {
-      const left = points[previous]!, u = i === previous ? 0 : (index.timestamps[start + j] - index.timestamps[start + previous]) / (index.timestamps[start + i] - index.timestamps[start + previous]);
-      const observation = points[j]; xs[j] = observation?.x ?? left.x + (p.x - left.x) * u; ys[j] = observation?.y ?? left.y + (p.y - left.y) * u;
+  const observed = points.flatMap((p, i) => p ? [i] : []), t = (f: number) => index.timestamps[start + f];
+  for (let k = 0; k < observed.length; k++) {
+    const right = observed[k], left = observed[Math.max(0, k - 1)], a = points[left]!, b = points[right]!, dt = t(right) - t(left);
+    const before = observed[Math.max(0, k - 2)], after = observed[Math.min(observed.length - 1, k + 1)];
+    const interpolate = (axis: 'x' | 'y', u: number) => {
+      if (right === left) return b[axis];
+      const chord = (b[axis] - a[axis]) / dt;
+      if (dt > .35) return a[axis] + (b[axis] - a[axis]) * u;
+      const incoming = before < left && t(left) - t(before) < .1 ? (a[axis] - points[before]![axis]) / (t(left) - t(before)) : chord;
+      const outgoing = after > right && t(after) - t(right) < .1 ? (points[after]![axis] - b[axis]) / (t(after) - t(right)) : chord;
+      return (2 * u ** 3 - 3 * u ** 2 + 1) * a[axis] + (u ** 3 - 2 * u ** 2 + u) * dt * incoming + (-2 * u ** 3 + 3 * u ** 2) * b[axis] + (u ** 3 - u ** 2) * dt * outgoing;
+    };
+    for (let j = left; j <= right; j++) {
+      const observation = points[j], u = right === left ? 0 : (t(j) - t(left)) / dt;
+      xs[j] = observation?.x ?? interpolate('x', u); ys[j] = observation?.y ?? interpolate('y', u);
       weights[j] = observation ? Math.max(.05, observation.confidence ** 2) : .001; estimated[j] = observation ? 0 : 1;
     }
-    previous = i;
   }
   const fixedX = new Map(manual.map(a => [a.frame - start, a.x])), fixedY = new Map(manual.map(a => [a.frame - start, a.y]));
   const x = smooth(xs, weights, index.timestamps, start, fixedX, corners, smoothing), y = smooth(ys, weights, index.timestamps, start, fixedY, corners, smoothing);
-  const result = emptySeries(start, end, 1, width, height, 'Anchored bidirectional color/LK + robust trajectory');
+  const result = emptySeries(start, end, 1, width, height, 'Adaptive appearance/flow + evidence-selected trajectory');
   result.continuous = true; result.corners = [...corners]; result.rejected = rejected;
   for (let i = 0; i < n; i++) {
-    const isManual = fixedX.has(i), moved = Math.hypot((x[i] - xs[i]) * width, (y[i] - ys[i]) * height) > 2;
-    putSample(result, start + i, 0, x[i], y[i], estimated[i] ? .15 : points[i]!.confidence, isManual ? MANUAL : estimated[i] || moved ? ESTIMATED : OBSERVED);
+    const isManual = fixedX.has(i), p = points[i];
+    // Smoothing cannot pull a supported turn toward the endpoint chord. Limit
+    // corrections in original pixels, independently of FPS and image aspect.
+    const moved = Math.hypot((x[i] - xs[i]) * width, (y[i] - ys[i]) * height);
+    const amount = isManual || !p || corners.has(start + i) ? 0 : Math.min(1, .75 / Math.max(moved, 1e-8));
+    putSample(result, start + i, 0, xs[i] + (x[i] - xs[i]) * amount, ys[i] + (y[i] - ys[i]) * amount, estimated[i] ? .15 : p!.confidence, isManual ? MANUAL : estimated[i] ? ESTIMATED : OBSERVED);
   }
   return result;
 }

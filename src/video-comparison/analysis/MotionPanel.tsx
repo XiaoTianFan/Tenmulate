@@ -42,13 +42,12 @@ export function MotionPanel({ clip, frame, view, linked, analysis, onEdit, onSel
         {!valid ? <p className="motion-help">{t('Choose start and end positions on different frames inside the excerpt.')}</p> : null}
         <div className="motion-anchors">{track.anchors.map(anchor => <div key={anchor.frame}>
           <button type="button" onClick={() => onFrame(anchor.frame)}>{t('Frame {frame}', { frame: anchor.frame + 1 })}</button>
-          <label><input type="checkbox" checked={!!anchor.corner} onChange={e => { const corner = e.target.checked; analysis.cancel(clip.id); editTrack(track.id, value => ({ ...value, anchors: value.anchors.map(a => a.frame === anchor.frame ? { ...a, corner } : a), revision: value.revision + 1, result: undefined })); }}/>{t('Motion changes here')}</label>
           {anchor.role === 'correction' ? <button type="button" aria-label={t('Remove anchor at frame {frame}', { frame: anchor.frame + 1 })} onClick={() => { analysis.cancel(clip.id); editTrack(track.id, value => ({ ...value, anchors: value.anchors.filter(a => a.frame !== anchor.frame), revision: value.revision + 1, result: undefined })); }}>×</button> : null}
         </div>)}</div>
         {track.result?.continuous ? <div className="motion-coverage"><span>{t('{observed} supported · {estimated} estimated frames', { observed: track.result.end - track.result.start + 1 - inferred, estimated: inferred })}</span>
           {inferred ? <button type="button" onClick={() => { const gaps = estimates[track.id], next = gaps.find(gap => Math.round((gap.start + gap.end) / 2) > frame) ?? gaps[0]; onFrame(Math.round((next.start + next.end) / 2)); }}>{t('Review estimates')}</button> : null}</div> : null}
       </div>; })}
-      {motion.tracks.length ? <p className="motion-help">{t('Estimated sections connect uncertain matches; review them and add corrections. Contact frames and “Motion changes here” preserve strikes or bounces. All processing stays on this device.')}</p> : null}
+      {motion.tracks.length ? <p className="motion-help">{t('Turns are detected automatically from the tracked motion. Lighter sections are estimates; use correction points if the target is lost. All processing stays on this device.')}</p> : null}
       <fieldset className="motion-pose"><legend>{t('Body pose')}</legend>
         <label>{t('Analysis quality')}<select value={motion.pose.quality} onChange={e => invalidatePose(m => ({ ...m, pose: { ...m.pose, quality: e.target.value as 'draft' | 'full', result: undefined } }))}>
           <option value="draft">{t('Draft · 15 samples/s')}</option><option value="full">{t('Every source frame')}</option></select></label>

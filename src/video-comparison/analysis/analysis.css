@@ -46,11 +46,9 @@
 .motion-selection-tools { padding: 10px 12px; background: #172127; border-block: 1px solid #7e7431; color: #e9eff2; font-size: 12px; display: grid; gap: 8px; }
 .motion-selection-tools p { margin: 0; line-height: 1.5; }
 .motion-selection-navigation { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.motion-selection-navigation input { flex: 1; min-width: 0; accent-color: #f6e62d; }
 .motion-selection-navigation button { min-height: 40px; min-width: 40px; border: 1px solid #89959c; border-radius: 4px; color: inherit; background: #0b1217; }
 .motion-endpoints { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
 .motion-anchors > div { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.motion-anchors label { font-size: 10px; }
 .motion-coverage { flex-wrap: wrap; }
 .motion-plots-section { border-top: 1px solid #29343d; margin-top: 12px; }
 

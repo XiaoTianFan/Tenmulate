@@ -4,7 +4,7 @@ import { t } from '../../i18n/locale';
 import type { Anchor } from './types';
 import type { CropRect } from '../crop';
 export type Selection = { type: 'track'; id?: string; role: 'start' | 'end' | 'correction' } | { type: 'region' };
-export function MotionSelection({ selection, crop, mirrored, frame, ready, min, max, toolbar, onFrame, onSelect, onCancel }: { selection: Selection; crop: CropRect; mirrored: boolean; frame: number; ready: boolean; min: number; max: number; toolbar: HTMLElement | null; onFrame: (frame: number) => void; onSelect: (anchor: Anchor) => void; onCancel: () => void }) {
+export function MotionSelection({ selection, crop, mirrored, frame, ready, min, max, toolbar, onSelect, onCancel }: { selection: Selection; crop: CropRect; mirrored: boolean; frame: number; ready: boolean; min: number; max: number; toolbar: HTMLElement | null; onSelect: (anchor: Anchor) => void; onCancel: () => void }) {
   const surface = useRef<HTMLDivElement>(null);
   useEffect(() => { surface.current?.focus({ preventScroll: true }); }, []);
   const [aim, setAim] = useState({ x: .5, y: .5 });
@@ -30,12 +30,7 @@ export function MotionSelection({ selection, crop, mirrored, frame, ready, min, 
   </div>
     {toolbar ? createPortal(<div className="motion-selection-tools" role="group" aria-label={t('Tracking frame selection')}>
       <strong>{selection.type === 'region' ? t('Select player region') : t(selection.role === 'start' ? '1. Select start position' : selection.role === 'end' ? '2. Select end position' : 'Select correction position')}</strong>
-      <p>{!ready ? t('Preparing frame…') : t(selection.type === 'region' ? 'Drag a region containing one player throughout the excerpt.' : 'Choose a frame, then tap the same target or drag a small region around it.')}</p>
-      <div className="motion-selection-navigation">
-        <button type="button" aria-label={t('Previous tracking frame')} disabled={frame <= min} onClick={() => onFrame(Math.max(min, frame - 1))}>←</button>
-        <input type="range" aria-label={t('Tracking frame')} min={min} max={max} step={1} value={frame} onChange={e => onFrame(Number(e.target.value))}/>
-        <button type="button" aria-label={t('Next tracking frame')} disabled={frame >= max} onClick={() => onFrame(Math.min(max, frame + 1))}>→</button>
-      </div>
+      <p>{frame < min || frame > max ? t('Use the preview lane to choose a frame between {start} and {end}.', { start: min + 1, end: max + 1 }) : !ready ? t('Preparing frame…') : t(selection.type === 'region' ? 'Drag a region containing one player throughout the excerpt.' : 'Use the preview lane to choose a frame, then tap the target or drag a small region around it.')}</p>
       <div className="motion-selection-navigation"><output>{t('Frame {frame}', { frame: frame + 1 })}</output><button type="button" onClick={onCancel}>{t('Cancel')}</button></div>
     </div>, toolbar) : null}
   </>;

@@ -73,12 +73,11 @@ export async function analyze(clip: ComparisonClip, job: AnalysisRequest, signal
     const anchors = job.track.anchors.filter(a => a.frame >= range.start && a.frame <= range.end).sort((a, b) => a.frame - b.frame);
     const length = range.end - range.start + 1, forward: TrackingPass = Array(length).fill(null), backward: TrackingPass = Array(length).fill(null);
     let done = 0;
-    const impact = (frame: number) => (clip.contact !== null && Math.abs(frame - clip.contact) <= 2) || anchors.some(a => a.corner && Math.abs(frame - a.frame) <= 2);
     const update = () => progress({ progress: Math.min(.94, .94 * ++done / (2 * (length + anchors.length))), message: 'Tracking from both endpoints…' });
     for (let i = 0; i + 1 < anchors.length; i++) {
       const start = anchors[i], end = anchors[i + 1];
       for await (const item of pixels(sequence(start.frame, end.frame))) {
-        forward[item.frame - range.start] = await call('track', item.pixels, { anchor: item.frame === start.frame ? start : undefined, time: index.timestamps[item.frame], impact: impact(item.frame) });
+        forward[item.frame - range.start] = await call('track', item.pixels, { anchor: item.frame === start.frame ? start : undefined, time: index.timestamps[item.frame] });
         update();
       }
       // Retain only four downscaled pictures while decoding the reverse pass.
@@ -87,12 +86,12 @@ export async function analyze(clip: ComparisonClip, job: AnalysisRequest, signal
         const batch: { frame: number; pixels: PixelFrame }[] = [];
         for await (const item of pixels(sequence(Math.max(start.frame, last - 3), last))) batch.push(item);
         for (const item of batch.reverse()) {
-          backward[item.frame - range.start] = await call('track', item.pixels, { anchor: item.frame === end.frame ? end : undefined, time: index.timestamps[item.frame], impact: impact(item.frame) });
+          backward[item.frame - range.start] = await call('track', item.pixels, { anchor: item.frame === end.frame ? end : undefined, time: index.timestamps[item.frame] });
           update();
         }
       }
     }
     progress({ progress: .95, message: 'Reconstructing continuous trajectory…' });
-    return await call('reconstruct', undefined, { index, anchors, forward, backward, width: sourceWidth, height: sourceHeight, contact: clip.contact }) as MotionSeries;
+    return await call('reconstruct', undefined, { index, anchors, forward, backward, width: sourceWidth, height: sourceHeight }) as MotionSeries;
   } finally { signal.removeEventListener('abort', abort); abort(); canvas.width = canvas.height = 0; }
 }

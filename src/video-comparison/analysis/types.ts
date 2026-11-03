@@ -1,7 +1,7 @@
 import type { CropRect } from '../crop';
 
 /** All coordinates are normalized in the oriented, unmirrored source image. */
-export type Anchor = { frame: number; x: number; y: number; width: number; height: number; role?: 'start' | 'end' | 'correction'; corner?: boolean };
+export type Anchor = { frame: number; x: number; y: number; width: number; height: number; role?: 'start' | 'end' | 'correction' };
 export const OBSERVED = 1, MANUAL = 2, ESTIMATED = 3;
 export type MotionSeries = {
   start: number; end: number; width: number; height: number; points: number;
