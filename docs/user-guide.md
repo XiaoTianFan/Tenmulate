@@ -362,8 +362,9 @@ Open **Serve speed** below **Motion plots** on a comparison card. This is availa
 for portrait and landscape source clips. Keep the camera fixed throughout the
 flight. You need at least three of the four court lines, the net's centre strap
 and at least one side support. Partial views can work when these references and
-the contact/first-bounce ball positions are visible. Fisheye views, moving/zooming
-cameras and nonstandard court/net dimensions are unsuitable.
+the contact/first-bounce ball positions are visible. Keep the camera fixed and use
+standard court/net dimensions. Mild centred lens distortion can be corrected manually;
+strong or off-centre fisheye views may still be unsuitable.
 
 1. Select **Contact ball position** to open the full-screen marking dialog. Its
    own thumbnail timeline, zoom/pan and frame-step buttons let you find racket
@@ -371,8 +372,11 @@ cameras and nonstandard court/net dimensions are unsuitable.
    Saving also sets the card's contact frame. Open **First bounce ball position**,
    find the first ground impact in the dialog and save its ball mark. Mark
    the ball, not its shadow. There must be no earlier bounce or net touch. Optional
-   **flight checks** at intermediate frames independently test the modeled path;
-   inconsistent checks stop the estimate rather than change the court calibration.
+   **flight corrections** at intermediate frames fit upward/downward flight curvature,
+   especially for kick serves. They preserve the court, contact, bounce and flight time.
+   Add clear ball positions at several times where possible. A consistent majority
+   can exclude an obvious outlier; excluded frame numbers are shown and retained in JSON.
+   Incompatible observations request review instead of forcing an implausible path.
 2. Mark any **three of four court lines**: near baseline, near service line, far
    service line and far baseline. A fourth line improves the constraints. Each
    marking or saved-frame button opens the full-screen dialog at its saved frame,
@@ -388,8 +392,10 @@ cameras and nonstandard court/net dimensions are unsuitable.
    Select doubles posts or singles sticks, then mark **the centre strap plus at
    least one side support** with top-to-ground segments. Either support can be A
    or B; the app infers the side. Add the other support when visible. Follow the
-   physical post/strap even when it leans in the image. Drag or tap both ends;
-   arrow keys and Enter also work. The full uncropped image respects mirroring,
+   physical post/strap even when it leans in the image. **Press, move and release**
+   to fix the start; press, move and release again to fix the end. A third press
+   starts a new line. A floating 4× magnifier helps place either endpoint. Two taps
+   or arrow keys and Enter also work. The full uncropped image respects mirroring,
    and both endpoints of each segment use the same frame. Remove individual marks
    with their × buttons, or reset them together. Court review spans the full source,
    even outside the excerpt; ball review respects excerpt and contact/bounce order.
@@ -423,6 +429,14 @@ cameras and nonstandard court/net dimensions are unsuitable.
    in court metres and the actual reference counts. It contains no video footage.
 
 The full-screen review timeline does not move the other clips or change excerpts.
+The vertical **Lens** slider on the right optionally adjusts centred barrel/pincushion
+curvature in either direction. Adjust until visible court lines look straight; zero
+keeps the original image. It applies to this clip's calibration as well as the modal
+picture. Saved coordinates remain in the original video; the source file and ordinary
+playback/export image are unchanged. Correction is saved with the measurement;
+cancelling discards a changed setting. Changing it invalidates an existing estimate.
+The last picture stays visible during seeks; a small delayed status appears for slower
+requests, and marking stays disabled until the requested frame is actually shown.
 Only **Save measurement** applies a draft; **Redraw** starts again, and **Cancel**,
 the close button or Escape discards it and returns focus to the opener. Moving to
 another frame clears the draft, including any half-drawn line. Saved court/ball
@@ -443,12 +457,22 @@ type and check for camera movement or lens distortion. Small residuals alone do 
 prove the depth assumption or camera model is correct.
 
 This is an on-device physical model, **not a radar reading**. Gravity and quadratic
-drag determine the central estimate; timing, geometry, contact depth, drag and lift
-are varied for the sensitivity envelope, with height re-derived in each scenario.
+drag determine the endpoint-only estimate. With intermediate points, bounded signed
+Magnus lift is fitted in the vertical plane joining contact and bounce. Thus the
+ground projection remains straight; sidespin and wind are not inferred. Effective
+lift is not a measured spin rate. The original zero-lift result is retained when
+points already agree within their marking precision. Timing, geometry, contact depth,
+drag and lift are varied for the sensitivity range, with height re-derived in each
+scenario. The manual lens setting is held fixed in these trials.
 That envelope is not a statistical confidence
 interval and does not cover every lens, spin, wind or annotation error. A missing
 first bounce cannot be inferred by this feature. Speed annotations last for the
-current loaded clip/session; they are not included in grid video/image exports.
+current loaded clip/session. In grid video or image export, clips with a current
+estimate offer **Estimated serve speed · 3 s after contact** under **Export overlays**.
+This is off by default. The label appears at contact for three seconds of output
+playback, ending earlier if the clip excerpt ends; it does not persist on held end
+frames. Export preview, video and image rows use the same rule, including clip/global
+playback speeds. Changing measurement inputs removes the option until re-estimation.
 
 ## View and playback
 

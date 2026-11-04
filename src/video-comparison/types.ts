@@ -1,7 +1,7 @@
 import type { FrameIndex } from './timeline';
 import type { CropRect } from './crop';
 import type { ClipMotion } from './analysis/types';
-import type { ServeSetup } from './speed/types';
+import type { ServeSetup, SpeedResult } from './speed/types';
 
 export type ComparisonClip = {
   id: string;
@@ -20,4 +20,6 @@ export type ComparisonClip = {
   error?: string;
   motion?: ClipMotion;
   serve?: ServeSetup;
+  /** Immutable, current result attached only to the export snapshot. */
+  serveEstimate?: SpeedResult;
 };

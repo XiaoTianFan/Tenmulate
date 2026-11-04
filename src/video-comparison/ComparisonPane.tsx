@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type PointerEvent } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent } from 'react';
 import { ArrowLeft, ArrowRight, Crosshair, Crop, FlipHorizontal2, GripVertical, X } from 'lucide-react';
 import { t } from '../i18n/locale';
 import { clamp, clipFrameRange, formatTime } from './timeline';
@@ -20,10 +20,11 @@ import { SpeedMarkingModal } from './speed/SpeedMarkingModal';
 import { applyServeMark, markingBounds, type ServeMark } from './speed/marking';
 import { SpeedOverlay } from './speed/SpeedOverlay';
 import { useServeEstimate } from './speed/useServeEstimate';
-import { newServeSetup, type ServeSetup, type SpeedSelection as ServeSelection } from './speed/types';
+import { newServeSetup, type ServeSetup, type SpeedResult, type SpeedSelection as ServeSelection } from './speed/types';
 
 type Props = {
   active: boolean; reviewActive: boolean; onServe: (edit: (setup: ServeSetup) => ServeSetup, contactFrame?: number) => void;
+  onEstimate: (id: string, result?: SpeedResult) => void;
   onMarkingChange: (id: string, open: boolean) => void;
   presentation: PresentedFrames; analysis: AnalysisControls; linked: boolean; onMotion: (edit: (m: ClipMotion) => ClipMotion) => void;
   clip: ComparisonClip; frame: number; position: number; count: number; held: boolean;
@@ -34,7 +35,7 @@ type Props = {
   onMirror: () => void; onCrop: (crop?: CropRect) => void; onTrim: (trim?: { start: number; end: number }) => void; onPause: () => void;
 };
 
-export function ComparisonPane({ active, reviewActive, onServe, onMarkingChange, presentation, analysis, linked, onMotion, clip, frame, position, count, held, onFrame, onContact, onSpeed, onRemove, onResize, onMove, onDrag, onDragEnd, onCanvas, onMirror, onCrop, onTrim, onPause }: Props) {
+export function ComparisonPane({ active, reviewActive, onServe, onEstimate, onMarkingChange, presentation, analysis, linked, onMotion, clip, frame, position, count, held, onFrame, onContact, onSpeed, onRemove, onResize, onMove, onDrag, onDragEnd, onCanvas, onMirror, onCrop, onTrim, onPause }: Props) {
   const displayed = usePresentedFrame(presentation, clip.id);
   const selectionToolbar = useRef<HTMLDivElement>(null);
   const [selection, setSelection] = useState<Selection | null>(null);
@@ -58,6 +59,10 @@ export function ComparisonPane({ active, reviewActive, onServe, onMarkingChange,
   const sourceReady = picture.width > 0;
   const dimensions = sourceReady ? { width: picture.width, height: picture.height } : { width: 16, height: 9 };
   const speedControls = useServeEstimate(clip.index ? {setup: serve, index: clip.index, ...dimensions, contact: clip.contact, ...excerpt} : undefined, active);
+  useLayoutEffect(() => {
+    onEstimate(clip.id, speedControls.result);
+    return () => onEstimate(clip.id, undefined);
+  }, [clip.id, speedControls.result, onEstimate]);
   const [size, setSize] = useState({ width: 1, height: 1 });
   const wrap = useRef<HTMLDivElement>(null), originalCrop = useRef<CropRect | undefined>(undefined);
   useEffect(() => {

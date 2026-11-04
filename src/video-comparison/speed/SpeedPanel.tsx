@@ -1,7 +1,14 @@
+import { cameraPoint } from './lens';
 import { useId, useState } from 'react';
 import { t } from '../../i18n/locale';
 import type { ComparisonClip } from '../types';
-import { COURT_LINES, COURT_KEYS, type ServeSetup, type SpeedSelection, type MeasurementIssue } from './types';
+import {
+  COURT_LINES,
+  COURT_KEYS,
+  type ServeSetup,
+  type SpeedSelection,
+  type MeasurementIssue
+} from './types';
 import { clipFrameRange } from '../timeline';
 import type { SpeedControls } from './useServeEstimate';
 import { useCourtCalibration } from './useCourtCalibration';
@@ -13,7 +20,14 @@ import { courtCoverage, courtRequirement } from './courtCoverage';
 import './speed.css';
 
 type NumberKey =
-  'contactDepth' | 'depthError' | 'pixelError' | 'frameError' | 'slowdown' | 'drag' | 'dragError' | 'liftError';
+  | 'contactDepth'
+  | 'depthError'
+  | 'pixelError'
+  | 'frameError'
+  | 'slowdown'
+  | 'drag'
+  | 'dragError'
+  | 'liftError';
 export function SpeedPanel({
   active,
   sourceReady,
@@ -47,11 +61,18 @@ export function SpeedPanel({
   const coverage = courtCoverage(setup),
     requirement = courtRequirement(setup);
   const issueText = (issue: MeasurementIssue) =>
-    t(issue.message, { mark: issue.mark ? t(COURT_LINES[issue.mark]) : '', error: issue.pixels?.toFixed(1) });
+    t(issue.message, {
+      mark: issue.mark ? t(COURT_LINES[issue.mark]) : '',
+      error: issue.pixels?.toFixed(1)
+    });
   let derivedHeight: number | undefined;
   if (calibration.camera && setup.contact?.frame === clip.contact) {
     try {
-      derivedHeight = atDepth(calibration.camera.p, setup.contact!, contactCourtDepth(setup))[2];
+      derivedHeight = atDepth(
+        calibration.camera.p,
+        cameraPoint(calibration.camera, setup.contact!),
+        contactCourtDepth(setup)
+      )[2];
     } catch {
       /* The estimator reports unsupported geometry. */
     }
@@ -154,7 +175,9 @@ export function SpeedPanel({
               ) : null}
               {setup.bounce ? (
                 <button type="button" aria-haspopup="dialog" onClick={() => select('bounce')}>
-                  {t('Review bounce: frame {frame}', { frame: setup.bounce.frame + 1 })}
+                  {t('Review bounce: frame {frame}', {
+                    frame: setup.bounce.frame + 1
+                  })}
                 </button>
               ) : null}
               <button
@@ -163,11 +186,11 @@ export function SpeedPanel({
                 disabled={!markingBounds(clip, setup, 'flight') || setup.flight.length >= 24}
                 onClick={() => select('flight')}
               >
-                {t('Add flight check at this frame')}
+                {t('Add flight correction at this frame')}
               </button>
               <p className="motion-help">
                 {t(
-                  'Optional flight checks test the reconstructed path against visible ball positions. They do not silently fit or replace your court measurements.'
+                  'Intermediate ball points fit the flight curvature while preserving contact, bounce and court marks. Add clear points across the flight; obvious outliers are reported.'
                 )}
               </p>
               <div className="speed-checks">
@@ -182,8 +205,13 @@ export function SpeedPanel({
                     </button>
                     <button
                       type="button"
-                      aria-label={t('Remove flight check at frame {frame}', { frame: mark.frame + 1 })}
-                      onClick={() => onEdit((s) => ({ ...s, flight: s.flight.filter((p) => p.frame !== mark.frame) }))}
+                      aria-label={t('Remove flight correction at frame {frame}', { frame: mark.frame + 1 })}
+                      onClick={() =>
+                        onEdit((s) => ({
+                          ...s,
+                          flight: s.flight.filter((p) => p.frame !== mark.frame)
+                        }))
+                      }
                     >
                       ×
                     </button>
@@ -202,7 +230,12 @@ export function SpeedPanel({
                 {t('Net supports')}
                 <select
                   value={setup.netSupports}
-                  onChange={(e) => onEdit((s) => ({ ...s, netSupports: e.target.value as ServeSetup['netSupports'] }))}
+                  onChange={(e) =>
+                    onEdit((s) => ({
+                      ...s,
+                      netSupports: e.target.value as ServeSetup['netSupports']
+                    }))
+                  }
                 >
                   <option value="doubles">{t('Doubles posts · 12.798 m apart')}</option>
                   <option value="singles">{t('Singles sticks · 10.058 m apart')}</option>
@@ -254,7 +287,9 @@ export function SpeedPanel({
                           aria-haspopup="dialog"
                           title={
                             outside
-                              ? t('This court mark is outside the excerpt and still contributes to calibration.')
+                              ? t(
+                                  'This court mark is outside the excerpt and still contributes to calibration.'
+                                )
                               : undefined
                           }
                           onClick={() => onSelect({ kind, frame: mark.frame })}
@@ -266,7 +301,9 @@ export function SpeedPanel({
                         <button
                           type="button"
                           className="speed-remove-mark"
-                          aria-label={t('Remove {mark}', { mark: t(COURT_LINES[kind]) })}
+                          aria-label={t('Remove {mark}', {
+                            mark: t(COURT_LINES[kind])
+                          })}
                           onClick={() =>
                             onEdit((previous) => {
                               const lines = { ...previous.lines };
@@ -317,7 +354,11 @@ export function SpeedPanel({
               ) : null}
               {calibration.camera ? (
                 <div className="speed-calibration" role="status">
-                  <span>{t('Court fit: {error} px RMS', { error: calibration.camera.rms.toFixed(1) })}</span>
+                  <span>
+                    {t('Court fit: {error} px RMS', {
+                      error: calibration.camera.rms.toFixed(1)
+                    })}
+                  </span>
                   {coverage.halfLines > 0 || coverage.netLines < 3 || !setup.lines.near ? (
                     <p className="motion-help">
                       {t(
@@ -342,7 +383,12 @@ export function SpeedPanel({
                 {t('Serving baseline')}
                 <select
                   value={setup.servingEnd}
-                  onChange={(e) => onEdit((s) => ({ ...s, servingEnd: e.target.value as ServeSetup['servingEnd'] }))}
+                  onChange={(e) =>
+                    onEdit((s) => ({
+                      ...s,
+                      servingEnd: e.target.value as ServeSetup['servingEnd']
+                    }))
+                  }
                 >
                   <option value="near">{t('Near baseline')}</option>
                   <option value="far">{t('Far baseline')}</option>
@@ -367,7 +413,9 @@ export function SpeedPanel({
                 <p className="motion-help">{t('Mark the contact ball position to derive its height.')}</p>
               ) : derivedHeight !== undefined && (derivedHeight < 0.3 || derivedHeight > 5.5) ? (
                 <p className="motion-help">
-                  {t('The derived contact height is implausible. Check the ball mark, serving end and contact depth.')}
+                  {t(
+                    'The derived contact height is implausible. Check the ball mark, serving end and contact depth.'
+                  )}
                 </p>
               ) : null}
             </fieldset>
@@ -394,7 +442,7 @@ export function SpeedPanel({
                   {number('liftError', 'Lift sensitivity ± (1/m)', 0, 0.02, 0.001)}
                   <p className="motion-help">
                     {t(
-                      'The central model uses gravity, quadratic drag and no lift or wind. The range varies timing, marks, contact depth, drag and lift; height follows the geometry. Ball regions add centroid uncertainty. It is a sensitivity envelope, not a statistical confidence interval.'
+                      'The model uses gravity and quadratic drag. Intermediate points fit effective upward or downward lift in the contact-to-bounce vertical plane; without them it uses zero lift. It assumes no sidespin or wind. The range varies timing, marks, contact depth, drag and lift; it is a sensitivity envelope, not a statistical confidence interval.'
                     )}
                   </p>
                 </div>
@@ -406,7 +454,12 @@ export function SpeedPanel({
                 <input
                   type="checkbox"
                   checked={setup.showCourtOverlay}
-                  onChange={(e) => onEdit((s) => ({ ...s, showCourtOverlay: e.target.checked }))}
+                  onChange={(e) =>
+                    onEdit((s) => ({
+                      ...s,
+                      showCourtOverlay: e.target.checked
+                    }))
+                  }
                 />
                 {t('Court lines')}
               </label>
@@ -476,16 +529,35 @@ export function SpeedPanel({
                   </dd>
                   <dt>{t('Court fit error (maximum)')}</dt>
                   <dd>{result.camera.checkError.toFixed(1)} px</dd>
-                  <dt>{t('Flight check error (RMS)')}</dt>
+                  <dt>{t('Flight fit error (RMS)')}</dt>
                   <dd>
                     {result.flightRms === null
-                      ? t('No flight checks')
-                      : `${result.flightRms.toFixed(1)} px · ${result.checkedPoints}`}
+                      ? t('No flight points')
+                      : `${result.flightRms.toFixed(1)} px · ${result.flightFit?.observations.filter((o) => o.used).length ?? result.checkedPoints}`}
                   </dd>
                 </dl>
+                {result.flightFit?.method === 'flight-points' ? (
+                  <p className="motion-help">
+                    {t('Curvature fitted from {count} ball point(s).', {
+                      count: result.flightFit.observations.filter((o) => o.used).length
+                    })}
+                  </p>
+                ) : null}
+                {result.flightFit?.observations.some((o) => !o.used) ? (
+                  <p className="motion-help speed-warning" role="status">
+                    {t('Excluded inconsistent points at frame(s): {frames}. Review these marks.', {
+                      frames: result.flightFit.observations
+                        .filter((o) => !o.used)
+                        .map((o) => o.frame + 1)
+                        .join(', ')
+                    })}
+                  </p>
+                ) : null}
                 {!result.checkedPoints ? (
                   <p className="motion-help">
-                    {t('Endpoint-only estimate. Add visible in-flight ball checks to test the path.')}
+                    {t(
+                      'Endpoint-only estimate. Add intermediate ball points to fit curvature, especially for kick serves.'
+                    )}
                   </p>
                 ) : null}
                 {result.collisionVariants ? (

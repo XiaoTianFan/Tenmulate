@@ -29,7 +29,7 @@ export function ComparisonExportModal({ pendingAnalysis, clips, rate, previews, 
   const controller = useRef<AbortController | null>(null), dialog = useRef<HTMLDialogElement>(null), titleId = useId();
   const opener = useRef(restoreFocusTo ?? document.activeElement as HTMLElement | null);
   const rows = options.kind === 'video' ? videoRows.filter(row => row.clips.length) : [{ id: 'images', clips: imageOrder }].filter(row => row.clips.length);
-  const config: ExportConfig = { ...options, rows };
+  const config: ExportConfig = { ...options, rows, speedCaption: t('Est. serve') };
   const key = JSON.stringify(config);
   const { validation, description } = useMemo(() => {
     let validation = '', description = '';
@@ -108,10 +108,12 @@ export function ComparisonExportModal({ pendingAnalysis, clips, rate, previews, 
           <span>{clip.name}{!eligible.some(item => item.id === clip.id) ? <small>{t('Set a contact frame to include this clip.')}</small> : null}</span>
         </label>)}</div>
         {pendingAnalysis ? <p className="export-hint" role="status">{t('Analysis is paused. Only completed results are included; close export to resume.')}</p> : null}
-        <div className="export-motion-options">{clips.filter(clip => included.includes(clip.id) && clip.motion).map(clip => {
+        <div className="export-motion-options">{clips.filter(clip => included.includes(clip.id) && (clip.motion || clip.serveEstimate)).map(clip => {
           const visibility = options.overlays?.[clip.id] ?? newMotion().view;
           return <fieldset key={clip.id}><legend>{clip.name} · {t('Export overlays')}</legend>
-            {(['tracks', 'skeleton', 'angles', 'plots'] as (keyof MotionVisibility)[]).map((key, i) => <label key={key}><input type="checkbox" checked={visibility[key]} onChange={e => change({ overlays: { ...options.overlays, [clip.id]: { ...visibility, [key]: e.target.checked } } })}/>{t(['Trajectories', 'Skeleton', 'Joint angles', 'Plots'][i])}</label>)}
+            {(clip.motion ? ['tracks', 'skeleton', 'angles', 'plots'] as (keyof MotionVisibility)[] : []).map((key, i) => <label key={key}><input type="checkbox" checked={visibility[key]} onChange={e => change({ overlays: { ...options.overlays, [clip.id]: { ...visibility, [key]: e.target.checked } } })}/>{t(['Trajectories', 'Skeleton', 'Joint angles', 'Plots'][i])}</label>)}
+            {clip.serveEstimate ? <label><input type="checkbox" checked={!!options.speedLabels?.[clip.id]}
+              onChange={event => change({ speedLabels: { ...options.speedLabels, [clip.id]: event.target.checked } })}/>{t('Estimated serve speed · 3 s after contact')}</label> : null}
           </fieldset>;
         })}</div>
         <div className="export-preview-heading"><h3>{t(options.kind === 'video' ? 'Video layout' : 'Column order')}</h3>

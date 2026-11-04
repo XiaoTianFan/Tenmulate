@@ -1,3 +1,4 @@
+import { distortLens } from '../src/video-comparison/speed/lens';
 import { describe, expect, it } from 'vitest';
 import { atHeight, atDepth, calibrate, COURT, project } from '../src/video-comparison/speed/geometry';
 import { flight, reconstruct } from '../src/video-comparison/speed/physics';
@@ -13,11 +14,17 @@ export function fixture(reverse = false): SpeedInput {
   const depth = 14 * c + 10 * s;
   const p = [
     [700 / 1280, 0.5 * c, -0.5 * s, 0.5 * depth],
-    [0, (-700 / 720) * s + 0.5 * c, (-700 / 720) * c - 0.5 * s, (-700 / 720) * (14 * s - 10 * c) + 0.5 * depth],
+    [
+      0,
+      (-700 / 720) * s + 0.5 * c,
+      (-700 / 720) * c - 0.5 * s,
+      (-700 / 720) * (14 * s - 10 * c) + 0.5 * depth
+    ],
     [0, c, -s, depth]
   ];
   const setup = newServeSetup(),
-    pair = (y: number, z = 0, x = COURT.halfWidth) => [project(p, [-x, y, z]), project(p, [x, y, z])] as const;
+    pair = (y: number, z = 0, x = COURT.halfWidth) =>
+      [project(p, [-x, y, z]), project(p, [x, y, z])] as const;
   setup.lines = {
     near: { points: [...pair(0)], frame: 0, pixelFloor: 1 },
     far: { points: [...pair(COURT.length)], frame: 1, pixelFloor: 1 },
@@ -51,7 +58,12 @@ export function fixture(reverse = false): SpeedInput {
     contact: 10,
     start: 0,
     end: 89,
-    index: { timestamps: Float64Array.from({ length: 90 }, (_, i) => i / 60), end: 1.5, fps: 60, variable: false }
+    index: {
+      timestamps: Float64Array.from({ length: 90 }, (_, i) => i / 60),
+      end: 1.5,
+      fps: 60,
+      variable: false
+    }
   };
 }
 
@@ -210,7 +222,7 @@ describe('deterministic launch reconstruction', () => {
     expect(input.setup).not.toHaveProperty('height');
     expect(input.setup).not.toHaveProperty('stationary');
   });
-  it('uses intermediate marks as independent flight checks', () => {
+  it('preserves flat evidence and rejects a clearly misplaced flight point', () => {
     const input = fixture(),
       result = estimateServe(input),
       i = 20;
@@ -219,7 +231,14 @@ describe('deterministic launch reconstruction', () => {
       a = result.path[Math.floor(n)],
       b = result.path[Math.ceil(n)];
     const f = n % 1;
-    input.setup.flight = [{ x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f, frame: i, radius: 0 }];
+    input.setup.flight = [
+      {
+        x: a.x + (b.x - a.x) * f,
+        y: a.y + (b.y - a.y) * f,
+        frame: i,
+        radius: 0
+      }
+    ];
     expect(estimateServe(input).flightRms).toBeLessThan(1e-6);
     input.setup.flight[0].x += 0.03;
     expect(() => estimateServe(input)).toThrow(/flight checks disagree/);
@@ -237,7 +256,11 @@ describe('deterministic launch reconstruction', () => {
     const input = fixture(),
       camera = calibrate(input.setup, input.width, input.height);
 
-    input.setup.contact = { ...project(camera.p, [-1, 0.4, 1.1]), frame: input.contact!, radius: 0 };
+    input.setup.contact = {
+      ...project(camera.p, [-1, 0.4, 1.1]),
+      frame: input.contact!,
+      radius: 0
+    };
     input.setup.bounce!.frame = input.contact! + 18;
     expect(() => estimateServe(input)).toThrow(/net or ground before/);
   });
@@ -249,7 +272,9 @@ describe('deterministic launch reconstruction', () => {
     const precise = estimateServe(input);
     input.setup.contact!.radius = input.setup.bounce!.radius = 6;
     const region = estimateServe(input);
-    expect(region.rangeKph[1] - region.rangeKph[0]).toBeGreaterThan(precise.rangeKph[1] - precise.rangeKph[0]);
+    expect(region.rangeKph[1] - region.rangeKph[0]).toBeGreaterThan(
+      precise.rangeKph[1] - precise.rangeKph[0]
+    );
     expect(region.launchKph).toBe(precise.launchKph);
   });
   it('refuses missing, stale, collision and malformed evidence', () => {
@@ -271,5 +296,92 @@ describe('deterministic launch reconstruction', () => {
     const f = fixture();
     f.setup.slowdown = NaN;
     expect(() => estimateServe(f)).toThrow(/assumptions/);
+  });
+});
+
+describe('curved serve fitting and radial calibration', () => {
+  it.each([-0.5, 0.5])(
+    'reconstructs distorted annotations with lens correction %s without editing them',
+    (lens) => {
+      const input = fixture(),
+        expected = estimateServe(input);
+      input.setup.lens = lens;
+      for (const mark of Object.values(input.setup.lines))
+        mark!.points = mark!.points.map((p) => distortLens(p, lens, 1280, 720)) as typeof mark.points;
+      Object.assign(input.setup.contact!, distortLens(input.setup.contact!, lens, 1280, 720));
+      Object.assign(input.setup.bounce!, distortLens(input.setup.bounce!, lens, 1280, 720));
+      const before = JSON.stringify(input.setup),
+        result = estimateServe(input);
+      expect(result.launchKph).toBeCloseTo(expected.launchKph, 5);
+      expect(result.contact3D[2]).toBeCloseTo(2.6, 6);
+      expect(result.path[0].x).toBeCloseTo(input.setup.contact!.x, 7);
+      expect(result.path.at(-1)!.y).toBeCloseTo(input.setup.bounce!.y, 7);
+      expect(result.camera.lens?.strength).toBe(lens);
+      expect(JSON.stringify(input.setup)).toBe(before);
+    }
+  );
+  function withFlight(lift: number, frames = [18, 26, 35]) {
+    const input = fixture(),
+      camera = calibrate(input.setup, input.width, input.height);
+    const model = reconstruct(Math.hypot(2, 19.6), 0.55, 2.6, COURT.ballRadius, input.setup.drag, lift);
+    input.setup.flight = frames.map((frame) => {
+      const n = ((frame - 10) / 33) * (model.path.length - 1),
+        a = model.path[Math.floor(n)],
+        b = model.path[Math.ceil(n)],
+        f = n % 1;
+      const distance = a.distance + (b.distance - a.distance) * f,
+        z = a.z + (b.z - a.z) * f;
+      return {
+        ...project(camera.p, [
+          -1 + (2 * distance) / Math.hypot(2, 19.6),
+          0.4 + (19.6 * distance) / Math.hypot(2, 19.6),
+          z
+        ]),
+        frame,
+        radius: 0
+      };
+    });
+    return { input, model };
+  }
+  it.each([-0.008, -0.02, 0.008])(
+    'fits known signed lift %s from ball points without moving the court or endpoints',
+    (lift) => {
+      const { input, model } = withFlight(lift),
+        before = JSON.stringify(input.setup);
+      const result = estimateServe(input);
+      expect(result.flightFit?.lift).toBeCloseTo(lift, 4);
+      expect(result.launchKph).toBeCloseTo(model.kph, 2);
+      expect(result.flightRms).toBeLessThan(0.02);
+      expect(result.flightFit?.observations.every((o) => o.used)).toBe(true);
+      expect(result.contact3D).toEqual(
+        expect.arrayContaining([expect.closeTo(-1, 6), expect.closeTo(0.4, 6), expect.closeTo(2.6, 6)])
+      );
+      expect(JSON.stringify(input.setup)).toBe(before);
+      for (const p of result.path) {
+        // Ground projections stay on the contact–bounce line even with a curved air path.
+        expect((p.world[0] + 1) * 19.6 - (p.world[1] - 0.4) * 2).toBeCloseTo(0, 8);
+      }
+    }
+  );
+  it('uses one clear middle point for a kick serve and preserves the exact flat calculation with flat evidence', () => {
+    const curved = withFlight(-0.018, [26]);
+    expect(estimateServe(curved.input).flightFit?.lift).toBeCloseTo(-0.018, 4);
+    const flat = withFlight(0);
+    expect(estimateServe(flat.input).launchKph).toBeCloseTo(estimateServe(fixture()).launchKph, 7);
+    expect(estimateServe(flat.input).flightFit?.lift).toBe(0);
+  });
+  it('respects a consistent curved majority and explicitly reports a clearly misplaced point', () => {
+    const { input, model } = withFlight(-0.016, [16, 22, 29, 36]);
+    input.setup.flight[1].x += 0.08;
+    const result = estimateServe(input);
+    expect(result.launchKph).toBeCloseTo(model.kph, 2);
+    expect(result.flightFit?.observations.map((o) => o.used)).toEqual([true, false, true, true]);
+    expect(result.flightFit?.observations[1].residualPixels).toBeGreaterThan(80);
+    expect(result.flightRms).toBeLessThan(0.03);
+  });
+  it('rejects incompatible lateral observations rather than falsely treating sidespin as kick', () => {
+    const { input } = withFlight(-0.012);
+    for (const p of input.setup.flight) p.x += 0.07;
+    expect(() => estimateServe(input)).toThrow(/physically plausible curved trajectory/);
   });
 });

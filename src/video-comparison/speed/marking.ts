@@ -1,8 +1,22 @@
 import { clipFrameRange } from '../timeline';
 import type { ComparisonClip } from '../types';
-import { COURT_LINES, type CourtLine, type Line, type Point, type ServeSetup, type SpeedSelection } from './types';
+import {
+  COURT_LINES,
+  type CourtLine,
+  type Line,
+  type Point,
+  type ServeSetup,
+  type SpeedSelection
+} from './types';
 
-export type ServeMark = { points: Point[]; radius: number; frame: number; pixelFloor: number; span?: 'full' | 'half' };
+export type ServeMark = {
+  points: Point[];
+  radius: number;
+  frame: number;
+  pixelFloor: number;
+  span?: 'full' | 'half';
+  lens?: number;
+};
 
 /** Court geometry may use any source frame; flight observations stay in the excerpt. */
 export function markingBounds(clip: ComparisonClip, setup: ServeSetup, kind: SpeedSelection['kind']) {
@@ -19,6 +33,7 @@ export function markingBounds(clip: ComparisonClip, setup: ServeSetup, kind: Spe
 /** Only Save applies a draft. A revised contact cannot leave a backwards flight. */
 export function applyServeMark(setup: ServeSetup, kind: SpeedSelection['kind'], mark: ServeMark): ServeSetup {
   const { points, radius, frame, pixelFloor } = mark;
+  setup = { ...setup, lens: mark.lens ?? setup.lens ?? 0 };
   if (kind in COURT_LINES)
     return {
       ...setup,

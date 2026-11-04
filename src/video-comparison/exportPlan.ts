@@ -8,6 +8,7 @@ export type ExportConfig = {
   kind: 'video' | 'images'; format: 'auto' | 'mp4' | 'webm';
   width: number; height: number; fps: number; rate: number; start: number; end: number;
   rows: GridRow[]; labels: boolean; overlays?: Record<string, MotionVisibility>;
+  speedLabels?: Record<string, boolean>; speedCaption?: string;
   sampling: 'even' | 'frames'; imageRows: number; cellWidth: number; cellAspect: number;
 };
 export type ExportPlan = { clips: ExportClip[]; times: number[]; config: ExportConfig; duration: number };

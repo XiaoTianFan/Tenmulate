@@ -1,6 +1,7 @@
 import { AppendOnlyStreamTarget, CanvasSource, Mp4OutputFormat, Output, QUALITY_HIGH, WebMOutputFormat, canEncodeVideo, type VideoCodec } from 'mediabunny';
 import { gridCells, containRect, type Cell } from './exportLayout';
 import { exportPlan, imagePageLayout, sourceFrames, MAX_EXPORT_BYTES, type ExportClip, type ExportConfig } from './exportPlan';
+import { drawSpeedLabel } from './speed/exportLabel';
 import { zipImages } from './exportZip';
 import { readVideoFrames, type ReviewFrame } from './videoFrames';
 import { formatTime } from './timeline';
@@ -22,7 +23,7 @@ export async function chooseVideoEncoding(config: Pick<ExportConfig, 'format' | 
   throw new Error('This browser cannot encode the selected video output. Try a lower resolution, Auto format, another browser, or a grid image.');
 }
 
-export function drawCell(context: CanvasRenderingContext2D, frame: ReviewFrame, clip: ExportClip, cell: Cell, label: boolean, visibility?: MotionVisibility) {
+export function drawCell(context: CanvasRenderingContext2D, frame: ReviewFrame, clip: ExportClip, cell: Cell, label: boolean, visibility?: MotionVisibility, speedLabel?: { time: number; rate: number; caption: string }) {
   const labelHeight = label ? Math.min(32, cell.height * 0.15) : 0;
   const overlay = visibility ?? clip.motion?.view;
   const plotHeight = overlay?.plots && clip.motion?.plots.length ? cell.height * .32 : 0;
@@ -35,6 +36,7 @@ export function drawCell(context: CanvasRenderingContext2D, frame: ReviewFrame, 
     frame.draw(context, x, y, width, height);
     drawMotion(context, clip.motion, clip.index, frame.frame, { x, y, width, height }, overlay, clip.mirrored);
   }, crop, rect, clip.mirrored);
+  if (speedLabel) drawSpeedLabel(context, clip, { ...rect, id: clip.id }, speedLabel.time, speedLabel.rate, speedLabel.caption);
   if (plotHeight) drawExportPlots(context, clip, frame.frame, { x: cell.x, y: cell.y + cell.height - labelHeight - plotHeight, width: cell.width, height: plotHeight });
   if (label) {
     context.fillStyle = '#edf3f6'; context.font = `${Math.max(10, Math.floor(labelHeight * 0.55))}px sans-serif`;
@@ -50,7 +52,7 @@ export function drawGridFrame(context: CanvasRenderingContext2D, samples: readon
   context.fillStyle = '#080c0f'; context.fillRect(0, 0, config.width, config.height);
   gridCells(config.rows, config.width, config.height).forEach(cell => {
     const i = clips.findIndex(clip => clip.id === cell.id);
-    if (i >= 0 && samples[i]) drawCell(context, samples[i]!, clips[i]!, cell, config.labels, config.overlays?.[clips[i]!.id]);
+    if (i >= 0 && samples[i]) drawCell(context, samples[i]!, clips[i]!, cell, config.labels, config.overlays?.[clips[i]!.id], config.speedLabels?.[clips[i]!.id] ? { time, rate: config.rate, caption: config.speedCaption ?? 'Est. serve' } : undefined);
   });
   if (config.labels) {
     context.font = `${Math.max(12, Math.round(config.width / 90))}px monospace`; context.textBaseline = 'top';
@@ -71,7 +73,7 @@ export function drawImageRow(context: CanvasRenderingContext2D, samples: readonl
   context.fillStyle = '#edf3f6'; context.font = '17px monospace'; context.textBaseline = 'middle';
   context.fillText(formatTime(time, true), 8, y + page.cellHeight / 2, page.timeWidth - 16);
   samples.forEach((sample, i) => drawCell(context, sample, clips[i]!, { id: clips[i]!.id,
-    x: page.timeWidth + i * (config.cellWidth + page.gap), y, width: config.cellWidth, height: page.cellHeight }, false, config.overlays?.[clips[i]!.id]));
+    x: page.timeWidth + i * (config.cellWidth + page.gap), y, width: config.cellWidth, height: page.cellHeight }, false, config.overlays?.[clips[i]!.id], config.speedLabels?.[clips[i]!.id] ? { time, rate: config.rate, caption: config.speedCaption ?? 'Est. serve' } : undefined));
 }
 
 export async function renderComparison(clips: readonly ComparisonClip[], config: ExportConfig, signal: AbortSignal,

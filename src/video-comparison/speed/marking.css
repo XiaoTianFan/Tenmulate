@@ -332,3 +332,17 @@
 .serve-marking-picture > canvas { position: relative; z-index: 1; }
 .serve-marking-picture > .video-decoder-surface { z-index: 0; }
 .serve-marking-draft { z-index: 2; }
+
+.serve-marking-view { display: grid; grid-template-columns: minmax(0, 1fr) 58px; min-height: 0; min-width: 0; }
+.serve-lens-control { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 8px 4px; font-size: 11px; }
+.serve-lens-control input[type='range'] { writing-mode: vertical-lr; direction: rtl; appearance: auto; height: auto; min-height: 48px; max-height: 260px; flex: 1; width: 32px; accent-color: var(--accent); touch-action: none; }
+.serve-lens-control output { font-variant-numeric: tabular-nums; }
+.serve-marking-status.is-updating { inset: auto auto 10px 10px; padding: 7px 10px; background: #0b1217dd; border-radius: 4px; font-size: 12px; pointer-events: none; }
+.serve-marking-picture .serve-magnifier { position: absolute; z-index: 8; border: 2px solid #f8e92e; border-radius: 12px; box-shadow: 0 3px 15px #000b; pointer-events: none; }
+.serve-first-point { position: absolute; width: 8px; height: 8px; transform: translate(-50%, -50%); border: 2px solid #f8e92e; border-radius: 50%; pointer-events: none; }
+.serve-placement-step { position: absolute; bottom: 6px; left: 6px; right: 6px; width: fit-content; background: #080c0fbd; color: #fff; padding: 5px 8px; font-size: 11px; pointer-events: none; }
+@media (max-height: 550px) and (min-width: 701px) {
+  .serve-marking-view { grid-column: 1; grid-row: 2 / 4; }
+  .serve-marking-stage { grid-column: auto; grid-row: auto; }
+  .serve-lens-control { gap: 2px; }
+}

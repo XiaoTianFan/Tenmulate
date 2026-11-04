@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { correctLens, distortLens } from './lens';
 import type { FrameIndex } from '../timeline';
 import type { ServeSetup, SpeedResult } from './types';
 
@@ -22,9 +23,31 @@ export function SpeedOverlay({
     () => path?.map((p) => `${(p.x * width).toFixed(2)},${(p.y * height).toFixed(2)}`).join(' '),
     [path, width, height]
   );
+  const court = useMemo(
+    () =>
+      Object.entries(setup.lines).flatMap(([key, line]) => {
+        if (!line) return [];
+        const lens = setup.lens ?? 0;
+        const [a, b] = line.points.map((p) => correctLens(p, lens, width, height));
+        const points = Array.from({ length: lens ? 25 : 2 }, (_, i) => {
+          const fraction = i / (lens ? 24 : 1);
+          const p = distortLens(
+            { x: a.x + (b.x - a.x) * fraction, y: a.y + (b.y - a.y) * fraction },
+            lens,
+            width,
+            height
+          );
+          return `${p.x * width},${p.y * height}`;
+        }).join(' ');
+        return [{ key, points }];
+      }),
+    [setup.lines, setup.lens, width, height]
+  );
   if (!setup.showCourtOverlay && !setup.showBallOverlay) return null;
   const time =
-    index && setup.contact ? (index.timestamps[frame] - index.timestamps[setup.contact.frame]) / setup.slowdown : -1;
+    index && setup.contact
+      ? (index.timestamps[frame] - index.timestamps[setup.contact.frame]) / setup.slowdown
+      : -1;
   const cursorIndex =
     path && time >= 0 && time <= result.flightSeconds
       ? Math.min(path.length - 2, Math.floor((time / result.flightSeconds) * (path.length - 1)))
@@ -35,18 +58,7 @@ export function SpeedOverlay({
   return (
     <svg className="speed-overlay" viewBox={`0 0 ${width} ${height}`} aria-hidden="true">
       {setup.showCourtOverlay
-        ? Object.entries(setup.lines).map(([key, line]) =>
-            line ? (
-              <line
-                key={key}
-                x1={line.points[0].x * width}
-                y1={line.points[0].y * height}
-                x2={line.points[1].x * width}
-                y2={line.points[1].y * height}
-                className="speed-court-line"
-              />
-            ) : null
-          )
+        ? court.map((line) => <polyline key={line.key} points={line.points} className="speed-court-line" />)
         : null}
       {setup.showBallOverlay && path ? <polyline points={pathPoints} className="speed-flight-line" /> : null}
       {setup.showBallOverlay

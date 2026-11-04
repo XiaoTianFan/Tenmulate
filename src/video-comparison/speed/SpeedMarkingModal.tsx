@@ -7,9 +7,16 @@ import { FULL_CROP } from '../crop';
 import { clamp, formatTime } from '../timeline';
 import type { ComparisonClip } from '../types';
 import { SpeedSelection, isCourtSelection, selectionName } from './SpeedSelection';
-import { isNetLine, supportsHalf, type CourtLine, type ServeSetup, type SpeedSelection as Selection } from './types';
+import {
+  isNetLine,
+  supportsHalf,
+  type CourtLine,
+  type ServeSetup,
+  type SpeedSelection as Selection
+} from './types';
 import { markingBounds, type ServeMark } from './marking';
 import { useMarkingPreview } from './useMarkingPreview';
+import { correctLens, MAX_LENS } from './lens';
 import './marking.css';
 
 export function SpeedMarkingModal({
@@ -27,7 +34,11 @@ export function SpeedMarkingModal({
 }) {
   const bounds = markingBounds(clip, setup, selection.kind)!;
   const [frame, setFrame] = useState(() => clamp(selection.frame, bounds.start, bounds.end));
-  const [span, setSpan] = useState<'full' | 'half'>(() => setup.lines[selection.kind as CourtLine]?.span ?? 'full');
+  const [span, setSpan] = useState<'full' | 'half'>(
+    () => setup.lines[selection.kind as CourtLine]?.span ?? 'full'
+  );
+  const [lens, setLens] = useState(setup.lens ?? 0);
+  const [waiting, setWaiting] = useState(false);
   const [draft, setDraft] = useState<ServeMark | null>(null),
     [revision, setRevision] = useState(0);
   const dialog = useRef<HTMLDialogElement>(null),
@@ -37,7 +48,13 @@ export function SpeedMarkingModal({
     titleId = useId(),
     hintId = useId();
   const [size, setSize] = useState({ width: 1, height: 1 });
-  const picture = useMarkingPreview(clip.file, clip.index!, frame, canvas);
+  const picture = useMarkingPreview(clip.file, clip.index!, frame, canvas, lens);
+  useEffect(() => {
+    setWaiting(false);
+    if (picture.ready) return;
+    const timer = window.setTimeout(() => setWaiting(true), 250);
+    return () => window.clearTimeout(timer);
+  }, [picture.ready, frame]);
   const sourceAspect = picture.width && picture.height ? picture.width / picture.height : 16 / 9;
   const width = Math.min(size.width, size.height * sourceAspect),
     height = width / sourceAspect;
@@ -75,14 +92,20 @@ export function SpeedMarkingModal({
     setDraft(null);
     setRevision((value) => value + 1);
   };
-  const imagePoint = (p: { x: number; y: number }) => ({ x: (mirrored ? 1 - p.x : p.x) * 100, y: p.y * 100 });
+  const imagePoint = (p: { x: number; y: number }) => {
+    const corrected = correctLens(p, lens, picture.width, picture.height);
+    return {
+      x: (mirrored ? 1 - corrected.x : corrected.x) * 100,
+      y: corrected.y * 100
+    };
+  };
   const marked = draft?.frame === frame ? draft.points.map(imagePoint) : [];
   const instruction = line
     ? isNetLine(selection.kind)
-      ? 'Draw from the net top to the ground beneath it, or tap both ends.'
+      ? 'Set the net top first, then the ground directly beneath it. Hold and move to refine either point.'
       : span === 'half'
-        ? 'Draw from the centre mark or centre service-line intersection to either singles sideline. The far lines identify the half automatically.'
-        : 'Drag between the singles line endpoints, or tap each endpoint.'
+        ? 'Set the centre mark first, then either singles sideline. The far lines identify the half automatically.'
+        : 'Set one singles endpoint, then the other. Hold and move to refine each point; a third press starts a new line.'
     : 'Tap the ball centre or drag a tight region around it.';
   return createPortal(
     <dialog
@@ -96,7 +119,9 @@ export function SpeedMarkingModal({
           ...event.currentTarget.querySelectorAll<HTMLElement>(
             'button:not(:disabled), input:not(:disabled), select:not(:disabled), [tabindex="0"]'
           )
-        ].filter((element) => element.getClientRects().length && element.getAttribute('aria-disabled') !== 'true');
+        ].filter(
+          (element) => element.getClientRects().length && element.getAttribute('aria-disabled') !== 'true'
+        );
         const first = controls[0],
           last = controls.at(-1);
         if (event.shiftKey && document.activeElement === first) {
@@ -121,51 +146,93 @@ export function SpeedMarkingModal({
           <X size={22} />
         </button>
       </header>
-      <div className="serve-marking-stage" ref={stage}>
-        <div className={`serve-marking-picture${mirrored ? ' is-mirrored' : ''}`} style={{ width, height }}>
-          <canvas
-            ref={canvas}
-            aria-label={t('Measurement video preview')}
-            style={{ transform: mirrored ? 'scaleX(-1)' : undefined }}
-          />
-          {marked.length && picture.ready ? (
-            <svg
-              className="serve-marking-draft"
-              viewBox="0 0 100 100"
-              preserveAspectRatio="none"
-              aria-label={t('Unsaved measurement')}
-            >
-              {line ? <line x1={marked[0].x} y1={marked[0].y} x2={marked[1].x} y2={marked[1].y} /> : null}
-              {marked.map((p, i) => (
-                <ellipse key={i} cx={p.x} cy={p.y} rx={500 / width} ry={500 / height} />
-              ))}
-            </svg>
-          ) : null}
-          <SpeedSelection
-            key={revision}
-            selection={selection}
-            crop={FULL_CROP}
-            mirrored={mirrored}
-            width={picture.width}
-            height={picture.height}
-            frame={frame}
-            ready={picture.ready}
-            onStart={() => setDraft(null)}
-            onSelect={(points, radius, selectedFrame, pixelFloor) =>
-              setDraft({ points, radius, frame: selectedFrame, pixelFloor })
-            }
-          />
-        </div>
-        {!picture.ready ? (
-          <div className="serve-marking-status" role={picture.error ? 'alert' : 'status'}>
-            <span>{t(picture.error || 'Preparing frame…')}</span>
-            {picture.error ? (
-              <button type="button" onClick={picture.retry}>
-                {t('Try again')}
-              </button>
+      <div className="serve-marking-view">
+        <div className="serve-marking-stage" ref={stage}>
+          <div className={`serve-marking-picture${mirrored ? ' is-mirrored' : ''}`} style={{ width, height }}>
+            <canvas
+              ref={canvas}
+              aria-label={t('Measurement video preview')}
+              style={{ transform: mirrored ? 'scaleX(-1)' : undefined }}
+            />
+            {marked.length && picture.ready ? (
+              <svg
+                className="serve-marking-draft"
+                viewBox="0 0 100 100"
+                preserveAspectRatio="none"
+                aria-label={t('Unsaved measurement')}
+              >
+                {line ? <line x1={marked[0].x} y1={marked[0].y} x2={marked[1].x} y2={marked[1].y} /> : null}
+                {marked.map((p, i) => (
+                  <ellipse key={i} cx={p.x} cy={p.y} rx={500 / width} ry={500 / height} />
+                ))}
+              </svg>
             ) : null}
+            <SpeedSelection
+              key={revision}
+              selection={selection}
+              crop={FULL_CROP}
+              mirrored={mirrored}
+              width={picture.width}
+              height={picture.height}
+              frame={frame}
+              ready={picture.ready}
+              canvas={canvas}
+              lens={lens}
+              onStart={() => setDraft(null)}
+              onSelect={(points, radius, selectedFrame, pixelFloor) =>
+                setDraft({ points, radius, frame: selectedFrame, pixelFloor })
+              }
+            />
           </div>
-        ) : null}
+          {!picture.ready && (waiting || picture.error) ? (
+            <div
+              className={`serve-marking-status${picture.width && !picture.error ? ' is-updating' : ''}`}
+              role={picture.error ? 'alert' : 'status'}
+            >
+              <span>{t(picture.error || 'Preparing frame…')}</span>
+              {picture.error ? (
+                <button type="button" onClick={picture.retry}>
+                  {t('Try again')}
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+        <aside
+          className="serve-lens-control"
+          title={t(
+            'Adjust until court lines look straight. Zero keeps the original view; saved with the measurement.'
+          )}
+        >
+          <label htmlFor={`${titleId}-lens`}>{t('Lens')}</label>
+          <span aria-hidden="true">+</span>
+          <input
+            id={`${titleId}-lens`}
+            type="range"
+            aria-label={t('Lens distortion correction')}
+            min={-MAX_LENS}
+            max={MAX_LENS}
+            step={0.01}
+            value={lens}
+            onChange={(event) => {
+              setLens(Number(event.target.value));
+              reset();
+            }}
+          />
+          <span aria-hidden="true">−</span>
+          <output>{lens.toFixed(2)}</output>
+          <button
+            type="button"
+            onClick={() => {
+              setLens(0);
+              reset();
+            }}
+            disabled={!lens}
+            aria-label={t('Reset lens correction')}
+          >
+            <RotateCcw size={16} />
+          </button>
+        </aside>
       </div>
       <div className="serve-marking-review">
         {supportsHalf(selection.kind) ? (
@@ -212,7 +279,10 @@ export function SpeedMarkingModal({
             </button>
           </div>
           <output>
-            {t('Frame {frame} / {total}', { frame: frame + 1, total: clip.index!.timestamps.length })}
+            {t('Frame {frame} / {total}', {
+              frame: frame + 1,
+              total: clip.index!.timestamps.length
+            })}
             <span>{formatTime(clip.index!.timestamps[frame])}</span>
           </output>
         </div>
@@ -244,7 +314,12 @@ export function SpeedMarkingModal({
             className="serve-marking-save"
             disabled={!canSave}
             onClick={() => {
-              if (canSave) onSave({ ...draft!, ...(supportsHalf(selection.kind) ? { span } : {}) });
+              if (canSave)
+                onSave({
+                  ...draft!,
+                  lens,
+                  ...(supportsHalf(selection.kind) ? { span } : {})
+                });
             }}
           >
             {t('Save measurement')}

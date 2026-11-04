@@ -1,4 +1,6 @@
-import { calibrate, atHeight, atDepth, contactCourtDepth, project, COURT } from './geometry';
+import { cameraPoint, projectImage } from './lens';
+import { fitFlight, refitFlight, type FlightObservation } from './flightFit';
+import { calibrate, atHeight, atDepth, contactCourtDepth, COURT } from './geometry';
 import { reconstruct } from './physics';
 import {
   type Point,
@@ -37,11 +39,13 @@ function candidate(
   mapping?: CourtMapping
 ) {
   const camera = fitted ?? calibrate(setup, input.width, input.height, validate, mapping),
-    contact = atDepth(camera.p, setup.contact!, contactCourtDepth(setup, depth)),
-    bounce = atHeight(camera.p, setup.bounce!, COURT.ballRadius);
+    contact = atDepth(camera.p, cameraPoint(camera, setup.contact!), contactCourtDepth(setup, depth)),
+    bounce = atHeight(camera.p, cameraPoint(camera, setup.bounce!), COURT.ballRadius);
   const height = contact[2];
   if (!(height >= 0.3 && height <= 5.5))
-    throw new Error('The derived contact height is implausible. Check the ball mark, serving end and contact depth.');
+    throw new Error(
+      'The derived contact height is implausible. Check the ball mark, serving end and contact depth.'
+    );
   const dx = bounce[0] - contact[0],
     dy = bounce[1] - contact[1],
     distance = Math.hypot(dx, dy);
@@ -62,7 +66,7 @@ function candidate(
       contact[1] + (dy * q.distance) / distance,
       q.z
     ];
-    return { ...project(camera.p, xyz), z: q.z, time: q.time, world: xyz };
+    return { ...projectImage(camera, xyz), z: q.z, time: q.time, world: xyz };
   });
   const crossing = ((COURT.net - contact[1]) / dy) * distance;
   let clearance = Infinity;
@@ -86,10 +90,14 @@ function candidate(
     );
   return { camera, contact, bounce, distance, model, path, clearance };
 }
-export function estimateServe(input: SpeedInput, progress: (fraction: number) => void = () => {}): SpeedResult {
+export function estimateServe(
+  input: SpeedInput,
+  progress: (fraction: number) => void = () => {}
+): SpeedResult {
   const s = input.setup,
     times = input.index.timestamps;
-  if (!(input.width > 0 && input.height > 0)) throw new Error('Read the video dimensions before mapping the court.');
+  if (!(input.width > 0 && input.height > 0))
+    throw new Error('Read the video dimensions before mapping the court.');
   const requirement = courtRequirement(s);
   if (requirement) throw new Error(requirement);
   const courtKeys = markedCourtKeys(s);
@@ -114,9 +122,16 @@ export function estimateServe(input: SpeedInput, progress: (fraction: number) =>
   )
     throw new Error('Each court line needs a valid source frame.');
   if (
-    ![s.contactDepth, s.depthError, s.pixelError, s.frameError, s.slowdown, s.drag, s.dragError, s.liftError].every(
-      Number.isFinite
-    ) ||
+    ![
+      s.contactDepth,
+      s.depthError,
+      s.pixelError,
+      s.frameError,
+      s.slowdown,
+      s.drag,
+      s.dragError,
+      s.liftError
+    ].every(Number.isFinite) ||
     s.contactDepth < -1 ||
     s.contactDepth > 3 ||
     s.depthError < 0 ||
@@ -155,27 +170,39 @@ export function estimateServe(input: SpeedInput, progress: (fraction: number) =>
     throw new Error('Ball checks must lie between contact and the first bounce.');
   const duration = (times[s.bounce.frame] - times[input.contact]) / s.slowdown;
   const timeError =
-    (s.frameError * (frameHalfSpan(input, input.contact) + frameHalfSpan(input, s.bounce.frame))) / s.slowdown;
+    (s.frameError * (frameHalfSpan(input, input.contact) + frameHalfSpan(input, s.bounce.frame))) /
+    s.slowdown;
   if (duration - timeError <= 0.03 || duration + timeError > 3)
     throw new Error('Contact and bounce timing is too uncertain. Check the frames and recording slowdown.');
-  const base = candidate(input, s, duration, s.contactDepth, s.drag, 0, true),
-    speeds = [base.model.kph],
-    heights = [base.contact[2]];
-  const annotationError = base.camera.pixelError;
+  const camera = calibrate(s, input.width, input.height);
   const flightPoints = s.flight.filter((p) => p.frame > input.contact! && p.frame < s.bounce!.frame);
-  const residuals = flightPoints.map((mark) => {
-    const t = (times[mark.frame] - times[input.contact!]) / s.slowdown;
-    const i = Math.min(base.path.length - 2, Math.max(0, Math.floor((t / duration) * (base.path.length - 1)))),
-      a = base.path[i],
-      b = base.path[i + 1],
-      f = (t - a.time) / (b.time - a.time);
-    return Math.hypot((mark.x - a.x - (b.x - a.x) * f) * input.width, (mark.y - a.y - (b.y - a.y) * f) * input.height);
-  });
-  const flightRms = residuals.length ? Math.hypot(...residuals) / Math.sqrt(residuals.length) : null;
-  if (residuals.some((r, i) => r > Math.max(5, 3 * annotationError, 3 * flightPoints[i].radius)))
+  const observations = (setup: ServeSetup): FlightObservation[] =>
+    setup.flight
+      .filter((p) => p.frame > input.contact! && p.frame < s.bounce!.frame)
+      .map((p) => ({
+        ...p,
+        fraction: (times[p.frame] - times[input.contact!]) / (times[s.bounce!.frame] - times[input.contact!]),
+        sigma: Math.max(1, camera.pixelError, p.radius)
+      }));
+  const { value: base, fit } = fitFlight(
+    (lift) => candidate(input, s, duration, s.contactDepth, s.drag, lift, false, camera),
+    observations(s),
+    input.width,
+    input.height
+  );
+  // A curved solution may clear the net even when the zero-lift solution would not.
+  if (base.clearance < 0 || base.model.path.slice(0, -1).some((q) => q.z < COURT.ballRadius - 1e-4))
     throw new Error(
-      'The flight checks disagree with the model. Review ball identity, timing, contact depth or camera movement.'
+      'The model reaches the net or ground before the marked bounce. Check for an earlier collision or revise the annotations.'
     );
+  const speeds = [base.model.kph],
+    heights = [base.contact[2]],
+    annotationError = camera.pixelError;
+  const accepted = fit.observations.filter((o) => o.used);
+  const flightRms = accepted.length
+    ? Math.hypot(...accepted.map((o) => o.residualPixels)) / Math.sqrt(accepted.length)
+    : null;
+  const usedFrames = new Set(accepted.map((o) => o.frame));
   // Corners of timing/depth/drag/lift, followed by independent and correlated
   // annotation perturbations. This is a sensitivity envelope, never a probability CI.
   const variants: {
@@ -195,7 +222,7 @@ export function estimateServe(input: SpeedInput, progress: (fraction: number) =>
             duration: duration + a * timeError,
             depth: s.contactDepth + b * s.depthError,
             drag: s.drag + c * s.dragError,
-            lift: d * s.liftError,
+            lift: (d < 0 ? fit.liftRange[0] : fit.liftRange[1]) + d * s.liftError,
             camera: base.camera
           });
   const perturb = (p: Point, axis: 'x' | 'y', delta: number) => {
@@ -208,14 +235,27 @@ export function estimateServe(input: SpeedInput, progress: (fraction: number) =>
           const setup = clone(s),
             annotation = setup.lines[mark]!;
           perturb(annotation.points[endpoint], axis, sign * Math.max(annotationError, annotation.pixelFloor));
-          variants.push({ setup, duration, depth: s.contactDepth, drag: s.drag, lift: 0 });
+          variants.push({
+            setup,
+            duration,
+            depth: s.contactDepth,
+            drag: s.drag,
+            lift: fit.lift
+          });
         }
   for (const key of ['contact', 'bounce'] as const)
     for (const axis of ['x', 'y'] as const)
       for (const sign of [-1, 1]) {
         const setup = clone(s);
         perturb(setup[key]!, axis, sign * Math.max(annotationError, s[key]!.radius));
-        variants.push({ setup, duration, depth: s.contactDepth, drag: s.drag, lift: 0, camera: base.camera });
+        variants.push({
+          setup,
+          duration,
+          depth: s.contactDepth,
+          drag: s.drag,
+          lift: fit.lift,
+          camera: base.camera
+        });
       }
   let seed = 0x1472abcd;
   const random = () => {
@@ -235,23 +275,53 @@ export function estimateServe(input: SpeedInput, progress: (fraction: number) =>
       perturb(setup[key]!, 'x', random() * Math.max(annotationError, setup[key]!.radius));
       perturb(setup[key]!, 'y', random() * Math.max(annotationError, setup[key]!.radius));
     }
+    for (const mark of setup.flight) {
+      perturb(mark, 'x', random() * Math.max(annotationError, mark.radius));
+      perturb(mark, 'y', random() * Math.max(annotationError, mark.radius));
+    }
     variants.push({
       setup,
       duration: duration + random() * timeError,
       depth: s.contactDepth + random() * s.depthError,
       drag: s.drag + random() * s.dragError,
-      lift: random() * s.liftError
+      lift: fit.lift + random() * s.liftError
     });
   }
   let collisionVariants = 0;
   variants.forEach((v, i) => {
     try {
-      const r = candidate(input, v.setup, v.duration, v.depth, v.drag, v.lift, false, v.camera, base.camera.mapping);
+      const r = candidate(
+        input,
+        v.setup,
+        v.duration,
+        v.depth,
+        v.drag,
+        v.lift,
+        false,
+        v.camera,
+        base.camera.mapping
+      );
+      let collision = r.clearance < 0;
+      // Refit the accepted observations under changed camera/timing/ball marks as
+      // well as retaining the independent lift-envelope trial above.
+      if (accepted.length) {
+        const refit = refitFlight(
+          (lift) => candidate(input, v.setup, v.duration, v.depth, v.drag, lift, false, r.camera),
+          observations(v.setup).filter((o) => usedFrames.has(o.frame)),
+          input.width,
+          input.height,
+          fit.lift
+        );
+        speeds.push(refit.model.kph);
+        collision ||= refit.clearance < 0;
+      }
       speeds.push(r.model.kph);
       heights.push(r.contact[2]);
-      if (r.clearance < 0) collisionVariants++;
+      if (collision) collisionVariants++;
     } catch {
-      throw new Error('Small annotation changes make this estimate unstable. Refine court, net and ball marks.');
+      throw new Error(
+        'Small annotation changes make this estimate unstable. Refine court, net and ball marks.'
+      );
     }
     progress((i + 1) / variants.length);
   });
@@ -274,6 +344,7 @@ export function estimateServe(input: SpeedInput, progress: (fraction: number) =>
     netClearance: base.clearance,
     flightRms,
     checkedPoints: flightPoints.length,
+    flightFit: fit,
     variants: variants.length,
     collisionVariants,
     path: base.path

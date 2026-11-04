@@ -472,7 +472,16 @@ perturbation scale; gross mismatch uses precision- and court-span-aware rejectio
 thresholds with the offending mark and error. Crossed full-width reference
 quadrilaterals, coincident supports, insufficient net elevation and behind-camera
 projections remain invalid. This is
-a fixed rectilinear camera model without distortion/motion compensation.
+a fixed camera model without motion compensation. Optional centred radial correction
+maps original image coordinates to a rectilinear approximation before fitting. For
+`d = (image - .5) * (width,height) / (hypot(width,height)/2)`, use
+`d_corrected = d * (1 + k*r²/(1+r²)) / (1 + max(k,0)/2)`, with `r² = dot(d,d)` and
+`k ∈ [-.8,.8]`. This monotone map is invertible throughout the image and outside it;
+it is a manual single-parameter approximation, not automatic lens calibration.
+`Camera.p` projects to corrected coordinates; `camera.lens` records the inverse
+needed for source-image overlays. Marks and reported residuals stay in raw pixels.
+Contact and bounce rays use corrected pixels, while projected flight overlays are
+inverted back to original coordinates. No crop, mirror or lens edit mutates footage.
 
 The contact ray intersects a plane at the assumed depth inside the selected serving
 baseline, solving lateral position and height together. The default is 0.5 m ± 0.2 m
@@ -486,17 +495,29 @@ rates are intentionally absent from this calculation.
 
 In the vertical plane between these endpoints, RK4 integrates gravity and quadratic
 drag. A damped Newton solve recovers launch velocities that reach the bounce at its
-measured time. Central drag is 0.020 /m with no lift; perturbations include signed
-lift. The central path must clear the modeled net and avoid an earlier ground
-collision. Optional intermediate observations check projected trajectory residuals
-without refitting the camera or endpoints. This does not implement the reference's
+measured time. Default drag is 0.020 /m. Without intermediate marks the central
+zero-lift calculation is unchanged. With marks, bounded deterministic search fits a
+signed effective Magnus coefficient (±0.04 /m) against original-pixel projections.
+The acceleration is `u′ = -D*v*u - L*v*w`, `w′ = -g-D*v*w+L*v*u`, with
+`v = hypot(u,w)`; negative L gives downward topspin curvature. The ground projection
+stays on the endpoint line. Capped normalized residual loss establishes consensus;
+at least 60% of marks must agree within three marking-uncertainty units (5 px floor).
+Every excluded mark and residual is exposed, including in JSON. Flat evidence within
+one uncertainty unit preserves L=0. A profile of accepted observations supplies an
+additional lift sensitivity range. Camera/endpoints never move to fit flight points.
+Only the final fitted central path must clear the net and avoid early ground contact. This does not implement the reference's
 partial-flight optimization route or infer unseen bounces/sideways spin.
 
 Deterministic sensitivity trials vary local frame timing (including VFR intervals),
 contact depth, pixel/region marks, drag and lift, using parameter corners, independent
 annotation perturbations and combined independent/correlated perturbations. Each
 scenario re-derives contact height; both speed and height ranges are retained.
-Perturbations touch only observed endpoints. The trial count is 16 parameter corners,
+With corrections, warm-started least squares also refits accepted observations under
+perturbed geometry/timing/drag; combined trials perturb their pixels. Trial paths
+with independent lift variation remain in the envelope, preventing the fit from
+hiding model sensitivity. Intermediate fractions use source PTS and scale with the
+trial flight duration. No fit claims spin rate or a statistical confidence interval.
+Perturbations touch only observed annotations. The trial count is 16 parameter corners,
 8 per marked line, 8 ball-position trials and 64 combined trials. Correspondence is
 re-evaluated during geometry perturbations; ambiguity or a changed half/support side
 rejects the estimate as unstable. This preserves uncertainty checks for reduced
@@ -513,7 +534,13 @@ during annotation; only the active guide is drawn. Completing or cancelling the
 annotation restores the selected overlay groups.
 `SpeedMarkingModal` opens a full-viewport native dialog for each court/ball item.
 An independent, lazily loaded `PreviewFrames` decoder coalesces seeks, disposes
-stale samples and enables marking only for the actually drawn source frame.
+stale samples and enables marking only for the actually drawn source frame. A local
+LRU owns at most four snapshots/24 MiB (plus the visible surface); VideoFrames close
+immediately. Interactive requests outrank filmstrip work. The previous picture stays
+visible while seeking; a 250 ms delayed nonblocking status avoids flickering masks.
+Lens edits redraw a snapshot without decoding. Optional WebGL warping owns one
+context; a cached bilinear software remap, capped at 1280 px long edge, handles
+unavailable/lost WebGL. Disposal releases snapshot, map and GPU resources.
 The native fallback mounts inside the visible dialog so WebKit presents decoded
 pixels even when its review region is scrolled out of view. A separate short-lived
 reader prepares its thumbnail lane through the shared priority queue, without
@@ -523,7 +550,11 @@ coordinates and screen precision. Its `ClipTimeline` reuses zoom/pan without tri
 handles; review never drives linked playback. Background analysis and comparison
 playback pause during marking. Closing releases the decoder, restores document
 scrolling and returns focus; late tool loads cannot reopen the dialog.
-Drafts are local until Save and reset on frame changes. Contact saves update the
+Line gestures commit the release position as the start, then commit the next release
+as the end; a third press replaces the line. Pointer cancellation cannot commit a
+partial drag. A floating 4× canvas magnifier samples the corrected display including
+mirror orientation, and the inverse transform saves original coordinates. Drafts and
+lens edits are local until Save; frame/span/lens changes clear the active draft. Contact saves update the
 ball annotation and synchronization anchor together; invalid subsequent endpoints
 and flight checks are removed. Court bounds span the source, while ball bounds
 respect the excerpt and contact/bounce order. Short landscape layouts put controls
@@ -533,7 +564,13 @@ assumed from standard court geometry, assumptions and checks, plus the complete
 speed result. Model path samples carry world XYZ alongside image projections;
 their 3D polyline arc length is separate from horizontal contact-to-bounce distance.
 Physical flight time and source time are both provided using recording slowdown.
-Court and ball overlay toggles share one row. Ordinary grid exports are unchanged.
+Court and ball overlay toggles share one row. Grid exports snapshot only a current
+serve result via the pane's result lifecycle; stale/cancelled jobs never provide one.
+Per-clip speed-label toggles default off and use the same cell compositor in interactive
+preview, video and image sheets. Text renders outside crop/mirror transforms. It is
+visible for `0 <= sharedTime / outputRate < 3`, bounded by the clip's excerpt end in
+the shared clock; held end frames cannot extend it. Measurement edits invalidate
+eligibility; visual overlay toggles do not.
 Validation uses analytical ballistic cases and synthetic projected
 courts with known launch motion; field calibration against radar remains open.
 

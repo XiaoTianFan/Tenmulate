@@ -1,3 +1,4 @@
+import { cameraPoint } from '../speed/lens';
 import { atDepth, atHeight, contactCourtDepth, COURT } from '../speed/geometry';
 import { COURT_LINES, isNetLine, newServeSetup, type BallMark, type GroundLine } from '../speed/types';
 import { exportMetadata, frameReference, timeAt } from './common';
@@ -6,22 +7,31 @@ export function serveSpeedData(request: DataExportRequest) {
   const { clip, result, calibration, issue } = request,
     setup = clip.serve ?? newServeSetup();
   const camera = result?.camera ?? calibration;
-  const pixel = (p: { x: number; y: number }) => ({ x: p.x * clip.sourceWidth, y: p.y * clip.sourceHeight });
+  const pixel = (p: { x: number; y: number }) => ({
+    x: p.x * clip.sourceWidth,
+    y: p.y * clip.sourceHeight
+  });
   const ball = (mark?: BallMark) =>
     mark
-      ? { ...mark, ...frameReference(clip, mark.frame), imagePixels: pixel(mark), radiusUnit: 'source pixels' }
+      ? {
+          ...mark,
+          ...frameReference(clip, mark.frame),
+          imagePixels: pixel(mark),
+          radiusUnit: 'source pixels'
+        }
       : null;
   let contactPosition: number[] | null = null,
     bouncePosition: number[] | null = null;
   if (camera) {
     try {
       if (setup.contact?.frame === clip.contact)
-        contactPosition = atDepth(camera.p, setup.contact!, contactCourtDepth(setup));
+        contactPosition = atDepth(camera.p, cameraPoint(camera, setup.contact!), contactCourtDepth(setup));
     } catch {
       /* Export annotations even if geometry is incomplete. */
     }
     try {
-      if (setup.bounce) bouncePosition = atHeight(camera.p, setup.bounce, COURT.ballRadius);
+      if (setup.bounce)
+        bouncePosition = atHeight(camera.p, cameraPoint(camera, setup.bounce), COURT.ballRadius);
     } catch {
       /* See calibration diagnostics. */
     }
@@ -41,15 +51,17 @@ export function serveSpeedData(request: DataExportRequest) {
   });
   return {
     ...exportMetadata(clip, 'serve-speed'),
-    method: 'Endpoint reconstruction with quadratic drag. Sensitivity envelope, not a statistical confidence interval.',
-    reference: 'https://github.com/XiaoTianFan/tennis-point-edit-review/tree/2b63d12ad7dfb85c30d4c2e3d38e5c9d873a6b78',
+    method:
+      'Endpoint reconstruction with quadratic drag and optional robust Magnus-lift fitting from intermediate ball points. No sidespin. Sensitivity envelope, not a statistical confidence interval.',
+    reference:
+      'https://github.com/XiaoTianFan/tennis-point-edit-review/tree/2b63d12ad7dfb85c30d4c2e3d38e5c9d873a6b78',
     status: result ? 'estimated' : issue ? 'needs-review' : camera ? 'calibrated' : 'annotations-only',
     issue: issue ?? null,
     units: {
       annotations:
         'Normalized source-image coordinates, except radius/pixelFloor/pixelError in source pixels. Half spans join the centre to a singles sideline; detectedHalf uses original unmirrored sides. courtPointsMeters contains only calibrated observed endpoints.',
       camera:
-        'Row-major 3×4 projective matrix: [u,v,w] = P × [courtX,courtY,courtZ,1]; normalized image position = [u/w,v/w].',
+        'Row-major 3×4 projective matrix: [u,v,w] = P × [courtX,courtY,courtZ,1]; corrected image position = [u/w,v/w]. If camera.lens is present, use the inverse centred radial correction to obtain original source-image coordinates. Correction: d=(image-[0.5,0.5])*[width,height]/(hypot(width,height)/2); corrected d = d*(1+k*|d|²/(1+|d|²))/(1+max(k,0)/2).',
       court:
         'Metres: origin at near baseline centre on ground, x rightward in original image, y toward far baseline, z upward.',
       result:
@@ -57,12 +69,13 @@ export function serveSpeedData(request: DataExportRequest) {
       errors:
         'camera rms/checkError/residuals/pixelError and flightRms: source pixels. netClearance/contact3D/contactHeightRange/bounce3D: metres.',
       assumptions:
-        'contactDepth/depthError: metres; frameError: frames per endpoint; slowdown: source-seconds / physical-second; drag/dragError/liftError: 1/m.',
+        'contactDepth/depthError: metres; frameError: frames per endpoint; slowdown: source-seconds / physical-second; drag/dragError/liftError and fitted lift/liftRange: 1/m. Negative lift bends the flight downward (topspin); this is not a spin-rate measurement. lens: dimensionless radial correction, held fixed in the sensitivity trials. flightFit reports per-point residuals and excluded outliers.',
       trajectory:
         'Reconstructed model samples, not observed ball detections or source-frame samples. Length is the 3D polyline arc length.'
     },
     courtDimensionsMeters: {
-      basis: 'Standard court/net dimensions assumed for calibration, not independently measured from the video.',
+      basis:
+        'Standard court/net dimensions assumed for calibration, not independently measured from the video.',
       singlesWidth: COURT.halfWidth * 2,
       doublesWidth: 10.97,
       length: COURT.length,

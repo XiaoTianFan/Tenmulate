@@ -16,13 +16,20 @@ export const COURT_KEYS = Object.keys(COURT_LINES) as CourtLine[];
 export const GROUND_KEYS: GroundLine[] = ['near', 'nearService', 'service', 'far'];
 export const supportsHalf = (kind: string) => kind === 'near' || kind === 'nearService';
 export const isNetLine = (kind: string) => kind === 'netA' || kind === 'netB' || kind === 'netCenter';
-export type CourtMark = { points: Line; frame: number; pixelFloor: number; span?: 'full' | 'half' };
+export type CourtMark = {
+  points: Line;
+  frame: number;
+  pixelFloor: number;
+  span?: 'full' | 'half';
+};
 export type CourtMapping = {
   halves: Partial<Record<GroundLine, 'left' | 'right'>>;
   supports: Partial<Record<'netA' | 'netB', 'left' | 'right'>>;
 };
 export type BallMark = Point & { frame: number; radius: number };
 export type ServeSetup = {
+  /** Centred radial correction; marks remain in original source coordinates. */
+  lens?: number;
   lines: Partial<Record<CourtLine, CourtMark>>;
   netSupports: 'doubles' | 'singles';
   contact?: BallMark;
@@ -42,6 +49,7 @@ export type ServeSetup = {
 };
 export const newServeSetup = (): ServeSetup => ({
   lines: {},
+  lens: 0,
   netSupports: 'doubles',
   flight: [],
   servingEnd: 'near',
@@ -56,7 +64,10 @@ export const newServeSetup = (): ServeSetup => ({
   showCourtOverlay: true,
   showBallOverlay: true
 });
-export type SpeedSelection = { kind: CourtLine | 'contact' | 'bounce' | 'flight'; frame: number };
+export type SpeedSelection = {
+  kind: CourtLine | 'contact' | 'bounce' | 'flight';
+  frame: number;
+};
 export type SpeedInput = {
   setup: ServeSetup;
   width: number;
@@ -67,6 +78,7 @@ export type SpeedInput = {
   end: number;
 };
 export type Camera = {
+  lens?: { strength: number; width: number; height: number };
   p: number[][];
   rms: number;
   checkError: number;
@@ -78,10 +90,17 @@ export type Camera = {
   coverage?: { groundLines: number; netLines: number; halfLines: number };
   controls?: { mark: CourtLine; endpoint: number; world: number[] }[];
 };
-export type MeasurementIssue = { message: string; mark?: CourtLine; pixels?: number };
+export type MeasurementIssue = {
+  message: string;
+  mark?: CourtLine;
+  pixels?: number;
+};
 export type CalibrationInput = Pick<SpeedInput, 'setup' | 'width' | 'height'>;
-export type SpeedRequest = { kind: 'calibrate'; input: CalibrationInput } | { kind: 'estimate'; input: SpeedInput };
+export type SpeedRequest =
+  | { kind: 'calibrate'; input: CalibrationInput }
+  | { kind: 'estimate'; input: SpeedInput };
 export type SpeedResult = {
+  flightFit?: import('./flightFit').FlightFit;
   launchKph: number;
   rangeKph: [number, number];
   horizontalMeanKph: number;
@@ -97,5 +116,11 @@ export type SpeedResult = {
   checkedPoints: number;
   variants: number;
   collisionVariants: number;
-  path: { x: number; y: number; time: number; z: number; world: [number, number, number] }[];
+  path: {
+    x: number;
+    y: number;
+    time: number;
+    z: number;
+    world: [number, number, number];
+  }[];
 };

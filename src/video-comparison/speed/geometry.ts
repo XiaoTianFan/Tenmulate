@@ -1,4 +1,5 @@
 import { project } from './projective';
+import { correctLens, distortLens, MAX_LENS } from './lens';
 export { project, atHeight, atDepth } from './projective';
 import {
   GROUND_KEYS,
@@ -35,6 +36,10 @@ export function calibrate(
   validate = true,
   expected?: CourtMapping
 ): Camera {
+  const raw = setup,
+    strength = setup.lens ?? 0;
+  if (!Number.isFinite(strength) || Math.abs(strength) > MAX_LENS)
+    throw new Error('Check the measurement uncertainties and physical assumptions.');
   const requirement = courtRequirement(setup);
   if (requirement) throw new Error(requirement);
   const keys = markedCourtKeys(setup),
@@ -46,8 +51,24 @@ export function calibrate(
     setup.pixelError > 30
   )
     throw new Error('Check the measurement uncertainties and physical assumptions.');
-  if (!points.every((p) => Number.isFinite(p.x + p.y) && (!validate || (p.x >= 0 && p.x <= 1 && p.y >= 0 && p.y <= 1))))
+  if (
+    !points.every(
+      (p) => Number.isFinite(p.x + p.y) && (!validate || (p.x >= 0 && p.x <= 1 && p.y >= 0 && p.y <= 1))
+    )
+  )
     throw new Error('All calibration marks must be inside the original image.');
+  setup = {
+    ...raw,
+    lines: Object.fromEntries(
+      Object.entries(raw.lines).map(([key, mark]) => [
+        key,
+        {
+          ...mark!,
+          points: mark!.points.map((p) => correctLens(p, strength, width, height))
+        }
+      ])
+    )
+  };
   const full = GROUND_KEYS.filter((k) => setup.lines[k] && setup.lines[k]!.span !== 'half');
   const near = setup.lines[full[0]]!,
     far = setup.lines[full.at(-1)!]!;
@@ -78,7 +99,14 @@ export function calibrate(
       try {
         const controls = courtControls(setup, mapping),
           p = fitCamera(controls, width, height);
-        const errors = controls.map((c) => error(project(p, c.xyz), c.point, width, height));
+        const errors = controls.map((c) =>
+          error(
+            distortLens(project(p, c.xyz), strength, width, height),
+            raw.lines[c.mark]!.points[c.endpoint],
+            width,
+            height
+          )
+        );
         const score = errors.reduce((sum, value, i) => {
           const r = value / controls[i].sigma;
           return sum + (r <= 2.5 ? r * r : 5 * r - 6.25);
@@ -89,7 +117,8 @@ export function calibrate(
       }
     })
     .sort((a, b) => a.score - b.score);
-  if (!candidates.length) throw new Error('Court marks are degenerate. Redraw the line endpoints and net tops.');
+  if (!candidates.length)
+    throw new Error('Court marks are degenerate. Redraw the line endpoints and net tops.');
   const { mapping, controls, p, errors } = candidates[0];
   const rms = Math.hypot(...errors) / Math.sqrt(errors.length),
     checkError = Math.max(...errors);
@@ -110,20 +139,26 @@ export function calibrate(
       checkError
     );
   if (candidates[1] && candidates[1].score - candidates[0].score < 9)
-    throw new Error('The court side is ambiguous. Add another full court line or re-mark the centre and side support.');
+    throw new Error(
+      'The court side is ambiguous. Add another full court line or re-mark the centre and side support.'
+    );
   if (
     expected &&
     (GROUND_KEYS.some((key) => expected.halves[key] !== mapping.halves[key]) ||
       (['netA', 'netB'] as const).some((key) => expected.supports[key] !== mapping.supports[key]))
   )
-    throw new Error('Small annotation changes make this estimate unstable. Refine court, net and ball marks.');
+    throw new Error(
+      'Small annotation changes make this estimate unstable. Refine court, net and ball marks.'
+    );
   const residuals = keys.map((mark) => ({
     mark,
     pixels: Math.max(...errors.filter((_, i) => controls[i].mark === mark))
   }));
-  const quality = errors.some((v, i) => v > 2.5 * controls[i].sigma) || rms > 1.5 * typical ? 'review' : 'good';
+  const quality =
+    errors.some((v, i) => v > 2.5 * controls[i].sigma) || rms > 1.5 * typical ? 'review' : 'good';
   return {
     p,
+    ...(strength ? { lens: { strength, width, height } } : {}),
     rms,
     checkError,
     residuals,
@@ -132,6 +167,10 @@ export function calibrate(
     pixelError: Math.max(typical, rms),
     mapping,
     coverage: courtCoverage(setup),
-    controls: controls.map((c) => ({ mark: c.mark, endpoint: c.endpoint, world: c.xyz }))
+    controls: controls.map((c) => ({
+      mark: c.mark,
+      endpoint: c.endpoint,
+      world: c.xyz
+    }))
   };
 }

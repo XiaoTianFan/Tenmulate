@@ -15,9 +15,13 @@ import { PresentedFrames } from './analysis/presentation';
 import { useAnalysis } from './analysis/useAnalysis';
 import { newMotion, type ClipMotion } from './analysis/types';
 import { drawCropped, normalizeCrop } from './crop';
-import { newServeSetup } from './speed/types';
+import { newServeSetup, type SpeedResult } from './speed/types';
 
 export function VideoComparisonScreen({ active, onRoute }: { active: boolean; onRoute: (route: AppRoute) => void }) {
+  const estimates = useRef(new Map<string, SpeedResult>());
+  const estimateChanged = useCallback((id: string, result?: SpeedResult) => {
+    if (result) estimates.current.set(id, result); else estimates.current.delete(id);
+  }, []);
   const [clips, setClips] = useState<ComparisonClip[]>([]);
   const [time, setTime] = useState(0), [playing, setPlaying] = useState(false), [linked, setLinked] = useState(false);
   const [rate, setRate] = useState(1);
@@ -65,7 +69,7 @@ export function VideoComparisonScreen({ active, onRoute }: { active: boolean; on
       if (context) drawCropped(context, (x, y, w, h) => context.drawImage(surface, x, y, w, h), crop, { x: 0, y: 0, width: snapshot.width, height: snapshot.height });
       previews[clip.id] = snapshot.toDataURL('image/jpeg', 0.8);
     }
-    setExportClips(clips); setExportPreviews(previews); setExporting(true);
+    setExportClips(clips.map(clip => ({ ...clip, serveEstimate: estimates.current.get(clip.id) }))); setExportPreviews(previews); setExporting(true);
   };
   const frameFor = (clip: ComparisonClip) => linked && clip.index && clip.contact !== null
     ? frameForTime({ ...clip, index: clip.index, contact: clip.contact }, time) : clip.frame;
@@ -156,7 +160,7 @@ export function VideoComparisonScreen({ active, onRoute }: { active: boolean; on
             const frame = frameFor(clip);
             const sourceTime = clip.index && clip.contact !== null ? mediaTime({ index: clip.index, contact: clip.contact, speed: clip.speed }, time) : 0;
             const held = linked && !!clip.index && (sourceTime < clip.index.timestamps[clipFrameRange({ ...clip, index: clip.index }).start]! - 1e-7 || sourceTime > clip.index.timestamps[clipFrameRange({ ...clip, index: clip.index }).end]! + 1e-7);
-            return <ComparisonPane active={active && !exporting} reviewActive={active && visible && !playing && !exporting && !markingClip} onMarkingChange={markingChanged} onServe={(edit, contactFrame) => {
+            return <ComparisonPane active={active && !exporting} reviewActive={active && visible && !playing && !exporting && !markingClip} onMarkingChange={markingChanged} onEstimate={estimateChanged} onServe={(edit, contactFrame) => {
               setClips(current => current.map(c => c.id === clip.id ? { ...c, serve: edit(c.serve ?? newServeSetup()), ...(contactFrame === undefined ? {} : { contact: contactFrame, frame: contactFrame }) } : c));
               if (contactFrame !== undefined) {
                 pause();

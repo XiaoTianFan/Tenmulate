@@ -77,10 +77,13 @@ schedule. Completed features belong in the user guide and architecture.
   derived conditional on an assumed depth inside the serving baseline; contact
   depth and recording slowdown remain explicit assumptions. Across-frame marking
   still requires a fixed camera; mild calibration residuals expand uncertainty
-  and gross discrepancies need correction. Lens distortion, sideways
-  spin, wind, moving cameras, partial courts and missing first bounces are not
-  recovered by this model; the reported sensitivity envelope is not a confidence
-  interval. Speed annotations are session-local and are not part of grid exports.
+  and gross discrepancies need correction. Manual centred radial correction and
+  intermediate-point lift fitting help with distortion and kick serves, but need
+  real-world validation. Off-centre/strong fisheye distortion, sidespin, wind, camera
+  motion and missing first bounces remain limitations. Partial courts work only with
+  sufficient independent references. The sensitivity envelope is not a confidence
+  interval. Speed annotations are session-local; optional grid-export labels snapshot
+  the current estimate.
 
 Automatic technique assessment, accounts, cloud sync and video-to-drill
 reconstruction are outside the current implementation.
