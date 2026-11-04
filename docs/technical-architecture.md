@@ -395,23 +395,38 @@ acceptance limits are tracked in [open work](open-questions.md).
 `video-comparison/speed/` implements browser-only endpoint reconstruction, adapted
 from Tennis Match Edit's deterministic `launch_speed.py` (see attribution). There
 is no agent, visual model, upload or backend dependency. The opt-in module worker
-is created only for estimation and terminated on completion, cancellation, changed
+is created for court fitting after all six lines are marked, or for explicit speed
+estimation, and terminated on completion, cancellation, changed
 evidence, page deactivation or clip removal. Results carry the input signature and
 frame-index identity; late replies cannot replace newer settings.
 
 Annotations use original oriented source coordinates, independent of crop/mirror.
-Four singles-baseline corners solve a ground homography for an 8.23 × 23.77 m
-court. Two 1.07 m elevated net-support points recover the camera's vertical column,
-giving a 3 × 4 projective camera. Doubles posts are 12.798 m apart; singles sticks
-are 10.058 m apart. The far service line and 0.914 m centre strap are held-out
-calibration checks. Degenerate polygons, weak elevation evidence, behind-camera
-projections and excessive residuals are rejected. This is a rectilinear fixed-view
-model, without lens-distortion or camera-motion compensation.
+Each baseline/service-line or net segment retains its source frame and annotation
+precision. Different lines can use different frames; each segment's endpoints use
+one frame. Nine ground controls (four singles-baseline corners, two far service-line
+corners and three net ground points) plus three elevated net tops jointly constrain
+a 3 × 4 projective camera. The court is 8.23 × 23.77 m, supports are 1.07 m high and
+the centre strap is 0.914 m high. Doubles posts are 12.798 m apart; singles sticks
+are 10.058 m apart. The two supports are ordered by original-image ground position,
+so A/B selection order and preview mirroring do not change correspondence.
 
-The contact ray intersects a user-specified contact-height plane; the first-bounce
-ray intersects a ball-centre plane 0.0335 m above the court. Airborne points are
-never mapped as if they were on the ground. Contact height is an explicit independent
-assumption, not inferred from the ground homography. Source presentation timestamps
+Weighted linear initialization is refined in image pixels using damped Gauss–Newton
+and a Huber loss. Every observation, including downweighted endpoints, retains a
+reported residual. All landmarks contribute to fitting; these residuals are fit
+diagnostics, not held-out validation. Per-mark screen precision supplies a lower
+uncertainty bound. Moderate mismatch produces a named review hint and raises the
+perturbation scale; gross mismatch uses precision- and court-span-aware rejection
+thresholds with the offending mark and error. Crossed baselines, coincident supports,
+insufficient net elevation and behind-camera projections remain invalid. This is
+a fixed rectilinear camera model without distortion/motion compensation.
+
+The contact ray intersects a plane at the assumed depth inside the selected serving
+baseline, solving lateral position and height together. The default is 0.5 m ± 0.4 m
+inside the near baseline; users can adjust it or select the far end. Height is thus
+derived from the elevated net calibration and contact pixel **conditional on depth**,
+not independently observed from one view. The first-bounce ray intersects a
+ball-centre plane 0.0335 m above the court. Airborne points are never mapped as if
+they were on the ground. Source presentation timestamps
 provide elapsed time, divided by an explicit recording-slowdown factor. Playback
 rates are intentionally absent from this calculation.
 
@@ -424,8 +439,9 @@ without refitting the camera or endpoints. This does not implement the reference
 partial-flight optimization route or infer unseen bounces/sideways spin.
 
 Deterministic sensitivity trials vary local frame timing (including VFR intervals),
-height, pixel/region marks, drag and lift, using parameter corners, independent
-annotation perturbations and combined independent/correlated perturbations. The
+contact depth, pixel/region marks, drag and lift, using parameter corners, independent
+annotation perturbations and combined independent/correlated perturbations. Each
+scenario re-derives contact height; both speed and height ranges are retained. The
 reported min/max envelope includes net-collision variants with a warning. Numerical
 instability or a range wider than half the central speed blocks reporting. It is
 not a statistical confidence interval or a guarantee of real-world accuracy.

@@ -18,7 +18,7 @@ import { SpeedPanel } from './speed/SpeedPanel';
 import { SpeedSelection, isCourtSelection } from './speed/SpeedSelection';
 import { SpeedOverlay } from './speed/SpeedOverlay';
 import { useServeEstimate } from './speed/useServeEstimate';
-import { COURT_LINES, newServeSetup, type CourtLine, type Point, type ServeSetup, type SpeedSelection as ServeSelection } from './speed/types';
+import { COURT_LINES, newServeSetup, type CourtLine, type Line, type Point, type ServeSetup, type SpeedSelection as ServeSelection } from './speed/types';
 
 type Props = {
   active: boolean; onServe: (edit: (setup: ServeSetup) => ServeSetup) => void;
@@ -80,10 +80,8 @@ export function ComparisonPane({ active, onServe, presentation, analysis, linked
     if (!speedSelection || displayed !== selectedFrame) return;
     const kind = speedSelection.kind;
     onServe(previous => {
-      const s = {...previous, pixelError: Math.max(previous.pixelError, pixelFloor)};
-      if (kind in COURT_LINES) return {...s, courtFrame: selectedFrame, lines: {...s.lines, [kind as CourtLine]: points}};
-      if (kind === 'netCenter') return {...s, courtFrame: selectedFrame, netCenter: points[0]};
-      const mark = {...points[0], frame: selectedFrame, radius};
+      if (kind in COURT_LINES) return {...previous, lines: {...previous.lines, [kind as CourtLine]: {points: points as Line, frame: selectedFrame, pixelFloor}}};
+      const s = previous, mark = {...points[0], frame: selectedFrame, radius:Math.max(radius,pixelFloor)};
       if (kind === 'flight') return {...s, flight: [...s.flight.filter(p => p.frame !== selectedFrame), mark].sort((a,b) => a.frame-b.frame)};
       // A revised endpoint removes checks that are now outside this flight.
       const flight = s.flight.filter(p => kind === 'contact' ? p.frame > selectedFrame : p.frame < selectedFrame);
@@ -141,7 +139,7 @@ export function ComparisonPane({ active, onServe, presentation, analysis, linked
         </div>
         {selection ? <MotionSelection key={`${selection.id}:${selection.role}`} selection={selection} crop={crop} mirrored={mirrored} frame={frame} ready={displayed === frame && frame >= selectionMin && frame <= selectionMax} min={selectionMin} max={selectionMax} toolbar={selectionToolbar.current} onSelect={selected} onCancel={() => setSelection(null)}/> : null}
         {speedSelection ? <SpeedSelection key={`${speedSelection.kind}:${speedSelection.frame}`} selection={speedSelection} crop={crop} mirrored={mirrored} {...dimensions} frame={frame}
-          ready={displayed === frame && frame >= excerpt.start && frame <= excerpt.end && ((!isCourtSelection(speedSelection.kind) && speedSelection.kind !== 'contact') || frame === speedSelection.frame)}
+          ready={displayed === frame && frame >= excerpt.start && frame <= excerpt.end && (speedSelection.kind !== 'contact' || frame === speedSelection.frame)}
           toolbar={selectionToolbar.current} onSelect={selectedSpeed} onCancel={() => setSpeedSelection(null)} onFrame={onFrame}/> : null}
         {cropping ? <CropEditor crop={clip.crop} sourceAspect={dimensions.width / dimensions.height} viewportAspect={size.width / (size.height + 104)}
           toolbarTarget={wrap.current} onChange={onCrop} onDone={() => setCropping(false)} onCancel={() => { onCrop(originalCrop.current); setCropping(false); }}/> : null}
@@ -171,7 +169,7 @@ export function ComparisonPane({ active, onServe, presentation, analysis, linked
           onClick={onContact}><Crosshair size={15}/>{t('Set contact')}</button>
       </div>
       <MotionPanel clip={clip} frame={frame} view={timelineView} linked={linked} analysis={analysis} onEdit={onMotion} onSelect={select} onFrame={onFrame} onPause={onPause}/>
-      <div ref={speedPanel}><SpeedPanel clip={clip} setup={serve} frame={frame} {...dimensions} controls={speedControls}
+      <div ref={speedPanel}><SpeedPanel active={active} clip={clip} setup={serve} frame={frame} {...dimensions} controls={speedControls}
         onEdit={edit => { setSpeedSelection(null); onServe(edit); }} onSelect={selectSpeed} onFrame={onFrame} onPause={onPause}/></div>
       <div className="comparison-pane-footer"><span>{t('Local clip')}</span><div>
         <button aria-label={t('Move {name} left', { name: clip.name })} disabled={position === 0} onClick={() => onMove(-1)}><ArrowLeft size={14}/></button>

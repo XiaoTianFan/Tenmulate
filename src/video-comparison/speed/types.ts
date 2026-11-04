@@ -1,25 +1,28 @@
 import type { FrameIndex } from '../timeline';
 export type Point = { x: number; y: number };
 export type Line = [Point, Point];
-export type CourtLine = 'near' | 'far' | 'service' | 'net';
+export type CourtLine = 'near' | 'far' | 'service' | 'netA' | 'netB' | 'netCenter';
 export const COURT_LINES: Record<CourtLine, string> = {
   near: 'Near singles baseline',
   far: 'Far singles baseline',
   service: 'Far service line',
-  net: 'Net support tops'
+  netA: 'Net support A · top to ground',
+  netB: 'Net support B · top to ground',
+  netCenter: 'Net centre · top to ground'
 };
+export const COURT_KEYS = Object.keys(COURT_LINES) as CourtLine[];
+export const isNetLine = (kind: string) => kind === 'netA' || kind === 'netB' || kind === 'netCenter';
+export type CourtMark = { points: Line; frame: number; pixelFloor: number };
 export type BallMark = Point & { frame: number; radius: number };
 export type ServeSetup = {
-  courtFrame?: number;
-  lines: Partial<Record<CourtLine, Line>>;
-  netCenter?: Point;
+  lines: Partial<Record<CourtLine, CourtMark>>;
   netSupports: 'doubles' | 'singles';
-  stationary: boolean;
   contact?: BallMark;
   bounce?: BallMark;
   flight: BallMark[];
-  height: number;
-  heightError: number;
+  servingEnd: 'near' | 'far';
+  contactDepth: number;
+  depthError: number;
   pixelError: number;
   frameError: number;
   slowdown: number;
@@ -31,10 +34,10 @@ export type ServeSetup = {
 export const newServeSetup = (): ServeSetup => ({
   lines: {},
   netSupports: 'doubles',
-  stationary: false,
   flight: [],
-  height: 2.6,
-  heightError: 0.25,
+  servingEnd: 'near',
+  contactDepth: 0.5,
+  depthError: 0.4,
   pixelError: 2,
   frameError: 0.5,
   slowdown: 1,
@@ -43,7 +46,7 @@ export const newServeSetup = (): ServeSetup => ({
   liftError: 0.006,
   showOverlay: true
 });
-export type SpeedSelection = { kind: CourtLine | 'netCenter' | 'contact' | 'bounce' | 'flight'; frame: number };
+export type SpeedSelection = { kind: CourtLine | 'contact' | 'bounce' | 'flight'; frame: number };
 export type SpeedInput = {
   setup: ServeSetup;
   width: number;
@@ -53,7 +56,18 @@ export type SpeedInput = {
   start: number;
   end: number;
 };
-export type Camera = { p: number[][]; rms: number; checkError: number };
+export type Camera = {
+  p: number[][];
+  rms: number;
+  checkError: number;
+  residuals: { mark: CourtLine; pixels: number }[];
+  worstMark: CourtLine;
+  quality: 'good' | 'review';
+  pixelError: number;
+};
+export type MeasurementIssue = { message: string; mark?: CourtLine; pixels?: number };
+export type CalibrationInput = Pick<SpeedInput, 'setup' | 'width' | 'height'>;
+export type SpeedRequest = { kind: 'calibrate'; input: CalibrationInput } | { kind: 'estimate'; input: SpeedInput };
 export type SpeedResult = {
   launchKph: number;
   rangeKph: [number, number];
@@ -61,6 +75,7 @@ export type SpeedResult = {
   flightSeconds: number;
   distance: number;
   contact3D: number[];
+  contactHeightRange: [number, number];
   bounce3D: number[];
   velocity: number[];
   camera: Camera;

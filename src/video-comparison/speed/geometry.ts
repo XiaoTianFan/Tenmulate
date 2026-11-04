@@ -1,4 +1,7 @@
-import type { Camera, Point, ServeSetup } from './types';
+import { project } from './projective';
+export { project, atHeight, atDepth } from './projective';
+import { COURT_KEYS, isNetLine, type Camera, type CourtLine, type Point, type ServeSetup } from './types';
+import { fitCamera, type CameraControl } from './cameraFit';
 export const COURT = {
   halfWidth: 4.115,
   length: 23.77,
@@ -8,63 +11,34 @@ export const COURT = {
   centerHeight: 0.914,
   ballRadius: 0.0335
 };
-/** Small, scaled least-squares systems; pivot rejection prevents singular annotation fits. */
-export function solve(a: number[][], b: number[]): number[] {
-  const n = b.length,
-    m = a.map((row, i) => [...row, b[i]]);
-  const scale = Math.max(...a.flat().map(Math.abs));
-  for (let c = 0; c < n; c++) {
-    let pivot = c;
-    for (let r = c + 1; r < n; r++) if (Math.abs(m[r][c]) > Math.abs(m[pivot][c])) pivot = r;
-    if (Math.abs(m[pivot][c]) < Math.max(1e-13, scale * 1e-11))
-      throw new Error('Court marks are degenerate. Redraw the line endpoints and net tops.');
-    [m[pivot], m[c]] = [m[c], m[pivot]];
-    const d = m[c][c];
-    for (let k = c; k <= n; k++) m[c][k] /= d;
-    for (let r = 0; r < n; r++)
-      if (r !== c) {
-        const f = m[r][c];
-        for (let k = c; k <= n; k++) m[r][k] -= f * m[c][k];
-      }
-  }
-  return m.map((row) => row[n]);
-}
-export function leastSquares(rows: number[][], values: number[]) {
-  const n = rows[0].length,
-    norms = Array.from({ length: n }, (_, i) => Math.sqrt(rows.reduce((s, r) => s + r[i] ** 2, 0)) || 1);
-  const scaled = rows.map((r) => r.map((v, i) => v / norms[i]));
-  return solve(
-    Array.from({ length: n }, (_, i) =>
-      Array.from({ length: n }, (_, j) => scaled.reduce((s, r) => s + r[i] * r[j], 0))
-    ),
-    Array.from({ length: n }, (_, i) => scaled.reduce((s, r, k) => s + r[i] * values[k], 0))
-  ).map((v, i) => v / norms[i]);
-}
-export function project(p: number[][], xyz: number[]): Point {
-  const q = p.map((row) => row[0] * xyz[0] + row[1] * xyz[1] + row[2] * xyz[2] + row[3]);
-  if (!q.every(Number.isFinite) || q[2] <= 1e-6)
-    throw new Error('The reconstructed flight is behind the camera. Check court and net marks.');
-  return { x: q[0] / q[2], y: q[1] / q[2] };
-}
-export function atHeight(p: number[][], pixel: Point, z: number) {
-  const rows = [p[0].map((v, i) => v - pixel.x * p[2][i]), p[1].map((v, i) => v - pixel.y * p[2][i])];
-  const [x, y] = solve(
-    rows.map((r) => r.slice(0, 2)),
-    rows.map((r) => -r[3] - z * r[2])
-  );
-  project(p, [x, y, z]);
-  return [x, y, z];
-}
 const error = (a: Point, b: Point, width: number, height: number) =>
   Math.hypot((a.x - b.x) * width, (a.y - b.y) * height);
+export const contactCourtDepth = (setup: ServeSetup, depth = setup.contactDepth) =>
+  setup.servingEnd === 'far' ? COURT.length - depth : depth;
+export class CalibrationError extends Error {
+  constructor(
+    message: string,
+    readonly mark?: CourtLine,
+    readonly pixels?: number
+  ) {
+    super(message);
+  }
+}
 export function calibrate(setup: ServeSetup, width: number, height: number, validate = true): Camera {
-  const { near, far, service, net } = setup.lines;
-  if (!near || !far || !service || !net || !setup.netCenter)
-    throw new Error('Mark both singles baselines, the far service line, net support tops and net centre.');
-  const points = [...near, ...far, ...service, ...net, setup.netCenter];
-  if (!points.every((p) => Number.isFinite(p.x + p.y) && p.x >= 0 && p.x <= 1 && p.y >= 0 && p.y <= 1))
+  if (!COURT_KEYS.every((k) => setup.lines[k]))
+    throw new Error('Mark both baselines, the far service line and three net-to-ground lines.');
+  const { near, far } = setup.lines;
+  const points = COURT_KEYS.flatMap((k) => setup.lines[k]!.points);
+  if (
+    !(width > 0 && height > 0) ||
+    !Number.isFinite(setup.pixelError) ||
+    setup.pixelError < 0.25 ||
+    setup.pixelError > 30
+  )
+    throw new Error('Check the measurement uncertainties and physical assumptions.');
+  if (!points.every((p) => Number.isFinite(p.x + p.y) && (!validate || (p.x >= 0 && p.x <= 1 && p.y >= 0 && p.y <= 1))))
     throw new Error('All calibration marks must be inside the original image.');
-  const polygon = [near[0], near[1], far[1], far[0]],
+  const polygon = [near!.points[0], near!.points[1], far!.points[1], far!.points[0]],
     crosses = polygon.map((a, i) => {
       const b = polygon[(i + 1) % 4],
         c = polygon[(i + 2) % 4];
@@ -72,56 +46,67 @@ export function calibrate(setup: ServeSetup, width: number, height: number, vali
     });
   if (!(crosses.every((v) => v > 0.0001) || crosses.every((v) => v < -0.0001)))
     throw new Error('The baseline endpoints must form a non-crossing court quadrilateral.');
-  const controls = [
-    [-COURT.halfWidth, 0],
-    [COURT.halfWidth, 0],
-    [-COURT.halfWidth, COURT.length],
-    [COURT.halfWidth, COURT.length]
-  ];
-  const rows: number[][] = [],
-    targets: number[] = [];
-  controls.forEach(([x, y], i) => {
-    const { x: u, y: v } = points[i];
-    rows.push([x, y, 1, 0, 0, 0, -u * x, -u * y], [0, 0, 0, x, y, 1, -v * x, -v * y]);
-    targets.push(u, v);
-  });
-  const h = leastSquares(rows, targets),
-    p = [
-      [h[0], h[1], 0, h[2]],
-      [h[3], h[4], 0, h[5]],
-      [h[6], h[7], 0, 1]
-    ];
+  const controls: CameraControl[] = [];
+  const add = (mark: CourtLine, endpoint: number, xyz: number[]) => {
+    const annotation = setup.lines[mark]!;
+    const sigma = Math.max(setup.pixelError, annotation.pixelFloor || 0);
+    if (!Number.isFinite(sigma) || sigma > 100)
+      throw new Error('Check the measurement uncertainties and physical assumptions.');
+    controls.push({ mark, point: annotation.points[endpoint], xyz, sigma });
+  };
+  for (const [mark, y] of [
+    ['near', 0],
+    ['far', COURT.length],
+    ['service', COURT.farService]
+  ] as const) {
+    add(mark, 0, [-COURT.halfWidth, y, 0]);
+    add(mark, 1, [COURT.halfWidth, y, 0]);
+  }
   const postX = setup.netSupports === 'doubles' ? 6.399 : 5.029;
-  const zRows: number[][] = [],
-    zTargets: number[] = [];
-  [-postX, postX].forEach((x, i) => {
-    const q = p.map((r) => r[0] * x + r[1] * COURT.net + r[3]),
-      { x: u, y: v } = net[i];
-    zRows.push([1, 0, -u], [0, 1, -v]);
-    zTargets.push((u * q[2] - q[0]) / COURT.postHeight, (v * q[2] - q[1]) / COURT.postHeight);
-  });
-  const column = leastSquares(zRows, zTargets);
-  p.forEach((r, i) => {
-    r[2] = column[i];
-  });
-  const netErrors = [-postX, postX].map((x, i) =>
-    error(project(p, [x, COURT.net, COURT.postHeight]), net[i], width, height)
+  // The two supports may be marked in either order, including mirrored previews.
+  const supports = [...(['netA', 'netB'] as const)].sort(
+    (a, b) => setup.lines[a]!.points[1].x - setup.lines[b]!.points[1].x
   );
-  const checks = [-COURT.halfWidth, COURT.halfWidth].map((x, i) =>
-    error(project(p, [x, COURT.farService, 0]), service[i], width, height)
+  if (error(setup.lines[supports[0]]!.points[1], setup.lines[supports[1]]!.points[1], width, height) < 4)
+    throw new CalibrationError('Mark a different net support for A and B.', 'netB');
+  supports.forEach((mark, i) => {
+    add(mark, 0, [(i ? 1 : -1) * postX, COURT.net, COURT.postHeight]);
+    add(mark, 1, [(i ? 1 : -1) * postX, COURT.net, 0]);
+  });
+  add('netCenter', 0, [0, COURT.net, COURT.centerHeight]);
+  add('netCenter', 1, [0, COURT.net, 0]);
+  for (const mark of COURT_KEYS.filter(isNetLine)) {
+    const [top, ground] = setup.lines[mark]!.points;
+    if (validate && error(top, ground, width, height) < Math.max(2, setup.pixelError))
+      throw new CalibrationError(
+        'The vertical line at {mark} is too short. Mark the net top and the ground beneath it.',
+        mark
+      );
+  }
+  const p = fitCamera(controls, width, height);
+  const errors = controls.map((c) => error(project(p, c.xyz), c.point, width, height));
+  const rms = Math.hypot(...errors) / Math.sqrt(errors.length),
+    checkError = Math.max(...errors);
+  const worst = controls[errors.indexOf(checkError)],
+    worstMark = worst.mark;
+  const span = Math.hypot(
+    (Math.max(...polygon.map((p) => p.x)) - Math.min(...polygon.map((p) => p.x))) * width,
+    (Math.max(...polygon.map((p) => p.y)) - Math.min(...polygon.map((p) => p.y))) * height
   );
-  checks.push(error(project(p, [0, COURT.net, COURT.centerHeight]), setup.netCenter, width, height));
-  const rms = Math.hypot(...netErrors) / Math.sqrt(2),
-    checkError = Math.max(...checks);
-  const elevation = error(project(p, [0, COURT.net, 0]), project(p, [0, COURT.net, COURT.centerHeight]), width, height);
+  const typical = [...controls.map((c) => c.sigma)].sort((a, b) => a - b)[Math.floor(controls.length / 2)];
   if (
     validate &&
-    (elevation < Math.max(3, setup.pixelError * 2) ||
-      rms > Math.max(3, setup.pixelError * 3) ||
-      checkError > Math.max(5, setup.pixelError * 4))
+    (checkError > Math.max(14, 6 * worst.sigma, 0.035 * span) || rms > Math.max(8, 3 * typical, 0.02 * span))
   )
-    throw new Error(
-      'Court or net calibration does not agree with the check marks. Review the service line, post type and net centre.'
+    throw new CalibrationError(
+      'Court mapping disagrees most at {mark} ({error} px). Re-mark that line on a clear frame; check the net support type and camera movement.',
+      worstMark,
+      checkError
     );
-  return { p, rms, checkError };
+  const residuals = COURT_KEYS.map((mark) => ({
+    mark,
+    pixels: Math.max(...errors.filter((_, i) => controls[i].mark === mark))
+  }));
+  const quality = errors.some((v, i) => v > 2.5 * controls[i].sigma) || rms > 1.5 * typical ? 'review' : 'good';
+  return { p, rms, checkError, residuals, worstMark, quality, pixelError: Math.max(typical, rms) };
 }

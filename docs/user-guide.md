@@ -314,25 +314,33 @@ centre strap must be visible, with a fixed camera throughout the flight. A lands
 crop of a portrait recording does not qualify. Fisheye views, moving/zooming cameras,
 partial courts and nonstandard court/net dimensions are unsuitable.
 
-1. Confirm the full-court, fixed-camera view. On one clear frame, draw the near and
-   far baselines **between their singles sidelines**, then the far service line.
-   Near/far mean relative to the camera, regardless of which player serves. Select
-   doubles posts or singles sticks and mark the net top at both supports, then the
-   top of the centre strap. Drag endpoints or tap them separately; arrow keys and
-   Enter also work. Court marking temporarily displays the full uncropped image.
+1. Draw the near and far baselines **between their singles sidelines**, then the
+   far service line. Each line can use a different clear frame from the same fixed
+   camera. Its frame button returns to that observation; the marking button always
+   starts at the current frame. Near/far mean relative to the camera. Select doubles
+   posts or singles sticks, then draw **three vertical top-to-ground segments**:
+   one at each support (A/B in either order) and one along the centre strap. Follow
+   the physical post or strap even if perspective makes it lean in the image.
+   Drag or tap both ends; arrow keys and Enter also work. Court marking temporarily
+   shows the full uncropped image. Both endpoints of a line use the same frame.
+   Court marks remain valid if a later excerpt excludes their source frames.
 2. Use the card's **Set contact** at racket impact. Select **Contact ball position**
    and tap the ball centre or tightly box the ball. Navigate on the existing preview
    lane to the first ground impact, then mark **First bounce ball position**. Mark
    the ball, not its shadow. There must be no earlier bounce or net touch. Optional
    **flight checks** at intermediate frames independently test the modeled path;
    inconsistent checks stop the estimate rather than change the court calibration.
-3. Enter the ball's contact height above the court and its uncertainty. The initial
-   2.6 m ± 0.25 m is an assumption, not a measured player height. Keep recording
+3. **Contact height is derived automatically** from the marked ball, the calibrated
+   court/net and an assumed contact depth. Court mapping defaults to the near serving
+   baseline, **0.5 m inside it with ±0.4 m depth uncertainty**. Adjust the depth or
+   choose the far serving baseline as needed; negative depths lie behind the baseline.
+   The displayed height is conditional on this depth assumption. Keep recording
    slowdown at 1 for real-time video; enter 4 if the source plays four times slower
    than the original action. Clip and global playback-rate controls have no effect
    on the estimate. Advanced controls expose pixel/timing uncertainty and assumed
-   aerodynamic coefficients. Marking raises pixel uncertainty to account for at
-   least one screen pixel at the preview scale; increase it for blur or imprecise
+   aerodynamic coefficients. Each court mark remembers its screen precision; ball
+   marks also retain their region/point uncertainty. Increase the minimum pixel
+   uncertainty for blur or imprecise
    marks. Arrow keys adjust the marker by one source pixel (Shift: ten).
 4. Select **Estimate serve speed**. The result separates estimated **launch speed**
    from horizontal distance divided by flight time, with a sensitivity range and
@@ -340,12 +348,22 @@ partial courts and nonstandard court/net dimensions are unsuitable.
    observations and the dashed yellow curve shows the reconstructed flight. Its
    cursor follows the displayed source frame during scrubbing and linked playback.
    Toggle the overlay independently. Changes to measurements, contact or excerpt
-   invalidate the result. **Download measurement JSON** saves annotations, endpoint
-   timestamps, assumptions and results for review; it contains no video footage.
+   invalidate the result. **Download measurement JSON** saves annotations, each
+   court line's source frame, endpoint timestamps, assumptions and results for
+   review; it contains no video footage.
+
+Court fitting runs automatically once all six lines are marked. It combines every
+endpoint and reports image-space fit error. A modest mismatch identifies the line
+to review and increases the speed uncertainty rather than blocking estimation.
+Large disagreement, overlapping supports or a collapsed top-to-ground segment
+requires correction. Re-mark the named line on another clear frame, verify support
+type and check for camera movement or lens distortion. Small residuals alone do not
+prove the depth assumption or camera model is correct.
 
 This is an on-device physical model, **not a radar reading**. Gravity and quadratic
-drag determine the central estimate; timing, geometry, height, drag and lift are
-varied for the sensitivity envelope. That envelope is not a statistical confidence
+drag determine the central estimate; timing, geometry, contact depth, drag and lift
+are varied for the sensitivity envelope, with height re-derived in each scenario.
+That envelope is not a statistical confidence
 interval and does not cover every lens, spin, wind or annotation error. A missing
 first bounce cannot be inferred by this feature. Speed annotations last for the
 current loaded clip/session; they are not included in grid video/image exports.

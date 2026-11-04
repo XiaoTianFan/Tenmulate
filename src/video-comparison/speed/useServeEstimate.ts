@@ -1,11 +1,11 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
-import type { SpeedInput, SpeedResult } from './types';
+import type { MeasurementIssue, SpeedInput, SpeedResult } from './types';
 
 type State = {
   key: string;
   index?: SpeedInput['index'];
   result?: SpeedResult;
-  error?: string;
+  error?: MeasurementIssue;
   busy?: boolean;
   progress?: number;
 };
@@ -40,14 +40,16 @@ export function useServeEstimate(input: SpeedInput | undefined, active: boolean)
     try {
       const current = new Worker(new URL('./speed.worker.ts', import.meta.url), { type: 'module' });
       worker.current = current;
-      const fail = (error: string) => {
+      const fail = (error: MeasurementIssue) => {
         if (worker.current !== current) return;
         current.terminate();
         worker.current = null;
         setState({ key, index, error });
       };
-      current.onerror = () => fail('Speed estimation could not start. Reload the app and try again.');
-      current.onmessage = (event: MessageEvent<{ progress?: number; result?: SpeedResult; error?: string }>) => {
+      current.onerror = () => fail({ message: 'Speed estimation could not start. Reload the app and try again.' });
+      current.onmessage = (
+        event: MessageEvent<{ progress?: number; result?: SpeedResult; error?: MeasurementIssue }>
+      ) => {
         if (worker.current !== current) return;
         const { progress, result, error } = event.data;
         if (error) fail(error);
@@ -57,10 +59,10 @@ export function useServeEstimate(input: SpeedInput | undefined, active: boolean)
           setState({ key, index, result });
         } else if (progress !== undefined) setState({ key, index, busy: true, progress });
       };
-      current.postMessage(input);
+      current.postMessage({ kind: 'estimate', input });
     } catch {
       cancel();
-      setState({ key, index, error: 'Speed estimation could not start. Reload the app and try again.' });
+      setState({ key, index, error: { message: 'Speed estimation could not start. Reload the app and try again.' } });
     }
   };
   return { ...(state.key === key && state.index === input?.index ? state : {}), run, cancel };

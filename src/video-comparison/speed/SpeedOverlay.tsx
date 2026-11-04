@@ -40,22 +40,14 @@ export function SpeedOverlay({
         line ? (
           <line
             key={key}
-            x1={line[0].x * width}
-            y1={line[0].y * height}
-            x2={line[1].x * width}
-            y2={line[1].y * height}
+            x1={line.points[0].x * width}
+            y1={line.points[0].y * height}
+            x2={line.points[1].x * width}
+            y2={line.points[1].y * height}
             className="speed-court-line"
           />
         ) : null
       )}
-      {setup.netCenter ? (
-        <circle
-          cx={setup.netCenter.x * width}
-          cy={setup.netCenter.y * height}
-          r={width / 180}
-          className="speed-court-line"
-        />
-      ) : null}
       {path ? <polyline points={pathPoints} className="speed-flight-line" /> : null}
       {[setup.contact, setup.bounce, ...setup.flight].map((mark, i) =>
         mark ? (

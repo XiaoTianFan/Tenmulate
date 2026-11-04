@@ -1,14 +1,18 @@
 import { useId, useState } from 'react';
 import { t } from '../../i18n/locale';
 import type { ComparisonClip } from '../types';
-import { COURT_LINES, type CourtLine, type ServeSetup, type SpeedSelection } from './types';
+import { COURT_LINES, COURT_KEYS, type ServeSetup, type SpeedSelection, type MeasurementIssue } from './types';
 import { clipFrameRange } from '../timeline';
 import type { SpeedControls } from './useServeEstimate';
+import { useCourtCalibration } from './useCourtCalibration';
+import { atDepth } from './projective';
+import { contactCourtDepth } from './geometry';
 import './speed.css';
 
 type NumberKey =
-  'height' | 'heightError' | 'pixelError' | 'frameError' | 'slowdown' | 'drag' | 'dragError' | 'liftError';
+  'contactDepth' | 'depthError' | 'pixelError' | 'frameError' | 'slowdown' | 'drag' | 'dragError' | 'liftError';
 export function SpeedPanel({
+  active,
   clip,
   setup,
   frame,
@@ -20,6 +24,7 @@ export function SpeedPanel({
   onFrame,
   onPause
 }: {
+  active: boolean;
   clip: ComparisonClip;
   setup: ServeSetup;
   frame: number;
@@ -35,8 +40,17 @@ export function SpeedPanel({
     id = useId();
   const { result, busy, error, progress } = controls;
   const range = clip.index ? clipFrameRange({ ...clip, index: clip.index }) : { start: 0, end: 0 };
-  const courtOutside =
-    setup.courtFrame !== undefined && (setup.courtFrame < range.start || setup.courtFrame > range.end);
+  const calibration = useCourtCalibration({ setup, width, height }, active && open);
+  const issueText = (issue: MeasurementIssue) =>
+    t(issue.message, { mark: issue.mark ? t(COURT_LINES[issue.mark]) : '', error: issue.pixels?.toFixed(1) });
+  let derivedHeight: number | undefined;
+  if (calibration.camera && setup.contact?.frame === clip.contact) {
+    try {
+      derivedHeight = atDepth(calibration.camera.p, setup.contact!, contactCourtDepth(setup))[2];
+    } catch {
+      /* The estimator reports unsupported geometry. */
+    }
+  }
   const number = (key: NumberKey, label: string, min: number, max: number, step: number) => (
     <label className="speed-number" key={key}>
       <span>{t(label)}</span>
@@ -54,24 +68,18 @@ export function SpeedPanel({
       />
     </label>
   );
-  const select = (kind: SpeedSelection['kind']) => {
-    onSelect({
-      kind,
-      frame:
-        kind in COURT_LINES || kind === 'netCenter'
-          ? (setup.courtFrame ?? frame)
-          : kind === 'contact'
-            ? (clip.contact ?? frame)
-            : frame
-    });
-  };
-  const hasCourt = Object.keys(setup.lines).length === 4 && !!setup.netCenter;
+  const select = (kind: SpeedSelection['kind']) =>
+    onSelect({ kind, frame: kind === 'contact' ? (clip.contact ?? frame) : frame });
   const canEstimate =
-    hasCourt && setup.stationary && clip.contact !== null && setup.contact?.frame === clip.contact && !!setup.bounce;
+    !!calibration.camera &&
+    !calibration.busy &&
+    clip.contact !== null &&
+    setup.contact?.frame === clip.contact &&
+    !!setup.bounce;
   const download = () => {
     if (!result || !clip.index) return;
     const data = {
-      version: 1,
+      version: 2,
       method: 'Endpoint reconstruction with quadratic drag; sensitivity envelope, not a confidence interval',
       reference:
         'https://github.com/XiaoTianFan/tennis-point-edit-review/tree/2b63d12ad7dfb85c30d4c2e3d38e5c9d873a6b78',
@@ -88,7 +96,7 @@ export function SpeedPanel({
       sourceTimestamps: Object.fromEntries(
         [
           ...new Set([
-            setup.courtFrame!,
+            ...Object.values(setup.lines).map((mark) => mark!.frame),
             setup.contact!.frame - 1,
             setup.contact!.frame + 1,
             setup.bounce!.frame - 1,
@@ -134,19 +142,11 @@ export function SpeedPanel({
                   'Estimate launch speed from court geometry and contact-to-first-bounce timing. Use a fixed, full-court view with visible net supports. All measurements stay on this device.'
                 )}
               </p>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={setup.stationary}
-                  onChange={(e) => onEdit((s) => ({ ...s, stationary: e.target.checked }))}
-                />
-                {t('Full court visible; camera stays fixed throughout the flight')}
-              </label>
               <fieldset>
                 <legend>{t('1. Map the court')}</legend>
                 <p className="motion-help">
                   {t(
-                    'Near and far refer to the camera, not the server. Mark the singles endpoints of both baselines and the far service line. All court marks use one frame; cropping is temporarily lifted while marking.'
+                    'Use any clear frame for each line; the camera must stay fixed. Mark the singles endpoints of both baselines and the far service line. Cropping is temporarily lifted while marking.'
                   )}
                 </p>
                 <label>
@@ -163,44 +163,113 @@ export function SpeedPanel({
                 </label>
                 <p className="motion-help">
                   {t(
-                    'Mark the net top at each support (1.07 m high), then at the centre strap (0.914 m). Use standard court dimensions and a straight-lens view.'
+                    'Draw a top-to-ground line at each net support (1.07 m) and the centre strap (0.914 m). Follow the post or strap, even if it leans in the image. Mark supports A and B in either order.'
                   )}
                 </p>
-                <div className="speed-court-actions">
-                  {(Object.entries(COURT_LINES) as [CourtLine, string][]).map(([kind, name]) => (
-                    <button
-                      type="button"
-                      key={kind}
-                      disabled={courtOutside}
-                      onClick={() => select(kind)}
-                      aria-label={t(name)}
-                    >
-                      {setup.lines[kind] ? '✓ ' : ''}
-                      {t(name)}
-                    </button>
-                  ))}
-                  <button type="button" disabled={courtOutside} onClick={() => select('netCenter')}>
-                    {setup.netCenter ? '✓ ' : ''}
-                    {t('Net centre at strap')}
-                  </button>
+                <div className="speed-court-marks">
+                  {COURT_KEYS.map((kind) => {
+                    const mark = setup.lines[kind],
+                      outside = mark && (mark.frame < range.start || mark.frame > range.end);
+                    return (
+                      <div
+                        key={kind}
+                        className={
+                          calibration.camera?.quality === 'review' && calibration.camera.worstMark === kind
+                            ? 'needs-review'
+                            : ''
+                        }
+                      >
+                        <button type="button" onClick={() => select(kind)} aria-label={t(COURT_LINES[kind])}>
+                          {mark ? '✓ ' : ''}
+                          {t(COURT_LINES[kind])}
+                        </button>
+                        {mark ? (
+                          <button
+                            type="button"
+                            className="speed-mark-frame"
+                            aria-label={t('Review {mark}, frame {frame}', {
+                              mark: t(COURT_LINES[kind]),
+                              frame: mark.frame + 1
+                            })}
+                            disabled={!!outside}
+                            title={
+                              outside
+                                ? t('This court mark is outside the excerpt and still contributes to calibration.')
+                                : undefined
+                            }
+                            onClick={() => onFrame(mark.frame)}
+                          >
+                            {t('Frame {frame}', { frame: mark.frame + 1 })}
+                          </button>
+                        ) : null}
+                      </div>
+                    );
+                  })}
                 </div>
-                {courtOutside ? (
-                  <p className="motion-help">
-                    {t('The calibration frame is outside this excerpt. Reset court marks to choose a new frame.')}
+                {Object.keys(setup.lines).length ? (
+                  <button type="button" onClick={() => onEdit((s) => ({ ...s, lines: {} }))}>
+                    {t('Reset court marks')}
+                  </button>
+                ) : null}
+                {calibration.busy ? (
+                  <p className="motion-help" role="status">
+                    {t('Fitting court and net geometry…')}
                   </p>
                 ) : null}
-                {setup.courtFrame !== undefined ? (
-                  <div className="motion-actions">
-                    <button type="button" onClick={() => onFrame(setup.courtFrame!)}>
-                      {t('Court: frame {frame}', { frame: setup.courtFrame + 1 })}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onEdit((s) => ({ ...s, courtFrame: undefined, lines: {}, netCenter: undefined }))}
-                    >
-                      {t('Reset court marks')}
-                    </button>
+                {calibration.error ? (
+                  <p className="speed-error" role="alert">
+                    {issueText(calibration.error)}
+                  </p>
+                ) : null}
+                {calibration.camera ? (
+                  <div className="speed-calibration" role="status">
+                    <span>{t('Court fit: {error} px RMS', { error: calibration.camera.rms.toFixed(1) })}</span>
+                    {calibration.camera.quality === 'review' ? (
+                      <p className="motion-help">
+                        {t(
+                          'Review {mark}: {error} px mismatch. You can estimate; this mismatch increases the uncertainty range.',
+                          {
+                            mark: t(COURT_LINES[calibration.camera.worstMark]),
+                            error: calibration.camera.checkError.toFixed(1)
+                          }
+                        )}
+                      </p>
+                    ) : null}
                   </div>
+                ) : null}
+                <label>
+                  {t('Serving baseline')}
+                  <select
+                    value={setup.servingEnd}
+                    onChange={(e) => onEdit((s) => ({ ...s, servingEnd: e.target.value as ServeSetup['servingEnd'] }))}
+                  >
+                    <option value="near">{t('Near baseline')}</option>
+                    <option value="far">{t('Far baseline')}</option>
+                  </select>
+                </label>
+                {number('contactDepth', 'Contact depth inside baseline (m)', -1, 3, 0.1)}
+                {number('depthError', 'Contact-depth uncertainty ± (m)', 0, 1.5, 0.1)}
+                <p className="motion-help">
+                  {t(
+                    'The default assumes contact 0.5 m inside the serving baseline. Height is derived from the marked ball and court geometry. Adjust depth if needed; negative values are behind the baseline.'
+                  )}
+                </p>
+                <div className="speed-derived-height">
+                  <span>{t('Estimated contact height')}</span>
+                  <output aria-label={t('Estimated contact height')}>
+                    {derivedHeight !== undefined && derivedHeight >= 0.3 && derivedHeight <= 5.5
+                      ? `≈ ${derivedHeight.toFixed(2)} m`
+                      : '—'}
+                  </output>
+                </div>
+                {!setup.contact || setup.contact.frame !== clip.contact ? (
+                  <p className="motion-help">{t('Mark the contact ball position to derive its height.')}</p>
+                ) : derivedHeight !== undefined && (derivedHeight < 0.3 || derivedHeight > 5.5) ? (
+                  <p className="motion-help">
+                    {t(
+                      'The derived contact height is implausible. Check the ball mark, serving end and contact depth.'
+                    )}
+                  </p>
                 ) : null}
               </fieldset>
               <fieldset>
@@ -275,14 +344,7 @@ export function SpeedPanel({
                 </div>
               </fieldset>
               <fieldset>
-                <legend>{t('3. Height and recording time')}</legend>
-                {number('height', 'Contact ball height (m)', 1, 4.5, 0.05)}
-                {number('heightError', 'Height uncertainty ± (m)', 0, 1, 0.05)}
-                <p className="motion-help">
-                  {t(
-                    'Height is an independent estimate above the court, not player height. The default 2.6 m is an assumption; adjust it for this serve.'
-                  )}
-                </p>
+                <legend>{t('3. Recording time')}</legend>
                 {number('slowdown', 'Recording slowdown factor', 1, 16, 0.1)}
                 <p className="motion-help">
                   {t(
@@ -304,7 +366,7 @@ export function SpeedPanel({
                     {number('liftError', 'Lift sensitivity ± (1/m)', 0, 0.02, 0.001)}
                     <p className="motion-help">
                       {t(
-                        'The central model uses gravity, quadratic drag and no lift or wind. The range varies timing, marks, height, drag and lift. Ball regions add centroid uncertainty. It is a sensitivity envelope, not a statistical confidence interval.'
+                        'The central model uses gravity, quadratic drag and no lift or wind. The range varies timing, marks, contact depth, drag and lift; height follows the geometry. Ball regions add centroid uncertainty. It is a sensitivity envelope, not a statistical confidence interval.'
                       )}
                     </p>
                   </div>
@@ -345,7 +407,7 @@ export function SpeedPanel({
               ) : null}
               {error ? (
                 <p className="speed-error" role="alert">
-                  {t(error)}
+                  {issueText(error)}
                 </p>
               ) : null}
               {result ? (
@@ -367,7 +429,13 @@ export function SpeedPanel({
                     <dd>{result.distance.toFixed(2)} m</dd>
                     <dt>{t('Model net clearance')}</dt>
                     <dd>{result.netClearance.toFixed(2)} m</dd>
-                    <dt>{t('Court check error (maximum)')}</dt>
+                    <dt>{t('Estimated contact height')}</dt>
+                    <dd>{result.contact3D[2].toFixed(2)} m</dd>
+                    <dt>{t('Height sensitivity range')}</dt>
+                    <dd>
+                      {result.contactHeightRange[0].toFixed(2)}–{result.contactHeightRange[1].toFixed(2)} m
+                    </dd>
+                    <dt>{t('Court fit error (maximum)')}</dt>
                     <dd>{result.camera.checkError.toFixed(1)} px</dd>
                     <dt>{t('Flight check error (RMS)')}</dt>
                     <dd>
@@ -384,7 +452,7 @@ export function SpeedPanel({
                   {result.collisionVariants ? (
                     <p className="motion-help">
                       {t(
-                        'Some uncertainty scenarios hit the net. Review contact height, timing and marks before relying on this estimate.'
+                        'Some uncertainty scenarios hit the net. Review contact depth, timing and marks before relying on this estimate.'
                       )}
                     </p>
                   ) : null}

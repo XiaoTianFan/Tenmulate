@@ -2,19 +2,17 @@ import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { t } from '../../i18n/locale';
 import type { CropRect } from '../crop';
-import { COURT_LINES, type Point, type SpeedSelection as Selection } from './types';
+import { COURT_LINES, isNetLine, type Point, type SpeedSelection as Selection } from './types';
 
-export const isCourtSelection = (kind: Selection['kind']) => kind in COURT_LINES || kind === 'netCenter';
+export const isCourtSelection = (kind: Selection['kind']) => kind in COURT_LINES;
 export const selectionName = (kind: Selection['kind']) =>
   kind in COURT_LINES
     ? COURT_LINES[kind as keyof typeof COURT_LINES]
-    : kind === 'netCenter'
-      ? 'Net centre at strap'
-      : kind === 'contact'
-        ? 'Contact ball position'
-        : kind === 'bounce'
-          ? 'First bounce ball position'
-          : 'Flight check ball position';
+    : kind === 'contact'
+      ? 'Contact ball position'
+      : kind === 'bounce'
+        ? 'First bounce ball position'
+        : 'Flight check ball position';
 export const toSource = (p: Point, crop: CropRect, mirrored: boolean): Point => ({
   x: crop.x + (mirrored ? 1 - p.x : p.x) * crop.width,
   y: crop.y + p.y * crop.height
@@ -51,7 +49,7 @@ export function SpeedSelection({
     [aim, setAim] = useState<Point>({ x: 0.5, y: 0.5 }),
     [box, setBox] = useState<{ a: Point; b: Point } | null>(null);
   const line = selection.kind in COURT_LINES,
-    locked = isCourtSelection(selection.kind) || selection.kind === 'contact';
+    locked = selection.kind === 'contact';
   useEffect(() => {
     surface.current?.focus({ preventScroll: true });
   }, []);
@@ -74,19 +72,18 @@ export function SpeedSelection({
     const pixelFloor =
       Math.ceil(Math.max((width * crop.width) / rect.width, (height * crop.height) / rect.height) * 4) / 4;
     if (line) {
-      if (!b || Math.hypot(a.x - b.x, a.y - b.y) < 0.01) {
+      if (!b || Math.hypot((a.x - b.x) * crop.width * width, (a.y - b.y) * crop.height * height) < 2) {
         setFirst(a);
         return;
       }
       // The original image's left/right order stays invariant under preview mirroring.
-      const ends = [toSource(a, crop, mirrored), toSource(b, crop, mirrored)].sort((p, q) => p.x - q.x);
+      const ends = [toSource(a, crop, mirrored), toSource(b, crop, mirrored)].sort((p, q) =>
+        isNetLine(selection.kind) ? p.y - q.y : p.x - q.x
+      );
       onSelect(ends, 0, frame, pixelFloor);
     } else {
       const center = b ? { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 } : a;
-      const radius =
-        b && selection.kind !== 'netCenter'
-          ? Math.hypot((a.x - b.x) * crop.width * width, (a.y - b.y) * crop.height * height) / 2
-          : 0;
+      const radius = b ? Math.hypot((a.x - b.x) * crop.width * width, (a.y - b.y) * crop.height * height) / 2 : 0;
       onSelect([toSource(center, crop, mirrored)], radius < 1 ? 0 : radius, frame, pixelFloor);
     }
   };
@@ -144,7 +141,7 @@ export function SpeedSelection({
             down.current = null;
             setBox(null);
             const rect = event.currentTarget.getBoundingClientRect();
-            const dragged = Math.hypot((a.x - b.x) * rect.width, (a.y - b.y) * rect.height) > 5;
+            const dragged = Math.hypot((a.x - b.x) * rect.width, (a.y - b.y) * rect.height) > (line ? 2 : 5);
             if (first && line) commit(first, b);
             else commit(a, dragged ? b : undefined);
           }}
@@ -176,10 +173,10 @@ export function SpeedSelection({
               <p>
                 {t(
                   line
-                    ? 'Drag along the line between its two endpoints, or tap each endpoint. Arrow keys and Enter also work.'
-                    : selection.kind === 'netCenter'
-                      ? 'Tap the top of the net at the centre strap.'
-                      : 'Use the preview lane to choose the frame. Tap the ball centre or drag a tight region around the ball.'
+                    ? isNetLine(selection.kind)
+                      ? 'Choose a clear frame, then draw from the net top to the ground directly beneath it, or tap both ends. Follow the visible post or strap rather than forcing a screen-vertical line.'
+                      : 'Choose a clear frame, then drag between the line endpoints or tap each endpoint. Arrow keys and Enter also work.'
+                    : 'Use the preview lane to choose the frame. Tap the ball centre or drag a tight region around the ball.'
                 )}
               </p>
               {!ready ? (

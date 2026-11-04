@@ -1,3 +1,6 @@
+.speed-panel {
+  color-scheme: dark;
+}
 .speed-panel .speed-court-actions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -41,6 +44,41 @@
 .speed-checks > span {
   display: inline-flex;
   gap: 2px;
+}
+.speed-court-marks {
+  display: grid;
+  gap: 7px;
+}
+.speed-court-marks > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 5px;
+}
+.speed-court-marks > div > button:first-child {
+  text-align: left;
+}
+.speed-court-marks .needs-review > button:first-child {
+  border-color: #b88155;
+}
+.speed-panel .speed-mark-frame {
+  font-size: 11px;
+}
+.speed-calibration {
+  display: grid;
+  gap: 6px;
+  padding: 9px;
+  background: #090f13;
+  border: 1px solid #34424a;
+  border-radius: 5px;
+}
+.speed-derived-height {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+.speed-derived-height output {
+  color: #f6e62d;
+  font-variant-numeric: tabular-nums;
 }
 .speed-error {
   margin: 0;

@@ -73,8 +73,11 @@ schedule. Completed features belong in the user guide and architecture.
 - **Serve-speed validation:** manual full-court/net calibration and endpoint flight
   reconstruction now provide a conditional launch-speed estimate. Validate against
   radar and accurately measured camera/court geometry across real footage and
-  physical mobile devices before making accuracy claims. Contact height and
-  recording slowdown remain explicit user assumptions. Lens distortion, sideways
+  physical mobile devices before making accuracy claims. Contact height is now
+  derived conditional on an assumed depth inside the serving baseline; contact
+  depth and recording slowdown remain explicit assumptions. Across-frame marking
+  still requires a fixed camera; mild calibration residuals expand uncertainty
+  and gross discrepancies need correction. Lens distortion, sideways
   spin, wind, moving cameras, partial courts and missing first bounces are not
   recovered by this model; the reported sensitivity envelope is not a confidence
   interval. Speed annotations are session-local and are not part of grid exports.
