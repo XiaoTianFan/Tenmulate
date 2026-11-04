@@ -29,7 +29,8 @@ export type ServeSetup = {
   drag: number;
   dragError: number;
   liftError: number;
-  showOverlay: boolean;
+  showCourtOverlay: boolean;
+  showBallOverlay: boolean;
 };
 export const newServeSetup = (): ServeSetup => ({
   lines: {},
@@ -44,7 +45,8 @@ export const newServeSetup = (): ServeSetup => ({
   drag: 0.02,
   dragError: 0.005,
   liftError: 0.006,
-  showOverlay: true
+  showCourtOverlay: true,
+  showBallOverlay: true
 });
 export type SpeedSelection = { kind: CourtLine | 'contact' | 'bounce' | 'flight'; frame: number };
 export type SpeedInput = {

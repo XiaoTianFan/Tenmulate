@@ -135,7 +135,7 @@ export function ComparisonPane({ active, onServe, presentation, analysis, linked
             onLoadedData={onReady} onError={onError} aria-label={t('Video: {name}', { name: clip.name })}/>
           <canvas ref={element => onCanvas(clip.id, element)} className="comparison-playback-frame" hidden aria-hidden="true"/>
           {clip.motion && !cropping ? <MotionOverlay clip={clip} presentation={presentation} width={dimensions.width} height={dimensions.height}/> : null}
-          {clip.serve && !cropping && !selection ? <SpeedOverlay setup={serve} result={speedControls.result} frame={displayed} index={clip.index} {...dimensions} selecting={!!speedSelection}/> : null}
+          {clip.serve && !cropping && !selection && !speedSelection ? <SpeedOverlay setup={serve} result={speedControls.result} frame={displayed} index={clip.index} {...dimensions}/> : null}
         </div>
         {selection ? <MotionSelection key={`${selection.id}:${selection.role}`} selection={selection} crop={crop} mirrored={mirrored} frame={frame} ready={displayed === frame && frame >= selectionMin && frame <= selectionMax} min={selectionMin} max={selectionMax} toolbar={selectionToolbar.current} onSelect={selected} onCancel={() => setSelection(null)}/> : null}
         {speedSelection ? <SpeedSelection key={`${speedSelection.kind}:${speedSelection.frame}`} selection={speedSelection} crop={crop} mirrored={mirrored} {...dimensions} frame={frame}

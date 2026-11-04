@@ -143,7 +143,78 @@ export function SpeedPanel({
                 )}
               </p>
               <fieldset>
-                <legend>{t('1. Map the court')}</legend>
+                <legend>{t('1. Mark the ball')}</legend>
+                <p className="motion-help">
+                  {t(
+                    'Use Set contact on the card for racket impact. Navigate with the existing preview lane to the first ground impact. Mark the ball centre, not its shadow. Do not include a net touch or an earlier bounce.'
+                  )}
+                </p>
+                <div className="speed-court-actions">
+                  <button type="button" disabled={clip.contact === null} onClick={() => select('contact')}>
+                    {t('Contact ball position')}
+                    {clip.contact !== null
+                      ? ` · ${clip.contact + 1}${setup.contact?.frame === clip.contact ? ' ✓' : ''}`
+                      : ''}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={clip.contact === null || frame <= clip.contact}
+                    onClick={() => select('bounce')}
+                  >
+                    {t('First bounce ball position')}
+                    {setup.bounce ? ` · ${setup.bounce.frame + 1} ✓` : ''}
+                  </button>
+                </div>
+                {clip.contact === null ? (
+                  <p className="motion-help">{t('Set a contact frame on this card first.')}</p>
+                ) : null}
+                {setup.contact && setup.contact.frame !== clip.contact ? (
+                  <p role="status">{t('Contact changed. Mark the ball again on the new contact frame.')}</p>
+                ) : null}
+                {setup.bounce ? (
+                  <button type="button" onClick={() => onFrame(setup.bounce!.frame)}>
+                    {t('Review bounce: frame {frame}', { frame: setup.bounce.frame + 1 })}
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  disabled={
+                    !setup.bounce ||
+                    clip.contact === null ||
+                    frame <= clip.contact ||
+                    frame >= setup.bounce.frame ||
+                    setup.flight.length >= 24
+                  }
+                  onClick={() => select('flight')}
+                >
+                  {t('Add flight check at this frame')}
+                </button>
+                <p className="motion-help">
+                  {t(
+                    'Optional flight checks test the reconstructed path against visible ball positions. They do not silently fit or replace your court measurements.'
+                  )}
+                </p>
+                <div className="speed-checks">
+                  {setup.flight.map((mark) => (
+                    <span key={mark.frame}>
+                      <button type="button" onClick={() => onFrame(mark.frame)}>
+                        {t('Frame {frame}', { frame: mark.frame + 1 })}
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={t('Remove flight check at frame {frame}', { frame: mark.frame + 1 })}
+                        onClick={() =>
+                          onEdit((s) => ({ ...s, flight: s.flight.filter((p) => p.frame !== mark.frame) }))
+                        }
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </fieldset>
+              <fieldset>
+                <legend>{t('2. Map the court')}</legend>
                 <p className="motion-help">
                   {t(
                     'Use any clear frame for each line; the camera must stay fixed. Mark the singles endpoints of both baselines and the far service line. Cropping is temporarily lifted while marking.'
@@ -273,77 +344,6 @@ export function SpeedPanel({
                 ) : null}
               </fieldset>
               <fieldset>
-                <legend>{t('2. Mark the ball')}</legend>
-                <p className="motion-help">
-                  {t(
-                    'Use Set contact on the card for racket impact. Navigate with the existing preview lane to the first ground impact. Mark the ball centre, not its shadow. Do not include a net touch or an earlier bounce.'
-                  )}
-                </p>
-                <div className="speed-court-actions">
-                  <button type="button" disabled={clip.contact === null} onClick={() => select('contact')}>
-                    {t('Contact ball position')}
-                    {clip.contact !== null
-                      ? ` · ${clip.contact + 1}${setup.contact?.frame === clip.contact ? ' ✓' : ''}`
-                      : ''}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={clip.contact === null || frame <= clip.contact}
-                    onClick={() => select('bounce')}
-                  >
-                    {t('First bounce ball position')}
-                    {setup.bounce ? ` · ${setup.bounce.frame + 1} ✓` : ''}
-                  </button>
-                </div>
-                {clip.contact === null ? (
-                  <p className="motion-help">{t('Set a contact frame on this card first.')}</p>
-                ) : null}
-                {setup.contact && setup.contact.frame !== clip.contact ? (
-                  <p role="status">{t('Contact changed. Mark the ball again on the new contact frame.')}</p>
-                ) : null}
-                {setup.bounce ? (
-                  <button type="button" onClick={() => onFrame(setup.bounce!.frame)}>
-                    {t('Review bounce: frame {frame}', { frame: setup.bounce.frame + 1 })}
-                  </button>
-                ) : null}
-                <button
-                  type="button"
-                  disabled={
-                    !setup.bounce ||
-                    clip.contact === null ||
-                    frame <= clip.contact ||
-                    frame >= setup.bounce.frame ||
-                    setup.flight.length >= 24
-                  }
-                  onClick={() => select('flight')}
-                >
-                  {t('Add flight check at this frame')}
-                </button>
-                <p className="motion-help">
-                  {t(
-                    'Optional flight checks test the reconstructed path against visible ball positions. They do not silently fit or replace your court measurements.'
-                  )}
-                </p>
-                <div className="speed-checks">
-                  {setup.flight.map((mark) => (
-                    <span key={mark.frame}>
-                      <button type="button" onClick={() => onFrame(mark.frame)}>
-                        {t('Frame {frame}', { frame: mark.frame + 1 })}
-                      </button>
-                      <button
-                        type="button"
-                        aria-label={t('Remove flight check at frame {frame}', { frame: mark.frame + 1 })}
-                        onClick={() =>
-                          onEdit((s) => ({ ...s, flight: s.flight.filter((p) => p.frame !== mark.frame) }))
-                        }
-                      >
-                        ×
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              </fieldset>
-              <fieldset>
                 <legend>{t('3. Recording time')}</legend>
                 {number('slowdown', 'Recording slowdown factor', 1, 16, 0.1)}
                 <p className="motion-help">
@@ -372,14 +372,25 @@ export function SpeedPanel({
                   </div>
                 </details>
               </fieldset>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={setup.showOverlay}
-                  onChange={(e) => onEdit((s) => ({ ...s, showOverlay: e.target.checked }))}
-                />
-                {t('Show measurement overlay')}
-              </label>
+              <fieldset>
+                <legend>{t('Measurement overlays')}</legend>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={setup.showCourtOverlay}
+                    onChange={(e) => onEdit((s) => ({ ...s, showCourtOverlay: e.target.checked }))}
+                  />
+                  {t('Court lines')}
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={setup.showBallOverlay}
+                    onChange={(e) => onEdit((s) => ({ ...s, showBallOverlay: e.target.checked }))}
+                  />
+                  {t('Ball positions and trajectory')}
+                </label>
+              </fieldset>
               <p className="motion-help">
                 {t(
                   'Cyan: court marks. White: observed ball positions. Dashed yellow: reconstructed flight, not an observed track.'

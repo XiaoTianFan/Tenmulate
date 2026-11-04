@@ -445,7 +445,13 @@ scenario re-derives contact height; both speed and height ranges are retained. T
 reported min/max envelope includes net-collision variants with a warning. Numerical
 instability or a range wider than half the central speed blocks reporting. It is
 not a statistical confidence interval or a guarantee of real-world accuracy.
-Preview overlays use the same result with the actual presented-frame clock.
+The panel presents ball marking before court mapping; annotations remain independent
+until estimation. Preview overlays use the same result with the actual presented-frame
+clock. Court lines and ball positions/flight have separate visibility flags. These
+flags are excluded from the estimation signature, so toggling them neither cancels
+a job nor invalidates its result. Saved measurement overlays are temporarily hidden
+during annotation; only the active guide is drawn. Completing or cancelling the
+annotation restores the selected overlay groups.
 Measurement JSON retains the assumptions and checks; ordinary grid exports are
 unchanged. Validation uses analytical ballistic cases and synthetic projected
 courts with known launch motion; field calibration against radar remains open.

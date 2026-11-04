@@ -8,8 +8,7 @@ export function SpeedOverlay({
   frame,
   index,
   width,
-  height,
-  selecting
+  height
 }: {
   setup: ServeSetup;
   result?: SpeedResult;
@@ -17,14 +16,13 @@ export function SpeedOverlay({
   index?: FrameIndex;
   width: number;
   height: number;
-  selecting: boolean;
 }) {
   const path = result?.path;
   const pathPoints = useMemo(
     () => path?.map((p) => `${(p.x * width).toFixed(2)},${(p.y * height).toFixed(2)}`).join(' '),
     [path, width, height]
   );
-  if (!setup.showOverlay && !selecting) return null;
+  if (!setup.showCourtOverlay && !setup.showBallOverlay) return null;
   const time =
     index && setup.contact ? (index.timestamps[frame] - index.timestamps[setup.contact.frame]) / setup.slowdown : -1;
   const cursorIndex =
@@ -36,31 +34,35 @@ export function SpeedOverlay({
   const fraction = a && b ? (time - a.time) / (b.time - a.time) : 0;
   return (
     <svg className="speed-overlay" viewBox={`0 0 ${width} ${height}`} aria-hidden="true">
-      {Object.entries(setup.lines).map(([key, line]) =>
-        line ? (
-          <line
-            key={key}
-            x1={line.points[0].x * width}
-            y1={line.points[0].y * height}
-            x2={line.points[1].x * width}
-            y2={line.points[1].y * height}
-            className="speed-court-line"
-          />
-        ) : null
-      )}
-      {path ? <polyline points={pathPoints} className="speed-flight-line" /> : null}
-      {[setup.contact, setup.bounce, ...setup.flight].map((mark, i) =>
-        mark ? (
-          <circle
-            key={i}
-            cx={mark.x * width}
-            cy={mark.y * height}
-            r={width / 180}
-            className={`speed-ball-mark${mark.frame === frame ? ' is-current' : ''}`}
-          />
-        ) : null
-      )}
-      {a && b ? (
+      {setup.showCourtOverlay
+        ? Object.entries(setup.lines).map(([key, line]) =>
+            line ? (
+              <line
+                key={key}
+                x1={line.points[0].x * width}
+                y1={line.points[0].y * height}
+                x2={line.points[1].x * width}
+                y2={line.points[1].y * height}
+                className="speed-court-line"
+              />
+            ) : null
+          )
+        : null}
+      {setup.showBallOverlay && path ? <polyline points={pathPoints} className="speed-flight-line" /> : null}
+      {setup.showBallOverlay
+        ? [setup.contact, setup.bounce, ...setup.flight].map((mark, i) =>
+            mark ? (
+              <circle
+                key={i}
+                cx={mark.x * width}
+                cy={mark.y * height}
+                r={width / 180}
+                className={`speed-ball-mark${mark.frame === frame ? ' is-current' : ''}`}
+              />
+            ) : null
+          )
+        : null}
+      {setup.showBallOverlay && a && b ? (
         <circle
           cx={(a.x + (b.x - a.x) * fraction) * width}
           cy={(a.y + (b.y - a.y) * fraction) * height}

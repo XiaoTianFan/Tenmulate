@@ -1131,5 +1131,10 @@
   "The vertical line at {mark} is too short. Mark the net top and the ground beneath it.": "“{mark}”的竖向线段过短，请标记网顶及其正下方的地面。",
   "This court mark is outside the excerpt and still contributes to calibration.": "该球场标记位于当前选段外，仍用于标定。",
   "Use any clear frame for each line; the camera must stay fixed. Mark the singles endpoints of both baselines and the far service line. Cropping is temporarily lifted while marking.": "每条线可分别选择清晰的帧，相机应保持固定。标记两端底线与远端发球线的单打边线交点，标记时暂时显示未裁剪画面。",
-  "Draw a top-to-ground line at each net support (1.07 m) and the centre strap (0.914 m). Follow the post or strap, even if it leans in the image. Mark supports A and B in either order.": "在两侧球网支撑（高 1.07 米）及中心带（高 0.914 米）处各画一条从网顶到地面的线段。沿网柱或中心带标记，即使它在画面中倾斜。A、B 两侧顺序不限。"
+  "Draw a top-to-ground line at each net support (1.07 m) and the centre strap (0.914 m). Follow the post or strap, even if it leans in the image. Mark supports A and B in either order.": "在两侧球网支撑（高 1.07 米）及中心带（高 0.914 米）处各画一条从网顶到地面的线段。沿网柱或中心带标记，即使它在画面中倾斜。A、B 两侧顺序不限。",
+  "1. Mark the ball": "1. 标记网球",
+  "2. Map the court": "2. 标定球场",
+  "Measurement overlays": "测量叠加层",
+  "Court lines": "球场线",
+  "Ball positions and trajectory": "球位置与轨迹"
 }

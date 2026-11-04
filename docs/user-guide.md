@@ -314,7 +314,13 @@ centre strap must be visible, with a fixed camera throughout the flight. A lands
 crop of a portrait recording does not qualify. Fisheye views, moving/zooming cameras,
 partial courts and nonstandard court/net dimensions are unsuitable.
 
-1. Draw the near and far baselines **between their singles sidelines**, then the
+1. Use the card's **Set contact** at racket impact. Select **Contact ball position**
+   and tap the ball centre or tightly box the ball. Navigate on the existing preview
+   lane to the first ground impact, then mark **First bounce ball position**. Mark
+   the ball, not its shadow. There must be no earlier bounce or net touch. Optional
+   **flight checks** at intermediate frames independently test the modeled path;
+   inconsistent checks stop the estimate rather than change the court calibration.
+2. Draw the near and far baselines **between their singles sidelines**, then the
    far service line. Each line can use a different clear frame from the same fixed
    camera. Its frame button returns to that observation; the marking button always
    starts at the current frame. Near/far mean relative to the camera. Select doubles
@@ -324,12 +330,6 @@ partial courts and nonstandard court/net dimensions are unsuitable.
    Drag or tap both ends; arrow keys and Enter also work. Court marking temporarily
    shows the full uncropped image. Both endpoints of a line use the same frame.
    Court marks remain valid if a later excerpt excludes their source frames.
-2. Use the card's **Set contact** at racket impact. Select **Contact ball position**
-   and tap the ball centre or tightly box the ball. Navigate on the existing preview
-   lane to the first ground impact, then mark **First bounce ball position**. Mark
-   the ball, not its shadow. There must be no earlier bounce or net touch. Optional
-   **flight checks** at intermediate frames independently test the modeled path;
-   inconsistent checks stop the estimate rather than change the court calibration.
 3. **Contact height is derived automatically** from the marked ball, the calibrated
    court/net and an assumed contact depth. Court mapping defaults to the near serving
    baseline, **0.5 m inside it with ±0.4 m depth uncertainty**. Adjust the depth or
@@ -347,7 +347,12 @@ partial courts and nonstandard court/net dimensions are unsuitable.
    calibration/flight checks. Cyan overlays show court marks, white circles show
    observations and the dashed yellow curve shows the reconstructed flight. Its
    cursor follows the displayed source frame during scrubbing and linked playback.
-   Toggle the overlay independently. Changes to measurements, contact or excerpt
+   Under **Measurement overlays**, toggle **Court lines** and **Ball positions and
+   trajectory** separately: either group, both, or neither. Ball positions include
+   contact, first bounce and optional flight checks. Visibility changes preserve
+   the estimate and saved marks. During marking, saved measurement overlays are
+   temporarily hidden so only the active guide is visible; completing or cancelling
+   restores the selected groups. Changes to measurements, contact or excerpt
    invalidate the result. **Download measurement JSON** saves annotations, each
    court line's source frame, endpoint timestamps, assumptions and results for
    review; it contains no video footage.

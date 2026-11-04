@@ -14,7 +14,13 @@ export function useServeEstimate(input: SpeedInput | undefined, active: boolean)
   const worker = useRef<Worker | null>(null);
   const key = useMemo(
     () =>
-      input ? JSON.stringify({ ...input, index: undefined, setup: { ...input.setup, showOverlay: undefined } }) : '',
+      input
+        ? JSON.stringify({
+            ...input,
+            index: undefined,
+            setup: { ...input.setup, showCourtOverlay: undefined, showBallOverlay: undefined }
+          })
+        : '',
     [input?.setup, input?.contact, input?.start, input?.end, input?.width, input?.height]
   );
   const [state, setState] = useState<State>({ key: '' });
