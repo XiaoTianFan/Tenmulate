@@ -39,7 +39,7 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,glb,json,txt}'],
         globIgnores: ['assets/analysis/**', 'assets/{analyze,analysis.worker,pose.worker,poseRuntime,tfjs}*', 'assets/venues/**', 'assets/audience/**',
           // Optional video tools should not compete with first-page downloads.
-          'assets/{ComparisonExportModal,decodedVideo,videoFrames,indexVideo.worker,speed.worker}-*'],
+          'assets/{ComparisonExportModal,decodedVideo,videoFrames,indexVideo.worker,speed.worker,data.worker}-*'],
         manifestTransforms: [async (entries) => ({
           manifest: entries.filter(({ url }) => !url.startsWith('assets/opponents/')
             || !url.endsWith('.glb') || url === opponentMotion.url.slice(1)),
@@ -51,7 +51,7 @@ export default defineConfig({
           options: { cacheName: 'tenmulate-analysis-v1', cacheableResponse: { statuses: [200] },
             expiration: { maxEntries: 16, maxAgeSeconds: 30 * 24 * 60 * 60, purgeOnQuotaError: true } },
         }, {
-          urlPattern: /\/assets\/(?:ComparisonExportModal|decodedVideo|videoFrames|indexVideo\.worker|speed\.worker)-[a-zA-Z0-9_-]+\.(?:js|css)$/,
+          urlPattern: /\/assets\/(?:ComparisonExportModal|decodedVideo|videoFrames|indexVideo\.worker|speed\.worker|data\.worker)-[a-zA-Z0-9_-]+\.(?:js|css)$/,
           handler: 'CacheFirst',
           options: { cacheName: 'tenmulate-video-tools-v1', cacheableResponse: { statuses: [200] },
             expiration: { maxEntries: 24, maxAgeSeconds: 30 * 24 * 60 * 60, purgeOnQuotaError: true } },

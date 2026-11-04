@@ -1136,5 +1136,13 @@
   "2. Map the court": "2. 标定球场",
   "Measurement overlays": "测量叠加层",
   "Court lines": "球场线",
-  "Ball positions and trajectory": "球位置与轨迹"
+  "Ball positions and trajectory": "球位置与轨迹",
+  "Export motion analysis JSON": "导出运动分析 JSON",
+  "Export motion plots JSON": "导出运动图表 JSON",
+  "Export serve-speed JSON": "导出发球速度 JSON",
+  "Download JSON": "下载 JSON",
+  "Cancel data export": "取消数据导出",
+  "Preparing data…": "正在准备数据…",
+  "Could not export analysis data. Please try again.": "无法导出分析数据，请重试。",
+  "Analysis data is too large. Remove unused tracks or analyze a shorter excerpt.": "分析数据过大，请移除不需要的轨迹或分析更短的选段。"
 }

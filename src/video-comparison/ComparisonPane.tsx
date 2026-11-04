@@ -48,6 +48,7 @@ export function ComparisonPane({ active, onServe, presentation, analysis, linked
   const last = (clip.index?.timestamps.length ?? 1) - 1;
   const excerpt = clip.index ? clipFrameRange({ ...clip, index: clip.index }) : { start: 0, end: last };
   const [cropping, setCropping] = useState(false), [dimensions, setDimensions] = useState({ width: 16, height: 9 });
+  const [sourceReady, setSourceReady] = useState(false);
   const speedControls = useServeEstimate(clip.index ? {setup: serve, index: clip.index, ...dimensions, contact: clip.contact, ...excerpt} : undefined, active);
   const [size, setSize] = useState({ width: 1, height: 1 });
   const wrap = useRef<HTMLDivElement>(null), originalCrop = useRef<CropRect | undefined>(undefined);
@@ -131,7 +132,10 @@ export function ComparisonPane({ active, onServe, presentation, analysis, linked
         <div className="comparison-source" style={{ ...imageStyle, transform: mirrored && !cropping ? 'scaleX(-1)' : undefined,
           transformOrigin: mirrored && !cropping ? `${(crop.x + crop.width / 2) * 100}% 50%` : undefined }}>
           <video ref={element => onVideo(clip.id, element)} src={clip.url} muted playsInline preload="auto" disablePictureInPicture
-            onLoadedMetadata={event => setDimensions({ width: event.currentTarget.videoWidth || 16, height: event.currentTarget.videoHeight || 9 })}
+            onLoadedMetadata={event => {
+              const { videoWidth: width, videoHeight: height } = event.currentTarget;
+              if (width > 0 && height > 0) { setDimensions({ width, height }); setSourceReady(true); }
+            }}
             onLoadedData={onReady} onError={onError} aria-label={t('Video: {name}', { name: clip.name })}/>
           <canvas ref={element => onCanvas(clip.id, element)} className="comparison-playback-frame" hidden aria-hidden="true"/>
           {clip.motion && !cropping ? <MotionOverlay clip={clip} presentation={presentation} width={dimensions.width} height={dimensions.height}/> : null}
@@ -168,8 +172,8 @@ export function ComparisonPane({ active, onServe, presentation, analysis, linked
           aria-pressed={clip.contact === frame} title={clip.contact === null ? t('Set contact') : t('Contact: frame {frame} · {time}', { frame: clip.contact + 1, time: formatTime(clip.index!.timestamps[clip.contact]!) })}
           onClick={onContact}><Crosshair size={15}/>{t('Set contact')}</button>
       </div>
-      <MotionPanel clip={clip} frame={frame} view={timelineView} linked={linked} analysis={analysis} onEdit={onMotion} onSelect={select} onFrame={onFrame} onPause={onPause}/>
-      <div ref={speedPanel}><SpeedPanel active={active} clip={clip} setup={serve} frame={frame} {...dimensions} controls={speedControls}
+      <MotionPanel active={active} sourceReady={sourceReady} {...dimensions} clip={clip} frame={frame} view={timelineView} linked={linked} analysis={analysis} onEdit={onMotion} onSelect={select} onFrame={onFrame} onPause={onPause}/>
+      <div ref={speedPanel}><SpeedPanel active={active} sourceReady={sourceReady} clip={clip} setup={serve} frame={frame} {...dimensions} controls={speedControls}
         onEdit={edit => { setSpeedSelection(null); onServe(edit); }} onSelect={selectSpeed} onFrame={onFrame} onPause={onPause}/></div>
       <div className="comparison-pane-footer"><span>{t('Local clip')}</span><div>
         <button aria-label={t('Move {name} left', { name: clip.name })} disabled={position === 0} onClick={() => onMove(-1)}><ArrowLeft size={14}/></button>

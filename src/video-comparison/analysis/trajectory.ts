@@ -127,6 +127,8 @@ export function reconstructTrajectory(index: FrameIndex, anchors: readonly Ancho
   const protectedFrames = new Set(manual.map(a => a.frame));
   const points = selectTrackingPath(forward, backward, manual, index.timestamps, start, width, height);
   for (const a of manual) points[a.frame - start] = { x: a.x, y: a.y, confidence: 1, verified: true };
+  const evidence = emptySeries(start, end, 1, width, height, 'Selected image evidence before repair');
+  points.forEach((p, i) => { if (p) putSample(evidence, start + i, 0, p.x, p.y, p.confidence, protectedFrames.has(start + i) ? MANUAL : OBSERVED); });
   const rejected = rejectExcursions(points, index.timestamps, start, width, height, protectedFrames);
   const corners = new Set(motionCorners(points, index.timestamps, start, width, height));
   // Keep observed turns. Only gaps need reconstruction; short gaps can use the
@@ -153,6 +155,7 @@ export function reconstructTrajectory(index: FrameIndex, anchors: readonly Ancho
   const fixedX = new Map(manual.map(a => [a.frame - start, a.x])), fixedY = new Map(manual.map(a => [a.frame - start, a.y]));
   const x = smooth(xs, weights, index.timestamps, start, fixedX, corners, smoothing), y = smooth(ys, weights, index.timestamps, start, fixedY, corners, smoothing);
   const result = emptySeries(start, end, 1, width, height, 'Adaptive appearance/flow + evidence-selected trajectory');
+  result.observations = { values: evidence.values, states: evidence.states };
   result.continuous = true; result.corners = [...corners]; result.rejected = rejected;
   for (let i = 0; i < n; i++) {
     const isManual = fixedX.has(i), p = points[i];

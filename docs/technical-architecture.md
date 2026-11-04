@@ -270,6 +270,25 @@ The renderer shared with export uses the same crop/mirror mapping;
 optional plot panels use cached derived series. Export is a snapshot of completed
 results and never calls inference. Body angles are image-plane projections only.
 
+`dataExport/` provides section-specific numerical JSON downloads through an owned,
+cancellable worker. Schema `tenmulate.analysis-data` version 1 uses explicit units,
+source frame/time columns, null missing values and observed/manual/estimated states.
+The worker snapshots completed data without transferring live buffers, decoding
+video or rerunning inference; File objects, blob URLs and thumbnails are excluded.
+Its output Blob is limited to 128 MiB. UI changes, removal, navigation and hiding
+the tab cancel pending generation; object URLs are revoked on invalidation/unmount.
+A ready link remains for browsers that require a second user gesture to download.
+
+Motion exports retain pre-repair tracking evidence and direct pose model outputs
+at detector sampling frames (including confidence below the display threshold),
+separately from draft interpolation and stabilized coordinates. They include all
+tracks/landmarks/joints regardless of visibility, source-time derived metrics and
+both default stabilized and unsmoothed joint curves. Plot exports use `plotData`
+at each plot's smoothing setting without display downsampling or zoom clipping.
+Partial analyses are explicit. Series lacking retained evidence report null;
+derived estimates are never relabeled as raw detections. None of these downloads
+adds durable browser storage or an import format.
+
 The analysis worker, TF runtime, graph weights and WASM are excluded from initial
 imports and service-worker precaching. Optional assets use a bounded CacheFirst
 runtime cache. WASM comes from exact npm dependencies; model hashes and attribution
@@ -452,8 +471,13 @@ flags are excluded from the estimation signature, so toggling them neither cance
 a job nor invalidates its result. Saved measurement overlays are temporarily hidden
 during annotation; only the active guide is drawn. Completing or cancelling the
 annotation restores the selected overlay groups.
-Measurement JSON retains the assumptions and checks; ordinary grid exports are
-unchanged. Validation uses analytical ballistic cases and synthetic projected
+The section's JSON export retains partial annotations, calibration, dimensions
+assumed from standard court geometry, assumptions and checks, plus the complete
+speed result. Model path samples carry world XYZ alongside image projections;
+their 3D polyline arc length is separate from horizontal contact-to-bounce distance.
+Physical flight time and source time are both provided using recording slowdown.
+Court and ball overlay toggles share one row. Ordinary grid exports are unchanged.
+Validation uses analytical ballistic cases and synthetic projected
 courts with known launch motion; field calibration against radar remains open.
 
 ## Storage ownership and lifecycle

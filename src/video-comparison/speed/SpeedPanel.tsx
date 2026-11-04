@@ -7,12 +7,14 @@ import type { SpeedControls } from './useServeEstimate';
 import { useCourtCalibration } from './useCourtCalibration';
 import { atDepth } from './projective';
 import { contactCourtDepth } from './geometry';
+import { DataExportButton } from '../dataExport/DataExportButton';
 import './speed.css';
 
 type NumberKey =
   'contactDepth' | 'depthError' | 'pixelError' | 'frameError' | 'slowdown' | 'drag' | 'dragError' | 'liftError';
 export function SpeedPanel({
   active,
+  sourceReady,
   clip,
   setup,
   frame,
@@ -25,6 +27,7 @@ export function SpeedPanel({
   onPause
 }: {
   active: boolean;
+  sourceReady: boolean;
   clip: ComparisonClip;
   setup: ServeSetup;
   frame: number;
@@ -76,61 +79,29 @@ export function SpeedPanel({
     clip.contact !== null &&
     setup.contact?.frame === clip.contact &&
     !!setup.bounce;
-  const download = () => {
-    if (!result || !clip.index) return;
-    const data = {
-      version: 2,
-      method: 'Endpoint reconstruction with quadratic drag; sensitivity envelope, not a confidence interval',
-      reference:
-        'https://github.com/XiaoTianFan/tennis-point-edit-review/tree/2b63d12ad7dfb85c30d4c2e3d38e5c9d873a6b78',
-      clip: clip.name,
-      source: {
-        width,
-        height,
-        frameNumbering: 'zero-based',
-        fps: clip.index.fps,
-        variableFrameRate: clip.index.variable
-      },
-      excerpt: range,
-      annotations: setup,
-      sourceTimestamps: Object.fromEntries(
-        [
-          ...new Set([
-            ...Object.values(setup.lines).map((mark) => mark!.frame),
-            setup.contact!.frame - 1,
-            setup.contact!.frame + 1,
-            setup.bounce!.frame - 1,
-            setup.bounce!.frame + 1,
-            ...[setup.contact!, setup.bounce!, ...setup.flight].map((p) => p.frame)
-          ])
-        ]
-          .filter((f) => f >= 0 && f < clip.index!.timestamps.length)
-          .map((f) => [f, clip.index!.timestamps[f]])
-      ),
-      sourceEnd: clip.index.end,
-      result
-    };
-    const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${clip.name.replace(/\.[^.]+$/, '')}-serve-speed.json`;
-    link.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  };
   return (
     <section className="motion-panel speed-panel">
-      <button
-        type="button"
-        className="motion-disclosure"
-        aria-label={t('Serve speed')}
-        aria-expanded={open}
-        aria-controls={id}
-        disabled={!clip.index || !!clip.error}
-        onClick={() => setOpen(!open)}
-      >
-        {t('Serve speed')}
-        <span>{open ? '−' : '+'}</span>
-      </button>
+      <div className="motion-section-heading">
+        <button
+          type="button"
+          className="motion-disclosure"
+          aria-label={t('Serve speed')}
+          aria-expanded={open}
+          aria-controls={id}
+          disabled={!clip.index || !!clip.error}
+          onClick={() => setOpen(!open)}
+        >
+          {t('Serve speed')}
+          <span>{open ? '−' : '+'}</span>
+        </button>
+        <DataExportButton
+          section="serve-speed"
+          {...{ active, clip, width, height, setup, result, onPause }}
+          calibration={calibration.camera}
+          issue={error ?? calibration.error}
+          disabled={!sourceReady || busy || calibration.busy || width <= height || !!clip.error}
+        />
+      </div>
       {open ? (
         <div id={id} className="motion-panel-body">
           {width <= height ? (
@@ -372,7 +343,7 @@ export function SpeedPanel({
                   </div>
                 </details>
               </fieldset>
-              <fieldset>
+              <fieldset className="speed-overlay-options">
                 <legend>{t('Measurement overlays')}</legend>
                 <label>
                   <input
@@ -472,9 +443,6 @@ export function SpeedPanel({
                       'A model estimate, not a radar measurement. Lens distortion, spin, wind, camera movement and labeling errors can add uncertainty beyond this range.'
                     )}
                   </p>
-                  <button type="button" onClick={download}>
-                    {t('Download measurement JSON')}
-                  </button>
                 </div>
               ) : null}
             </>

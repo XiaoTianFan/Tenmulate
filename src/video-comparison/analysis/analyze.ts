@@ -1,7 +1,7 @@
 import { readVideoFrames } from '../videoFrames';
 import { clipFrameRange } from '../timeline';
 import type { ComparisonClip } from '../types';
-import { emptySeries, putSample, type MotionSeries, type MotionTrack } from './types';
+import { emptySeries, OBSERVED, putSample, type MotionSeries, type MotionTrack } from './types';
 import { trackingBounds, type TrackingPass } from './trajectory';
 import type { PixelFrame } from './tracker';
 
@@ -62,7 +62,15 @@ export async function analyze(clip: ComparisonClip, job: AnalysisRequest, signal
       let result: MotionSeries | undefined, done = 0;
       for await (const item of pixels(frames)) {
         result ??= emptySeries(range.start, range.end, 17, sourceWidth, sourceHeight, 'MoveNet Lightning v4 / WASM');
+        result.detections ??= { values: new Float32Array(result.values.length), states: new Uint8Array(result.states.length), frames };
         const values = await call('pose', item.pixels, { time: index.timestamps[item.frame] }) as Float32Array;
+        for (let p = 0; p < 17; p++) {
+          const i = (item.frame - range.start) * 17 + p;
+          if ([values[p * 3], values[p * 3 + 1], values[p * 3 + 2]].every(Number.isFinite)) {
+            result.detections.values.set(values.subarray(p * 3, p * 3 + 3), i * 3);
+            result.detections.states[i] = OBSERVED;
+          }
+        }
         for (let p = 0; p < 17; p++) if (values[p * 3 + 2] >= .25) putSample(result, item.frame, p, values[p * 3], values[p * 3 + 1], values[p * 3 + 2]);
         progress({ progress: .15 + .82 * ++done / frames.length, message: 'Analyzing pose…' });
       }

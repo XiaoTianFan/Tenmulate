@@ -257,6 +257,47 @@ can read the file, try converting it to H.264 video in an MP4 container.
 An unreadable file shows an error and can be removed. Very long
 files with more than one million video frames require a shorter excerpt.
 
+### Download numerical analysis
+
+**Export JSON** beside each section heading saves a separate file for that clip,
+even when the section is collapsed, once the video's dimensions are loaded.
+These downloads contain numerical data and
+annotations, not video footage. JSON preserves the nested landmarks, calibration
+and time series for analysis in Python, R or similar tools.
+
+- **Motion analysis:** every track, manual anchor, full-resolution position series,
+  confidence/state, retained tracking evidence before repair, pixel trajectory
+  length and position/velocity/acceleration metrics. Pose exports include all 17
+  landmarks, skeleton connections and all eight joint definitions with stabilized
+  and unsmoothed angles, angular velocity and angular acceleration. Direct model
+  detections, including low-confidence detections, are separate from interpolated
+  and stabilized coordinates. Hidden tracks and joints are included.
+- **Motion plots:** all configured plots, their targets, units and smoothing
+  settings, and every available sample. Downloads are not clipped to the chart's
+  current zoom, excerpt or screen resolution. Estimated samples are identified.
+- **Serve speed:** all court/ball annotations and source frames, standard court
+  dimensions used for calibration, camera fit and diagnostics, assumptions,
+  reconstructed contact/bounce coordinates, speed results and the modeled 3D
+  flight samples and arc length. Incomplete measurements can be saved before
+  calibration or estimation; unavailable results are `null`.
+
+Each file has schema `tenmulate.analysis-data`, version `1`, and a `section` field.
+The `clip` object includes original source dimensions and frame timestamps, current
+excerpt/contact and presentation settings. `conventions` documents coordinates,
+time and missing data. Frame indices are zero-based; `displayFrame` is one-based.
+Parallel arrays share a frame column. `null` means unavailable, not zero. Sample
+states are `0` missing, `1` observed, `2` manual and `3` estimated. Normalized image
+coordinates are right/down from the original top-left corner; derived motion
+metrics use original pixels with upward-positive Y. Rates use source seconds,
+independent of playback speed. Serve trajectories additionally identify physical
+flight seconds after applying recording slowdown. Standard court dimensions and
+model reconstructions are assumptions/estimates, not independent measurements.
+
+Generation runs locally in a cancellable background task and pauses playback.
+The button becomes **Download JSON** when ready; tap it if the browser did not
+automatically save the file. Editing the underlying data clears that old download.
+Keep the page open until saving finishes; there is no analysis-file import yet.
+
 ### Export a comparison
 
 Select **Export** to the right of **Link timelines**. Opening the dialog pauses
@@ -353,9 +394,9 @@ partial courts and nonstandard court/net dimensions are unsuitable.
    the estimate and saved marks. During marking, saved measurement overlays are
    temporarily hidden so only the active guide is visible; completing or cancelling
    restores the selected groups. Changes to measurements, contact or excerpt
-   invalidate the result. **Download measurement JSON** saves annotations, each
-   court line's source frame, endpoint timestamps, assumptions and results for
-   review; it contains no video footage.
+   invalidate the result. **Export JSON** beside **Serve speed** saves the complete
+   measurement data, including partial annotations before an estimate is available;
+   see **Download numerical analysis** above. It contains no video footage.
 
 Court fitting runs automatically once all six lines are marked. It combines every
 endpoint and reports image-space fit error. A modest mismatch identifies the line

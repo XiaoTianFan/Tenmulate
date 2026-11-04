@@ -48,8 +48,12 @@ function candidate(
     );
   const model = reconstruct(distance, duration, height, COURT.ballRadius, drag, lift);
   const path = model.path.map((q) => {
-    const xyz = [contact[0] + (dx * q.distance) / distance, contact[1] + (dy * q.distance) / distance, q.z];
-    return { ...project(camera.p, xyz), z: q.z, time: q.time };
+    const xyz: [number, number, number] = [
+      contact[0] + (dx * q.distance) / distance,
+      contact[1] + (dy * q.distance) / distance,
+      q.z
+    ];
+    return { ...project(camera.p, xyz), z: q.z, time: q.time, world: xyz };
   });
   const crossing = ((COURT.net - contact[1]) / dy) * distance;
   let clearance = Infinity;

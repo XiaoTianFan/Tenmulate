@@ -86,5 +86,5 @@ export type SpeedResult = {
   checkedPoints: number;
   variants: number;
   collisionVariants: number;
-  path: { x: number; y: number; time: number; z: number }[];
+  path: { x: number; y: number; time: number; z: number; world: [number, number, number] }[];
 };

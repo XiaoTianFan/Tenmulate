@@ -156,3 +156,16 @@
 .speed-model-ball {
   stroke: #f6e62d;
 }
+
+.speed-panel .speed-overlay-options {
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: start;
+  column-gap: 12px;
+}
+.speed-panel .speed-overlay-options label {
+  flex-wrap: nowrap;
+  align-items: start;
+}
+.speed-overlay-options input {
+  flex-shrink: 0;
+}

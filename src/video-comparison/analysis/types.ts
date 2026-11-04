@@ -1,14 +1,17 @@
 /** All coordinates are normalized in the oriented, unmirrored source image. */
 export type Anchor = { frame: number; x: number; y: number; width: number; height: number; role?: 'start' | 'end' | 'correction' };
 export const OBSERVED = 1, MANUAL = 2, ESTIMATED = 3;
+export type SampleBuffer = { values: Float32Array; states: Uint8Array };
 export type JointSignal = { values: Float64Array; velocity: Float64Array; acceleration: Float64Array; states: Uint8Array; derivativeStates: Uint8Array };
 export type MotionSeries = {
   start: number; end: number; width: number; height: number; points: number;
   /** Packed x, y, confidence. State 0 means missing, never a measurement at zero. */
   values: Float32Array; states: Uint8Array; model: string;
   continuous?: boolean; corners?: number[]; rejected?: number;
-  /** Original pose observations remain available in Raw plots. */
-  observations?: { values: Float32Array; states: Uint8Array };
+  /** Pre-stabilization evidence; pose includes marked draft interpolation. */
+  observations?: SampleBuffer;
+  /** Direct pose outputs, including low confidence, before filtering/interpolation. */
+  detections?: SampleBuffer & { frames: number[] };
   /** Default stabilized joint curves, prepared off the UI thread. */
   angles?: Record<string, JointSignal>;
 };

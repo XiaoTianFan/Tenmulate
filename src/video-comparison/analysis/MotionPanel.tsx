@@ -7,8 +7,10 @@ import type { Selection } from './MotionSelection';
 import type { AnalysisControls } from './useAnalysis';
 import { estimatedRanges, trackingBounds } from './trajectory';
 import { JOINTS, type ClipMotion, type MotionTrack } from './types';
+import { DataExportButton } from '../dataExport/DataExportButton';
 
-export function MotionPanel({ clip, frame, view, linked, analysis, onEdit, onSelect, onFrame, onPause }: {
+export function MotionPanel({ active, sourceReady, width, height, clip, frame, view, linked, analysis, onEdit, onSelect, onFrame, onPause }: {
+  active: boolean; sourceReady: boolean; width: number; height: number;
   clip: ComparisonClip; frame: number; view: { start: number; end: number }; linked: boolean; analysis: AnalysisControls;
   onEdit: (edit: (motion: ClipMotion) => ClipMotion) => void; onSelect: (selection: Selection) => void; onFrame: (frame: number) => void; onPause: () => void;
 }) {
@@ -19,7 +21,10 @@ export function MotionPanel({ clip, frame, view, linked, analysis, onEdit, onSel
   const editTrack = (id: string, edit: (track: MotionTrack) => MotionTrack) => onEdit(m => ({ ...m, tracks: m.tracks.map(track => track.id === id ? edit(track) : track) }));
   const invalidatePose = (edit: (m: ClipMotion) => ClipMotion) => { analysis.cancel(clip.id); onEdit(edit); };
   return <div className="motion-panel"><section>
-    <button type="button" className="motion-disclosure" aria-label={t('Motion analysis')} aria-expanded={open} disabled={!clip.index || !!clip.error} onClick={() => { setOpen(!open); if (!motion) onEdit(m => m); }}>{t('Motion analysis')}<span>{open ? '−' : '+'}</span></button>
+    <div className="motion-section-heading">
+      <button type="button" className="motion-disclosure" aria-label={t('Motion analysis')} aria-expanded={open} disabled={!clip.index || !!clip.error} onClick={() => { setOpen(!open); if (!motion) onEdit(m => m); }}>{t('Motion analysis')}<span>{open ? '−' : '+'}</span></button>
+      <DataExportButton section="motion-analysis" {...{active, clip, width, height, onPause}} disabled={!sourceReady || !!busy || !motion || !!clip.error}/>
+    </div>
     {open && motion && clip.index ? <div className="motion-panel-body">
       <p className="motion-help">{t('Choose the same target on a start and end frame. Tracking stays between these anchors. Add corrections where the path needs guidance.')}</p>
       <button type="button" disabled={motion.tracks.length >= 6 || range.end <= range.start} onClick={() => onSelect({ type: 'track', role: 'start' })}>{t('Add point or region track')}</button>
@@ -69,7 +74,10 @@ export function MotionPanel({ clip, frame, view, linked, analysis, onEdit, onSel
     </div> : null}
   </section>
   {motion && clip.index && (motion.tracks.length > 0 || motion.pose.result || busy || motion.plots.length > 0) ? <section className="motion-plots-section">
-    <button type="button" className="motion-disclosure" aria-label={t('Motion plots')} aria-expanded={plotsOpen} onClick={() => setPlotsOpen(!plotsOpen)}>{t('Motion plots')}<span>{plotsOpen ? '−' : '+'}</span></button>
+    <div className="motion-section-heading">
+      <button type="button" className="motion-disclosure" aria-label={t('Motion plots')} aria-expanded={plotsOpen} onClick={() => setPlotsOpen(!plotsOpen)}>{t('Motion plots')}<span>{plotsOpen ? '−' : '+'}</span></button>
+      <DataExportButton section="motion-plots" {...{active, clip, width, height, onPause}} disabled={!sourceReady || !!busy || !motion.plots.length}/>
+    </div>
     {plotsOpen ? <div className="motion-panel-body">
       <p className="motion-help">{t('Positions use original pixels; vertical position increases upward from the image bottom. Rates use source seconds. ≈ and lighter trails mark estimates. Angles are 2D projections.')}</p>
       <button type="button" disabled={motion.plots.length >= 4} onClick={() => { const id = crypto.randomUUID(); onEdit(m => ({ ...m, plots: [...m.plots, { id, target: m.tracks[0] ? `track:${m.tracks[0].id}` : 'joint:rightElbow', metric: m.tracks[0] ? 'speed' : 'angle', smoothing: .1 }] })); }}>{t('Add plot')}</button>
