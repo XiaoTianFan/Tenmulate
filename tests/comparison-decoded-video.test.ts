@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ComparisonPlayback } from '../src/video-comparison/playback';
 import { decodeVideo } from '../src/video-comparison/decodedVideo';
 import { createFrameIndex, frameAt, frameSeekTime, mediaTime } from '../src/video-comparison/timeline';
@@ -21,7 +21,7 @@ vi.mock('mediabunny', () => ({
         calls.push(timestamp);
         const frame = frameAt(this.track.index, timestamp);
         if (this.track.failAt === frame) throw new DOMException('Decoder lost', 'EncodingError');
-        const sample = { displayWidth: 720, displayHeight: 1280, allocationSize: () => 1024,
+        const sample = { displayWidth: this.track.width ?? 720, displayHeight: this.track.height ?? 1280, allocationSize: () => 1024,
           draw: vi.fn((context: any) => { context.picture = frame; }), close: vi.fn() };
         this.track.samples.push(sample);
         yield sample;
@@ -40,7 +40,28 @@ const track = (timestamps: number[]) => ({ index: createFrameIndex(timestamps.ma
 
 beforeEach(() => { mock.tracks = []; mock.inputs = []; mock.calls = []; mock.native.mockReset(); });
 
+afterEach(() => vi.unstubAllGlobals());
+
 describe('decoded pictures connected to the shared scheduler', () => {
+  it('releases 4K hardware frames before buffering bounded review snapshots', async () => {
+    const t = Object.assign(track(Array.from({ length: 30 }, (_, i) => i / 60)), { width: 3840, height: 2160 }); mock.tracks.push(t);
+    const snapshots: any[] = [];
+    vi.stubGlobal('document', { createElement: () => {
+      const context = { picture: -1 }, snapshot = { width: 0, height: 0, getContext: () => context };
+      snapshots.push(snapshot); return snapshot;
+    } });
+    const c = canvas();
+    Object.assign(c.context, { drawImage: (surface: any) => { c.context.picture = surface.getContext().picture; } });
+    const source = decodeVideo(new File([], '4k.mp4'), t.index, 0, c.element, undefined, 29, undefined, 9);
+    await flush();
+    expect(snapshots).toHaveLength(2); // 48 MiB / 9, with one bounded sample of overshoot.
+    expect(snapshots.every(c => c.width === 1280 && c.height === 720)).toBe(true);
+    t.samples.forEach(sample => expect(sample.close).toHaveBeenCalledOnce());
+    expect(c.context.picture).toBe(-1); expect(source.prepare(0)).toBe(true);
+    source.present(0); expect(c.context.picture).toBe(0); expect(c.element.width).toBe(1280);
+    source.dispose(); await flush(); expect(snapshots.every(c => c.width === 0 && c.height === 0)).toBe(true);
+  });
+
   it('stops predecoding at the inclusive excerpt end', async () => {
     const t = track([0, .04, .1, .12, .3]); mock.tracks.push(t);
     const c = canvas(), source = decodeVideo(new File([], 'local.mp4'), t.index, 1, c.element, undefined, 2);

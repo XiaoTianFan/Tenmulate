@@ -2,32 +2,30 @@ import { useEffect, useRef, useState } from 'react';
 import { t } from '../i18n/locale';
 import { ReviewTimeline } from './ReviewTimeline';
 import { clipFrameRange } from './timeline';
-import { makeFilmstrip } from './localVideo';
 import { loadVideoTools } from './loadVideoTools';
 import type { ComparisonClip } from './types';
 import type { TimelineWindow } from './timelineView';
 
-export function ClipTimeline({ clip, frame, onFrame, onTrim, onView }: { clip: ComparisonClip; frame: number; onFrame: (frame: number) => void; onTrim?: (trim?: TimelineWindow) => void; onView?: (view: TimelineWindow) => void }) {
+export function ClipTimeline({ active = true, clip, frame, onFrame, onTrim, onView }: { active?: boolean; clip: ComparisonClip; frame: number; onFrame: (frame: number) => void; onTrim?: (trim?: TimelineWindow) => void; onView?: (view: TimelineWindow) => void }) {
   const last = (clip.index?.timestamps.length ?? 1) - 1;
   const selection = clip.index ? clipFrameRange({ ...clip, index: clip.index }) : { start: 0, end: 0 };
   const [view, setView] = useState<TimelineWindow>({ start: 0, end: last });
   useEffect(() => { onView?.(view); }, [view.start, view.end, onView]);
   const cropKey = JSON.stringify(clip.crop);
-  const readOnly = !onTrim, filmstripHost = useRef<HTMLSpanElement>(null);
+  const filmstripHost = useRef<HTMLSpanElement>(null);
   const [detail, setDetail] = useState<{ start: number; end: number; images: string[]; cropKey: string | undefined } | null>(null);
   useEffect(() => {
-    if (!clip.index || (!readOnly && !clip.crop && view.end - view.start >= last - 1) || view.end <= view.start) { setDetail(null); return; }
+    if (!active || !clip.index || view.end <= view.start) return;
+    if (detail?.start === view.start && detail.end === view.end && detail.cropKey === cropKey) return;
     const controller = new AbortController();
     const timer = setTimeout(() => {
-      const pending = readOnly
-        ? loadVideoTools(() => import('./previewFilmstrip'), controller.signal).then(module => module.previewFilmstrip(clip.file, clip.index!, controller.signal, Math.round(view.start), Math.round(view.end), filmstripHost.current!))
-        : makeFilmstrip(clip.url, clip.index!, controller.signal, Math.round(view.start), Math.round(view.end), clip.crop);
+      const pending = loadVideoTools(() => import('./previewFilmstrip'), controller.signal).then(module => module.previewFilmstrip(clip.file, clip.index!, controller.signal, Math.round(view.start), Math.round(view.end), filmstripHost.current!, clip.crop));
       void pending.then(images => {
         if (!controller.signal.aborted) setDetail({ ...view, images, cropKey });
       }).catch(() => {});
-    }, 150);
+    }, 350);
     return () => { clearTimeout(timer); controller.abort(); };
-  }, [clip.url, clip.file, clip.index, view.start, view.end, last, cropKey, readOnly]);
+  }, [active, clip.file, clip.index, view.start, view.end, cropKey]);
   const images = detail?.start === view.start && detail.end === view.end && detail.cropKey === cropKey ? detail.images : null;
   return <>
     <ReviewTimeline min={0} max={last} value={frame} step={1} selection={selection} disabled={!clip.index || !!clip.error}
@@ -35,7 +33,7 @@ export function ClipTimeline({ clip, frame, onFrame, onTrim, onView }: { clip: C
       valueText={n => t('Frame {frame}', { frame: Math.round(n) + 1 })} contact={clip.contact ?? undefined} onChange={onFrame} onRange={onTrim} onView={setView}>
       <div className="comparison-thumbnails" style={images ? undefined : { width: `${last / (view.end - view.start || last || 1) * 100}%`, marginLeft: `${-view.start / (view.end - view.start || last || 1) * 100}%` }}>
         {(images ?? clip.thumbnails).map((image, i) => <img key={i} src={image} alt="" draggable={false}/>)}</div>
-      {readOnly ? <span className="review-filmstrip-source" ref={filmstripHost}/> : null}
+      <span className="review-filmstrip-source" ref={filmstripHost}/>
     </ReviewTimeline>
     {onTrim ? <div className="clip-excerpt-controls"><span>{t('Excerpt: {start}–{end}', { start: selection.start + 1, end: selection.end + 1 })}</span><div>
       <button type="button" disabled={!clip.index || !!clip.error} onClick={() => onTrim({ start: frame, end: selection.end })} title={t('Set excerpt start at cursor')}>{t('In')}</button>

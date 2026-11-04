@@ -1,12 +1,11 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { ComparisonClip } from './types';
 import { frameForTime, clipFrameRange } from './timeline';
-import { ComparisonPlayback, showManualFrame } from './playback';
+import { ComparisonPlayback } from './playback';
 import { loadVideoTools } from './loadVideoTools';
 
 type Props = {
   clips: ComparisonClip[];
-  videos: Map<string, HTMLVideoElement>;
   canvases: Map<string, HTMLCanvasElement>;
   time: number;
   rate: number;
@@ -25,21 +24,6 @@ export function useComparisonPlayback(props: Props): boolean {
   const latest = useRef(props);
   const [buffering, setBuffering] = useState(false);
   useLayoutEffect(() => { latest.current = props; });
-
-  useEffect(() => {
-    if (props.playing && props.active && props.linked) return;
-    const cleanups: (() => void)[] = [];
-    for (const clip of props.clips) {
-      const video = props.videos.get(clip.id);
-      if (!video) continue;
-      video.pause();
-      if (!clip.index || video.readyState < 1 || clip.error) continue;
-      const frame = props.linked && clip.contact !== null
-        ? frameForTime({ ...clip, index: clip.index, contact: clip.contact }, props.time) : clip.frame;
-      cleanups.push(showManualFrame(video, clip.index, frame, props.canvases.get(clip.id), frame => latest.current.onPresented?.(clip.id, frame)));
-    }
-    return () => cleanups.forEach(clean => clean());
-  }, [props.clips, props.videos, props.canvases, props.time, props.linked, props.playing, props.active]);
 
   useEffect(() => {
     if (!props.playing || !props.active || !props.linked) { setBuffering(false); return; }
@@ -63,15 +47,13 @@ export function useComparisonPlayback(props: Props): boolean {
       if (stopped) return;
       const state = latest.current;
       const followers = state.clips.flatMap(clip => {
-        const video = state.videos.get(clip.id);
         const canvas = state.canvases.get(clip.id);
-        if (!video || !canvas || !clip.index || clip.contact === null || clip.error) return [];
-        video.pause();
+        if (!canvas || !clip.index || clip.contact === null || clip.error) return [];
         const aligned = { ...clip, index: clip.index, contact: clip.contact };
         const first = frameForTime(aligned, state.time);
         return [{ clip: aligned, source: decodeVideo(clip.file, clip.index, first, canvas, () => {
           if (!stopped) latest.current.onCompatibility();
-        }, clipFrameRange(aligned).end, frame => latest.current.onPresented?.(clip.id, frame)) }];
+        }, clipFrameRange(aligned).end, frame => latest.current.onPresented?.(clip.id, frame), state.clips.length) }];
       });
       // Anchor only after the module is ready; network time must not advance clips.
       engine = new ComparisonPlayback(followers, state.time, state.rate, performance.now(), message => {

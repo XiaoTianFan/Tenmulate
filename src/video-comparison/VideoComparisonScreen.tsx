@@ -3,7 +3,7 @@ import { Crosshair, Download, Link2, Pause, Play, Plus, SkipBack, SkipForward, X
 import { AppHeader, type AppRoute } from '../components/AppHeader';
 import { t } from '../i18n/locale';
 import { ComparisonPane } from './ComparisonPane';
-import { indexVideo, makeFilmstrip } from './localVideo';
+import { indexVideo } from './localVideo';
 import { clamp, comparisonRange, comparisonTime, formatTime, frameForTime, clipFrameRange, mediaTime, stepComparison, type AlignedClip } from './timeline';
 import type { ComparisonClip } from './types';
 import { useComparisonPlayback } from './useComparisonPlayback';
@@ -27,7 +27,12 @@ export function VideoComparisonScreen({ active, onRoute }: { active: boolean; on
   const [markingClip, setMarkingClip] = useState<string | null>(null);
   const markingChanged = useCallback((id: string, open: boolean) => setMarkingClip(current => open ? id : current === id ? null : current), []);
   const input = useRef<HTMLInputElement>(null), row = useRef<HTMLDivElement>(null);
-  const [videos] = useState(() => new Map<string, HTMLVideoElement>());
+  const [visible, setVisible] = useState(() => !document.hidden);
+  useEffect(() => {
+    const update = () => { setVisible(!document.hidden); if (document.hidden) setPlaying(false); };
+    document.addEventListener('visibilitychange', update); window.addEventListener('pageshow', update);
+    return () => { document.removeEventListener('visibilitychange', update); window.removeEventListener('pageshow', update); };
+  }, []);
   const [presentation] = useState(() => new PresentedFrames());
   const editMotion = (id: string, edit: (motion: ClipMotion) => ClipMotion) => setClips(current => current.map(clip => clip.id === id ? { ...clip, motion: edit(clip.motion ?? newMotion()) } : clip));
   const analysis = useAnalysis(clips, playing || exporting || !!markingClip || !active, editMotion);
@@ -36,26 +41,22 @@ export function VideoComparisonScreen({ active, onRoute }: { active: boolean; on
   const pause = () => setPlaying(false);
   useEffect(() => { if (!active) { setPlaying(false); setExporting(false); setExportClips([]); setExportPreviews({}); } }, [active]);
   useEffect(() => () => {
-    for (const video of videos.values()) { video.pause(); video.removeAttribute('src'); video.load(); }
-    videos.clear();
     for (const item of resources.values()) { item.controller.abort(); URL.revokeObjectURL(item.url); }
     resources.clear();
-  }, [resources, videos]);
+  }, [resources]);
   const aligned: AlignedClip[] = clips.flatMap(clip => clip.index && !clip.error && clip.contact !== null
     ? [{ ...clip, index: clip.index, contact: clip.contact }] : []);
   const allAligned = clips.length > 0 && aligned.length === clips.length;
   const range = comparisonRange(aligned);
-  const buffering = useComparisonPlayback({ clips, videos, canvases, time, rate, linked, playing, active: active && !markingClip, onTime: setTime, onPause: pause, onError: setNotice,
+  const buffering = useComparisonPlayback({ clips, canvases, time, rate, linked, playing, active: active && visible && !exporting && !markingClip, onTime: setTime, onPause: pause, onError: setNotice,
     onPresented: (id, frame) => presentation.present(id, frame),
     onCompatibility: () => setNotice('Using compatibility playback. Contact alignment is preserved, but playback may be slower.') });
   const openExport = () => {
     pause();
     const previews: Record<string, string> = {};
     for (const clip of clips) {
-      const video = videos.get(clip.id), playback = canvases.get(clip.id);
-      const surface = playback && !playback.hidden ? playback : video;
-      const width = surface === playback ? playback?.width : video?.videoWidth;
-      const height = surface === playback ? playback?.height : video?.videoHeight;
+      const surface = canvases.get(clip.id);
+      const width = surface?.width, height = surface?.height;
       if (!surface || !width || !height) continue;
       const crop = normalizeCrop(clip.crop), snapshot = document.createElement('canvas');
       const scale = Math.min(1, 320 / Math.max(width * crop.width, height * crop.height));
@@ -107,13 +108,9 @@ export function VideoComparisonScreen({ active, onRoute }: { active: boolean; on
       const id = crypto.randomUUID(), url = URL.createObjectURL(file), controller = new AbortController();
       resources.set(id, { url, controller });
       setClips(current => [...current, { id, url, file, name: file.name, contact: null, frame: 0, speed: 1, width, thumbnails: [] }]);
-      void indexVideo(file, controller.signal).then(async index => {
+      void indexVideo(file, controller.signal).then(index => {
         if (controller.signal.aborted) return;
         update(id, { index });
-        try {
-          const thumbnails = await makeFilmstrip(url, index, controller.signal);
-          if (!controller.signal.aborted) update(id, { thumbnails });
-        } catch { /* Playback remains usable when thumbnail extraction is unavailable. */ }
       }).catch(error => {
         if (!controller.signal.aborted) update(id, { error: error instanceof Error ? error.message : 'Cannot read this video. Try an MP4, MOV or WebM file.' });
       });
@@ -122,7 +119,6 @@ export function VideoComparisonScreen({ active, onRoute }: { active: boolean; on
   const remove = (id: string) => {
     pause(); analysis.cancel(id); presentation.remove(id);
     const resource = resources.get(id); resource?.controller.abort();
-    const video = videos.get(id); video?.pause(); video?.removeAttribute('src'); video?.load(); videos.delete(id);
     if (resource) URL.revokeObjectURL(resource.url); resources.delete(id);
     const next = clips.filter(clip => clip.id !== id); setClips(next);
     if (!next.length) { setLinked(false); setTime(0); }
@@ -160,7 +156,7 @@ export function VideoComparisonScreen({ active, onRoute }: { active: boolean; on
             const frame = frameFor(clip);
             const sourceTime = clip.index && clip.contact !== null ? mediaTime({ index: clip.index, contact: clip.contact, speed: clip.speed }, time) : 0;
             const held = linked && !!clip.index && (sourceTime < clip.index.timestamps[clipFrameRange({ ...clip, index: clip.index }).start]! - 1e-7 || sourceTime > clip.index.timestamps[clipFrameRange({ ...clip, index: clip.index }).end]! + 1e-7);
-            return <ComparisonPane active={active && !exporting} onMarkingChange={markingChanged} onServe={(edit, contactFrame) => {
+            return <ComparisonPane active={active && !exporting} reviewActive={active && visible && !playing && !exporting && !markingClip} onMarkingChange={markingChanged} onServe={(edit, contactFrame) => {
               setClips(current => current.map(c => c.id === clip.id ? { ...c, serve: edit(c.serve ?? newServeSetup()), ...(contactFrame === undefined ? {} : { contact: contactFrame, frame: contactFrame }) } : c));
               if (contactFrame !== undefined) {
                 pause();
@@ -172,9 +168,7 @@ export function VideoComparisonScreen({ active, onRoute }: { active: boolean; on
               onMirror={() => update(clip.id, { mirrored: !clip.mirrored })}
               onSpeed={speed => { pause(); update(clip.id, { speed }); if (linked) { const bounds = comparisonRange(aligned.map(c => c.index === clip.index ? { ...c, speed } : c)); setTime(clamp(0, bounds.start, bounds.end)); } }}
               onResize={width => update(clip.id, { width })} onMove={direction => move(clip.id, position + direction)} onDrag={drag} onDragEnd={() => {}}
-              onVideo={(id, video) => { if (video) videos.set(id, video); else videos.delete(id); }}
-              onCanvas={(id, canvas) => { if (canvas) canvases.set(id, canvas); else canvases.delete(id); }}
-              onReady={() => update(clip.id, {})} onError={() => { pause(); setLinked(false); update(clip.id, { error: 'Your browser cannot play this video codec. Try H.264 MP4 or VP9 WebM.' }); }}/>
+              onCanvas={(id, canvas) => { if (canvas) canvases.set(id, canvas); else canvases.delete(id); }}/>
           })}
           <button type="button" className={`comparison-add-slot${clips.length ? '' : ' is-empty'}`} disabled={clips.length >= 9}
             aria-label={t(clips.length >= 9 ? 'Video limit reached' : 'Choose videos')} onClick={() => input.current?.click()}>

@@ -1,6 +1,7 @@
 import { nativeFrames } from './nativeVideo';
 import { ALL_FORMATS, BlobSource, Input, VideoSampleSink, type VideoSample } from 'mediabunny';
 import { frameSeekTime, type FrameIndex } from './timeline';
+import { mediaDeadline } from './mediaResources';
 
 export type ReviewFrame = {
   frame: number; width: number; height: number; bytes: number;
@@ -15,7 +16,7 @@ export type FrameRequests = { length: number; at: (position: number) => number }
  * Requests can be replayed from the last delivered frame without losing alignment.
  */
 export async function* readVideoFrames(file: File, index: FrameIndex, requests: FrameRequests,
-  signal: AbortSignal, onCompatibility: () => void = () => {}): AsyncGenerator<ReviewFrame> {
+  signal: AbortSignal, onCompatibility: () => void = () => {}, maxPixels?: number): AsyncGenerator<ReviewFrame> {
   signal.throwIfAborted();
   let delivered = 0;
   let input: Input | undefined, samples: AsyncGenerator<VideoSample | null, void, unknown> | undefined;
@@ -29,13 +30,16 @@ export async function* readVideoFrames(file: File, index: FrameIndex, requests: 
   signal.addEventListener('abort', dispose, { once: true });
   try {
     input = new Input({ source: new BlobSource(file), formats: ALL_FORMATS });
-    const track = await input.getPrimaryVideoTrack();
+    const track = await mediaDeadline(input.getPrimaryVideoTrack(), signal);
     signal.throwIfAborted();
-    if (!track || !await track.canDecode()) throw new Error('Native decoder required');
+    if (!track || !await mediaDeadline(track.canDecode(), signal)) throw new Error('Native decoder required');
     signal.throwIfAborted();
     function* times() { for (let i = 0; i < requests.length; i++) yield frameSeekTime(index, requests.at(i)); }
     samples = new VideoSampleSink(track).samplesAtTimestamps(times());
-    for await (const sample of samples) {
+    while (true) {
+      const next = await mediaDeadline(samples.next(), signal, 10_000, item => { if (!item.done) item.value?.close(); });
+      if (next.done) break;
+      const sample = next.value;
       if (!sample) throw new Error('No readable video frames.');
       if (signal.aborted) { sample.close(); signal.throwIfAborted(); }
       let result: ReviewFrame;
@@ -53,6 +57,6 @@ export async function* readVideoFrames(file: File, index: FrameIndex, requests: 
   } finally { signal.removeEventListener('abort', dispose); dispose(); }
   if (delivered < requests.length) {
     signal.throwIfAborted(); onCompatibility();
-    yield* nativeFrames(file, index, requests, delivered, signal);
+    yield* nativeFrames(file, index, requests, delivered, signal, maxPixels);
   }
 }

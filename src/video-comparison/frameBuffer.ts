@@ -2,7 +2,6 @@ import type { PlaybackSource } from './playback';
 
 export type BufferedFrame = { frame: number; bytes: number; draw: () => void; close: () => void };
 const MAX_FRAMES = 12;
-const MAX_BYTES = 32 * 1024 * 1024;
 
 /** A bounded sequential decoder queue. Requests never start a second seek/decoder.
  * Frames arrive asynchronously, but only the shared scheduler may present them.
@@ -18,7 +17,8 @@ export class FrameBuffer implements PlaybackSource {
   private stopped = false;
   private error: unknown;
 
-  constructor(private readonly iterator: AsyncIterator<BufferedFrame>, first: number, private readonly release: () => void) {
+  constructor(private readonly iterator: AsyncIterator<BufferedFrame>, first: number, private readonly release: () => void,
+    private readonly maxBytes = 32 * 1024 * 1024) {
     this.requested = first;
     this.fill();
   }
@@ -31,7 +31,7 @@ export class FrameBuffer implements PlaybackSource {
     if (this.frames[0]?.frame === frame) {
       // Build a short runway at startup and after an underrun, rather than
       // repeatedly starting as soon as a single frame finishes decoding.
-      this.primed ||= this.frames.length >= 4 || this.bytes >= MAX_BYTES || this.done;
+      this.primed ||= this.frames.length >= 4 || this.bytes >= this.maxBytes || this.done;
       return this.primed;
     }
     this.primed = false;
@@ -62,7 +62,7 @@ export class FrameBuffer implements PlaybackSource {
       try {
         // At most one sample can exceed the byte budget. Keep at least one frame
         // so a single very large source sample cannot deadlock the queue.
-        while (!this.stopped && this.frames.length < MAX_FRAMES && (!this.frames.length || this.bytes < MAX_BYTES)) {
+        while (!this.stopped && this.frames.length < MAX_FRAMES && (!this.frames.length || this.bytes < this.maxBytes)) {
           const item = await this.iterator.next();
           if (item.done) { this.done = true; break; }
           if (this.stopped || item.value.frame < this.requested) item.value.close();

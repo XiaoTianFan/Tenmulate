@@ -248,14 +248,23 @@ playback. Pause/step remains available for inspecting every source frame.
 Clips, contact marks, order, widths, individual and global speeds, mirror, excerpt
 and crop settings survive navigation within the app but are not saved across a reload or
 closing the app. Removing a clip releases its local resources. MP4/MOV/WebM support depends on the browser's codec support.
-Synchronized playback prefers WebCodecs decoding. If that API cannot decode the
+Review and synchronized playback prefer WebCodecs decoding. If that API cannot decode the
 file, the app automatically uses the browser's native decoder in compatibility
 mode, keeping contact alignment. Compatibility playback can be slower because it
 prepares individual frames. A browser can support a file in its native video player
 without supporting the same codec/profile through WebCodecs. If neither decoder
 can read the file, try converting it to H.264 video in an MP4 container.
-An unreadable file shows an error and can be removed. Very long
-files with more than one million video frames require a shorter excerpt.
+A card shows **Preparing video preview…** while decoding and automatically tries
+recovery after a failed attempt. **Retry preview** reopens the decoder without
+removing your clip or annotations. Review and thumbnail work are scheduled to limit
+simultaneous decoders; unused readers are released and the last drawn picture stays
+visible. Large sources use a smaller display canvas to reduce memory; measurements
+still use original source pixels and final exports keep their configured resolution.
+If retry still fails, try a shorter/lower-resolution H.264 MP4. Codec/profile support
+and available device memory still limit which files can be decoded. Clips and frames
+are not saved in site caches or session storage; clearing site data is unnecessary
+for decoder recovery and would erase unrelated practice saves. Very long files with
+more than one million video frames require a shorter excerpt.
 
 ### Download numerical analysis
 

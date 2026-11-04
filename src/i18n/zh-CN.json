@@ -1177,5 +1177,13 @@
   "Detected: right half": "已识别：右半场",
   "Half width · waiting for reference lines": "半条线 · 等待参照标线",
   "Court lines: {ground}/4 · Net lines: {net}/3": "场地线：{ground}/4 · 球网线：{net}/3",
-  "Partial court mapping uses fewer references. Add visible full lines or the other net support to reduce sensitivity.": "局部球场标定使用的参照较少。补充可见完整场地线或另一侧网支点，可降低结果对标注误差的敏感程度。"
+  "Partial court mapping uses fewer references. Add visible full lines or the other net support to reduce sensitivity.": "局部球场标定使用的参照较少。补充可见完整场地线或另一侧网支点，可降低结果对标注误差的敏感程度。",
+  "Video decoding stalled. Retry the preview or use a smaller H.264 MP4.": "视频解码无响应。请重试预览，或使用较小的 H.264 MP4 文件。",
+  "Could not create the preview canvas.": "无法创建预览画布。",
+  "Recovering video preview…": "正在恢复视频预览…",
+  "Preparing video preview…": "正在准备视频预览…",
+  "Retry preview": "重试预览",
+  "Your clip and annotations are kept. If retry fails, try a smaller H.264 MP4.": "视频片段及标注会保留。若重试仍失败，请尝试较小的 H.264 MP4 文件。",
+  "Reading this clip took too long. Try a shorter clip.": "读取此视频耗时过长，请尝试较短的视频片段。",
+  "Preview memory was released by the browser. Retry the preview.": "浏览器已释放预览内存，请重试预览。"
 }

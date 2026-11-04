@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, Crosshair, Crop, FlipHorizontal2, GripVertical, 
 import { t } from '../i18n/locale';
 import { clamp, clipFrameRange, formatTime } from './timeline';
 import type { ComparisonClip } from './types';
+import { useClipPreview } from './useClipPreview';
 import { ClipTimeline } from './ClipTimeline';
 import { CropEditor } from './CropEditor';
 import { MotionPanel } from './analysis/MotionPanel';
@@ -22,19 +23,18 @@ import { useServeEstimate } from './speed/useServeEstimate';
 import { newServeSetup, type ServeSetup, type SpeedSelection as ServeSelection } from './speed/types';
 
 type Props = {
-  active: boolean; onServe: (edit: (setup: ServeSetup) => ServeSetup, contactFrame?: number) => void;
+  active: boolean; reviewActive: boolean; onServe: (edit: (setup: ServeSetup) => ServeSetup, contactFrame?: number) => void;
   onMarkingChange: (id: string, open: boolean) => void;
   presentation: PresentedFrames; analysis: AnalysisControls; linked: boolean; onMotion: (edit: (m: ClipMotion) => ClipMotion) => void;
   clip: ComparisonClip; frame: number; position: number; count: number; held: boolean;
   onFrame: (frame: number) => void; onContact: () => void; onSpeed: (speed: number) => void;
   onRemove: () => void; onResize: (width: number) => void; onMove: (direction: number) => void;
   onDrag: (id: string, x: number, y: number) => void; onDragEnd: () => void;
-  onVideo: (id: string, video: HTMLVideoElement | null) => void; onError: () => void; onReady: () => void;
   onCanvas: (id: string, canvas: HTMLCanvasElement | null) => void;
   onMirror: () => void; onCrop: (crop?: CropRect) => void; onTrim: (trim?: { start: number; end: number }) => void; onPause: () => void;
 };
 
-export function ComparisonPane({ active, onServe, onMarkingChange, presentation, analysis, linked, onMotion, clip, frame, position, count, held, onFrame, onContact, onSpeed, onRemove, onResize, onMove, onDrag, onDragEnd, onVideo, onCanvas, onMirror, onCrop, onTrim, onPause, onError, onReady }: Props) {
+export function ComparisonPane({ active, reviewActive, onServe, onMarkingChange, presentation, analysis, linked, onMotion, clip, frame, position, count, held, onFrame, onContact, onSpeed, onRemove, onResize, onMove, onDrag, onDragEnd, onCanvas, onMirror, onCrop, onTrim, onPause }: Props) {
   const displayed = usePresentedFrame(presentation, clip.id);
   const selectionToolbar = useRef<HTMLDivElement>(null);
   const [selection, setSelection] = useState<Selection | null>(null);
@@ -52,8 +52,11 @@ export function ComparisonPane({ active, onServe, onMarkingChange, presentation,
   const fine = useRef<{ x: number; frame: number } | null>(null);
   const last = (clip.index?.timestamps.length ?? 1) - 1;
   const excerpt = clip.index ? clipFrameRange({ ...clip, index: clip.index }) : { start: 0, end: last };
-  const [cropping, setCropping] = useState(false), [dimensions, setDimensions] = useState({ width: 16, height: 9 });
-  const [sourceReady, setSourceReady] = useState(false);
+  const [cropping, setCropping] = useState(false);
+  const canvas = useRef<HTMLCanvasElement>(null);
+  const picture = useClipPreview(clip.file, clip.index, frame, reviewActive && !clip.error, canvas, value => presentation.present(clip.id, value));
+  const sourceReady = picture.width > 0;
+  const dimensions = sourceReady ? { width: picture.width, height: picture.height } : { width: 16, height: 9 };
   const speedControls = useServeEstimate(clip.index ? {setup: serve, index: clip.index, ...dimensions, contact: clip.contact, ...excerpt} : undefined, active);
   const [size, setSize] = useState({ width: 1, height: 1 });
   const wrap = useRef<HTMLDivElement>(null), originalCrop = useRef<CropRect | undefined>(undefined);
@@ -131,13 +134,7 @@ export function ComparisonPane({ active, onServe, onMarkingChange, presentation,
       <div className="comparison-picture" style={{ width: pictureWidth, height: pictureHeight }}>
         <div className="comparison-source" style={{ ...imageStyle, transform: mirrored && !cropping ? 'scaleX(-1)' : undefined,
           transformOrigin: mirrored && !cropping ? `${(crop.x + crop.width / 2) * 100}% 50%` : undefined }}>
-          <video ref={element => onVideo(clip.id, element)} src={clip.url} muted playsInline preload="auto" disablePictureInPicture
-            onLoadedMetadata={event => {
-              const { videoWidth: width, videoHeight: height } = event.currentTarget;
-              if (width > 0 && height > 0) { setDimensions({ width, height }); setSourceReady(true); }
-            }}
-            onLoadedData={onReady} onError={onError} aria-label={t('Video: {name}', { name: clip.name })}/>
-          <canvas ref={element => onCanvas(clip.id, element)} className="comparison-playback-frame" hidden aria-hidden="true"/>
+          <canvas ref={element => { canvas.current = element; onCanvas(clip.id, element); }} className="comparison-playback-frame" hidden={!sourceReady} aria-label={t('Video: {name}', { name: clip.name })}/>
           {clip.motion && !cropping ? <MotionOverlay clip={clip} presentation={presentation} width={dimensions.width} height={dimensions.height}/> : null}
           {clip.serve && !cropping && !selection && !speedSelection ? <SpeedOverlay setup={serve} result={speedControls.result} frame={displayed} index={clip.index} {...dimensions}/> : null}
         </div>
@@ -147,13 +144,15 @@ export function ComparisonPane({ active, onServe, onMarkingChange, presentation,
       </div>
       {held ? <span className="comparison-held">{t('Holding edge frame')}</span> : null}
       {!clip.index && !clip.error ? <span className="comparison-loading" role="status">{t('Reading frame timestamps…')}</span> : null}
+      {clip.index && !clip.error && picture.busy && reviewActive ? <span className={sourceReady ? 'comparison-preview-pending' : 'comparison-loading'} role="status">{t(picture.recovering ? 'Recovering video preview…' : 'Preparing video preview…')}</span> : null}
+      {picture.error && !clip.error ? <div className="comparison-video-error" role="alert">{t(picture.error)}<button onClick={() => { onPause(); picture.retry(); }}>{t('Retry preview')}</button><small>{t('Your clip and annotations are kept. If retry fails, try a smaller H.264 MP4.')}</small></div> : null}
       {clip.error ? <div className="comparison-video-error" role="alert">{t(clip.error)}<button onClick={onRemove}>{t('Remove clip')}</button></div> : null}
     </div>
     <div ref={selectionToolbar}/>
     <div className="comparison-pane-controls">
       <div className="comparison-frame-info"><span>{t('Frame {frame} / {total}', { frame: frame + 1, total: last + 1 })}</span>
         <span>{clip.index ? `${clip.index.fps.toFixed(2)} ${t(clip.index.variable ? 'fps · variable' : 'fps')}` : '—'}</span></div>
-      <ClipTimeline clip={clip} frame={frame} onFrame={onFrame} onTrim={onTrim} onView={setTimelineView}/>
+      <ClipTimeline active={reviewActive && sourceReady && !picture.error} clip={clip} frame={frame} onFrame={onFrame} onTrim={onTrim} onView={setTimelineView}/>
       <div className="comparison-fine-scrub" role="slider" tabIndex={clip.index && !clip.error ? 0 : -1}
         aria-disabled={!clip.index || !!clip.error} aria-label={t('Fine scrub {name}', { name: clip.name })}
         aria-valuemin={excerpt.start + 1} aria-valuemax={excerpt.end + 1} aria-valuenow={frame + 1}

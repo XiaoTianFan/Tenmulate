@@ -4,6 +4,7 @@ import { createFrameIndex } from '../src/video-comparison/timeline';
 
 class Video extends EventTarget {
   muted = false; playsInline = false; preload = ''; seeking = false; readyState = 4; videoWidth = 320; videoHeight = 240;
+  style = {}; setAttribute = vi.fn(); remove = vi.fn(); play = vi.fn(async () => {});
   time = 0; seeks: number[] = []; load = vi.fn(); pause = vi.fn(); removeAttribute = vi.fn();
   get currentTime() { return this.time; }
   set currentTime(value: number) { this.time = value; this.seeks.push(value); this.seeking = true; queueMicrotask(() => { this.seeking = false; this.dispatchEvent(new Event('seeked')); }); }
@@ -17,7 +18,7 @@ describe('native compatibility frame decoding', () => {
     const video = new Video(), snapshots: { width: number; height: number; getContext: () => any }[] = [];
     vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:decoder');
     const revoke = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
-    vi.stubGlobal('document', { createElement: (tag: string) => {
+    vi.stubGlobal('document', { querySelector: () => null, body: { append: vi.fn() }, createElement: (tag: string) => {
       if (tag === 'video') return video;
       const canvas = { width: 0, height: 0, getContext: () => ({ drawImage: vi.fn() }) }; snapshots.push(canvas); return canvas;
     } });
@@ -27,7 +28,7 @@ describe('native compatibility frame decoding', () => {
     expect(seen).toEqual(order);
     expect(video.seeks).toEqual([0.001,0.101,0.121]);
     snapshots.forEach(canvas => expect(canvas.width * canvas.height).toBe(0));
-    expect(video.pause).toHaveBeenCalledOnce(); expect(video.removeAttribute).toHaveBeenCalledWith('src');
+    expect(video.pause).toHaveBeenCalled(); expect(video.remove).toHaveBeenCalledOnce(); expect(video.removeAttribute).toHaveBeenCalledWith('src');
     expect(revoke).toHaveBeenCalledWith('blob:decoder');
   });
   it('aborts an outstanding media wait and removes listeners and timers', async () => {

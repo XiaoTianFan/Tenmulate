@@ -1,6 +1,5 @@
-import { clamp, comparisonRange, frameForTime, frameSeekTime, type AlignedClip } from './timeline';
+import { clamp, comparisonRange, frameForTime, type AlignedClip } from './timeline';
 
-export type ComparisonVideo = Pick<HTMLVideoElement, 'currentTime' | 'readyState' | 'pause'>;
 export type PlaybackSource = {
   /** Request an indexed frame and predecode its successors, without displaying it. */
   prepare: (frame: number) => boolean;
@@ -8,27 +7,6 @@ export type PlaybackSource = {
   dispose: () => void;
 };
 export type PlaybackFollower = { clip: AlignedClip; source: PlaybackSource };
-
-/** Manual navigation deliberately seeks inside an indexed frame, even for VFR clips. */
-export function seekVideoFrame(video: ComparisonVideo, clip: AlignedClip['index'], frame: number): void {
-  video.pause();
-  if (video.readyState < 1) return;
-  const target = frameSeekTime(clip, frame);
-  if (Math.abs(video.currentTime - target) > 0.0001) video.currentTime = target;
-}
-
-/** Keep the playback canvas until the native manual seek has a displayable frame.
- * Event completion is authoritative: privacy settings can round currentTime.
- */
-export function showManualFrame(video: ComparisonVideo & Pick<HTMLVideoElement, 'seeking' | 'addEventListener' | 'removeEventListener'>,
-  index: AlignedClip['index'], frame: number, canvas?: Pick<HTMLCanvasElement, 'hidden'>, onPresented?: (frame: number) => void): () => void {
-  const reveal = () => { if (!video.seeking && video.readyState >= 2) { if (canvas) canvas.hidden = true; onPresented?.(frame); } };
-  video.addEventListener('seeked', reveal);
-  video.addEventListener('loadeddata', reveal);
-  seekVideoFrame(video, index, frame);
-  reveal();
-  return () => { video.removeEventListener('seeked', reveal); video.removeEventListener('loadeddata', reveal); };
-}
 
 /** One clock selects and presents every clip's actual frame in the same animation
  * callback. No independent media clocks, corrective seeks or rate chasing.
@@ -75,7 +53,7 @@ export class ComparisonPlayback {
       if (ready.some(value => !value)) {
         this.pendingTime = target;
         this.waitingSince ??= now;
-        if (now - this.waitingSince > 15_000) throw new Error('Playback could not start. Try another video codec.');
+        if (now - this.waitingSince > 30_000) throw new Error('Video decoding stalled. Retry the preview or use a smaller H.264 MP4.');
         return { time: this.time, buffering: true, ended: false };
       }
       if (this.pendingTime !== null) {

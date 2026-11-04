@@ -94,7 +94,7 @@
   height: 100%;
   display: block;
 }
-.serve-marking-native {
+.serve-marking .video-decoder-surface {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -102,7 +102,7 @@
   object-fit: fill;
   pointer-events: none;
 }
-.serve-marking-picture.is-mirrored .serve-marking-native {
+.serve-marking-picture.is-mirrored .video-decoder-surface {
   transform: scaleX(-1);
 }
 .serve-marking-status {
@@ -328,3 +328,7 @@
   object-fit: contain;
   background: #030607;
 }
+
+.serve-marking-picture > canvas { position: relative; z-index: 1; }
+.serve-marking-picture > .video-decoder-surface { z-index: 0; }
+.serve-marking-draft { z-index: 2; }

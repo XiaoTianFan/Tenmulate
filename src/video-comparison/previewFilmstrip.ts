@@ -1,17 +1,19 @@
 import { PreviewFrames } from './previewFrames';
 import type { FrameIndex } from './timeline';
+import { drawCropped, normalizeCrop, type CropRect } from './crop';
 
-/** A separate decoder fills the marking timeline without moving its review frame.
- * The native fallback is hosted in one thumbnail cell while images are prepared. */
+/** Low-priority frame requests fill the timeline without moving the review frame.
+ * The shared reader bounds concurrency and releases idle native/container state. */
 export async function previewFilmstrip(
   file: File,
   index: FrameIndex,
   signal: AbortSignal,
   first: number,
   last: number,
-  host: HTMLElement
+  host: HTMLElement,
+  crop?: CropRect
 ) {
-  const source = new PreviewFrames(file, index, host),
+  const source = new PreviewFrames(file, index, host, 144 * 90),
     canvas = document.createElement('canvas');
   canvas.width = 144;
   canvas.height = 90;
@@ -22,15 +24,16 @@ export async function previewFilmstrip(
     const images: string[] = [];
     for (let i = 0; i < 12; i++) {
       signal.throwIfAborted();
-      const sample = await source.get(Math.round(first + (i / 11) * (last - first)));
+      const sample = await source.get(Math.round(first + (i / 11) * (last - first)), 1);
       try {
         signal.throwIfAborted();
         context.fillStyle = '#030607';
         context.fillRect(0, 0, 144, 90);
-        const scale = Math.min(144 / sample.width, 90 / sample.height);
-        const width = sample.width * scale,
-          height = sample.height * scale;
-        sample.draw(context, (144 - width) / 2, (90 - height) / 2, width, height);
+        const region = normalizeCrop(crop), sourceWidth = sample.width * region.width, sourceHeight = sample.height * region.height;
+        const scale = Math.min(144 / sourceWidth, 90 / sourceHeight);
+        const width = sourceWidth * scale, height = sourceHeight * scale;
+        drawCropped(context, (x, y, w, h) => sample.draw(context, x, y, w, h), region,
+          { x: (144 - width) / 2, y: (90 - height) / 2, width, height });
         images.push(canvas.toDataURL('image/jpeg', 0.7));
       } finally {
         sample.close();

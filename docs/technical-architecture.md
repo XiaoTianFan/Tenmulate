@@ -306,10 +306,15 @@ without resetting the contact alignment or current position.
 The shared frame reader prefers Mediabunny VideoSampleSink through WebCodecs. Monotonic
 sample requests use the same indexed frame interiors as manual navigation and
 decode packets sequentially, without repeated native video seeks. Each clip keeps
-a lookahead queue of at most twelve samples, bounded to 32 MiB plus one sample;
-the decoder also has its own small internal queue. Consumed samples are closed
-immediately. Startup and underrun recovery prime a short runway of decoded frames.
-If the capability probe or decoding fails, the reader continues from the first
+a lookahead queue of at most twelve samples, with a byte budget of
+`min(16, 48 / clipCount)` MiB plus one sample. Review pictures are capped to
+1280×720 pixels of area (aspect preserved, maximum edge 1920); large hardware
+frames are copied into bounded canvases and closed before entering lookahead.
+Browser-internal decoder buffers are additional to this application budget.
+Analysis/source coordinates and final export resolution remain unchanged. Consumed
+samples and canvases are released immediately. Startup and underrun recovery prime a short runway of decoded frames.
+Capability/sample waits have cancellable ten-second deadlines that also close late
+frames. If the capability probe or decoding fails, the reader continues from the first
 undelivered request using an isolated native HTMLVideoElement. It seeks indexed
 sample interiors, snapshots them into owned canvases, and feeds the same bounded
 queue and presentation barrier. This covers files exposed by the native decoder
@@ -327,12 +332,28 @@ preserves alignment under load but cannot guarantee the requested wall-clock rat
 when the device cannot decode fast enough. Browser display refresh can skip
 intermediate source frames at high effective speeds.
 
-Pause/scrub returns to the native video element only after its exact manual seek
-is ready, retaining the last canvas picture during the handoff. Canceling a session
-disposes inputs and queues; late decoded samples are closed and cannot draw over
-a new session. Compatibility playback reports its performance tradeoff without
-disabling synchronized review. Rotation and pixel aspect metadata
-are applied when drawing; the pane's mirror transform applies to both surfaces.
+Paused review uses `useClipPreview` and `PreviewFrames` to draw explicit decoded
+frames into the same canvas as playback. Metadata or `seeked` alone never publishes
+a picture. Scrubs coalesce to the latest target; obsolete samples are closed without
+drawing. The last picture remains during handoff; loading/recovery and a local retry
+are visible. Recovery preserves contact, crop, tracks and other annotations. Canvas
+context loss invalidates the presented frame and restoration retries the reader.
+
+Random-access review, export-preview and thumbnail readers share one priority queue:
+interactive requests precede filmstrip requests. At most two input/native readers
+stay warm, with idle release after 1.5 seconds. Indexing is serialized separately
+with a one-minute deadline. Filmstrips start after the card's first picture, use the
+same fallback reader, and are canceled during playback, dialogs, route changes or
+backgrounding. The native fallback is muted, inline, explicitly loaded/primed, then
+paused and sought to the requested frame interior. It mounts a tiny render-viewport
+surface in the active dialog or document; an off-screen card/thumbnail host can
+report `readyState=4` while WebKit still produces black pixels. Native samples are
+owned canvas snapshots so eviction or a subsequent seek cannot change them.
+
+Canceling a session disposes inputs and queues; late decoded samples are closed and
+cannot draw over a new session. Compatibility playback reports its performance
+tradeoff without disabling synchronized review. Rotation and pixel aspect metadata
+are applied when drawing; mirror/crop transforms apply to the review canvas.
 
 Clips and alignment settings live only in memory for the current app visit. The
 comparison surface remains mounted across navigation but pauses when hidden.
@@ -494,8 +515,9 @@ annotation restores the selected overlay groups.
 An independent, lazily loaded `PreviewFrames` decoder coalesces seeks, disposes
 stale samples and enables marking only for the actually drawn source frame.
 The native fallback mounts inside the visible dialog so WebKit presents decoded
-pixels. A separate short-lived decoder prepares its thumbnail lane without moving
-the review frame; both readers release media elements and object URLs on disposal.
+pixels even when its review region is scrolled out of view. A separate short-lived
+reader prepares its thumbnail lane through the shared priority queue, without
+moving the review frame; both readers release media elements and URLs on disposal.
 The uncropped canvas respects mirror orientation while storing original normalized
 coordinates and screen precision. Its `ClipTimeline` reuses zoom/pan without trim
 handles; review never drives linked playback. Background analysis and comparison

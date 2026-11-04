@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { ComparisonPlayback, seekVideoFrame, showManualFrame, type PlaybackSource } from '../src/video-comparison/playback';
+import { ComparisonPlayback, type PlaybackSource } from '../src/video-comparison/playback';
 import { comparisonRange, createFrameIndex, frameAt, frameSeekTime, mediaTime, type AlignedClip } from '../src/video-comparison/timeline';
 
 class Frames implements PlaybackSource {
@@ -21,24 +21,6 @@ const vfr = (): AlignedClip => ({
 });
 
 describe('contact-synchronized frame presentation', () => {
-  it('hands playback back to manual scrubbing only after seek completion, even with a rounded media clock', () => {
-    const video = Object.assign(new EventTarget(), { currentTime: 0, readyState: 1, seeking: true, pause: vi.fn() });
-    const canvas = { hidden: false };
-    const presented = vi.fn();
-    const cleanup = showManualFrame(video, clip().index, 5, canvas, presented);
-    expect(presented).not.toHaveBeenCalled();
-    expect(canvas.hidden).toBe(false);
-    video.currentTime = 0.1; // A privacy-rounded value need not identify the decoded sample.
-    video.readyState = 4; video.seeking = false;
-    video.dispatchEvent(new Event('seeked'));
-    expect(canvas.hidden).toBe(true);
-    expect(presented).toHaveBeenCalledWith(5);
-    cleanup();
-    canvas.hidden = false;
-    video.dispatchEvent(new Event('seeked'));
-    expect(canvas.hidden).toBe(false); // An old manual seek cannot cover a new playback session.
-  });
-
   it.each([0.25, 0.5, 1, 2])('presents the actual contact pictures together across mixed FPS/VFR and clip speeds at %s×', rate => {
     const clips = [clip(29.97, 1, 30), clip(60, 0.5, 120), clip(120, 1.5, 180), vfr()];
     const sources = clips.map(() => new Frames());
@@ -129,10 +111,9 @@ describe('contact-synchronized frame presentation', () => {
     const time = -0.675; // source time 0.13 lies inside the frame starting at 0.12.
     const engine = new ComparisonPlayback([{ clip: c, source }], time, 1, 0, vi.fn());
     engine.tick(0);
-    const manual = { currentTime: 0, readyState: 4, pause: vi.fn() };
-    seekVideoFrame(manual, c.index, frameAt(c.index, mediaTime(c, time)));
-    expect(source.displayed).toBe(frameAt(c.index, manual.currentTime));
-    expect(manual.currentTime).toBe(frameSeekTime(c.index, 3));
+    const manualTime = frameSeekTime(c.index, frameAt(c.index, mediaTime(c, time)));
+    expect(source.displayed).toBe(frameAt(c.index, manualTime));
+    expect(manualTime).toBe(frameSeekTime(c.index, 3));
   });
 
   it('holds edge pictures and stops only at the end of the union', () => {
@@ -171,7 +152,7 @@ describe('contact-synchronized frame presentation', () => {
     const source = new Frames(), onError = vi.fn();
     source.available = -1;
     const engine = new ComparisonPlayback([{ clip: clip(), source }], 0, 1, 0, onError);
-    expect(engine.tick(15_001).ended).toBe(true);
+    expect(engine.tick(30_001).ended).toBe(true);
     expect(onError).toHaveBeenCalledOnce();
     expect(source.pictures).toEqual([]);
     const broken = new Frames(); broken.prepare = () => { throw new Error('Decoder unavailable'); };

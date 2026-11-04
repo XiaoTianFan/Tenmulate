@@ -14,6 +14,15 @@ function stream(count = 100, bytes = 1024) {
 }
 
 describe('sequential frame lookahead', () => {
+  it('primes below four frames when a shared memory budget is small', async () => {
+    const samples: BufferedFrame[] = [];
+    async function* frames() { for (let n = 0; n < 20; n++) { const value = sample(n, 3 * 1024 * 1024); samples.push(value); yield value; } }
+    const buffer = new FrameBuffer(frames(), 0, vi.fn(), 5 * 1024 * 1024);
+    await flush(); expect(samples).toHaveLength(2);
+    expect(buffer.prepare(0)).toBe(true); buffer.present(0);
+    expect(samples[0]!.draw).toHaveBeenCalledOnce(); buffer.dispose();
+    samples.forEach(value => expect(value.close).toHaveBeenCalledOnce());
+  });
   it('predecodes a bounded window and only paints when the shared scheduler commits', async () => {
     const { buffer, samples } = stream();
     expect(buffer.prepare(0)).toBe(false);
