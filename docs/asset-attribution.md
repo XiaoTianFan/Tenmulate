@@ -82,6 +82,16 @@ manifests and delivery assets retain their source metadata.
 
 ## Dependencies and reuse
 
+Serve-speed endpoint reconstruction adapts the deterministic RK4 flight and shooting
+solver from [Tennis Match Edit](https://github.com/XiaoTianFan/tennis-point-edit-review),
+`skills/tennis-point-edit-review/scripts/launch_speed.py`, at revision
+`2b63d12ad7dfb85c30d4c2e3d38e5c9d873a6b78` (MIT, © 2026 Tennis Match Edit contributors).
+Its serve-speed model/audit guides informed the separation of ground and airborne
+geometry, endpoint evidence and sensitivity reporting. No agent-recognition workflow
+or source footage is included. The [MIT notice](../public/licenses/tennis-point-edit-review.txt)
+ships with the app. Court calibration, annotation UI and browser worker adaptation
+are implemented here.
+
 React, Three.js, Lucide and build tools retain their package licenses. Exact
 versions are locked in `package-lock.json`; consult each package's LICENSE for
 redistribution terms. Keep notices and provenance with redistributed assets.

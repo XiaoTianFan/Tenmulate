@@ -1,6 +1,7 @@
 import type { FrameIndex } from './timeline';
 import type { CropRect } from './crop';
 import type { ClipMotion } from './analysis/types';
+import type { ServeSetup } from './speed/types';
 
 export type ComparisonClip = {
   id: string;
@@ -18,4 +19,5 @@ export type ComparisonClip = {
   thumbnails: string[];
   error?: string;
   motion?: ClipMotion;
+  serve?: ServeSetup;
 };

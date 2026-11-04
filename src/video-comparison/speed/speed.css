@@ -1,0 +1,120 @@
+.speed-panel .speed-court-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+.speed-panel .speed-number {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 85px;
+  gap: 8px;
+}
+.speed-panel input[type='number'] {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 36px;
+  border: 1px solid #34424a;
+  border-radius: 4px;
+  padding: 5px;
+  background: #0b1217;
+  color: inherit;
+}
+.speed-panel details summary {
+  padding: 8px 0;
+  cursor: pointer;
+}
+.speed-assumptions {
+  display: grid;
+  gap: 10px;
+}
+.speed-panel .speed-estimate {
+  background: #f6e62d;
+  color: #141912;
+  border-color: #f6e62d;
+  font-weight: 600;
+}
+.speed-checks {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.speed-checks > span {
+  display: inline-flex;
+  gap: 2px;
+}
+.speed-error {
+  margin: 0;
+  padding: 10px;
+  border: 1px solid #b88155;
+  line-height: 1.5;
+  border-radius: 5px;
+  color: #ffd2ae;
+}
+.speed-result {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  background: #090f13;
+  border: 1px solid #7e7431;
+  border-radius: 6px;
+}
+.speed-result > strong {
+  color: #f6e62d;
+  font-size: 28px;
+  font-variant-numeric: tabular-nums;
+}
+.speed-result dl {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  margin: 0;
+}
+.speed-result dt {
+  color: #a6b3bb;
+}
+.speed-result dd {
+  margin: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.speed-selection svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.speed-selection svg line {
+  stroke: #f6e62d;
+  stroke-width: 2px;
+  vector-effect: non-scaling-stroke;
+}
+.comparison-source .speed-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 3;
+}
+.speed-overlay * {
+  fill: none;
+  vector-effect: non-scaling-stroke;
+  stroke-width: 1.5px;
+}
+.speed-court-line {
+  stroke: #46d9ff;
+}
+.speed-flight-line {
+  stroke: #f6e62d;
+  stroke-dasharray: 5 4;
+}
+.speed-ball-mark {
+  stroke: white;
+}
+.speed-ball-mark.is-current {
+  fill: white;
+}
+.speed-model-ball {
+  stroke: #f6e62d;
+}

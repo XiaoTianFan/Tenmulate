@@ -14,8 +14,14 @@ import { COLORS, type Anchor, type ClipMotion, type MotionTrack } from './analys
 import { manualSeries } from './analysis/series';
 import { setTrackAnchor } from './analysis/trajectory';
 import { FULL_CROP, normalizeCrop, type CropRect } from './crop';
+import { SpeedPanel } from './speed/SpeedPanel';
+import { SpeedSelection, isCourtSelection } from './speed/SpeedSelection';
+import { SpeedOverlay } from './speed/SpeedOverlay';
+import { useServeEstimate } from './speed/useServeEstimate';
+import { COURT_LINES, newServeSetup, type CourtLine, type Point, type ServeSetup, type SpeedSelection as ServeSelection } from './speed/types';
 
 type Props = {
+  active: boolean; onServe: (edit: (setup: ServeSetup) => ServeSetup) => void;
   presentation: PresentedFrames; analysis: AnalysisControls; linked: boolean; onMotion: (edit: (m: ClipMotion) => ClipMotion) => void;
   clip: ComparisonClip; frame: number; position: number; count: number; held: boolean;
   onFrame: (frame: number) => void; onContact: () => void; onSpeed: (speed: number) => void;
@@ -26,10 +32,15 @@ type Props = {
   onMirror: () => void; onCrop: (crop?: CropRect) => void; onTrim: (trim?: { start: number; end: number }) => void; onPause: () => void;
 };
 
-export function ComparisonPane({ presentation, analysis, linked, onMotion, clip, frame, position, count, held, onFrame, onContact, onSpeed, onRemove, onResize, onMove, onDrag, onDragEnd, onVideo, onCanvas, onMirror, onCrop, onTrim, onPause, onError, onReady }: Props) {
+export function ComparisonPane({ active, onServe, presentation, analysis, linked, onMotion, clip, frame, position, count, held, onFrame, onContact, onSpeed, onRemove, onResize, onMove, onDrag, onDragEnd, onVideo, onCanvas, onMirror, onCrop, onTrim, onPause, onError, onReady }: Props) {
   const displayed = usePresentedFrame(presentation, clip.id);
   const selectionToolbar = useRef<HTMLDivElement>(null);
   const [selection, setSelection] = useState<Selection | null>(null);
+  const [speedSelection, setSpeedSelection] = useState<ServeSelection | null>(null);
+  useEffect(() => { if (!active || analysis.paused) setSpeedSelection(null); }, [active, analysis.paused]);
+  useEffect(() => { setSpeedSelection(s => s?.kind === 'contact' && s.frame !== clip.contact ? null : s); }, [clip.contact]);
+  const [emptyServe] = useState(newServeSetup), serve = clip.serve ?? emptyServe;
+  const speedPanel = useRef<HTMLDivElement>(null);
   const [timelineView, setTimelineView] = useState({ start: 0, end: 0 });
   const mirrored = clip.mirrored ?? false;
   const resize = useRef<{ x: number; width: number } | null>(null);
@@ -37,6 +48,7 @@ export function ComparisonPane({ presentation, analysis, linked, onMotion, clip,
   const last = (clip.index?.timestamps.length ?? 1) - 1;
   const excerpt = clip.index ? clipFrameRange({ ...clip, index: clip.index }) : { start: 0, end: last };
   const [cropping, setCropping] = useState(false), [dimensions, setDimensions] = useState({ width: 16, height: 9 });
+  const speedControls = useServeEstimate(clip.index ? {setup: serve, index: clip.index, ...dimensions, contact: clip.contact, ...excerpt} : undefined, active);
   const [size, setSize] = useState({ width: 1, height: 1 });
   const wrap = useRef<HTMLDivElement>(null), originalCrop = useRef<CropRect | undefined>(undefined);
   useEffect(() => {
@@ -44,7 +56,7 @@ export function ComparisonPane({ presentation, analysis, linked, onMotion, clip,
     if (wrap.current) observer.observe(wrap.current);
     return () => observer.disconnect();
   }, []);
-  const crop = cropping ? FULL_CROP : normalizeCrop(clip.crop);
+  const crop = cropping || (speedSelection && isCourtSelection(speedSelection.kind)) ? FULL_CROP : normalizeCrop(clip.crop);
   const aspect = dimensions.width * crop.width / (dimensions.height * crop.height);
   const pictureWidth = Math.min(size.width, size.height * aspect), pictureHeight = pictureWidth / aspect;
   const imageStyle = { width: `${100 / crop.width}%`, height: `${100 / crop.height}%`, left: `${-crop.x / crop.width * 100}%`, top: `${-crop.y / crop.height * 100}%` };
@@ -53,12 +65,32 @@ export function ComparisonPane({ presentation, analysis, linked, onMotion, clip,
   const selectionMin = selection && selection.role !== 'start' ? Math.max(excerpt.start, (startAnchor?.frame ?? excerpt.start - 1) + (selection.role === 'end' ? 1 : 0)) : excerpt.start;
   const selectionMax = selection && selection.role !== 'end' ? Math.min(excerpt.end, (endAnchor?.frame ?? (selection.role === 'start' ? excerpt.end : excerpt.end + 1)) - (selection.role === 'start' ? 1 : 0)) : excerpt.end;
   const select = (value: Selection) => {
-    onPause(); setCropping(false);
+    onPause(); setCropping(false); setSpeedSelection(null);
     const track = clip.motion?.tracks.find(t => t.id === value.id), a = track?.anchors.find(a => a.role === 'start' && a.frame >= excerpt.start && a.frame < excerpt.end), b = track?.anchors.find(a => a.role === 'end' && a.frame > excerpt.start && a.frame <= excerpt.end);
     const min = value.role === 'end' ? Math.max(excerpt.start, (a?.frame ?? excerpt.start) + 1) : value.role === 'correction' ? Math.max(excerpt.start, a?.frame ?? excerpt.start) : excerpt.start;
     const max = value.role === 'start' ? Math.min(excerpt.end - 1, (b?.frame ?? excerpt.end) - 1) : value.role === 'correction' ? Math.min(excerpt.end, b?.frame ?? excerpt.end) : excerpt.end;
     onFrame(clamp(value.role === 'end' ? b?.frame ?? excerpt.end : value.role === 'start' ? a?.frame ?? frame : frame, min, max));
     setSelection(value); wrap.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  };
+  const selectSpeed = (value: ServeSelection) => {
+    onPause(); setCropping(false); setSelection(null); setSpeedSelection(value);
+    onFrame(value.frame); wrap.current?.scrollIntoView({block: 'start', behavior: 'smooth'});
+  };
+  const selectedSpeed = (points: Point[], radius: number, selectedFrame: number, pixelFloor: number) => {
+    if (!speedSelection || displayed !== selectedFrame) return;
+    const kind = speedSelection.kind;
+    onServe(previous => {
+      const s = {...previous, pixelError: Math.max(previous.pixelError, pixelFloor)};
+      if (kind in COURT_LINES) return {...s, courtFrame: selectedFrame, lines: {...s.lines, [kind as CourtLine]: points}};
+      if (kind === 'netCenter') return {...s, courtFrame: selectedFrame, netCenter: points[0]};
+      const mark = {...points[0], frame: selectedFrame, radius};
+      if (kind === 'flight') return {...s, flight: [...s.flight.filter(p => p.frame !== selectedFrame), mark].sort((a,b) => a.frame-b.frame)};
+      // A revised endpoint removes checks that are now outside this flight.
+      const flight = s.flight.filter(p => kind === 'contact' ? p.frame > selectedFrame : p.frame < selectedFrame);
+      return {...s, [kind]: mark, flight};
+    });
+    setSpeedSelection(null);
+    speedPanel.current?.scrollIntoView({block: 'start', behavior: 'smooth'});
   };
   const selected = (anchor: Anchor) => {
     if (!selection || anchor.frame < selectionMin || anchor.frame > selectionMax) return;
@@ -90,10 +122,10 @@ export function ComparisonPane({ presentation, analysis, linked, onMotion, clip,
       <h2 title={clip.name}>{clip.name}</h2>
       <button type="button" className="comparison-crop" aria-label={t('Crop {name}', { name: clip.name })} aria-pressed={cropping || !!clip.crop}
         disabled={!clip.index || !!clip.error} title={t('Crop video')} onClick={() => {
-          onPause(); setSelection(null); if (cropping) setCropping(false); else { originalCrop.current = clip.crop; setCropping(true); }
+          onPause(); setSelection(null); setSpeedSelection(null); if (cropping) setCropping(false); else { originalCrop.current = clip.crop; setCropping(true); }
         }}><Crop size={17}/></button>
       <button type="button" className="comparison-mirror" aria-label={t('Mirror {name}', { name: clip.name })} aria-pressed={mirrored}
-        title={t(mirrored ? 'Restore original orientation' : 'Mirror video horizontally')} disabled={cropping || !!selection} onClick={onMirror}><FlipHorizontal2 size={17}/></button>
+        title={t(mirrored ? 'Restore original orientation' : 'Mirror video horizontally')} disabled={cropping || !!selection || !!speedSelection} onClick={onMirror}><FlipHorizontal2 size={17}/></button>
       <button aria-label={t('Remove {name}', { name: clip.name })} onClick={onRemove}><X size={17}/></button>
     </header>
     <div className={`comparison-video-wrap${cropping ? ' is-cropping' : ''}`} ref={wrap}>
@@ -105,8 +137,12 @@ export function ComparisonPane({ presentation, analysis, linked, onMotion, clip,
             onLoadedData={onReady} onError={onError} aria-label={t('Video: {name}', { name: clip.name })}/>
           <canvas ref={element => onCanvas(clip.id, element)} className="comparison-playback-frame" hidden aria-hidden="true"/>
           {clip.motion && !cropping ? <MotionOverlay clip={clip} presentation={presentation} width={dimensions.width} height={dimensions.height}/> : null}
+          {clip.serve && !cropping && !selection ? <SpeedOverlay setup={serve} result={speedControls.result} frame={displayed} index={clip.index} {...dimensions} selecting={!!speedSelection}/> : null}
         </div>
         {selection ? <MotionSelection key={`${selection.id}:${selection.role}`} selection={selection} crop={crop} mirrored={mirrored} frame={frame} ready={displayed === frame && frame >= selectionMin && frame <= selectionMax} min={selectionMin} max={selectionMax} toolbar={selectionToolbar.current} onSelect={selected} onCancel={() => setSelection(null)}/> : null}
+        {speedSelection ? <SpeedSelection key={`${speedSelection.kind}:${speedSelection.frame}`} selection={speedSelection} crop={crop} mirrored={mirrored} {...dimensions} frame={frame}
+          ready={displayed === frame && frame >= excerpt.start && frame <= excerpt.end && ((!isCourtSelection(speedSelection.kind) && speedSelection.kind !== 'contact') || frame === speedSelection.frame)}
+          toolbar={selectionToolbar.current} onSelect={selectedSpeed} onCancel={() => setSpeedSelection(null)} onFrame={onFrame}/> : null}
         {cropping ? <CropEditor crop={clip.crop} sourceAspect={dimensions.width / dimensions.height} viewportAspect={size.width / (size.height + 104)}
           toolbarTarget={wrap.current} onChange={onCrop} onDone={() => setCropping(false)} onCancel={() => { onCrop(originalCrop.current); setCropping(false); }}/> : null}
       </div>
@@ -135,6 +171,8 @@ export function ComparisonPane({ presentation, analysis, linked, onMotion, clip,
           onClick={onContact}><Crosshair size={15}/>{t('Set contact')}</button>
       </div>
       <MotionPanel clip={clip} frame={frame} view={timelineView} linked={linked} analysis={analysis} onEdit={onMotion} onSelect={select} onFrame={onFrame} onPause={onPause}/>
+      <div ref={speedPanel}><SpeedPanel clip={clip} setup={serve} frame={frame} {...dimensions} controls={speedControls}
+        onEdit={edit => { setSpeedSelection(null); onServe(edit); }} onSelect={selectSpeed} onFrame={onFrame} onPause={onPause}/></div>
       <div className="comparison-pane-footer"><span>{t('Local clip')}</span><div>
         <button aria-label={t('Move {name} left', { name: clip.name })} disabled={position === 0} onClick={() => onMove(-1)}><ArrowLeft size={14}/></button>
         <button aria-label={t('Move {name} right', { name: clip.name })} disabled={position === count - 1} onClick={() => onMove(1)}><ArrowRight size={14}/></button>

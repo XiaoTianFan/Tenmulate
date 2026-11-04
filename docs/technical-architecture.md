@@ -390,6 +390,50 @@ are versioned; uncached resources need a network.
 Build and delivery commands live in [AGENTS.md](../AGENTS.md). Device and broader
 acceptance limits are tracked in [open work](open-questions.md).
 
+## Serve-speed reconstruction
+
+`video-comparison/speed/` implements browser-only endpoint reconstruction, adapted
+from Tennis Match Edit's deterministic `launch_speed.py` (see attribution). There
+is no agent, visual model, upload or backend dependency. The opt-in module worker
+is created only for estimation and terminated on completion, cancellation, changed
+evidence, page deactivation or clip removal. Results carry the input signature and
+frame-index identity; late replies cannot replace newer settings.
+
+Annotations use original oriented source coordinates, independent of crop/mirror.
+Four singles-baseline corners solve a ground homography for an 8.23 × 23.77 m
+court. Two 1.07 m elevated net-support points recover the camera's vertical column,
+giving a 3 × 4 projective camera. Doubles posts are 12.798 m apart; singles sticks
+are 10.058 m apart. The far service line and 0.914 m centre strap are held-out
+calibration checks. Degenerate polygons, weak elevation evidence, behind-camera
+projections and excessive residuals are rejected. This is a rectilinear fixed-view
+model, without lens-distortion or camera-motion compensation.
+
+The contact ray intersects a user-specified contact-height plane; the first-bounce
+ray intersects a ball-centre plane 0.0335 m above the court. Airborne points are
+never mapped as if they were on the ground. Contact height is an explicit independent
+assumption, not inferred from the ground homography. Source presentation timestamps
+provide elapsed time, divided by an explicit recording-slowdown factor. Playback
+rates are intentionally absent from this calculation.
+
+In the vertical plane between these endpoints, RK4 integrates gravity and quadratic
+drag. A damped Newton solve recovers launch velocities that reach the bounce at its
+measured time. Central drag is 0.020 /m with no lift; perturbations include signed
+lift. The central path must clear the modeled net and avoid an earlier ground
+collision. Optional intermediate observations check projected trajectory residuals
+without refitting the camera or endpoints. This does not implement the reference's
+partial-flight optimization route or infer unseen bounces/sideways spin.
+
+Deterministic sensitivity trials vary local frame timing (including VFR intervals),
+height, pixel/region marks, drag and lift, using parameter corners, independent
+annotation perturbations and combined independent/correlated perturbations. The
+reported min/max envelope includes net-collision variants with a warning. Numerical
+instability or a range wider than half the central speed blocks reporting. It is
+not a statistical confidence interval or a guarantee of real-world accuracy.
+Preview overlays use the same result with the actual presented-frame clock.
+Measurement JSON retains the assumptions and checks; ordinary grid exports are
+unchanged. Validation uses analytical ballistic cases and synthetic projected
+courts with known launch motion; field calibration against radar remains open.
+
 ## Storage ownership and lifecycle
 
 | Location | Role and retention |

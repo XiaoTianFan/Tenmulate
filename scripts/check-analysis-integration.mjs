@@ -3,9 +3,9 @@ import { resolve, dirname, basename } from 'node:path';
 import { parse } from '@babel/parser';
 
 const root = resolve('dist'), assets = resolve(root, 'assets');
-const optional = /^(?:analysis\/|(?:analyze|analysis\.worker|pose\.worker|poseRuntime)-)/;
-const workers = readdirSync(assets).filter(name => /^(?:analysis|pose)\.worker-.*\.js$/.test(name));
-if (workers.length !== 2) throw new Error('Expected separate point and pose analysis workers.');
+const optional = /^(?:analysis\/|(?:analyze|analysis\.worker|pose\.worker|poseRuntime|speed\.worker)-)/;
+const workers = readdirSync(assets).filter(name => /^(?:analysis|pose|speed)\.worker-.*\.js$/.test(name));
+if (workers.length !== 3) throw new Error('Expected separate point, pose and serve-speed workers.');
 
 // A dependency that imports a worker entry can re-run its global message handler
 // in WebKit. Check the emitted module graph, where shared bundler helpers live.

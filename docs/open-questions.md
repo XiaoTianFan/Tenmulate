@@ -66,9 +66,18 @@ schedule. Completed features belong in the user guide and architecture.
   multi-person identity or racket geometry. Full-frame pose recognition uses automatic
   recovery regions and short missing limbs can be estimated. Temporal joint curves
   reduce derivative noise, but severe blur, body occlusion and crossing players
-  still need broader real-footage and physical-device validation. Capture-time/slow-motion metadata,
-  camera stabilization, calibrated physical units, 3D reconstruction and durable
+  still need broader real-footage and physical-device validation. Automatic capture-time/slow-motion metadata,
+  camera stabilization, calibrated physical units for general tracks/poses, general 3D reconstruction and durable
   analysis-session storage are not implemented.
+
+- **Serve-speed validation:** manual full-court/net calibration and endpoint flight
+  reconstruction now provide a conditional launch-speed estimate. Validate against
+  radar and accurately measured camera/court geometry across real footage and
+  physical mobile devices before making accuracy claims. Contact height and
+  recording slowdown remain explicit user assumptions. Lens distortion, sideways
+  spin, wind, moving cameras, partial courts and missing first bounces are not
+  recovered by this model; the reported sensitivity envelope is not a confidence
+  interval. Speed annotations are session-local and are not part of grid exports.
 
 Automatic technique assessment, accounts, cloud sync and video-to-drill
 reconstruction are outside the current implementation.

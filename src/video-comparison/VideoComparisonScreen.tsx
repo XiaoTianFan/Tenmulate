@@ -15,6 +15,7 @@ import { PresentedFrames } from './analysis/presentation';
 import { useAnalysis } from './analysis/useAnalysis';
 import { newMotion, type ClipMotion } from './analysis/types';
 import { drawCropped, normalizeCrop } from './crop';
+import { newServeSetup } from './speed/types';
 
 export function VideoComparisonScreen({ active, onRoute }: { active: boolean; onRoute: (route: AppRoute) => void }) {
   const [clips, setClips] = useState<ComparisonClip[]>([]);
@@ -157,7 +158,7 @@ export function VideoComparisonScreen({ active, onRoute }: { active: boolean; on
             const frame = frameFor(clip);
             const sourceTime = clip.index && clip.contact !== null ? mediaTime({ index: clip.index, contact: clip.contact, speed: clip.speed }, time) : 0;
             const held = linked && !!clip.index && (sourceTime < clip.index.timestamps[clipFrameRange({ ...clip, index: clip.index }).start]! - 1e-7 || sourceTime > clip.index.timestamps[clipFrameRange({ ...clip, index: clip.index }).end]! + 1e-7);
-            return <ComparisonPane presentation={presentation} analysis={analysis} linked={linked} onMotion={edit => editMotion(clip.id, edit)} key={clip.id} clip={clip} frame={frame} position={position} count={clips.length} held={held}
+            return <ComparisonPane active={active && !exporting} onServe={edit => setClips(current => current.map(c => c.id === clip.id ? {...c, serve: edit(c.serve ?? newServeSetup())} : c))} presentation={presentation} analysis={analysis} linked={linked} onMotion={edit => editMotion(clip.id, edit)} key={clip.id} clip={clip} frame={frame} position={position} count={clips.length} held={held}
               onFrame={frame => selectFrame(clip, frame)} onContact={() => contact(clip)} onRemove={() => remove(clip.id)}
               onPause={pause} onTrim={value => trim(clip, value)} onCrop={crop => { pause(); update(clip.id, { crop }); }}
               onMirror={() => update(clip.id, { mirrored: !clip.mirrored })}
