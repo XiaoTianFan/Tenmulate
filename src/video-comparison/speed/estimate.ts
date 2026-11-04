@@ -1,6 +1,14 @@
 import { calibrate, atHeight, atDepth, contactCourtDepth, project, COURT } from './geometry';
 import { reconstruct } from './physics';
-import { COURT_KEYS, type Point, type ServeSetup, type SpeedInput, type SpeedResult, type Camera } from './types';
+import {
+  type Point,
+  type ServeSetup,
+  type SpeedInput,
+  type SpeedResult,
+  type Camera,
+  type CourtMapping
+} from './types';
+import { courtRequirement, markedCourtKeys } from './courtCoverage';
 const clone = (s: ServeSetup): ServeSetup => ({
   ...s,
   lines: Object.fromEntries(
@@ -25,9 +33,10 @@ function candidate(
   drag: number,
   lift: number,
   validate: boolean,
-  fitted?: Camera
+  fitted?: Camera,
+  mapping?: CourtMapping
 ) {
-  const camera = fitted ?? calibrate(setup, input.width, input.height, validate),
+  const camera = fitted ?? calibrate(setup, input.width, input.height, validate, mapping),
     contact = atDepth(camera.p, setup.contact!, contactCourtDepth(setup, depth)),
     bounce = atHeight(camera.p, setup.bounce!, COURT.ballRadius);
   const height = contact[2];
@@ -80,8 +89,10 @@ function candidate(
 export function estimateServe(input: SpeedInput, progress: (fraction: number) => void = () => {}): SpeedResult {
   const s = input.setup,
     times = input.index.timestamps;
-  if (!(input.width > input.height && input.height > 0))
-    throw new Error('Serve speed needs a landscape recording with the full court visible.');
+  if (!(input.width > 0 && input.height > 0)) throw new Error('Read the video dimensions before mapping the court.');
+  const requirement = courtRequirement(s);
+  if (requirement) throw new Error(requirement);
+  const courtKeys = markedCourtKeys(s);
   if (input.contact === null || !s.contact || s.contact.frame !== input.contact)
     throw new Error('Mark the ball on the selected contact frame.');
   if (
@@ -96,7 +107,7 @@ export function estimateServe(input: SpeedInput, progress: (fraction: number) =>
   )
     throw new Error('Mark the first bounce after contact, inside the excerpt.');
   if (
-    !COURT_KEYS.every((k) => {
+    !courtKeys.every((k) => {
       const m = s.lines[k];
       return m && Number.isInteger(m.frame) && m.frame >= 0 && m.frame < times.length;
     })
@@ -190,7 +201,7 @@ export function estimateServe(input: SpeedInput, progress: (fraction: number) =>
   const perturb = (p: Point, axis: 'x' | 'y', delta: number) => {
     p[axis] += delta / (axis === 'x' ? input.width : input.height);
   };
-  for (const mark of COURT_KEYS)
+  for (const mark of courtKeys)
     for (let endpoint = 0; endpoint < 2; endpoint++)
       for (const axis of ['x', 'y'] as const)
         for (const sign of [-1, 1]) {
@@ -235,7 +246,7 @@ export function estimateServe(input: SpeedInput, progress: (fraction: number) =>
   let collisionVariants = 0;
   variants.forEach((v, i) => {
     try {
-      const r = candidate(input, v.setup, v.duration, v.depth, v.drag, v.lift, false, v.camera);
+      const r = candidate(input, v.setup, v.duration, v.depth, v.drag, v.lift, false, v.camera, base.camera.mapping);
       speeds.push(r.model.kph);
       heights.push(r.contact[2]);
       if (r.clearance < 0) collisionVariants++;

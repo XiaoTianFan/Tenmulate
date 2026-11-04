@@ -51,7 +51,7 @@
 }
 .speed-court-marks > div {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   gap: 5px;
 }
 .speed-court-marks > div > button:first-child {
@@ -168,4 +168,13 @@
 }
 .speed-overlay-options input {
   flex-shrink: 0;
+}
+
+.speed-court-marks .speed-span-status {
+  grid-column: 1 / -1;
+  color: #a6b3bb;
+}
+.speed-court-marks .speed-remove-mark {
+  min-width: 36px;
+  padding-inline: 9px;
 }

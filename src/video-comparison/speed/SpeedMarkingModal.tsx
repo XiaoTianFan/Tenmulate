@@ -7,7 +7,7 @@ import { FULL_CROP } from '../crop';
 import { clamp, formatTime } from '../timeline';
 import type { ComparisonClip } from '../types';
 import { SpeedSelection, isCourtSelection, selectionName } from './SpeedSelection';
-import { isNetLine, type ServeSetup, type SpeedSelection as Selection } from './types';
+import { isNetLine, supportsHalf, type CourtLine, type ServeSetup, type SpeedSelection as Selection } from './types';
 import { markingBounds, type ServeMark } from './marking';
 import { useMarkingPreview } from './useMarkingPreview';
 import './marking.css';
@@ -27,6 +27,7 @@ export function SpeedMarkingModal({
 }) {
   const bounds = markingBounds(clip, setup, selection.kind)!;
   const [frame, setFrame] = useState(() => clamp(selection.frame, bounds.start, bounds.end));
+  const [span, setSpan] = useState<'full' | 'half'>(() => setup.lines[selection.kind as CourtLine]?.span ?? 'full');
   const [draft, setDraft] = useState<ServeMark | null>(null),
     [revision, setRevision] = useState(0);
   const dialog = useRef<HTMLDialogElement>(null),
@@ -79,7 +80,9 @@ export function SpeedMarkingModal({
   const instruction = line
     ? isNetLine(selection.kind)
       ? 'Draw from the net top to the ground beneath it, or tap both ends.'
-      : 'Drag between the singles line endpoints, or tap each endpoint.'
+      : span === 'half'
+        ? 'Draw from the centre mark or centre service-line intersection to either singles sideline. The far lines identify the half automatically.'
+        : 'Drag between the singles line endpoints, or tap each endpoint.'
     : 'Tap the ball centre or drag a tight region around it.';
   return createPortal(
     <dialog
@@ -91,7 +94,7 @@ export function SpeedMarkingModal({
         if (event.key !== 'Tab') return;
         const controls = [
           ...event.currentTarget.querySelectorAll<HTMLElement>(
-            'button:not(:disabled), input:not(:disabled), [tabindex="0"]'
+            'button:not(:disabled), input:not(:disabled), select:not(:disabled), [tabindex="0"]'
           )
         ].filter((element) => element.getClientRects().length && element.getAttribute('aria-disabled') !== 'true');
         const first = controls[0],
@@ -165,6 +168,22 @@ export function SpeedMarkingModal({
         ) : null}
       </div>
       <div className="serve-marking-review">
+        {supportsHalf(selection.kind) ? (
+          <label className="serve-marking-span">
+            {t('Line span')}
+            <select
+              aria-label={t('Line span')}
+              value={span}
+              onChange={(event) => {
+                setSpan(event.target.value as 'full' | 'half');
+                reset();
+              }}
+            >
+              <option value="full">{t('Full singles width')}</option>
+              <option value="half">{t('Half width · detect side')}</option>
+            </select>
+          </label>
+        ) : null}
         <div className="serve-marking-navigation">
           <div>
             <button
@@ -225,7 +244,7 @@ export function SpeedMarkingModal({
             className="serve-marking-save"
             disabled={!canSave}
             onClick={() => {
-              if (canSave) onSave(draft!);
+              if (canSave) onSave({ ...draft!, ...(supportsHalf(selection.kind) ? { span } : {}) });
             }}
           >
             {t('Save measurement')}

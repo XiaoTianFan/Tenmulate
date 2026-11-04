@@ -199,6 +199,25 @@
   border-color: var(--accent);
   font-weight: 600;
 }
+
+.serve-marking-span {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.serve-marking-span select {
+  min-height: 36px;
+  max-width: 100%;
+  padding: 5px 8px;
+  background: #172127;
+  color: inherit;
+  border: 1px solid #34424a;
+  border-radius: 4px;
+  font: inherit;
+}
+
 @media (max-width: 700px) {
   .serve-marking > header,
   .serve-marking > footer {
@@ -226,7 +245,7 @@
 }
 @media (max-height: 550px) and (min-width: 701px) {
   .serve-marking[open] {
-    grid-template-columns: minmax(0, 1fr) 250px;
+    grid-template-columns: minmax(0, 1fr) clamp(250px, 34vw, 320px);
     grid-template-rows: auto minmax(0, 1fr) auto;
   }
   .serve-marking > header {
@@ -239,7 +258,9 @@
   .serve-marking-review {
     grid-column: 2;
     grid-row: 2;
-    align-self: end;
+    align-self: stretch;
+    min-height: 0;
+    overflow-y: auto;
     border-top: 0;
   }
   .serve-marking > footer {
@@ -283,6 +304,13 @@
   }
   .serve-marking footer small {
     display: none;
+  }
+  .serve-marking-span {
+    flex-wrap: nowrap;
+  }
+  .serve-marking-span select {
+    flex: 1;
+    min-width: 0;
   }
 }
 .serve-marking .review-filmstrip-source {

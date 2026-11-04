@@ -350,10 +350,11 @@ range, sampling density, or resolution if a limit is reached.
 ### Estimate serve speed
 
 Open **Serve speed** below **Motion plots** on a comparison card. This is available
-for landscape source clips only. The whole court, both net supports and the net's
-centre strap must be visible, with a fixed camera throughout the flight. A landscape
-crop of a portrait recording does not qualify. Fisheye views, moving/zooming cameras,
-partial courts and nonstandard court/net dimensions are unsuitable.
+for portrait and landscape source clips. Keep the camera fixed throughout the
+flight. You need at least three of the four court lines, the net's centre strap
+and at least one side support. Partial views can work when these references and
+the contact/first-bounce ball positions are visible. Fisheye views, moving/zooming
+cameras and nonstandard court/net dimensions are unsuitable.
 
 1. Select **Contact ball position** to open the full-screen marking dialog. Its
    own thumbnail timeline, zoom/pan and frame-step buttons let you find racket
@@ -363,20 +364,26 @@ partial courts and nonstandard court/net dimensions are unsuitable.
    the ball, not its shadow. There must be no earlier bounce or net touch. Optional
    **flight checks** at intermediate frames independently test the modeled path;
    inconsistent checks stop the estimate rather than change the court calibration.
-2. Draw the near and far baselines **between their singles sidelines**, then the
-   far service line. Each line can use a different clear frame from the same fixed
-   camera. Each marking or saved-frame button opens the dialog at the saved
-   observation, or the current card frame for a new line. Near/far mean relative
-   to the camera. Select doubles
-   posts or singles sticks, then draw **three vertical top-to-ground segments**:
-   one at each support (A/B in either order) and one along the centre strap. Follow
-   the physical post or strap even if perspective makes it lean in the image.
-   Drag or tap both ends; arrow keys and Enter also work. The dialog shows the
-   full uncropped image for both court and ball marking, preserving mirror orientation.
-   Both endpoints of a line use the same frame.
-   Court marks remain valid if a later excerpt excludes their source frames.
-   Court review can use the entire source; ball review stays within the excerpt,
-   with bounce after contact and flight checks strictly between those endpoints.
+2. Mark any **three of four court lines**: near baseline, near service line, far
+   service line and far baseline. A fourth line improves the constraints. Each
+   marking or saved-frame button opens the full-screen dialog at its saved frame,
+   or the current card frame for a new line; each line may use a different clear
+   frame from the same fixed camera. Near/far mean relative to the camera.
+   For a near baseline or near service line, choose **Line span → Full singles
+   width** or **Half width · detect side** inside the dialog. A half line runs
+   from the baseline's centre mark, or the service-line/centre-line intersection,
+   to one singles sideline; an arbitrary cropped fragment does not establish scale.
+   Half-line detection requires both the **full far baseline and far service line**.
+   The app compares left/right assignments and displays the detected half in the
+   current preview orientation. Ambiguous fits request more or clearer references.
+   Select doubles posts or singles sticks, then mark **the centre strap plus at
+   least one side support** with top-to-ground segments. Either support can be A
+   or B; the app infers the side. Add the other support when visible. Follow the
+   physical post/strap even when it leans in the image. Drag or tap both ends;
+   arrow keys and Enter also work. The full uncropped image respects mirroring,
+   and both endpoints of each segment use the same frame. Remove individual marks
+   with their × buttons, or reset them together. Court review spans the full source,
+   even outside the excerpt; ball review respects excerpt and contact/bounce order.
 3. **Contact height is derived automatically** from the marked ball, the calibrated
    court/net and an assumed contact depth. Court mapping defaults to the near serving
    baseline, **0.5 m inside it with ±0.2 m depth uncertainty**. Adjust the depth or
@@ -402,7 +409,9 @@ partial courts and nonstandard court/net dimensions are unsuitable.
    restores the selected groups. Changes to measurements, contact or excerpt
    invalidate the result. **Export JSON** beside **Serve speed** saves the complete
    measurement data, including partial annotations before an estimate is available;
-   see **Download numerical analysis** above. It contains no video footage.
+   see **Download numerical analysis** above. It also records full/half spans, the
+   inferred half/support sides in original unmirrored coordinates, observed endpoints
+   in court metres and the actual reference counts. It contains no video footage.
 
 The full-screen review timeline does not move the other clips or change excerpts.
 Only **Save measurement** applies a draft; **Redraw** starts again, and **Cancel**,
@@ -410,10 +419,14 @@ the close button or Escape discards it and returns focus to the opener. Moving t
 another frame clears the draft, including any half-drawn line. Saved court/ball
 overlays remain hidden while marking. If a revised contact moves beyond the saved
 bounce, that bounce and invalid flight checks are cleared. On short landscape
-screens the review controls move beside the video to leave more room for the image.
+screens the review controls move beside the video to leave more room for the image;
+the review controls can scroll when the available height is small.
 
-Court fitting runs automatically once all six lines are marked. It combines every
-endpoint and reports image-space fit error. A modest mismatch identifies the line
+Court fitting runs automatically once the minimum references are present. It combines
+every marked endpoint and reports image-space fit error. Partial and half-width
+mapping uses fewer references, so small annotation errors can have more influence;
+additional full lines and a second side support can reduce sensitivity. Fewer marks
+are not guaranteed to be as accurate as a full view. A modest mismatch identifies the line
 to review and increases the speed uncertainty rather than blocking estimation.
 Large disagreement, overlapping supports or a collapsed top-to-ground segment
 requires correction. Re-mark the named line on another clear frame, verify support

@@ -2,7 +2,7 @@ import { clipFrameRange } from '../timeline';
 import type { ComparisonClip } from '../types';
 import { COURT_LINES, type CourtLine, type Line, type Point, type ServeSetup, type SpeedSelection } from './types';
 
-export type ServeMark = { points: Point[]; radius: number; frame: number; pixelFloor: number };
+export type ServeMark = { points: Point[]; radius: number; frame: number; pixelFloor: number; span?: 'full' | 'half' };
 
 /** Court geometry may use any source frame; flight observations stay in the excerpt. */
 export function markingBounds(clip: ComparisonClip, setup: ServeSetup, kind: SpeedSelection['kind']) {
@@ -22,7 +22,15 @@ export function applyServeMark(setup: ServeSetup, kind: SpeedSelection['kind'], 
   if (kind in COURT_LINES)
     return {
       ...setup,
-      lines: { ...setup.lines, [kind as CourtLine]: { points: points as Line, frame, pixelFloor } }
+      lines: {
+        ...setup.lines,
+        [kind as CourtLine]: {
+          points: points as Line,
+          frame,
+          pixelFloor,
+          ...(mark.span === 'half' ? { span: 'half' as const } : {})
+        }
+      }
     };
   const ball = { ...points[0], frame, radius: Math.max(radius, pixelFloor) };
   if (kind === 'flight')

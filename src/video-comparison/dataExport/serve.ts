@@ -1,5 +1,5 @@
 import { atDepth, atHeight, contactCourtDepth, COURT } from '../speed/geometry';
-import { COURT_LINES, newServeSetup, type BallMark } from '../speed/types';
+import { COURT_LINES, isNetLine, newServeSetup, type BallMark, type GroundLine } from '../speed/types';
 import { exportMetadata, frameReference, timeAt } from './common';
 import type { DataExportRequest } from './types';
 export function serveSpeedData(request: DataExportRequest) {
@@ -46,7 +46,8 @@ export function serveSpeedData(request: DataExportRequest) {
     status: result ? 'estimated' : issue ? 'needs-review' : camera ? 'calibrated' : 'annotations-only',
     issue: issue ?? null,
     units: {
-      annotations: 'Normalized source-image coordinates, except radius/pixelFloor/pixelError in source pixels.',
+      annotations:
+        'Normalized source-image coordinates, except radius/pixelFloor/pixelError in source pixels. Half spans join the centre to a singles sideline; detectedHalf uses original unmirrored sides. courtPointsMeters contains only calibrated observed endpoints.',
       camera:
         'Row-major 3×4 projective matrix: [u,v,w] = P × [courtX,courtY,courtZ,1]; normalized image position = [u/w,v/w].',
       court:
@@ -68,7 +69,7 @@ export function serveSpeedData(request: DataExportRequest) {
       nearBaselineY: 0,
       farBaselineY: COURT.length,
       netY: COURT.net,
-      nearServiceLineY: COURT.length - COURT.farService,
+      nearServiceLineY: COURT.nearService,
       farServiceLineY: COURT.farService,
       netSupportHeight: COURT.postHeight,
       netCenterHeight: COURT.centerHeight,
@@ -82,6 +83,13 @@ export function serveSpeedData(request: DataExportRequest) {
       ...frameReference(clip, mark!.frame),
       pointsNormalized: mark!.points,
       pointsPixels: mark!.points.map(pixel),
+      span: isNetLine(key) ? 'vertical' : (mark!.span ?? 'full'),
+      detectedHalf: camera?.mapping?.halves[key as GroundLine] ?? null,
+      courtPointsMeters:
+        camera?.controls
+          ?.filter((c) => c.mark === key)
+          .sort((a, b) => a.endpoint - b.endpoint)
+          .map((c) => c.world) ?? null,
       pixelFloor: mark!.pixelFloor
     })),
     ballMarks: {

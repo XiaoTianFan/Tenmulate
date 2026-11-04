@@ -252,10 +252,10 @@ describe('deterministic launch reconstruction', () => {
     expect(region.rangeKph[1] - region.rangeKph[0]).toBeGreaterThan(precise.rangeKph[1] - precise.rangeKph[0]);
     expect(region.launchKph).toBe(precise.launchKph);
   });
-  it('refuses missing, stale, portrait, collision and malformed evidence', () => {
+  it('refuses missing, stale, collision and malformed evidence', () => {
     const a = fixture();
-    a.width = 600;
-    expect(() => estimateServe(a)).toThrow(/landscape/);
+    a.width = 0;
+    expect(() => estimateServe(a)).toThrow(/dimensions/);
     const b = fixture();
     b.contact = 11;
     expect(() => estimateServe(b)).toThrow(/selected contact/);

@@ -1,7 +1,8 @@
 import { useLayoutEffect, useMemo, useState } from 'react';
-import { COURT_KEYS, type CalibrationInput, type Camera, type MeasurementIssue } from './types';
+import { type CalibrationInput, type Camera, type MeasurementIssue } from './types';
+import { courtRequirement } from './courtCoverage';
 type Status = { key: string; camera?: Camera; error?: MeasurementIssue; busy?: boolean };
-/** Calibrate after all six lines are marked. Frame playback and ball edits do not
+/** Calibrate after enough independent lines are marked. Frame playback and ball edits do not
  * rerun the fit. Cleanup owns the worker, including superseded/background jobs. */
 export function useCourtCalibration(input: CalibrationInput, active: boolean): Status {
   const { setup, width, height } = input;
@@ -16,7 +17,7 @@ export function useCourtCalibration(input: CalibrationInput, active: boolean): S
       }),
     [setup.lines, setup.netSupports, setup.pixelError, width, height]
   );
-  const complete = COURT_KEYS.every((k) => setup.lines[k]);
+  const complete = !courtRequirement(setup);
   const [state, setState] = useState<Status>({ key: '' });
   useLayoutEffect(() => {
     if (!active || !complete) return;

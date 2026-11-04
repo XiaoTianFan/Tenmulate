@@ -1,9 +1,11 @@
 import type { FrameIndex } from '../timeline';
 export type Point = { x: number; y: number };
 export type Line = [Point, Point];
-export type CourtLine = 'near' | 'far' | 'service' | 'netA' | 'netB' | 'netCenter';
+export type GroundLine = 'near' | 'nearService' | 'service' | 'far';
+export type CourtLine = GroundLine | 'netA' | 'netB' | 'netCenter';
 export const COURT_LINES: Record<CourtLine, string> = {
   near: 'Near singles baseline',
+  nearService: 'Near service line',
   far: 'Far singles baseline',
   service: 'Far service line',
   netA: 'Net support A · top to ground',
@@ -11,8 +13,14 @@ export const COURT_LINES: Record<CourtLine, string> = {
   netCenter: 'Net centre · top to ground'
 };
 export const COURT_KEYS = Object.keys(COURT_LINES) as CourtLine[];
+export const GROUND_KEYS: GroundLine[] = ['near', 'nearService', 'service', 'far'];
+export const supportsHalf = (kind: string) => kind === 'near' || kind === 'nearService';
 export const isNetLine = (kind: string) => kind === 'netA' || kind === 'netB' || kind === 'netCenter';
-export type CourtMark = { points: Line; frame: number; pixelFloor: number };
+export type CourtMark = { points: Line; frame: number; pixelFloor: number; span?: 'full' | 'half' };
+export type CourtMapping = {
+  halves: Partial<Record<GroundLine, 'left' | 'right'>>;
+  supports: Partial<Record<'netA' | 'netB', 'left' | 'right'>>;
+};
 export type BallMark = Point & { frame: number; radius: number };
 export type ServeSetup = {
   lines: Partial<Record<CourtLine, CourtMark>>;
@@ -66,6 +74,9 @@ export type Camera = {
   worstMark: CourtLine;
   quality: 'good' | 'review';
   pixelError: number;
+  mapping?: CourtMapping;
+  coverage?: { groundLines: number; netLines: number; halfLines: number };
+  controls?: { mark: CourtLine; endpoint: number; world: number[] }[];
 };
 export type MeasurementIssue = { message: string; mark?: CourtLine; pixels?: number };
 export type CalibrationInput = Pick<SpeedInput, 'setup' | 'width' | 'height'>;
