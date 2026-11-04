@@ -1144,5 +1144,17 @@
   "Cancel data export": "取消数据导出",
   "Preparing data…": "正在准备数据…",
   "Could not export analysis data. Please try again.": "无法导出分析数据，请重试。",
-  "Analysis data is too large. Remove unused tracks or analyze a shorter excerpt.": "分析数据过大，请移除不需要的轨迹或分析更短的选段。"
+  "Analysis data is too large. Remove unused tracks or analyze a shorter excerpt.": "分析数据过大，请移除不需要的轨迹或分析更短的选段。",
+  "Measurement video preview": "测量视频预览",
+  "Unsaved measurement": "尚未保存的标记",
+  "Draw from the net top to the ground beneath it, or tap both ends.": "从网顶画到正下方地面，或依次点击两端。",
+  "Drag between the singles line endpoints, or tap each endpoint.": "拖动连接单打场地线的两端，或依次点击两端。",
+  "Tap the ball centre or drag a tight region around it.": "点击球心，或拖动框选网球。",
+  "Saving also sets this clip’s contact frame.": "保存时也会设置此片段的触球帧。",
+  "Use the timeline to choose a clear frame. Save when the mark is ready.": "使用时间轴选择清晰画面，标记完成后保存。",
+  "Redraw measurement": "重新绘制测量标记",
+  "Redraw": "重画",
+  "Save measurement": "保存标记",
+  "Open a ball marker to review the clip full screen and choose its frame. Mark the ball centre, not its shadow. Use the first ground impact after contact, with no earlier bounce or net touch.": "打开网球标记，以全屏查看片段并选择帧。标记球心而非影子。落点应为触球后首次接触地面的位置，期间不能有其他弹跳或触网。",
+  "Mark contact first; saving also sets the contact frame.": "请先标记触球位置；保存时也会设置触球帧。"
 }

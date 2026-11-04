@@ -6,9 +6,9 @@ import { fitWindow, zoomWindow, type TimelineWindow } from './timelineView';
 
 type Props = {
   min: number; max: number; value: number; step: number; selection: TimelineWindow;
-  label: string; startLabel: string; endLabel: string; valueText: (value: number) => string;
+  label: string; startLabel?: string; endLabel?: string; valueText: (value: number) => string;
   disabled?: boolean; contact?: number; children?: ReactNode;
-  onChange: (value: number) => void; onRange: (range: TimelineWindow) => void;
+  onChange: (value: number) => void; onRange?: (range: TimelineWindow) => void;
   onView?: (view: TimelineWindow) => void; onStep?: (value: number, direction: -1 | 1) => number;
 };
 
@@ -44,7 +44,7 @@ export function ReviewTimeline(props: Props) {
   }, []);
   const update = (mode: 'cursor' | 'start' | 'end', n: number) => {
     if (mode === 'cursor') onChange(clamp(n, selection.start, selection.end));
-    else onRange(mode === 'start' ? { start: Math.min(n, selection.end), end: selection.end } : { start: selection.start, end: Math.max(n, selection.start) });
+    else onRange?.(mode === 'start' ? { start: Math.min(n, selection.end), end: selection.end } : { start: selection.start, end: Math.max(n, selection.start) });
   };
   const down = (event: PointerEvent<HTMLDivElement>) => {
     if (disabled || (event.pointerType === 'mouse' && event.button !== 0)) return;
@@ -103,11 +103,11 @@ export function ReviewTimeline(props: Props) {
       <div className="review-cursor-target" role="slider" tabIndex={disabled ? -1 : 0} aria-disabled={disabled} aria-label={label}
         aria-valuemin={min} aria-valuemax={max} aria-valuenow={value} aria-valuetext={valueText(value)} onKeyDown={event => keys(event, 'cursor', value)}/>
       {value >= view.start && value <= view.end ? <span className="comparison-playhead" style={{ left: `${percent(value)}%` }} aria-hidden="true"/> : null}
-      {(['start', 'end'] as const).map(mode => <div key={mode} className={`review-range-handle is-${mode}`} data-handle={mode} role="slider" tabIndex={disabled ? -1 : 0} aria-disabled={disabled}
+      {onRange ? (['start', 'end'] as const).map(mode => <div key={mode} className={`review-range-handle is-${mode}`} data-handle={mode} role="slider" tabIndex={disabled ? -1 : 0} aria-disabled={disabled}
         aria-label={mode === 'start' ? startLabel : endLabel} aria-valuemin={mode === 'start' ? min : selection.start} aria-valuemax={mode === 'end' ? max : selection.end}
         aria-valuenow={selection[mode]} aria-valuetext={valueText(selection[mode])}
         style={{ left: `${clamp(percent(selection[mode]), 0, 100)}%`, visibility: selection[mode] < view.start || selection[mode] > view.end ? 'hidden' : undefined }}
-        onKeyDown={event => keys(event, mode, selection[mode])}><span/></div>)}
+        onKeyDown={event => keys(event, mode, selection[mode])}><span/></div>) : null}
     </div>
     {span < max - min - step / 2 ? <input className="review-pan" type="range" aria-label={t('Pan timeline')} min={min} max={max - span} step="any" value={view.start} disabled={disabled}
       onChange={event => { const start = Number(event.target.value); setWindow({ start, end: start + span }); }}/> : null}

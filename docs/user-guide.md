@@ -355,22 +355,28 @@ centre strap must be visible, with a fixed camera throughout the flight. A lands
 crop of a portrait recording does not qualify. Fisheye views, moving/zooming cameras,
 partial courts and nonstandard court/net dimensions are unsuitable.
 
-1. Use the card's **Set contact** at racket impact. Select **Contact ball position**
-   and tap the ball centre or tightly box the ball. Navigate on the existing preview
-   lane to the first ground impact, then mark **First bounce ball position**. Mark
+1. Select **Contact ball position** to open the full-screen marking dialog. Its
+   own thumbnail timeline, zoom/pan and frame-step buttons let you find racket
+   impact; tap the ball centre or tightly box the ball, then **Save measurement**.
+   Saving also sets the card's contact frame. Open **First bounce ball position**,
+   find the first ground impact in the dialog and save its ball mark. Mark
    the ball, not its shadow. There must be no earlier bounce or net touch. Optional
    **flight checks** at intermediate frames independently test the modeled path;
    inconsistent checks stop the estimate rather than change the court calibration.
 2. Draw the near and far baselines **between their singles sidelines**, then the
    far service line. Each line can use a different clear frame from the same fixed
-   camera. Its frame button returns to that observation; the marking button always
-   starts at the current frame. Near/far mean relative to the camera. Select doubles
+   camera. Each marking or saved-frame button opens the dialog at the saved
+   observation, or the current card frame for a new line. Near/far mean relative
+   to the camera. Select doubles
    posts or singles sticks, then draw **three vertical top-to-ground segments**:
    one at each support (A/B in either order) and one along the centre strap. Follow
    the physical post or strap even if perspective makes it lean in the image.
-   Drag or tap both ends; arrow keys and Enter also work. Court marking temporarily
-   shows the full uncropped image. Both endpoints of a line use the same frame.
+   Drag or tap both ends; arrow keys and Enter also work. The dialog shows the
+   full uncropped image for both court and ball marking, preserving mirror orientation.
+   Both endpoints of a line use the same frame.
    Court marks remain valid if a later excerpt excludes their source frames.
+   Court review can use the entire source; ball review stays within the excerpt,
+   with bounce after contact and flight checks strictly between those endpoints.
 3. **Contact height is derived automatically** from the marked ball, the calibrated
    court/net and an assumed contact depth. Court mapping defaults to the near serving
    baseline, **0.5 m inside it with ±0.2 m depth uncertainty**. Adjust the depth or
@@ -397,6 +403,14 @@ partial courts and nonstandard court/net dimensions are unsuitable.
    invalidate the result. **Export JSON** beside **Serve speed** saves the complete
    measurement data, including partial annotations before an estimate is available;
    see **Download numerical analysis** above. It contains no video footage.
+
+The full-screen review timeline does not move the other clips or change excerpts.
+Only **Save measurement** applies a draft; **Redraw** starts again, and **Cancel**,
+the close button or Escape discards it and returns focus to the opener. Moving to
+another frame clears the draft, including any half-drawn line. Saved court/ball
+overlays remain hidden while marking. If a revised contact moves beyond the saved
+bounce, that bounce and invalid flight checks are cleared. On short landscape
+screens the review controls move beside the video to leave more room for the image.
 
 Court fitting runs automatically once all six lines are marked. It combines every
 endpoint and reports image-space fit error. A modest mismatch identifies the line

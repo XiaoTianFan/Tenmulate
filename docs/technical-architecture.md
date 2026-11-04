@@ -471,6 +471,22 @@ flags are excluded from the estimation signature, so toggling them neither cance
 a job nor invalidates its result. Saved measurement overlays are temporarily hidden
 during annotation; only the active guide is drawn. Completing or cancelling the
 annotation restores the selected overlay groups.
+`SpeedMarkingModal` opens a full-viewport native dialog for each court/ball item.
+An independent, lazily loaded `PreviewFrames` decoder coalesces seeks, disposes
+stale samples and enables marking only for the actually drawn source frame.
+The native fallback mounts inside the visible dialog so WebKit presents decoded
+pixels. A separate short-lived decoder prepares its thumbnail lane without moving
+the review frame; both readers release media elements and object URLs on disposal.
+The uncropped canvas respects mirror orientation while storing original normalized
+coordinates and screen precision. Its `ClipTimeline` reuses zoom/pan without trim
+handles; review never drives linked playback. Background analysis and comparison
+playback pause during marking. Closing releases the decoder, restores document
+scrolling and returns focus; late tool loads cannot reopen the dialog.
+Drafts are local until Save and reset on frame changes. Contact saves update the
+ball annotation and synchronization anchor together; invalid subsequent endpoints
+and flight checks are removed. Court bounds span the source, while ball bounds
+respect the excerpt and contact/bounce order. Short landscape layouts put controls
+beside the picture; other layouts place the timeline below it.
 The section's JSON export retains partial annotations, calibration, dimensions
 assumed from standard court geometry, assumptions and checks, plus the complete
 speed result. Model path samples carry world XYZ alongside image projections;

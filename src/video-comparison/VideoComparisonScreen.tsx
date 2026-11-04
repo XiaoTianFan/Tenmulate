@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Crosshair, Download, Link2, Pause, Play, Plus, SkipBack, SkipForward, X } from 'lucide-react';
 import { AppHeader, type AppRoute } from '../components/AppHeader';
 import { t } from '../i18n/locale';
@@ -24,11 +24,13 @@ export function VideoComparisonScreen({ active, onRoute }: { active: boolean; on
   const [notice, setNotice] = useState(''), [dropping, setDropping] = useState(false);
   const [exportClips, setExportClips] = useState<ComparisonClip[]>([]);
   const [exporting, setExporting] = useState(false), [exportPreviews, setExportPreviews] = useState<Record<string, string>>({});
+  const [markingClip, setMarkingClip] = useState<string | null>(null);
+  const markingChanged = useCallback((id: string, open: boolean) => setMarkingClip(current => open ? id : current === id ? null : current), []);
   const input = useRef<HTMLInputElement>(null), row = useRef<HTMLDivElement>(null);
   const [videos] = useState(() => new Map<string, HTMLVideoElement>());
   const [presentation] = useState(() => new PresentedFrames());
   const editMotion = (id: string, edit: (motion: ClipMotion) => ClipMotion) => setClips(current => current.map(clip => clip.id === id ? { ...clip, motion: edit(clip.motion ?? newMotion()) } : clip));
-  const analysis = useAnalysis(clips, playing || exporting || !active, editMotion);
+  const analysis = useAnalysis(clips, playing || exporting || !!markingClip || !active, editMotion);
   const [canvases] = useState(() => new Map<string, HTMLCanvasElement>());
   const [resources] = useState(() => new Map<string, { url: string; controller: AbortController }>());
   const pause = () => setPlaying(false);
@@ -43,7 +45,7 @@ export function VideoComparisonScreen({ active, onRoute }: { active: boolean; on
     ? [{ ...clip, index: clip.index, contact: clip.contact }] : []);
   const allAligned = clips.length > 0 && aligned.length === clips.length;
   const range = comparisonRange(aligned);
-  const buffering = useComparisonPlayback({ clips, videos, canvases, time, rate, linked, playing, active, onTime: setTime, onPause: pause, onError: setNotice,
+  const buffering = useComparisonPlayback({ clips, videos, canvases, time, rate, linked, playing, active: active && !markingClip, onTime: setTime, onPause: pause, onError: setNotice,
     onPresented: (id, frame) => presentation.present(id, frame),
     onCompatibility: () => setNotice('Using compatibility playback. Contact alignment is preserved, but playback may be slower.') });
   const openExport = () => {
@@ -158,7 +160,13 @@ export function VideoComparisonScreen({ active, onRoute }: { active: boolean; on
             const frame = frameFor(clip);
             const sourceTime = clip.index && clip.contact !== null ? mediaTime({ index: clip.index, contact: clip.contact, speed: clip.speed }, time) : 0;
             const held = linked && !!clip.index && (sourceTime < clip.index.timestamps[clipFrameRange({ ...clip, index: clip.index }).start]! - 1e-7 || sourceTime > clip.index.timestamps[clipFrameRange({ ...clip, index: clip.index }).end]! + 1e-7);
-            return <ComparisonPane active={active && !exporting} onServe={edit => setClips(current => current.map(c => c.id === clip.id ? {...c, serve: edit(c.serve ?? newServeSetup())} : c))} presentation={presentation} analysis={analysis} linked={linked} onMotion={edit => editMotion(clip.id, edit)} key={clip.id} clip={clip} frame={frame} position={position} count={clips.length} held={held}
+            return <ComparisonPane active={active && !exporting} onMarkingChange={markingChanged} onServe={(edit, contactFrame) => {
+              setClips(current => current.map(c => c.id === clip.id ? { ...c, serve: edit(c.serve ?? newServeSetup()), ...(contactFrame === undefined ? {} : { contact: contactFrame, frame: contactFrame }) } : c));
+              if (contactFrame !== undefined) {
+                pause();
+                if (clips.every(c => c.index && !c.error && (c.id === clip.id || c.contact !== null))) { setLinked(true); setTime(0); }
+              }
+            }} presentation={presentation} analysis={analysis} linked={linked} onMotion={edit => editMotion(clip.id, edit)} key={clip.id} clip={clip} frame={frame} position={position} count={clips.length} held={held}
               onFrame={frame => selectFrame(clip, frame)} onContact={() => contact(clip)} onRemove={() => remove(clip.id)}
               onPause={pause} onTrim={value => trim(clip, value)} onCrop={crop => { pause(); update(clip.id, { crop }); }}
               onMirror={() => update(clip.id, { mirrored: !clip.mirrored })}

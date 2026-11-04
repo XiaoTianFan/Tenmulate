@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
-import { createPortal } from 'react-dom';
 import { t } from '../../i18n/locale';
 import type { CropRect } from '../crop';
 import { COURT_LINES, isNetLine, type Point, type SpeedSelection as Selection } from './types';
@@ -26,10 +25,8 @@ export function SpeedSelection({
   height,
   frame,
   ready,
-  toolbar,
   onSelect,
-  onCancel,
-  onFrame
+  onStart
 }: {
   selection: Selection;
   crop: CropRect;
@@ -38,18 +35,15 @@ export function SpeedSelection({
   height: number;
   frame: number;
   ready: boolean;
-  toolbar: HTMLElement | null;
   onSelect: (points: Point[], radius: number, frame: number, pixelFloor: number) => void;
-  onCancel: () => void;
-  onFrame: (frame: number) => void;
+  onStart: () => void;
 }) {
   const surface = useRef<HTMLDivElement>(null),
     down = useRef<Point | null>(null);
   const [first, setFirst] = useState<Point | null>(null),
     [aim, setAim] = useState<Point>({ x: 0.5, y: 0.5 }),
     [box, setBox] = useState<{ a: Point; b: Point } | null>(null);
-  const line = selection.kind in COURT_LINES,
-    locked = selection.kind === 'contact';
+  const line = selection.kind in COURT_LINES;
   useEffect(() => {
     surface.current?.focus({ preventScroll: true });
   }, []);
@@ -80,6 +74,7 @@ export function SpeedSelection({
       const ends = [toSource(a, crop, mirrored), toSource(b, crop, mirrored)].sort((p, q) =>
         isNetLine(selection.kind) ? p.y - q.y : p.x - q.x
       );
+      setFirst(null);
       onSelect(ends, 0, frame, pixelFloor);
     } else {
       const center = b ? { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 } : a;
@@ -90,7 +85,6 @@ export function SpeedSelection({
   return (
     <>
       <div className="motion-selection speed-selection" role="group" aria-label={t('Serve measurement selection')}>
-        <strong className="motion-selection-step">{t(selectionName(selection.kind))}</strong>
         <div
           ref={surface}
           className="motion-selection-surface"
@@ -99,9 +93,10 @@ export function SpeedSelection({
           aria-label={t('Mark serve measurement. Arrow keys aim; Enter selects.')}
           aria-disabled={!ready}
           onKeyDown={(event) => {
-            if (event.key === 'Escape') onCancel();
+            if (!ready) return;
             if (event.key === 'Enter') {
               event.preventDefault();
+              onStart();
               commit(first ?? aim, first ? aim : undefined);
             }
             if (event.key.startsWith('Arrow')) {
@@ -119,8 +114,9 @@ export function SpeedSelection({
             }
           }}
           onPointerDown={(event) => {
-            if (!ready || event.button !== 0) return;
+            if (!ready || event.button !== 0 || !event.isPrimary) return;
             event.preventDefault();
+            onStart();
             event.currentTarget.setPointerCapture(event.pointerId);
             down.current = point(event);
             setAim(down.current);
@@ -166,41 +162,6 @@ export function SpeedSelection({
           ) : null}
         </div>
       </div>
-      {toolbar
-        ? createPortal(
-            <div className="motion-selection-tools" role="group" aria-label={t('Serve measurement tools')}>
-              <strong>{t(selectionName(selection.kind))}</strong>
-              <p>
-                {t(
-                  line
-                    ? isNetLine(selection.kind)
-                      ? 'Choose a clear frame, then draw from the net top to the ground directly beneath it, or tap both ends. Follow the visible post or strap rather than forcing a screen-vertical line.'
-                      : 'Choose a clear frame, then drag between the line endpoints or tap each endpoint. Arrow keys and Enter also work.'
-                    : 'Use the preview lane to choose the frame. Tap the ball centre or drag a tight region around the ball.'
-                )}
-              </p>
-              {!ready ? (
-                <p role="status">
-                  {locked && frame !== selection.frame
-                    ? t('Return to the measurement frame before marking.')
-                    : t('Preparing frame…')}
-                </p>
-              ) : null}
-              <div className="motion-selection-navigation">
-                <output>{t('Frame {frame}', { frame: frame + 1 })}</output>
-                {locked && frame !== selection.frame ? (
-                  <button type="button" onClick={() => onFrame(selection.frame)}>
-                    {t('Return to measurement frame')}
-                  </button>
-                ) : null}
-                <button type="button" onClick={onCancel}>
-                  {t('Cancel')}
-                </button>
-              </div>
-            </div>,
-            toolbar
-          )
-        : null}
     </>
   );
 }

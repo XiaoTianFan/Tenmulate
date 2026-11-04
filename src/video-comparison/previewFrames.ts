@@ -3,7 +3,7 @@ import { frameSeekTime, type FrameIndex } from './timeline';
 import { waitForMedia } from './nativeVideo';
 import type { ReviewFrame } from './videoFrames';
 
-/** Persistent, serialized random-access decoder for interactive export scrubbing. */
+/** Persistent, serialized random-access decoder for interactive scrubbing. */
 export class PreviewFrames {
   private input?: Input;
   private sink?: VideoSampleSink;
@@ -13,7 +13,7 @@ export class PreviewFrames {
   private native = false;
   private last = -1;
   private controller = new AbortController();
-  constructor(private file: File, private index: FrameIndex) {}
+  constructor(private file: File, private index: FrameIndex, private nativeHost?: HTMLElement) {}
   async get(frame: number): Promise<ReviewFrame> {
     const signal = this.controller.signal;
     signal.throwIfAborted();
@@ -40,6 +40,12 @@ export class PreviewFrames {
     this.native = true; this.input?.dispose(); this.input = undefined; this.sink = undefined;
     if (!this.video) {
       this.video = document.createElement('video'); this.video.muted = true; this.video.playsInline = true; this.video.preload = 'auto';
+      // WebKit can finish seeks on a detached video without presenting pixels.
+      // Interactive labeling supplies a visible host inside its modal.
+      if (this.nativeHost) {
+        this.video.className = 'serve-marking-native'; this.video.setAttribute('aria-hidden', 'true');
+        this.nativeHost.append(this.video);
+      }
       this.url = URL.createObjectURL(this.file);
       await waitForMedia(this.video, 'loadeddata', signal, () => { this.video!.src = this.url!; });
     }
@@ -55,7 +61,9 @@ export class PreviewFrames {
   }
   dispose() {
     this.controller.abort(); this.input?.dispose(); this.input = undefined;
-    this.video?.pause(); this.video?.removeAttribute('src'); this.video?.load(); this.video = undefined;
+    this.video?.pause(); this.video?.removeAttribute('src'); this.video?.load();
+    if (this.nativeHost) this.video?.remove();
+    this.video = undefined;
     if (this.url) URL.revokeObjectURL(this.url); this.url = undefined;
   }
 }

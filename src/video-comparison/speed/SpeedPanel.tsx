@@ -8,6 +8,7 @@ import { useCourtCalibration } from './useCourtCalibration';
 import { atDepth } from './projective';
 import { contactCourtDepth } from './geometry';
 import { DataExportButton } from '../dataExport/DataExportButton';
+import { markingBounds } from './marking';
 import './speed.css';
 
 type NumberKey =
@@ -23,7 +24,6 @@ export function SpeedPanel({
   controls,
   onEdit,
   onSelect,
-  onFrame,
   onPause
 }: {
   active: boolean;
@@ -36,7 +36,6 @@ export function SpeedPanel({
   controls: SpeedControls;
   onEdit: (edit: (setup: ServeSetup) => ServeSetup) => void;
   onSelect: (selection: SpeedSelection) => void;
-  onFrame: (frame: number) => void;
   onPause: () => void;
 }) {
   const [open, setOpen] = useState(false),
@@ -72,7 +71,17 @@ export function SpeedPanel({
     </label>
   );
   const select = (kind: SpeedSelection['kind']) =>
-    onSelect({ kind, frame: kind === 'contact' ? (clip.contact ?? frame) : frame });
+    onSelect({
+      kind,
+      frame:
+        kind === 'contact'
+          ? (clip.contact ?? frame)
+          : kind === 'bounce'
+            ? (setup.bounce?.frame ?? frame)
+            : kind in COURT_LINES
+              ? (setup.lines[kind as keyof typeof COURT_LINES]?.frame ?? frame)
+              : frame
+    });
   const canEstimate =
     !!calibration.camera &&
     !calibration.busy &&
@@ -117,11 +126,11 @@ export function SpeedPanel({
                 <legend>{t('1. Mark the ball')}</legend>
                 <p className="motion-help">
                   {t(
-                    'Use Set contact on the card for racket impact. Navigate with the existing preview lane to the first ground impact. Mark the ball centre, not its shadow. Do not include a net touch or an earlier bounce.'
+                    'Open a ball marker to review the clip full screen and choose its frame. Mark the ball centre, not its shadow. Use the first ground impact after contact, with no earlier bounce or net touch.'
                   )}
                 </p>
                 <div className="speed-court-actions">
-                  <button type="button" disabled={clip.contact === null} onClick={() => select('contact')}>
+                  <button type="button" aria-haspopup="dialog" onClick={() => select('contact')}>
                     {t('Contact ball position')}
                     {clip.contact !== null
                       ? ` · ${clip.contact + 1}${setup.contact?.frame === clip.contact ? ' ✓' : ''}`
@@ -129,7 +138,8 @@ export function SpeedPanel({
                   </button>
                   <button
                     type="button"
-                    disabled={clip.contact === null || frame <= clip.contact}
+                    aria-haspopup="dialog"
+                    disabled={!markingBounds(clip, setup, 'bounce')}
                     onClick={() => select('bounce')}
                   >
                     {t('First bounce ball position')}
@@ -137,25 +147,20 @@ export function SpeedPanel({
                   </button>
                 </div>
                 {clip.contact === null ? (
-                  <p className="motion-help">{t('Set a contact frame on this card first.')}</p>
+                  <p className="motion-help">{t('Mark contact first; saving also sets the contact frame.')}</p>
                 ) : null}
                 {setup.contact && setup.contact.frame !== clip.contact ? (
                   <p role="status">{t('Contact changed. Mark the ball again on the new contact frame.')}</p>
                 ) : null}
                 {setup.bounce ? (
-                  <button type="button" onClick={() => onFrame(setup.bounce!.frame)}>
+                  <button type="button" aria-haspopup="dialog" onClick={() => select('bounce')}>
                     {t('Review bounce: frame {frame}', { frame: setup.bounce.frame + 1 })}
                   </button>
                 ) : null}
                 <button
                   type="button"
-                  disabled={
-                    !setup.bounce ||
-                    clip.contact === null ||
-                    frame <= clip.contact ||
-                    frame >= setup.bounce.frame ||
-                    setup.flight.length >= 24
-                  }
+                  aria-haspopup="dialog"
+                  disabled={!markingBounds(clip, setup, 'flight') || setup.flight.length >= 24}
                   onClick={() => select('flight')}
                 >
                   {t('Add flight check at this frame')}
@@ -168,7 +173,11 @@ export function SpeedPanel({
                 <div className="speed-checks">
                   {setup.flight.map((mark) => (
                     <span key={mark.frame}>
-                      <button type="button" onClick={() => onFrame(mark.frame)}>
+                      <button
+                        type="button"
+                        aria-haspopup="dialog"
+                        onClick={() => onSelect({ kind: 'flight', frame: mark.frame })}
+                      >
                         {t('Frame {frame}', { frame: mark.frame + 1 })}
                       </button>
                       <button
@@ -221,7 +230,12 @@ export function SpeedPanel({
                             : ''
                         }
                       >
-                        <button type="button" onClick={() => select(kind)} aria-label={t(COURT_LINES[kind])}>
+                        <button
+                          type="button"
+                          aria-haspopup="dialog"
+                          onClick={() => select(kind)}
+                          aria-label={t(COURT_LINES[kind])}
+                        >
                           {mark ? '✓ ' : ''}
                           {t(COURT_LINES[kind])}
                         </button>
@@ -233,13 +247,13 @@ export function SpeedPanel({
                               mark: t(COURT_LINES[kind]),
                               frame: mark.frame + 1
                             })}
-                            disabled={!!outside}
+                            aria-haspopup="dialog"
                             title={
                               outside
                                 ? t('This court mark is outside the excerpt and still contributes to calibration.')
                                 : undefined
                             }
-                            onClick={() => onFrame(mark.frame)}
+                            onClick={() => onSelect({ kind, frame: mark.frame })}
                           >
                             {t('Frame {frame}', { frame: mark.frame + 1 })}
                           </button>

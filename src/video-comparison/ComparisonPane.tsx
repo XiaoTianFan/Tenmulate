@@ -15,13 +15,15 @@ import { manualSeries } from './analysis/series';
 import { setTrackAnchor } from './analysis/trajectory';
 import { FULL_CROP, normalizeCrop, type CropRect } from './crop';
 import { SpeedPanel } from './speed/SpeedPanel';
-import { SpeedSelection, isCourtSelection } from './speed/SpeedSelection';
+import { SpeedMarkingModal } from './speed/SpeedMarkingModal';
+import { applyServeMark, markingBounds, type ServeMark } from './speed/marking';
 import { SpeedOverlay } from './speed/SpeedOverlay';
 import { useServeEstimate } from './speed/useServeEstimate';
-import { COURT_LINES, newServeSetup, type CourtLine, type Line, type Point, type ServeSetup, type SpeedSelection as ServeSelection } from './speed/types';
+import { newServeSetup, type ServeSetup, type SpeedSelection as ServeSelection } from './speed/types';
 
 type Props = {
-  active: boolean; onServe: (edit: (setup: ServeSetup) => ServeSetup) => void;
+  active: boolean; onServe: (edit: (setup: ServeSetup) => ServeSetup, contactFrame?: number) => void;
+  onMarkingChange: (id: string, open: boolean) => void;
   presentation: PresentedFrames; analysis: AnalysisControls; linked: boolean; onMotion: (edit: (m: ClipMotion) => ClipMotion) => void;
   clip: ComparisonClip; frame: number; position: number; count: number; held: boolean;
   onFrame: (frame: number) => void; onContact: () => void; onSpeed: (speed: number) => void;
@@ -32,15 +34,18 @@ type Props = {
   onMirror: () => void; onCrop: (crop?: CropRect) => void; onTrim: (trim?: { start: number; end: number }) => void; onPause: () => void;
 };
 
-export function ComparisonPane({ active, onServe, presentation, analysis, linked, onMotion, clip, frame, position, count, held, onFrame, onContact, onSpeed, onRemove, onResize, onMove, onDrag, onDragEnd, onVideo, onCanvas, onMirror, onCrop, onTrim, onPause, onError, onReady }: Props) {
+export function ComparisonPane({ active, onServe, onMarkingChange, presentation, analysis, linked, onMotion, clip, frame, position, count, held, onFrame, onContact, onSpeed, onRemove, onResize, onMove, onDrag, onDragEnd, onVideo, onCanvas, onMirror, onCrop, onTrim, onPause, onError, onReady }: Props) {
   const displayed = usePresentedFrame(presentation, clip.id);
   const selectionToolbar = useRef<HTMLDivElement>(null);
   const [selection, setSelection] = useState<Selection | null>(null);
   const [speedSelection, setSpeedSelection] = useState<ServeSelection | null>(null);
-  useEffect(() => { if (!active || analysis.paused) setSpeedSelection(null); }, [active, analysis.paused]);
-  useEffect(() => { setSpeedSelection(s => s?.kind === 'contact' && s.frame !== clip.contact ? null : s); }, [clip.contact]);
+  useEffect(() => { if (!active) setSpeedSelection(null); }, [active]);
+  useEffect(() => {
+    if (!speedSelection) return;
+    onMarkingChange(clip.id, true);
+    return () => onMarkingChange(clip.id, false);
+  }, [clip.id, !!speedSelection, onMarkingChange]);
   const [emptyServe] = useState(newServeSetup), serve = clip.serve ?? emptyServe;
-  const speedPanel = useRef<HTMLDivElement>(null);
   const [timelineView, setTimelineView] = useState({ start: 0, end: 0 });
   const mirrored = clip.mirrored ?? false;
   const resize = useRef<{ x: number; width: number } | null>(null);
@@ -57,7 +62,7 @@ export function ComparisonPane({ active, onServe, presentation, analysis, linked
     if (wrap.current) observer.observe(wrap.current);
     return () => observer.disconnect();
   }, []);
-  const crop = cropping || (speedSelection && isCourtSelection(speedSelection.kind)) ? FULL_CROP : normalizeCrop(clip.crop);
+  const crop = cropping ? FULL_CROP : normalizeCrop(clip.crop);
   const aspect = dimensions.width * crop.width / (dimensions.height * crop.height);
   const pictureWidth = Math.min(size.width, size.height * aspect), pictureHeight = pictureWidth / aspect;
   const imageStyle = { width: `${100 / crop.width}%`, height: `${100 / crop.height}%`, left: `${-crop.x / crop.width * 100}%`, top: `${-crop.y / crop.height * 100}%` };
@@ -74,22 +79,17 @@ export function ComparisonPane({ active, onServe, presentation, analysis, linked
     setSelection(value); wrap.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
   };
   const selectSpeed = (value: ServeSelection) => {
+    if (!markingBounds(clip, serve, value.kind)) return;
     onPause(); setCropping(false); setSelection(null); setSpeedSelection(value);
-    onFrame(value.frame); wrap.current?.scrollIntoView({block: 'start', behavior: 'smooth'});
   };
-  const selectedSpeed = (points: Point[], radius: number, selectedFrame: number, pixelFloor: number) => {
-    if (!speedSelection || displayed !== selectedFrame) return;
-    const kind = speedSelection.kind;
-    onServe(previous => {
-      if (kind in COURT_LINES) return {...previous, lines: {...previous.lines, [kind as CourtLine]: {points: points as Line, frame: selectedFrame, pixelFloor}}};
-      const s = previous, mark = {...points[0], frame: selectedFrame, radius:Math.max(radius,pixelFloor)};
-      if (kind === 'flight') return {...s, flight: [...s.flight.filter(p => p.frame !== selectedFrame), mark].sort((a,b) => a.frame-b.frame)};
-      // A revised endpoint removes checks that are now outside this flight.
-      const flight = s.flight.filter(p => kind === 'contact' ? p.frame > selectedFrame : p.frame < selectedFrame);
-      return {...s, [kind]: mark, flight};
-    });
+  const selectedSpeed = (mark: ServeMark) => {
+    if (!speedSelection) return;
+    const kind = speedSelection.kind, bounds = markingBounds(clip, serve, kind);
+    if (!bounds || mark.frame < bounds.start || mark.frame > bounds.end) return;
+    const contactFrame = kind === 'contact' && clip.contact !== mark.frame ? mark.frame : undefined;
+    onServe(previous => applyServeMark(previous, kind, mark), contactFrame);
+    if (contactFrame === undefined) onFrame(mark.frame);
     setSpeedSelection(null);
-    speedPanel.current?.scrollIntoView({block: 'start', behavior: 'smooth'});
   };
   const selected = (anchor: Anchor) => {
     if (!selection || anchor.frame < selectionMin || anchor.frame > selectionMax) return;
@@ -142,9 +142,6 @@ export function ComparisonPane({ active, onServe, presentation, analysis, linked
           {clip.serve && !cropping && !selection && !speedSelection ? <SpeedOverlay setup={serve} result={speedControls.result} frame={displayed} index={clip.index} {...dimensions}/> : null}
         </div>
         {selection ? <MotionSelection key={`${selection.id}:${selection.role}`} selection={selection} crop={crop} mirrored={mirrored} frame={frame} ready={displayed === frame && frame >= selectionMin && frame <= selectionMax} min={selectionMin} max={selectionMax} toolbar={selectionToolbar.current} onSelect={selected} onCancel={() => setSelection(null)}/> : null}
-        {speedSelection ? <SpeedSelection key={`${speedSelection.kind}:${speedSelection.frame}`} selection={speedSelection} crop={crop} mirrored={mirrored} {...dimensions} frame={frame}
-          ready={displayed === frame && frame >= excerpt.start && frame <= excerpt.end && (speedSelection.kind !== 'contact' || frame === speedSelection.frame)}
-          toolbar={selectionToolbar.current} onSelect={selectedSpeed} onCancel={() => setSpeedSelection(null)} onFrame={onFrame}/> : null}
         {cropping ? <CropEditor crop={clip.crop} sourceAspect={dimensions.width / dimensions.height} viewportAspect={size.width / (size.height + 104)}
           toolbarTarget={wrap.current} onChange={onCrop} onDone={() => setCropping(false)} onCancel={() => { onCrop(originalCrop.current); setCropping(false); }}/> : null}
       </div>
@@ -173,13 +170,14 @@ export function ComparisonPane({ active, onServe, presentation, analysis, linked
           onClick={onContact}><Crosshair size={15}/>{t('Set contact')}</button>
       </div>
       <MotionPanel active={active} sourceReady={sourceReady} {...dimensions} clip={clip} frame={frame} view={timelineView} linked={linked} analysis={analysis} onEdit={onMotion} onSelect={select} onFrame={onFrame} onPause={onPause}/>
-      <div ref={speedPanel}><SpeedPanel active={active} sourceReady={sourceReady} clip={clip} setup={serve} frame={frame} {...dimensions} controls={speedControls}
-        onEdit={edit => { setSpeedSelection(null); onServe(edit); }} onSelect={selectSpeed} onFrame={onFrame} onPause={onPause}/></div>
+      <SpeedPanel active={active} sourceReady={sourceReady} clip={clip} setup={serve} frame={frame} {...dimensions} controls={speedControls}
+        onEdit={edit => { setSpeedSelection(null); onServe(edit); }} onSelect={selectSpeed} onPause={onPause}/>
       <div className="comparison-pane-footer"><span>{t('Local clip')}</span><div>
         <button aria-label={t('Move {name} left', { name: clip.name })} disabled={position === 0} onClick={() => onMove(-1)}><ArrowLeft size={14}/></button>
         <button aria-label={t('Move {name} right', { name: clip.name })} disabled={position === count - 1} onClick={() => onMove(1)}><ArrowRight size={14}/></button>
       </div></div>
     </div>
+    {speedSelection && active ? <SpeedMarkingModal clip={clip} setup={serve} selection={speedSelection} onSave={selectedSpeed} onClose={() => setSpeedSelection(null)}/> : null}
     <div className="comparison-resize" role="separator" tabIndex={0} aria-orientation="vertical" aria-label={t('Resize {name}', { name: clip.name })} aria-valuemin={280} aria-valuemax={1000} aria-valuenow={Math.round(clip.width)}
       onPointerDown={event => { capture(event); resize.current = { x: event.clientX, width: event.currentTarget.parentElement!.getBoundingClientRect().width }; }}
       onPointerMove={event => { if (resize.current && event.currentTarget.hasPointerCapture(event.pointerId)) onResize(clamp(resize.current.width + event.clientX - resize.current.x, 280, 1000)); }}
