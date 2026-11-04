@@ -38,7 +38,7 @@ export const newServeSetup = (): ServeSetup => ({
   flight: [],
   servingEnd: 'near',
   contactDepth: 0.5,
-  depthError: 0.4,
+  depthError: 0.2,
   pixelError: 2,
   frameError: 0.5,
   slowdown: 1,

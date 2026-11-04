@@ -332,7 +332,7 @@ partial courts and nonstandard court/net dimensions are unsuitable.
    Court marks remain valid if a later excerpt excludes their source frames.
 3. **Contact height is derived automatically** from the marked ball, the calibrated
    court/net and an assumed contact depth. Court mapping defaults to the near serving
-   baseline, **0.5 m inside it with ±0.4 m depth uncertainty**. Adjust the depth or
+   baseline, **0.5 m inside it with ±0.2 m depth uncertainty**. Adjust the depth or
    choose the far serving baseline as needed; negative depths lie behind the baseline.
    The displayed height is conditional on this depth assumption. Keep recording
    slowdown at 1 for real-time video; enter 4 if the source plays four times slower

@@ -421,7 +421,7 @@ insufficient net elevation and behind-camera projections remain invalid. This is
 a fixed rectilinear camera model without distortion/motion compensation.
 
 The contact ray intersects a plane at the assumed depth inside the selected serving
-baseline, solving lateral position and height together. The default is 0.5 m ± 0.4 m
+baseline, solving lateral position and height together. The default is 0.5 m ± 0.2 m
 inside the near baseline; users can adjust it or select the far end. Height is thus
 derived from the elevated net calibration and contact pixel **conditional on depth**,
 not independently observed from one view. The first-bounce ray intersects a
