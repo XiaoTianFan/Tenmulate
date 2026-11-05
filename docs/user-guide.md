@@ -156,7 +156,10 @@ model/runtime resources from this site; subsequent requests can use the local ca
 
 - **Add point or region track** pauses review and brings the video into view.
   Choose a start frame and tap the ball/racket head or drag a small textured area
-  around it. Then choose an end frame and select the same target there. Use the
+  around it. Hold the mouse or finger down for a floating 4× magnifier while placing
+  start, end or correction points and dragging regions. It follows the visible
+  crop and mirror orientation; release to select, or cancel to discard the gesture.
+  Then choose an end frame and select the same target there. Use the
   existing preview lane or fine-scrub lane to navigate while selecting either point;
   there is no separate selection slider. The end must be later than the start,
   inside the excerpt. Canceling the second selection
@@ -371,7 +374,9 @@ strong or off-centre fisheye views may still be unsuitable.
    impact; tap the ball centre or tightly box the ball, then **Save measurement**.
    Saving also sets the card's contact frame. Open **First bounce ball position**,
    find the first ground impact in the dialog and save its ball mark. Mark
-   the ball, not its shadow. There must be no earlier bounce or net touch. Optional
+   the ball, not its shadow. Hold to magnify contact, bounce and flight-correction
+   positions; release to mark the point or drag a tight region. There must be no
+   earlier bounce or net touch. Optional
    **flight corrections** at intermediate frames fit upward/downward flight curvature,
    especially for kick serves. They preserve the court, contact, bounce and flight time.
    Add clear ball positions at several times where possible. A consistent majority

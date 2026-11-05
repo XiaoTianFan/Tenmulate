@@ -552,8 +552,14 @@ playback pause during marking. Closing releases the decoder, restores document
 scrolling and returns focus; late tool loads cannot reopen the dialog.
 Line gestures commit the release position as the start, then commit the next release
 as the end; a third press replaces the line. Pointer cancellation cannot commit a
-partial drag. A floating 4× canvas magnifier samples the corrected display including
-mirror orientation, and the inverse transform saves original coordinates. Drafts and
+partial drag. A shared floating 4× canvas magnifier samples the displayed frame
+for all court/ball markings and motion-tracking start, end and correction selections.
+It respects the visible crop and mirror orientation, clamps the glass within the
+picture, and uses the existing canvas without allocating a decoder. The modal
+passes its lens-corrected canvas; the inverse transform saves original coordinates.
+Release, pointer cancellation or a frame change dismisses the glass; tracking
+selection also resets an active gesture when frame readiness or crop/mirror changes.
+Drafts and
 lens edits are local until Save; frame/span/lens changes clear the active draft. Contact saves update the
 ball annotation and synchronization anchor together; invalid subsequent endpoints
 and flight checks are removed. Court bounds span the source, while ball bounds

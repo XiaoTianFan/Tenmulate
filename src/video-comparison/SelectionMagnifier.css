@@ -1,0 +1,10 @@
+.selection-magnifier {
+  position: absolute;
+  z-index: 8;
+  display: block;
+  box-sizing: content-box;
+  border: 2px solid #f8e92e;
+  border-radius: 12px;
+  box-shadow: 0 3px 15px #000b;
+  pointer-events: none;
+}

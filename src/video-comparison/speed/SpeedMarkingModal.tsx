@@ -106,7 +106,7 @@ export function SpeedMarkingModal({
       : span === 'half'
         ? 'Set the centre mark first, then either singles sideline. The far lines identify the half automatically.'
         : 'Set one singles endpoint, then the other. Hold and move to refine each point; a third press starts a new line.'
-    : 'Tap the ball centre or drag a tight region around it.';
+    : 'Hold to magnify; release to mark the ball centre, or drag a tight region.';
   return createPortal(
     <dialog
       ref={dialog}

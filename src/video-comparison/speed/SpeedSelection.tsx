@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type RefObject, type PointerEvent } from 'react';
 import { correctLens, distortLens } from './lens';
-import { MarkingMagnifier } from './MarkingMagnifier';
+import { SelectionMagnifier } from '../SelectionMagnifier';
 import { t } from '../../i18n/locale';
 import type { CropRect } from '../crop';
 import { COURT_LINES, isNetLine, type Point, type SpeedSelection as Selection } from './types';
@@ -215,7 +215,7 @@ export function SpeedSelection({
             />
           ) : null}
           {holding && ready ? (
-            <MarkingMagnifier point={aim} source={canvas} surface={surface} mirrored={mirrored} />
+            <SelectionMagnifier crop={crop} point={aim} source={canvas} surface={surface} mirrored={mirrored} />
           ) : null}
           {line ? (
             <output className="serve-placement-step" aria-live="polite">
