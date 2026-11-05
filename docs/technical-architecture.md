@@ -332,16 +332,36 @@ preserves alignment under load but cannot guarantee the requested wall-clock rat
 when the device cannot decode fast enough. Browser display refresh can skip
 intermediate source frames at high effective speeds.
 
-Paused review uses `useClipPreview` and `PreviewFrames` to draw explicit decoded
-frames into the same canvas as playback. Metadata or `seeked` alone never publishes
-a picture. Scrubs coalesce to the latest target; obsolete samples are closed without
-drawing. The last picture remains during handoff; loading/recovery and a local retry
-are visible. Recovery preserves contact, crop, tracks and other annotations. Canvas
-context loss invalidates the presented frame and restoration retries the reader.
+Paused card review and full-screen marking share `useReviewPreview` / `ReviewSession`.
+A source-indexed LRU stores owned navigation canvases (640×360 pixels of area,
+aspect preserved), with a **48 MiB aggregate budget across all clips** and at most
+48 cached frames per clip. A card retains its cache lease while playback or a
+modal suspends its reader, so opening/closing the dialog can reuse those frames.
+The final owner releases the cache on clip removal. Lost canvas contexts invalidate
+cached pictures instead of presenting them. Metadata or `seeked` alone never
+publishes a picture; actual drawing publishes the source frame for annotations.
 
-Random-access review, export-preview and thumbnail readers share one priority queue:
-interactive requests precede filmstrip requests. At most two input/native readers
-stay warm, with idle release after 1.5 seconds. Indexing is serialized separately
+Cache hits paint synchronously, even while a different foreground seek is pending.
+Uncached drag requests coalesce, and late results can populate the cache but cannot
+overwrite a newer picture. After 180 ms without movement, a cached navigation
+picture refines to the usual review resolution. The modal retains just its current
+detail snapshot for lens changes. Navigation never waits for that refinement.
+The nearby runway covers up to 0.8 nominal source seconds / 48 frames, favors the
+scrub direction, and shrinks with active clip count to share the memory budget.
+Prefetch continues during sustained scrubbing, refills in batches, and evicts
+outside the planned runway before upcoming frames. It never decodes a whole clip
+in advance. Source coordinates and sample indices, including VFR timing, are
+unchanged; marking precision also accounts for the displayed snapshot resolution.
+
+Random-access review, export-preview, prefetch and thumbnail readers share one
+priority queue. Interactive misses preempt speculative work; each finite ascending
+prefetch batch uses one `samplesAtTimestamps` iterator so packets are not decoded
+again for every adjacent frame. Samples close immediately after snapshotting, and
+batch work yields between small groups of frames. Native fallback resumes at the
+first undelivered frame. A canceled operation releases its decoder and closes late
+results. Failed optional prefetch cannot replace a usable picture with an error.
+Two readers at most stay warm: interactive readers idle out after eight seconds,
+other readers after 1.5 seconds. Indexing is serialized separately
 with a one-minute deadline. Filmstrips start after the card's first picture, use the
 same fallback reader, and are canceled during playback, dialogs, route changes or
 backgrounding. The native fallback is muted, inline, explicitly loaded/primed, then
@@ -533,11 +553,14 @@ a job nor invalidates its result. Saved measurement overlays are temporarily hid
 during annotation; only the active guide is drawn. Completing or cancelling the
 annotation restores the selected overlay groups.
 `SpeedMarkingModal` opens a full-viewport native dialog for each court/ball item.
-An independent, lazily loaded `PreviewFrames` decoder coalesces seeks, disposes
-stale samples and enables marking only for the actually drawn source frame. A local
-LRU owns at most four snapshots/24 MiB (plus the visible surface); VideoFrames close
-immediately. Interactive requests outrank filmstrip work. The previous picture stays
-visible while seeking; a 250 ms delayed nonblocking status avoids flickering masks.
+Its lazily loaded `ReviewSession` shares the clip's bounded navigation cache with
+the card and enables marking only for the actually drawn source frame. It owns
+one current detail snapshot in addition to its share of the global cache;
+VideoFrames close immediately. Interactive requests outrank background preparation
+and filmstrips. The previous picture stays visible during an uncached seek, with a
+250 ms delayed status below the timeline instead of a mask over the picture.
+Background prefetch and detail refinement show no waiting status. Initial loading
+and errors before the first picture still provide loading/retry feedback.
 Lens edits redraw a snapshot without decoding. Optional WebGL warping owns one
 context; a cached bilinear software remap, capped at 1280 px long edge, handles
 unavailable/lost WebGL. Disposal releases snapshot, map and GPU resources.

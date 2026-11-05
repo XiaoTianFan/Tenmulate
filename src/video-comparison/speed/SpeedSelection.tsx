@@ -79,6 +79,7 @@ export function SpeedSelection({
     const pixelFloor =
       Math.ceil(
         Math.max(
+          width / (canvas.current?.width || width), height / (canvas.current?.height || height),
           Math.hypot((dx.x - center.x) * width, (dx.y - center.y) * height),
           Math.hypot((dy.x - center.x) * width, (dy.y - center.y) * height)
         ) * 4

@@ -149,13 +149,14 @@ export function ComparisonPane({ active, reviewActive, onServe, onEstimate, onMa
       </div>
       {held ? <span className="comparison-held">{t('Holding edge frame')}</span> : null}
       {!clip.index && !clip.error ? <span className="comparison-loading" role="status">{t('Reading frame timestamps…')}</span> : null}
-      {clip.index && !clip.error && picture.busy && reviewActive ? <span className={sourceReady ? 'comparison-preview-pending' : 'comparison-loading'} role="status">{t(picture.recovering ? 'Recovering video preview…' : 'Preparing video preview…')}</span> : null}
+      {clip.index && !clip.error && picture.busy && reviewActive && !sourceReady ? <span className="comparison-loading" role="status">{t(picture.recovering ? 'Recovering video preview…' : 'Preparing video preview…')}</span> : null}
       {picture.error && !clip.error ? <div className="comparison-video-error" role="alert">{t(picture.error)}<button onClick={() => { onPause(); picture.retry(); }}>{t('Retry preview')}</button><small>{t('Your clip and annotations are kept. If retry fails, try a smaller H.264 MP4.')}</small></div> : null}
       {clip.error ? <div className="comparison-video-error" role="alert">{t(clip.error)}<button onClick={onRemove}>{t('Remove clip')}</button></div> : null}
     </div>
     <div ref={selectionToolbar}/>
     <div className="comparison-pane-controls">
       <div className="comparison-frame-info"><span>{t('Frame {frame} / {total}', { frame: frame + 1, total: last + 1 })}</span>
+        <small className="comparison-seek-status" role="status">{sourceReady && picture.busy && reviewActive && !picture.error ? t('Seeking frame…') : ''}</small>
         <span>{clip.index ? `${clip.index.fps.toFixed(2)} ${t(clip.index.variable ? 'fps · variable' : 'fps')}` : '—'}</span></div>
       <ClipTimeline active={reviewActive && sourceReady && !picture.error} clip={clip} frame={frame} onFrame={onFrame} onTrim={onTrim} onView={setTimelineView}/>
       <div className="comparison-fine-scrub" role="slider" tabIndex={clip.index && !clip.error ? 0 : -1}

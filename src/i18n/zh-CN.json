@@ -934,6 +934,7 @@
   "Run analysis to populate this plot.": "运行分析以生成曲线。",
   "Select tracked point": "选择跟踪点",
   "Tap a point or drag a region. Enter selects the center.": "点击一个点或拖动选择区域。按回车选择中心点。",
+  "Seeking frame…": "正在定位帧…",
   "Preparing frame…": "正在准备画面…",
   "Drag a region containing one player throughout the excerpt.": "拖动选择一个在整个片段中包含同一名球员的区域。",
   "Tap the target or drag a small region around it.": "点击目标或拖动选择目标周围的小区域。",

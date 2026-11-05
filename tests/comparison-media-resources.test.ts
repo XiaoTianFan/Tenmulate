@@ -12,6 +12,15 @@ describe('bounded media work', () => {
     expect(events).toEqual(['active']); finish(); await Promise.all([first, low, high]);
     expect(events).toEqual(['active', 'review', 'thumbnail']);
   });
+  it('interrupts preemptible background work before serving an interactive miss', async () => {
+    const queue = new MediaQueue(), background = new AbortController(), events: string[] = [];
+    const slow = queue.run(background.signal, () => new Promise<void>((_, reject) => {
+      events.push('background'); background.signal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')));
+    }), 2, () => background.abort());
+    const rejected = expect(slow).rejects.toMatchObject({ name: 'AbortError' });
+    const foreground = queue.run(new AbortController().signal, async () => { events.push('foreground'); });
+    await rejected; await foreground; expect(events).toEqual(['background', 'foreground']);
+  });
   it('cancels queued clips without decoding them or blocking subsequent work', async () => {
     const queue = new MediaQueue(), active = new AbortController(), canceled = new AbortController();
     let finish!: () => void;

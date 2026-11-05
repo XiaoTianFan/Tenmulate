@@ -2,11 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PreviewFrames } from '../src/video-comparison/previewFrames';
 import { createFrameIndex, frameSeekTime } from '../src/video-comparison/timeline';
 
-const mock = vi.hoisted(() => ({ inputs: [] as any[], samples: [] as any[], track: { canDecode: vi.fn() }, getSample: vi.fn() }));
+const mock = vi.hoisted(() => ({ inputs: [] as any[], samples: [] as any[], track: { canDecode: vi.fn() }, getSample: vi.fn(), batch: vi.fn() }));
 vi.mock('mediabunny', () => ({
   ALL_FORMATS: [], BlobSource: class {},
   Input: class { dispose = vi.fn(); constructor() { mock.inputs.push(this); } async getPrimaryVideoTrack() { return mock.track; } },
-  VideoSampleSink: class { getSample = mock.getSample; },
+  VideoSampleSink: class { getSample = mock.getSample; samplesAtTimestamps = mock.batch; },
 }));
 const index = createFrameIndex([0,.04,.1,.12,.3].map(timestamp => ({ timestamp, duration: .02 })));
 const sample = () => ({ displayWidth: 720, displayHeight: 1280, allocationSize: () => 1024, draw: vi.fn(), close: vi.fn() });
@@ -22,12 +22,33 @@ class NativeVideo extends EventTarget {
 }
 
 beforeEach(() => {
+  mock.batch.mockReset().mockImplementation(async function* (times: number[]) {
+    for (const _time of times) { const value = sample(); mock.samples.push(value); yield value; }
+  });
   mock.inputs = []; mock.samples = []; mock.track.canDecode.mockReset().mockResolvedValue(true);
   mock.getSample.mockReset().mockImplementation(async () => { const value = sample(); mock.samples.push(value); return value; });
 });
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
 describe('interactive export frame ownership', () => {
+  it('prepares nearby frames as one ascending decode batch and closes hardware samples after each snapshot', async () => {
+    const reader = new PreviewFrames(new File([], 'local.mp4'), index), consume = vi.fn();
+    await reader.fill([0, 1, 2, 3], consume, new AbortController().signal);
+    expect(mock.batch).toHaveBeenCalledWith([0, 1, 2, 3].map(frame => frameSeekTime(index, frame)));
+    expect(mock.getSample).not.toHaveBeenCalled(); expect(consume.mock.calls.map(c => c[0].frame)).toEqual([0, 1, 2, 3]);
+    mock.samples.forEach(value => expect(value.close).toHaveBeenCalledOnce()); reader.dispose();
+  });
+  it('preempts a hung speculative batch for a foreground seek and closes its late sample', async () => {
+    let finish!: (value: any) => void;
+    mock.batch.mockReturnValueOnce({ next: () => new Promise(resolve => { finish = resolve; }), return: vi.fn(async () => ({ done: true })) });
+    const reader = new PreviewFrames(new File([], 'local.mp4'), index);
+    const background = reader.fill([0, 1, 2], vi.fn(), new AbortController().signal);
+    const rejected = expect(background).rejects.toMatchObject({ name: 'AbortError' });
+    for (let i = 0; i < 20; i++) await Promise.resolve();
+    const visible = reader.get(4, -10); await rejected; (await visible).close();
+    const late = sample(); finish({ value: late, done: false }); await Promise.resolve();
+    expect(late.close).toHaveBeenCalledOnce(); expect(mock.inputs[0].dispose).toHaveBeenCalledOnce(); reader.dispose();
+  });
   it('evicts cold readers and releases all container caches after idle', async () => {
     vi.useFakeTimers();
     const readers = Array.from({ length: 9 }, () => new PreviewFrames(new File([], 'large.mp4'), index));

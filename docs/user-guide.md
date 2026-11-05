@@ -145,6 +145,15 @@ excerpt boundary at contact time; reset/extend the excerpt to include contact ag
    your position and contact alignment. Scrubbing and frame stepping keep their
    original source-frame precision at every global speed.
 
+Nearby frames are cached automatically for quick forward/backward scrubbing in
+both cards and the full-screen marking dialog. Cached pictures appear immediately
+and sharpen after you pause the cursor. The app prepares nearby frames in the
+background with a shared memory limit; the available range is smaller when many
+clips are active. Large jumps outside that range still require decoding. The last
+picture remains visible during a seek, and any waiting status stays outside the
+picture. You can return to cached frames while another seek is pending. Marking
+only becomes available when the selected frame is actually displayed.
+
 ### Motion analysis
 
 Open **Motion analysis** below a card's controls. Select an excerpt first; short

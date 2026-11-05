@@ -3,7 +3,7 @@ import { resolve, dirname, basename } from 'node:path';
 import { parse } from '@babel/parser';
 
 const root = resolve('dist'), assets = resolve(root, 'assets');
-const optional = /^(?:analysis\/|(?:analyze|analysis\.worker|pose\.worker|poseRuntime|speed\.worker|data\.worker|decodedVideo|nativeVideo|videoFrames|indexVideo\.worker|previewFrames|previewFilmstrip)-)/;
+const optional = /^(?:analysis\/|(?:analyze|analysis\.worker|pose\.worker|poseRuntime|speed\.worker|data\.worker|decodedVideo|nativeVideo|videoFrames|indexVideo\.worker|previewFrames|reviewSession|previewFilmstrip)-)/;
 const workers = readdirSync(assets).filter(name => /^(?:analysis|pose|speed|data)\.worker-.*\.js$/.test(name));
 if (workers.length !== 4) throw new Error('Expected separate point, pose, serve-speed and data-export workers.');
 

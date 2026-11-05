@@ -94,7 +94,7 @@ export function SelectionMagnifier({
     context.moveTo(size / 2, size / 2 - 12);
     context.lineTo(size / 2, size / 2 + 12);
     context.stroke();
-  }, [point, source, mirrored, size, rect?.width, rect?.height, crop.x, crop.y, crop.width, crop.height]);
+  }, [point, source, source.current?.width, source.current?.height, mirrored, size, rect?.width, rect?.height, crop.x, crop.y, crop.width, crop.height]);
   return (
     <canvas
       ref={glass}

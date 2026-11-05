@@ -184,9 +184,9 @@ export function SpeedMarkingModal({
               }
             />
           </div>
-          {!picture.ready && (waiting || picture.error) ? (
+          {!picture.width && !picture.ready && (waiting || picture.error) ? (
             <div
-              className={`serve-marking-status${picture.width && !picture.error ? ' is-updating' : ''}`}
+              className="serve-marking-status"
               role={picture.error ? 'alert' : 'status'}
             >
               <span>{t(picture.error || 'Preparing frame…')}</span>
@@ -288,6 +288,10 @@ export function SpeedMarkingModal({
         </div>
         <div className={mirrored ? 'is-mirrored' : undefined}>
           <ClipTimeline clip={reviewClip} frame={frame} onFrame={seek} />
+        </div>
+        <div className="serve-marking-seek-status" role={picture.error ? 'alert' : 'status'}>
+          {picture.width > 0 && !picture.ready && (waiting || picture.error) ? t(picture.error || 'Seeking frame…') : ''}
+          {picture.error ? <button type="button" onClick={picture.retry}>{t('Try again')}</button> : null}
         </div>
       </div>
       <footer>

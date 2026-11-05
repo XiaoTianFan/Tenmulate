@@ -24,28 +24,31 @@ export function mediaDeadline<T>(pending: Promise<T>, signal: AbortSignal, milli
   });
 }
 
-type Job = { priority: number; run: () => Promise<void> };
+type Job = { priority: number; preempt?: () => void; run: () => Promise<void> };
 /** One random-access decode at a time. Review goes before optional thumbnails. */
 export class MediaQueue {
   private jobs: Job[] = [];
   private busy = false;
-  run<T>(signal: AbortSignal, work: () => Promise<T>, priority = 0): Promise<T> {
+  private current?: Job;
+  run<T>(signal: AbortSignal, work: () => Promise<T>, priority = 0, preempt?: () => void): Promise<T> {
     return new Promise((resolve, reject) => {
       const abort = () => { this.jobs = this.jobs.filter(value => value !== job); reject(new DOMException('Aborted', 'AbortError')); };
-      const job: Job = { priority, run: async () => {
+      const job: Job = { priority, preempt, run: async () => {
         signal.removeEventListener('abort', abort);
         try { signal.throwIfAborted(); resolve(await work()); } catch (error) { reject(error); }
       } };
       if (signal.aborted) { abort(); return; }
       signal.addEventListener('abort', abort, { once: true });
-      this.jobs.push(job); this.jobs.sort((a, b) => a.priority - b.priority); this.pump();
+      this.jobs.push(job); this.jobs.sort((a, b) => a.priority - b.priority);
+      if (this.current && priority < this.current.priority) this.current.preempt?.();
+      this.pump();
     });
   }
   private pump() {
     if (this.busy) return;
     const job = this.jobs.shift();
     if (!job) return;
-    this.busy = true;
-    void job.run().finally(() => { this.busy = false; this.pump(); });
+    this.busy = true; this.current = job;
+    void job.run().finally(() => { this.busy = false; this.current = undefined; this.pump(); });
   }
 }

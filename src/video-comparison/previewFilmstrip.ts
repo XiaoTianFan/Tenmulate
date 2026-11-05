@@ -1,5 +1,6 @@
 import { PreviewFrames } from './previewFrames';
 import type { FrameIndex } from './timeline';
+import type { ReviewFrame } from './videoFrames';
 import { drawCropped, normalizeCrop, type CropRect } from './crop';
 
 /** Low-priority frame requests fill the timeline without moving the review frame.
@@ -24,7 +25,16 @@ export async function previewFilmstrip(
     const images: string[] = [];
     for (let i = 0; i < 12; i++) {
       signal.throwIfAborted();
-      const sample = await source.get(Math.round(first + (i / 11) * (last - first)), 1);
+      let sample: ReviewFrame | undefined;
+      while (!sample) {
+        try { sample = await source.get(Math.round(first + (i / 11) * (last - first)), 3, signal, true); }
+        catch (error) {
+          signal.throwIfAborted();
+          if (!error || typeof error !== 'object' || !('name' in error) || error.name !== 'AbortError') throw error;
+          // A foreground seek preempted this thumbnail. Requeue behind navigation.
+          await new Promise(resolve => setTimeout(resolve, 50));
+        }
+      }
       try {
         signal.throwIfAborted();
         context.fillStyle = '#030607';
