@@ -574,9 +574,13 @@ handles; review never drives linked playback. Background analysis and comparison
 playback pause during marking. Closing releases the decoder, restores document
 scrolling and returns focus; late tool loads cannot reopen the dialog.
 Line gestures commit the release position as the start, then commit the next release
-as the end; a third press replaces the line. Pointer cancellation cannot commit a
-partial drag. A shared floating 4× canvas magnifier samples the displayed frame
-for all court/ball markings and motion-tracking start, end and correction selections.
+as the end; a third press replaces the line. Ball contact, bounce and flight marks
+commit the exact release position, including tiny adjustments; dragging moves a
+single crosshair without forming or averaging a region. Screen/source resolution
+still supplies an uncertainty floor without changing the saved point. Pointer
+cancellation cannot commit a partial drag. A shared floating 4× canvas magnifier
+samples the displayed frame for all court/ball markings and motion-tracking start,
+end and correction selections.
 It respects the visible crop and mirror orientation, clamps the glass within the
 picture, and uses the existing canvas without allocating a decoder. The modal
 passes its lens-corrected canvas; the inverse transform saves original coordinates.

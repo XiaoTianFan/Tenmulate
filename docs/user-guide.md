@@ -380,12 +380,13 @@ strong or off-centre fisheye views may still be unsuitable.
 
 1. Select **Contact ball position** to open the full-screen marking dialog. Its
    own thumbnail timeline, zoom/pan and frame-step buttons let you find racket
-   impact; tap the ball centre or tightly box the ball, then **Save measurement**.
+   impact; position the crosshair on the ball centre, then **Save measurement**.
    Saving also sets the card's contact frame. Open **First bounce ball position**,
    find the first ground impact in the dialog and save its ball mark. Mark
    the ball, not its shadow. Hold to magnify contact, bounce and flight-correction
-   positions; release to mark the point or drag a tight region. There must be no
-   earlier bounce or net touch. Optional
+   positions and drag to fine-tune the crosshair. Releasing marks that exact point,
+   even after a tiny adjustment; the drag is not averaged into a region. There must
+   be no earlier bounce or net touch. Optional
    **flight corrections** at intermediate frames fit upward/downward flight curvature,
    especially for kick serves. They preserve the court, contact, bounce and flight time.
    Add clear ball positions at several times where possible. A consistent majority
@@ -422,7 +423,7 @@ strong or off-centre fisheye views may still be unsuitable.
    than the original action. Clip and global playback-rate controls have no effect
    on the estimate. Advanced controls expose pixel/timing uncertainty and assumed
    aerodynamic coefficients. Each court mark remembers its screen precision; ball
-   marks also retain their region/point uncertainty. Increase the minimum pixel
+   marks also retain their point uncertainty. Increase the minimum pixel
    uncertainty for blur or imprecise
    marks. Arrow keys adjust the marker by one source pixel (Shift: ten).
 4. Select **Estimate serve speed**. The result separates estimated **launch speed**

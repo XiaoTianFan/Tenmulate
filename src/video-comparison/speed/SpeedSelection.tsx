@@ -48,8 +48,7 @@ export function SpeedSelection({
     down = useRef<Point | null>(null);
   const [holding, setHolding] = useState(false);
   const [first, setFirst] = useState<Point | null>(null),
-    [aim, setAim] = useState<Point>({ x: 0.5, y: 0.5 }),
-    [box, setBox] = useState<{ a: Point; b: Point } | null>(null);
+    [aim, setAim] = useState<Point>({ x: 0.5, y: 0.5 });
   const line = selection.kind in COURT_LINES;
   useEffect(() => {
     surface.current?.focus({ preventScroll: true });
@@ -57,7 +56,6 @@ export function SpeedSelection({
   useEffect(() => {
     down.current = null;
     setFirst(null);
-    setBox(null);
     setHolding(false);
   }, [frame, lens, ready]);
   const point = (event: PointerEvent<HTMLDivElement>) => {
@@ -94,9 +92,9 @@ export function SpeedSelection({
       setFirst(null);
       onSelect(ends, 0, frame, pixelFloor);
     } else {
-      const center = b ? { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 } : a;
-      const radius = b ? Math.hypot((raw(a).x - raw(b).x) * width, (raw(a).y - raw(b).y) * height) / 2 : 0;
-      onSelect([raw(center)], radius < 1 ? 0 : radius, frame, pixelFloor);
+      // A ball mark is the crosshair position, never the midpoint of a drag.
+      // Keep screen/source precision as uncertainty without shifting the point.
+      onSelect([raw(a)], 0, frame, pixelFloor);
     }
   };
   return (
@@ -164,24 +162,19 @@ export function SpeedSelection({
             if (!event.isPrimary) return;
             const end = point(event);
             setAim(end);
-            if (down.current && !line) setBox({ a: down.current, b: end });
           }}
           onPointerCancel={() => {
             down.current = null;
             setHolding(false);
-            setBox(null);
           }}
           onPointerUp={(event) => {
             if (!down.current || !event.isPrimary) return;
-            const a = down.current,
-              b = point(event);
+            const b = point(event);
             down.current = null;
             setHolding(false);
-            setBox(null);
-            const rect = event.currentTarget.getBoundingClientRect();
-            const dragged = Math.hypot((a.x - b.x) * rect.width, (a.y - b.y) * rect.height) > (line ? 2 : 5);
+            setAim(b);
             if (line) commit(first ?? b, first ? b : undefined);
-            else commit(a, dragged ? b : undefined);
+            else commit(b);
           }}
         >
           <i
@@ -203,16 +196,6 @@ export function SpeedSelection({
             <i
               className="serve-first-point"
               style={{ left: `${first.x * 100}%`, top: `${first.y * 100}%` }}
-            />
-          ) : null}
-          {!line && box ? (
-            <span
-              style={{
-                left: `${Math.min(box.a.x, box.b.x) * 100}%`,
-                top: `${Math.min(box.a.y, box.b.y) * 100}%`,
-                width: `${Math.abs(box.a.x - box.b.x) * 100}%`,
-                height: `${Math.abs(box.a.y - box.b.y) * 100}%`
-              }}
             />
           ) : null}
           {holding && ready ? (

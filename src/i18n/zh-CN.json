@@ -1192,7 +1192,7 @@
   "Reset lens correction": "重置镜头校正",
   "Adjust until court lines look straight. Zero keeps the original view; saved with the measurement.": "调整至球场线看起来笔直。零值保留原始画面；随本次标注一起保存。",
   "Use the preview lane to choose a frame. Hold to magnify while placing a point or dragging a region.": "使用预览时间轴选帧。按住即可放大，便于精确定位点或拖动框选区域。",
-  "Hold to magnify; release to mark the ball centre, or drag a tight region.": "按住即可放大，松开标记球心，也可拖动框选紧贴网球的小区域。",
+  "Hold to magnify and move the crosshair onto the ball centre. Release to set that exact point.": "按住即可放大，将十字准星移到球心，松开即标记准星所在的准确位置。",
   "Magnified placement preview": "放大定位预览",
   "1 · Hold to adjust the start; release to set.": "1 · 按住并移动以调整起点，松开确认。",
   "2 · Hold to adjust the end; release to set.": "2 · 按住并移动以调整终点，松开确认。",
