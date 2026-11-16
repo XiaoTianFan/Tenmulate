@@ -372,9 +372,10 @@ range, sampling density, or resolution if a limit is reached.
 
 Open **Serve speed** below **Motion plots** on a comparison card. This is available
 for portrait and landscape source clips. Keep the camera fixed throughout the
-flight. Use either three of the four cross-court lines, or the complete near centre
-service line plus one full-width cross-court line. Both options also need the net's
-centre strap and at least one side support. Partial views can work when these references and
+flight. The reduced minimum is four segments: the complete near centre service line,
+the far baseline, one other baseline/service line, and the net-centre vertical.
+Both transverse lines may use half or full width.
+Partial views can work when these references and
 the contact/first-bounce ball positions are visible. Keep the camera fixed and use
 standard court/net dimensions. Mild centred lens distortion can be corrected manually;
 strong or off-centre fisheye views may still be unsuitable.
@@ -393,29 +394,39 @@ strong or off-centre fisheye views may still be unsuitable.
    Add clear ball positions at several times where possible. A consistent majority
    can exclude an obvious outlier; excluded frame numbers are shown and retained in JSON.
    Incompatible observations request review instead of forcing an implausible path.
-2. Choose either **three of four cross-court lines** (near baseline, near service
-   line, far service line and far baseline), or the **Near centre service line**
-   plus **one full-width cross-court line**. The latter can use a far baseline or
-   far service line when the near width is cropped out. Draw the centre line from
+2. For reduced mapping, draw the **Near centre service line**, the **far baseline**,
+   **one other baseline or service line**, and the **net-centre top-to-ground line**.
+   Both the far baseline and the other transverse line may use **half width** or
+   **full width**. The far baseline is a separate required reference; selecting it
+   does not also satisfy the other-line requirement. No side post is required in
+   this mode. The far service line can supply the other width when near lines are
+   cropped out. Draw the centre line from
    the near service-line T intersection to the ground directly beneath the net
    centre, in that order. Its known length is 6.4 m. A cropped or occluded fragment
    is not a substitute for those endpoints; use another clear frame if necessary.
-   Extra lines remain useful and contribute to the same calibration. Minimal
+   Extra lines remain useful and all contribute to calibration. Reduced mapping
+   assumes square pixels, zero skew and an optical centre near the image centre.
+   Cropping can violate this assumption; the speed envelope includes optical-centre
+   offsets of ±10% of the source-image diagonal. This is a sensitivity check, not
+   proof of accuracy for arbitrary crops. Add full-width lines and a side-support
+   vertical to use the stronger projective fit. The original three-cross-line plus
+   centre-and-side-support workflow also remains available. Minimal
    coverage permits a fit but does not guarantee stable speed: the usual geometry
    and uncertainty checks still apply. Each
    marking or saved-frame button opens the full-screen dialog at its saved frame,
    or the current card frame for a new line; each line may use a different clear
    frame from the same fixed camera. Near/far mean relative to the camera.
-   For a near baseline or near service line, choose **Line span → Full singles
+   For any near or far baseline or service line, choose **Line span → Full singles
    width** or **Half width · detect side** inside the dialog. A half line runs
    from the baseline's centre mark, or the service-line/centre-line intersection,
    to one singles sideline; an arbitrary cropped fragment does not establish scale.
-   Half-line detection requires both the **full far baseline and far service line**,
-   or the **complete near centre service line and one full-width court line**.
+   Half-line detection uses the **complete near centre service line**, or the
+   original pair of **full far baseline and far service line** references.
    The app compares left/right assignments and displays the detected half in the
    current preview orientation. Ambiguous fits request more or clearer references.
-   Select doubles posts or singles sticks, then mark **the centre strap plus at
-   least one side support** with top-to-ground segments. Either support can be A
+   Mark **the centre strap** from top to ground. Add visible side supports for
+   stronger calibration and select their type (doubles posts or singles sticks).
+   Either support can be A
    or B; the app infers the side. Add the other support when visible. Follow the
    physical post/strap even when it leans in the image. **Press, move and release**
    to fix the start; press, move and release again to fix the end. A third press

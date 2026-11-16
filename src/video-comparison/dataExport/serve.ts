@@ -113,6 +113,14 @@ export function serveSpeedData(request: DataExportRequest) {
       contactMatchesSelectedFrame: !!setup.contact && setup.contact.frame === clip.contact
     },
     calibration: camera ?? null,
+    calibrationModel: camera?.reduced ? {
+      name: 'reduced-pinhole',
+      assumptions: 'Square pixels, zero skew, optical centre at image centre; fixed camera above ground on the near side. Cropping may violate the optical-centre assumption.',
+      principalNormalized: camera.reduced.principal,
+      principalSensitivityPixels: camera.reduced.principalErrorPixels,
+      parameterUnits: 'Camera X/Y/Z in metres, yaw/pitch/roll in radians, log focal length in source pixels.',
+      sensitivity: 'Eight optical-centre offsets at ±10% of the source-image diagonal, plus annotation, timing and physical-model trials. Conditional envelope, not a calibrated confidence interval.'
+    } : camera ? { name: 'projective', assumptions: 'Unrestricted 3×4 projective camera fitted to observed court and elevated net endpoints.' } : null,
     derivedPositions: {
       contactMeters: result?.contact3D ?? contactPosition,
       firstBounceMeters: result?.bounce3D ?? bouncePosition,

@@ -36,9 +36,10 @@ function candidate(
   lift: number,
   validate: boolean,
   fitted?: Camera,
-  mapping?: CourtMapping
+  mapping?: CourtMapping,
+  reference?: Camera
 ) {
-  const camera = fitted ?? calibrate(setup, input.width, input.height, validate, mapping),
+  const camera = fitted ?? calibrate(setup, input.width, input.height, validate, mapping, { reference }),
     contact = atDepth(camera.p, cameraPoint(camera, setup.contact!), contactCourtDepth(setup, depth)),
     bounce = atHeight(camera.p, cameraPoint(camera, setup.bounce!), COURT.ballRadius);
   const height = contact[2];
@@ -228,6 +229,19 @@ export function estimateServe(
   const perturb = (p: Point, axis: 'x' | 'y', delta: number) => {
     p[axis] += delta / (axis === 'x' ? input.width : input.height);
   };
+  // The optical centre is assumed, not measured, in a sparse pinhole fit. Include
+  // a deterministic pixel-space offset envelope; this does not validate arbitrary crops.
+  if (camera.reduced) {
+    const { principal, principalErrorPixels: delta } = camera.reduced;
+    for (const x of [-1, 0, 1]) for (const y of [-1, 0, 1]) {
+      if (!x && !y) continue;
+      const shifted = calibrate(s, input.width, input.height, false, camera.mapping, {
+        reference: camera,
+        principal: { x: principal.x + x * delta / input.width, y: principal.y + y * delta / input.height }
+      });
+      variants.push({ setup: s, duration, depth: s.contactDepth, drag: s.drag, lift: fit.lift, camera: shifted });
+    }
+  }
   for (const mark of courtKeys)
     for (let endpoint = 0; endpoint < 2; endpoint++)
       for (const axis of ['x', 'y'] as const)
@@ -299,7 +313,8 @@ export function estimateServe(
         v.lift,
         false,
         v.camera,
-        base.camera.mapping
+        base.camera.mapping,
+        base.camera
       );
       let collision = r.clearance < 0;
       // Refit the accepted observations under changed camera/timing/ball marks as

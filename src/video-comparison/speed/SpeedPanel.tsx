@@ -223,7 +223,7 @@ export function SpeedPanel({
               <legend>{t('2. Map the court')}</legend>
               <p className="motion-help">
                 {t(
-                  'Mark the near centre service line plus one full-width court line, or any three of the four cross-court lines. Without the centre reference, near half-width lines need both full far lines. Additional lines improve the checks. Each mark can use a different clear frame.'
+                  'Reduced minimum: the complete near centre service line, the far baseline, one other baseline or service line, and the net-centre vertical. Baselines and service lines may use half or full width. Extra lines and side supports improve calibration. Each mark can use a different clear frame.'
                 )}
               </p>
               <label>
@@ -354,12 +354,17 @@ export function SpeedPanel({
               ) : null}
               {calibration.camera ? (
                 <div className="speed-calibration" role="status">
+                  {calibration.camera.reduced ? (
+                    <p className="motion-help">
+                      {t('Reduced mapping assumes square pixels and an optical centre near the image centre. Cropped views can violate this assumption. Speed uncertainty includes optical-centre variation; add full-width lines and a side-support vertical for stronger calibration.')}
+                    </p>
+                  ) : null}
                   <span>
                     {t('Court fit: {error} px RMS', {
                       error: calibration.camera.rms.toFixed(1)
                     })}
                   </span>
-                  {coverage.halfLines > 0 || coverage.netLines < 3 || !setup.lines.near ? (
+                  {!calibration.camera.reduced && (coverage.halfLines > 0 || coverage.netLines < 3 || !setup.lines.near) ? (
                     <p className="motion-help">
                       {t(
                         'Partial court mapping uses fewer references. Add visible full lines or the other net support to reduce sensitivity.'

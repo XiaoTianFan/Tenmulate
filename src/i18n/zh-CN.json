@@ -1219,5 +1219,12 @@
   "Set the near service-line T intersection first, then the ground beneath the net centre. Mark the full 6.4 m line, not a short visible fragment. Use another clear frame if needed.": "先标注近端发球线的 T 形交点，再标注球网中心正下方的地面点。应标注完整的 6.4 米中线，而非可见的一小段；必要时可换到更清晰的帧。",
   "Court lines: {ground}/5 · Net lines: {net}/3": "球场线：{ground}/5 · 球网竖线：{net}/3",
   "Mark the near centre service line plus one full-width court line, or any three of the four cross-court lines. Without the centre reference, near half-width lines need both full far lines. Additional lines improve the checks. Each mark can use a different clear frame.": "可标注近端发球区中线加一条完整宽度的球场线，或四条横向球场线中的任意三条。没有中线参照时，近端半宽线需要两条完整远端线。增加标线可加强校验；各标线可在不同的清晰帧上完成。",
-  "Set the centre mark first, then either singles sideline. The other court references identify the half automatically.": "先标注中点，再标注任意一侧单打边线。系统会根据其他球场参照自动识别左右半场。"
+  "Set the centre mark first, then either singles sideline. The other court references identify the half automatically.": "先标注中点，再标注任意一侧单打边线。系统会根据其他球场参照自动识别左右半场。",
+  "Mark the net centre from top to ground.": "请标注球网中部从顶部到地面的竖线。",
+  "The court calibration is ambiguous. Add another court line or a side-support vertical.": "球场标定存在多种可能解。请增加一条球场线或侧方网柱竖线。",
+  "Reduced mapping assumes square pixels and an optical centre near the image centre. Cropped views can violate this assumption. Speed uncertainty includes optical-centre variation; add full-width lines and a side-support vertical for stronger calibration.": "简化标定假设像素为正方形，光学中心接近图像中心；裁剪画面可能不满足此假设。速度范围包含光学中心变化的影响；增加全宽球场线及侧方网柱竖线可加强标定。",
+  "Mark the near centre service line, far baseline and another baseline or service line, or three cross-court lines.": "请标注近端发球区中线、远端底线及另一条底线或发球线，或标注三条横向球场线。",
+  "Reduced mapping needs the far baseline and one other baseline or service line. Half or full widths are supported.": "简化标定需要远端底线及另一条底线或发球线；均可标注半宽或全宽。",
+  "Reduced minimum: the complete near centre service line, the far baseline, one other baseline or service line, and the net-centre vertical. Baselines and service lines may use half or full width. Extra lines and side supports improve calibration. Each mark can use a different clear frame.": "简化标定最少需要四条线：完整的近端发球区中线、远端底线、另一条底线或发球线，以及球网中部竖线。底线和发球线均可标半宽或全宽。增加标线和网柱可改进标定；各标线可在不同清晰帧上完成。",
+  "Half-line detection needs the near centre service line or both full far reference lines.": "半宽线识别需要近端发球区中线，或两条完整的远端参照线。"
 }

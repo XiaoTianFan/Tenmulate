@@ -11,8 +11,9 @@ import {
   type ServeSetup
 } from './types';
 import { fitCamera } from './cameraFit';
+import { fitReducedCamera } from './reducedCamera';
 import { COURT, courtControls, possibleMappings } from './courtControls';
-import { courtCoverage, courtRequirement, markedCourtKeys } from './courtCoverage';
+import { courtCoverage, courtRequirement, markedCourtKeys, usesReducedCamera } from './courtCoverage';
 export { COURT } from './courtControls';
 const error = (a: Point, b: Point, width: number, height: number) =>
   Math.hypot((a.x - b.x) * width, (a.y - b.y) * height);
@@ -34,7 +35,8 @@ export function calibrate(
   width: number,
   height: number,
   validate = true,
-  expected?: CourtMapping
+  expected?: CourtMapping,
+  options: { reference?: Camera; principal?: Point } = {}
 ): Camera {
   const raw = setup,
     strength = setup.lens ?? 0;
@@ -104,24 +106,30 @@ export function calibrate(
         mark
       );
   }
+  const reduced = usesReducedCamera(setup),
+    principal = options.principal ?? { x: 0.5, y: 0.5 };
   const candidates = possibleMappings(setup)
     .flatMap((mapping) => {
       try {
-        const controls = courtControls(setup, mapping),
-          p = fitCamera(controls, width, height);
-        const errors = controls.map((c) =>
-          error(
-            distortLens(project(p, c.xyz), strength, width, height),
-            raw.lines[c.mark]!.points[c.endpoint],
-            width,
-            height
-          )
-        );
-        const score = errors.reduce((sum, value, i) => {
-          const r = value / controls[i].sigma;
-          return sum + (r <= 2.5 ? r * r : 5 * r - 6.25);
-        }, 0);
-        return [{ mapping, controls, p, errors, score }];
+        const controls = courtControls(setup, mapping);
+        const fits = reduced
+          ? fitReducedCamera(controls, width, height, principal, options.reference?.reduced?.parameters)
+          : [{ p: fitCamera(controls, width, height), parameters: undefined }];
+        return fits.map(({ p, parameters }) => {
+          const errors = controls.map((c) =>
+            error(
+              distortLens(project(p, c.xyz), strength, width, height),
+              raw.lines[c.mark]!.points[c.endpoint],
+              width,
+              height
+            )
+          );
+          const score = errors.reduce((sum, value, i) => {
+            const r = value / controls[i].sigma;
+            return sum + (r <= 2.5 ? r * r : 5 * r - 6.25);
+          }, 0);
+          return { mapping, controls, p, parameters, errors, score };
+        });
       } catch {
         return [];
       }
@@ -129,7 +137,7 @@ export function calibrate(
     .sort((a, b) => a.score - b.score);
   if (!candidates.length)
     throw new Error('Court marks are degenerate. Redraw the line endpoints and net tops.');
-  const { mapping, controls, p, errors } = candidates[0];
+  const { mapping, controls, p, parameters, errors } = candidates[0];
   const rms = Math.hypot(...errors) / Math.sqrt(errors.length),
     checkError = Math.max(...errors);
   const worst = controls[errors.indexOf(checkError)],
@@ -150,7 +158,7 @@ export function calibrate(
     );
   if (candidates[1] && candidates[1].score - candidates[0].score < 9)
     throw new Error(
-      'The court side is ambiguous. Add another full court line or re-mark the centre and side support.'
+      'The court calibration is ambiguous. Add another court line or a side-support vertical.'
     );
   if (
     expected &&
@@ -168,6 +176,14 @@ export function calibrate(
     errors.some((v, i) => v > 2.5 * controls[i].sigma) || rms > 1.5 * typical ? 'review' : 'good';
   return {
     p,
+    ...(parameters
+      ? { reduced: {
+          principal,
+          principalErrorPixels: 0.1 * Math.hypot(width, height),
+          focalPixels: Math.exp(parameters[6]),
+          parameters
+        } }
+      : {}),
     ...(strength ? { lens: { strength, width, height } } : {}),
     rms,
     checkError,

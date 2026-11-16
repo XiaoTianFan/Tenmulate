@@ -1,4 +1,4 @@
-import { COURT_KEYS, GROUND_KEYS, supportsHalf, type ServeSetup } from './types';
+import { COURT_KEYS, GROUND_KEYS, type ServeSetup } from './types';
 
 export const markedCourtKeys = (setup: ServeSetup) => COURT_KEYS.filter((key) => !!setup.lines[key]);
 export function courtCoverage(setup: ServeSetup) {
@@ -8,22 +8,33 @@ export function courtCoverage(setup: ServeSetup) {
     halfLines: GROUND_KEYS.filter((key) => setup.lines[key]?.span === 'half').length
   };
 }
-/** A complete centre segment plus a full-width line supplies independent ground
- * controls with the net feet. It also anchors half-line side inference; without
- * it, half lines keep the existing two-full-far-reference requirement.
- * Coverage only permits fitting; rank, residuals and sensitivity still gate speed. */
+/** Sparse evidence needs metric camera assumptions when a second elevated point
+ * or a full-width ground reference is absent. Rich mappings retain the full fit. */
+export const usesReducedCamera = (setup: ServeSetup) =>
+  !!setup.lines.nearCenter &&
+  ((!setup.lines.netA && !setup.lines.netB) ||
+    !GROUND_KEYS.some((key) => setup.lines[key] && setup.lines[key]!.span !== 'half'));
+
+/** Coverage permits fitting; it does not establish uniqueness or accuracy. */
 export function courtRequirement(setup: ServeSetup): string | undefined {
-  if (GROUND_KEYS.some((key) => setup.lines[key]?.span === 'half' && !supportsHalf(key)))
-    return 'The far baseline and far service line must use their full singles width.';
   if (setup.lines.nearCenter?.span === 'half')
     return 'Mark the complete near centre service line, from the service-line intersection to the ground beneath the net centre.';
   const transverse = GROUND_KEYS.filter((key) => setup.lines[key]);
-  const centreReference = !!setup.lines.nearCenter &&
-    transverse.some((key) => setup.lines[key]!.span !== 'half');
+  const centreReference = !!setup.lines.nearCenter && transverse.length > 0;
   if (transverse.length < 3 && !centreReference)
-    return 'Mark three cross-court lines, or the near centre service line and one full-width court line.';
-  if (courtCoverage(setup).halfLines && !centreReference && (!setup.lines.far || !setup.lines.service))
-    return 'Half-line detection needs the full far baseline and far service line.';
-  if (!setup.lines.netCenter || (!setup.lines.netA && !setup.lines.netB))
+    return 'Mark the near centre service line, far baseline and another baseline or service line, or three cross-court lines.';
+  if (usesReducedCamera(setup) && (!setup.lines.far || transverse.length < 2))
+    return 'Reduced mapping needs the far baseline and one other baseline or service line. Half or full widths are supported.';
+  if (
+    courtCoverage(setup).halfLines &&
+    !centreReference &&
+    (!setup.lines.far ||
+      setup.lines.far.span === 'half' ||
+      !setup.lines.service ||
+      setup.lines.service.span === 'half')
+  )
+    return 'Half-line detection needs the near centre service line or both full far reference lines.';
+  if (!setup.lines.netCenter) return 'Mark the net centre from top to ground.';
+  if (!centreReference && !setup.lines.netA && !setup.lines.netB)
     return 'Mark the net centre and at least one side support, from top to ground.';
 }

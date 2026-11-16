@@ -463,26 +463,39 @@ frame-index identity; late replies cannot replace newer settings.
 Annotations use original oriented source coordinates, independent of crop/mirror.
 Each baseline/service-line or net segment retains its source frame, annotation
 precision and optional half-width span. Different lines may use different frames;
-each segment's endpoints use one frame. `courtCoverage` accepts either three of the
-four transverse ground lines, or the complete near centre service segment plus
-one full-width transverse line. Both require the centre strap and at least one
-side support. The centre segment preserves semantic endpoint order:
-(0, 5.485, 0) at the service-line T, then (0, 11.885, 0) under the net centre.
-It is a 6.4 m longitudinal point reference, not an infinite-line constraint for
-arbitrary fragments. Near service Y is 5.485 m, far service Y is 18.285 m.
-Near baseline/service half spans require both full far lines for side inference
-unless the complete centre segment and a full-width reference are present.
-The reduced centre set has eight endpoint observations, including two observations
-of the net-centre foot, five distinct ground locations and two elevated net tops.
-A single transverse line does not define a quadrilateral; the quadrilateral check
-runs when at least two full-width lines are present. All configurations retain
-the fit's rank rejection, residual diagnostics, side ambiguity and speed sensitivity
-gates. Extra lines and the other support contribute to the same 3 × 4 camera fit.
+each segment's endpoints use one frame. `courtCoverage` accepts the complete near
+centre service segment, the far baseline, one other transverse baseline/service
+line, and the net-centre vertical in reduced mode. Both transverse lines may use
+half width. The far baseline must be distinct from the other transverse reference. The original three-cross-line/centre-and-side-support
+coverage also remains available. The centre segment preserves semantic endpoint
+order: (0, 5.485, 0) at the service-line T, then (0, 11.885, 0) under the net centre.
+It is a 6.4 m reference, not an infinite-line constraint for arbitrary fragments.
+Near service Y is 5.485 m, far service Y is 18.285 m. Any baseline/service half span
+uses its centre and one singles sideline; the centre segment anchors side inference.
+Without it, half spans retain the original two-full-far-line requirement.
+
+The four-segment minimum with only one elevated point does not determine an unrestricted projective camera.
+`reducedCamera` fits seven metric parameters: camera X/Y/Z, yaw/pitch/roll and log
+focal length. It assumes square pixels, zero skew and a principal point at the
+source-image centre. Physical search bounds place the camera above ground on the
+near side, with positive observed depths. Deterministic multiple starts, weighted
+Huber loss and damped finite-difference Gauss–Newton solve the nonlinear fit;
+an undamped Jacobian rank check rejects missing constraints. Distinct poses remain
+candidates, so the ambiguity margin also rejects near-equal camera solutions, not
+only ambiguous half assignments. No side-support observations are fabricated.
+Sparse sensitivity trials warm-start from the fitted pose and still check rank,
+residuals and correspondence. Eight extra principal-point offsets span ±10% of the
+source-image diagonal in each pixel axis. This conditional envelope does not
+identify an unknown crop or guarantee camera accuracy; metadata and UI state the
+assumptions. Full-width plus side-support evidence retains the existing unrestricted
+3 × 4 projective fit. Without a side support, or with only half-width references,
+the centre-assisted mapping uses the constrained metric fit. All marked lines
+contribute. Full-width quadrilateral checks run only with two complete width lines.
 Absent observations are never fabricated. Portrait source dimensions are accepted.
 The court is 8.23 × 23.77 m, supports are 1.07 m high and the centre strap is 0.914 m
 high. Doubles posts are 12.798 m apart; singles sticks are 10.058 m apart.
 
-`courtControls` enumerates each near half's left/right correspondence and, when only
+`courtControls` enumerates each half's left/right correspondence and, when only
 one support is present, its side. With both supports, original-image ground ordering
 sets A/B correspondence. Each candidate jointly fits the observed controls and is
 ranked by standardized Huber reprojection loss. A gap below 9 between the best two
@@ -492,7 +505,7 @@ and coverage counts. Preview badges account for mirroring while exports retain
 original-image/world sides. Individual removal invalidates calibration/results and
 cancels obsolete worker jobs; incomplete coverage never reuses a previous camera.
 
-Weighted linear initialization is refined in image pixels using damped Gauss–Newton
+For the unrestricted projective fit, weighted linear initialization is refined in image pixels using damped Gauss–Newton
 and a Huber loss. Every observation, including downweighted endpoints, retains a
 reported residual. All landmarks contribute to fitting; these residuals are fit
 diagnostics, not held-out validation. Per-mark screen precision supplies a lower
@@ -547,7 +560,8 @@ with independent lift variation remain in the envelope, preventing the fit from
 hiding model sensitivity. Intermediate fractions use source PTS and scale with the
 trial flight duration. No fit claims spin rate or a statistical confidence interval.
 Perturbations touch only observed annotations. The trial count is 16 parameter corners,
-8 per marked line, 8 ball-position trials and 64 combined trials. Correspondence is
+8 per marked line, 8 ball-position trials and 64 combined trials, plus 8 optical-centre
+trials for reduced cameras. Correspondence is
 re-evaluated during geometry perturbations; ambiguity or a changed half/support side
 rejects the estimate as unstable. This preserves uncertainty checks for reduced
 geometry rather than treating a partial view as equally precise. The

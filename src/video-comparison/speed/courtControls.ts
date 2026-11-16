@@ -25,6 +25,7 @@ export function possibleMappings(setup: ServeSetup): CourtMapping[] {
       }))
     );
   const posts = (['netA', 'netB'] as const).filter((key) => setup.lines[key]);
+  if (!posts.length) return variants;
   if (posts.length === 2) {
     posts.sort((a, b) => setup.lines[a]!.points[1].x - setup.lines[b]!.points[1].x);
     return variants.map((mapping) => ({ ...mapping, supports: { [posts[0]]: 'left', [posts[1]]: 'right' } }));

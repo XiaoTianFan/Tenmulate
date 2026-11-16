@@ -15,7 +15,7 @@ export const COURT_LINES: Record<CourtLine, string> = {
 };
 export const COURT_KEYS = Object.keys(COURT_LINES) as CourtLine[];
 export const GROUND_KEYS: GroundLine[] = ['near', 'nearService', 'service', 'far'];
-export const supportsHalf = (kind: string) => kind === 'near' || kind === 'nearService';
+export const supportsHalf = (kind: string) => GROUND_KEYS.includes(kind as GroundLine);
 export const isNetLine = (kind: string) => kind === 'netA' || kind === 'netB' || kind === 'netCenter';
 export type CourtMark = {
   points: Line;
@@ -79,6 +79,8 @@ export type SpeedInput = {
   end: number;
 };
 export type Camera = {
+  /** Conditional sparse fit; not an unrestricted calibration of camera intrinsics. */
+  reduced?: { principal: Point; principalErrorPixels: number; focalPixels: number; parameters: number[] };
   lens?: { strength: number; width: number; height: number };
   p: number[][];
   rms: number;

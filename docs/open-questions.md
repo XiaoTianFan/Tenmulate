@@ -81,7 +81,10 @@ schedule. Completed features belong in the user guide and architecture.
   intermediate-point lift fitting help with distortion and kick serves, but need
   real-world validation. Off-centre/strong fisheye distortion, sidespin, wind, camera
   motion and missing first bounces remain limitations. Partial courts work only with
-  sufficient independent references. The sensitivity envelope is not a confidence
+  sufficient independent references. Four-line reduced mapping uses square-pixel, zero-skew
+  camera assumptions and an optical-centre sensitivity envelope; arbitrary crops,
+  very short net references and sparse-pose ambiguity need more real-footage
+  validation. The sensitivity envelope is not a confidence
   interval. Speed annotations are session-local; optional grid-export labels snapshot
   the current estimate.
 
