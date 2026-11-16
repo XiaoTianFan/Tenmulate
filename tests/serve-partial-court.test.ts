@@ -313,6 +313,8 @@ describe('near centre service reference', () => {
     const half = centreScene();
     half.ground('near', 'left');
     delete half.input.setup.lines.service;
+    expect(courtRequirement(half.input.setup)).toBeUndefined();
+    delete half.input.setup.lines.nearCenter;
     expect(courtRequirement(half.input.setup)).toMatch(/full far/);
   });
   it('rejects a half or collapsed centre segment and a reversed full segment', () => {
@@ -326,4 +328,20 @@ describe('near centre service reference', () => {
     input.setup.lines.nearCenter!.points = [ends[1], ends[0]];
     expect(() => calibrate(input.setup, input.width, input.height)).toThrow(/Court mapping/);
   });
+});
+
+describe('centre reference with optional near half-widths', () => {
+  it.each([['near', 'left'], ['near', 'right'], ['nearService', 'left'], ['nearService', 'right']] as const)(
+    'infers the %s %s half without requiring an extra far service line', (key, side) => {
+      const { input, ground } = centreScene(300, side === 'right' ? 550 : 430);
+      ground(key, side);
+      delete input.setup.lines[key === 'near' ? 'nearService' : 'near'];
+      delete input.setup.lines.service;
+      delete input.setup.lines[side === 'right' ? 'netA' : 'netB'];
+      const camera = calibrate(input.setup, input.width, input.height);
+      expect(camera.mapping?.halves[key]).toBe(side);
+      expect(camera.rms).toBeLessThan(1e-6);
+      expect(atDepth(camera.p, input.setup.contact!, 0.4)[2]).toBeCloseTo(2.6, 5);
+    }
+  );
 });

@@ -470,7 +470,8 @@ side support. The centre segment preserves semantic endpoint order:
 (0, 5.485, 0) at the service-line T, then (0, 11.885, 0) under the net centre.
 It is a 6.4 m longitudinal point reference, not an infinite-line constraint for
 arbitrary fragments. Near service Y is 5.485 m, far service Y is 18.285 m.
-Near baseline/service half spans still require both full far lines for side inference.
+Near baseline/service half spans require both full far lines for side inference
+unless the complete centre segment and a full-width reference are present.
 The reduced centre set has eight endpoint observations, including two observations
 of the net-centre foot, five distinct ground locations and two elevated net tops.
 A single transverse line does not define a quadrilateral; the quadrilateral check

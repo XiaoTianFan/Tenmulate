@@ -223,7 +223,7 @@ export function SpeedPanel({
               <legend>{t('2. Map the court')}</legend>
               <p className="motion-help">
                 {t(
-                  'Mark the near centre service line plus one full-width court line, or any three of the four cross-court lines. Near half-width lines still need both full far lines. Additional lines improve the checks. Each mark can use a different clear frame.'
+                  'Mark the near centre service line plus one full-width court line, or any three of the four cross-court lines. Without the centre reference, near half-width lines need both full far lines. Additional lines improve the checks. Each mark can use a different clear frame.'
                 )}
               </p>
               <label>

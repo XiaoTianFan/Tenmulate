@@ -9,7 +9,8 @@ export function courtCoverage(setup: ServeSetup) {
   };
 }
 /** A complete centre segment plus a full-width line supplies independent ground
- * controls with the net feet. Half-line side inference keeps its far references.
+ * controls with the net feet. It also anchors half-line side inference; without
+ * it, half lines keep the existing two-full-far-reference requirement.
  * Coverage only permits fitting; rank, residuals and sensitivity still gate speed. */
 export function courtRequirement(setup: ServeSetup): string | undefined {
   if (GROUND_KEYS.some((key) => setup.lines[key]?.span === 'half' && !supportsHalf(key)))
@@ -21,7 +22,7 @@ export function courtRequirement(setup: ServeSetup): string | undefined {
     transverse.some((key) => setup.lines[key]!.span !== 'half');
   if (transverse.length < 3 && !centreReference)
     return 'Mark three cross-court lines, or the near centre service line and one full-width court line.';
-  if (courtCoverage(setup).halfLines && (!setup.lines.far || !setup.lines.service))
+  if (courtCoverage(setup).halfLines && !centreReference && (!setup.lines.far || !setup.lines.service))
     return 'Half-line detection needs the full far baseline and far service line.';
   if (!setup.lines.netCenter || (!setup.lines.netA && !setup.lines.netB))
     return 'Mark the net centre and at least one side support, from top to ground.';

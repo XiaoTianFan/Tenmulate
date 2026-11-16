@@ -410,7 +410,8 @@ strong or off-centre fisheye views may still be unsuitable.
    width** or **Half width · detect side** inside the dialog. A half line runs
    from the baseline's centre mark, or the service-line/centre-line intersection,
    to one singles sideline; an arbitrary cropped fragment does not establish scale.
-   Half-line detection requires both the **full far baseline and far service line**.
+   Half-line detection requires both the **full far baseline and far service line**,
+   or the **complete near centre service line and one full-width court line**.
    The app compares left/right assignments and displays the detected half in the
    current preview orientation. Ambiguous fits request more or clearer references.
    Select doubles posts or singles sticks, then mark **the centre strap plus at
