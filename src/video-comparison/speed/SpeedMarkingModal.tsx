@@ -105,9 +105,9 @@ export function SpeedMarkingModal({
       ? 'Set the net top first, then the ground directly beneath it. Hold and move to refine either point.'
       : selection.kind === 'nearCenter'
         ? 'Set the near service-line T intersection first, then the ground beneath the net centre. Mark the full 6.4 m line, not a short visible fragment. Use another clear frame if needed.'
-      : span === 'half'
-        ? 'Set the centre mark first, then either singles sideline. The far lines identify the half automatically.'
-        : 'Set one singles endpoint, then the other. Hold and move to refine each point; a third press starts a new line.'
+        : span === 'half'
+          ? 'Set the centre mark first, then either singles sideline. The other court references identify the half automatically.'
+          : 'Set one singles endpoint, then the other. Hold and move to refine each point; a third press starts a new line.'
     : 'Hold to magnify and move the crosshair onto the ball centre. Release to set that exact point.';
   return createPortal(
     <dialog
