@@ -87,8 +87,11 @@ export function SpeedSelection({
         setFirst(a);
         return;
       }
-      // The original image's left/right order stays invariant under preview mirroring.
-      const ends = [raw(a), raw(b)].sort((p, q) => (isNetLine(selection.kind) ? p.y - q.y : p.x - q.x));
+      // The centre segment keeps semantic service-to-net order, even in rolled
+      // or mirrored views. Other lines keep their original-image ordering.
+      const ends = [raw(a), raw(b)];
+      if (selection.kind !== 'nearCenter')
+        ends.sort((p, q) => (isNetLine(selection.kind) ? p.y - q.y : p.x - q.x));
       setFirst(null);
       onSelect(ends, 0, frame, pixelFloor);
     } else {

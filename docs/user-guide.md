@@ -372,8 +372,9 @@ range, sampling density, or resolution if a limit is reached.
 
 Open **Serve speed** below **Motion plots** on a comparison card. This is available
 for portrait and landscape source clips. Keep the camera fixed throughout the
-flight. You need at least three of the four court lines, the net's centre strap
-and at least one side support. Partial views can work when these references and
+flight. Use either three of the four cross-court lines, or the complete near centre
+service line plus one full-width cross-court line. Both options also need the net's
+centre strap and at least one side support. Partial views can work when these references and
 the contact/first-bounce ball positions are visible. Keep the camera fixed and use
 standard court/net dimensions. Mild centred lens distortion can be corrected manually;
 strong or off-centre fisheye views may still be unsuitable.
@@ -392,8 +393,16 @@ strong or off-centre fisheye views may still be unsuitable.
    Add clear ball positions at several times where possible. A consistent majority
    can exclude an obvious outlier; excluded frame numbers are shown and retained in JSON.
    Incompatible observations request review instead of forcing an implausible path.
-2. Mark any **three of four court lines**: near baseline, near service line, far
-   service line and far baseline. A fourth line improves the constraints. Each
+2. Choose either **three of four cross-court lines** (near baseline, near service
+   line, far service line and far baseline), or the **Near centre service line**
+   plus **one full-width cross-court line**. The latter can use a far baseline or
+   far service line when the near width is cropped out. Draw the centre line from
+   the near service-line T intersection to the ground directly beneath the net
+   centre, in that order. Its known length is 6.4 m. A cropped or occluded fragment
+   is not a substitute for those endpoints; use another clear frame if necessary.
+   Extra lines remain useful and contribute to the same calibration. Minimal
+   coverage permits a fit but does not guarantee stable speed: the usual geometry
+   and uncertainty checks still apply. Each
    marking or saved-frame button opens the full-screen dialog at its saved frame,
    or the current card frame for a new line; each line may use a different clear
    frame from the same fixed camera. Near/far mean relative to the camera.

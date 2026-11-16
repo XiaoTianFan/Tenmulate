@@ -59,7 +59,7 @@ export function serveSpeedData(request: DataExportRequest) {
     issue: issue ?? null,
     units: {
       annotations:
-        'Normalized source-image coordinates, except radius/pixelFloor/pixelError in source pixels. Half spans join the centre to a singles sideline; detectedHalf uses original unmirrored sides. courtPointsMeters contains only calibrated observed endpoints.',
+        'Normalized source-image coordinates, except radius/pixelFloor/pixelError in source pixels. Centre spans join the near service-line intersection to the ground beneath the net centre (6.4 m), in that order. Half spans join the centre to a singles sideline; detectedHalf uses original unmirrored sides. courtPointsMeters contains only calibrated observed endpoints.',
       camera:
         'Row-major 3×4 projective matrix: [u,v,w] = P × [courtX,courtY,courtZ,1]; corrected image position = [u/w,v/w]. If camera.lens is present, use the inverse centred radial correction to obtain original source-image coordinates. Correction: d=(image-[0.5,0.5])*[width,height]/(hypot(width,height)/2); corrected d = d*(1+k*|d|²/(1+|d|²))/(1+max(k,0)/2).',
       court:
@@ -83,6 +83,7 @@ export function serveSpeedData(request: DataExportRequest) {
       farBaselineY: COURT.length,
       netY: COURT.net,
       nearServiceLineY: COURT.nearService,
+      nearCentreServiceLength: COURT.net - COURT.nearService,
       farServiceLineY: COURT.farService,
       netSupportHeight: COURT.postHeight,
       netCenterHeight: COURT.centerHeight,
@@ -96,7 +97,7 @@ export function serveSpeedData(request: DataExportRequest) {
       ...frameReference(clip, mark!.frame),
       pointsNormalized: mark!.points,
       pointsPixels: mark!.points.map(pixel),
-      span: isNetLine(key) ? 'vertical' : (mark!.span ?? 'full'),
+      span: isNetLine(key) ? 'vertical' : key === 'nearCenter' ? 'centre' : (mark!.span ?? 'full'),
       detectedHalf: camera?.mapping?.halves[key as GroundLine] ?? null,
       courtPointsMeters:
         camera?.controls

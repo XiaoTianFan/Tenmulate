@@ -103,6 +103,8 @@ export function SpeedMarkingModal({
   const instruction = line
     ? isNetLine(selection.kind)
       ? 'Set the net top first, then the ground directly beneath it. Hold and move to refine either point.'
+      : selection.kind === 'nearCenter'
+        ? 'Set the near service-line T intersection first, then the ground beneath the net centre. Mark the full 6.4 m line, not a short visible fragment. Use another clear frame if needed.'
       : span === 'half'
         ? 'Set the centre mark first, then either singles sideline. The far lines identify the half automatically.'
         : 'Set one singles endpoint, then the other. Hold and move to refine each point; a third press starts a new line.'

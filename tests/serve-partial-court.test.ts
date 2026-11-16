@@ -214,3 +214,116 @@ describe('partial court calibration and portrait sources', () => {
     expect(() => calibrate(input.setup, input.width, input.height)).toThrow(/ambiguous/);
   });
 });
+
+/** The centre segment is a measured 6.4 m longitudinal reference. Its first
+ * endpoint is the near service T, second the ground below the net centre. */
+function centreScene(width = 1280, offset = 0) {
+  const fixture = scene(width, offset);
+  fixture.input.setup.lines.nearCenter = {
+    frame: 5,
+    pixelFloor: 1,
+    points: [
+      project(fixture.p, [0, COURT.nearService, 0]),
+      project(fixture.p, [0, COURT.net, 0])
+    ]
+  };
+  return fixture;
+}
+describe('near centre service reference', () => {
+  it.each(GROUND_KEYS)('calibrates with the centre segment, full %s and only one support', (kept) => {
+    for (const support of ['netA', 'netB'] as const) {
+      const { input } = centreScene();
+      for (const key of GROUND_KEYS) if (key !== kept) delete input.setup.lines[key];
+      delete input.setup.lines[support === 'netA' ? 'netB' : 'netA'];
+      expect(courtRequirement(input.setup)).toBeUndefined();
+      const camera = calibrate(input.setup, input.width, input.height);
+      expect(camera.rms).toBeLessThan(1e-6);
+      expect(camera.coverage).toEqual({ groundLines: 2, netLines: 2, halfLines: 0 });
+      expect(camera.controls).toHaveLength(8);
+      expect(camera.mapping?.supports[support]).toBe(support === 'netA' ? 'left' : 'right');
+      expect(atDepth(camera.p, input.setup.contact!, 0.4)[2]).toBeCloseTo(2.6, 5);
+    }
+  });
+  it('estimates a cropped portrait serve with no near baseline or near service-width marks', () => {
+    const { input } = centreScene(300, 550);
+    delete input.setup.lines.near;
+    delete input.setup.lines.nearService;
+    delete input.setup.lines.service;
+    delete input.setup.lines.netA;
+    const result = estimateServe(input);
+    const truth = reconstruct(Math.hypot(2, 19.6), 0.55, 2.6).kph;
+    expect(result.launchKph).toBeCloseTo(truth, 4);
+    expect(result.rangeKph[0]).toBeLessThan(truth);
+    expect(result.rangeKph[1]).toBeGreaterThan(truth);
+    const data = serveSpeedData({
+      section: 'serve-speed', result,
+      clip: {
+        id: 'centre', name: 'serve.mov', contact: 10, index: input.index,
+        sourceWidth: input.width, sourceHeight: input.height, speed: 1,
+        mirrored: true, serve: input.setup
+      }
+    });
+    expect(data.courtMarks.find((m) => m.id === 'nearCenter')).toMatchObject({
+      span: 'centre', pointsNormalized: input.setup.lines.nearCenter!.points,
+      courtPointsMeters: [[0, 5.485, 0], [0, 11.885, 0]]
+    });
+    expect(data.courtMarks).toHaveLength(4);
+    expect(data.courtDimensionsMeters.nearCentreServiceLength).toBeCloseTo(6.4);
+  });
+  it('uses the centre segment alongside all existing references and near half-widths', () => {
+    const { input, ground } = centreScene();
+    ground('near', 'left');
+    ground('nearService', 'right');
+    const camera = calibrate(input.setup, input.width, input.height);
+    expect(camera.mapping?.halves).toEqual({ near: 'left', nearService: 'right' });
+    expect(camera.coverage).toEqual({ groundLines: 5, netLines: 3, halfLines: 2 });
+    expect(camera.controls?.filter((c) => c.mark === 'nearCenter').map((c) => c.world))
+      .toEqual([[0, 5.485, 0], [0, 11.885, 0]]);
+    expect(camera.residuals.find((r) => r.mark === 'nearCenter')!.pixels).toBeLessThan(1e-6);
+  });
+  it('retains uncertainty on a noisy reduced centre-line mapping', () => {
+    const { input } = centreScene(300, 550);
+    delete input.setup.lines.near;
+    delete input.setup.lines.nearService;
+    delete input.setup.lines.service;
+    delete input.setup.lines.netA;
+    let n = 0;
+    for (const mark of Object.values(input.setup.lines))
+      for (const point of mark!.points) {
+        point.x += Math.sin(++n * 13.7) / input.width;
+        point.y += Math.cos(n * 8.1) / input.height;
+      }
+    const result = estimateServe(input);
+    const truth = reconstruct(Math.hypot(2, 19.6), 0.55, 2.6).kph;
+    expect(result.camera.rms).toBeLessThan(1.5);
+    expect(result.rangeKph[0]).toBeLessThan(truth);
+    expect(result.rangeKph[1]).toBeGreaterThan(truth);
+  });
+  it('still requires width and elevated net references, and preserves half-line inference rules', () => {
+    const { input, ground } = centreScene();
+    GROUND_KEYS.forEach((key) => { delete input.setup.lines[key]; });
+    expect(courtRequirement(input.setup)).toMatch(/full-width/);
+    ground('far');
+    delete input.setup.lines.netCenter;
+    expect(courtRequirement(input.setup)).toMatch(/net centre/);
+    const other = centreScene();
+    delete other.input.setup.lines.netA;
+    delete other.input.setup.lines.netB;
+    expect(courtRequirement(other.input.setup)).toMatch(/side support/);
+    const half = centreScene();
+    half.ground('near', 'left');
+    delete half.input.setup.lines.service;
+    expect(courtRequirement(half.input.setup)).toMatch(/full far/);
+  });
+  it('rejects a half or collapsed centre segment and a reversed full segment', () => {
+    const { input } = centreScene();
+    input.setup.lines.nearCenter!.span = 'half';
+    expect(courtRequirement(input.setup)).toMatch(/complete near centre/);
+    delete input.setup.lines.nearCenter!.span;
+    const ends = input.setup.lines.nearCenter!.points;
+    input.setup.lines.nearCenter!.points = [ends[0], ends[0]];
+    expect(() => calibrate(input.setup, input.width, input.height)).toThrow(/too short/);
+    input.setup.lines.nearCenter!.points = [ends[1], ends[0]];
+    expect(() => calibrate(input.setup, input.width, input.height)).toThrow(/Court mapping/);
+  });
+});

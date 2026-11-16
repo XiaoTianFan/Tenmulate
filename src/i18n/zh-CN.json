@@ -1211,5 +1211,12 @@
   "Add flight correction at this frame": "在此帧添加飞行修正点",
   "Remove flight correction at frame {frame}": "移除第 {frame} 帧的飞行修正点",
   "Flight fit error (RMS)": "飞行拟合误差（均方根）",
-  "No flight points": "未添加中途球位"
+  "No flight points": "未添加中途球位",
+  "Near centre service line": "近端发球区中线",
+  "Mark the complete near centre service line, from the service-line intersection to the ground beneath the net centre.": "请标注完整的近端发球区中线：从发球线的交点到球网中心正下方的地面点。",
+  "Mark three cross-court lines, or the near centre service line and one full-width court line.": "请标注三条横向球场线，或标注近端发球区中线及一条完整宽度的球场线。",
+  "The near centre service line is too short. Mark its service-line intersection and the ground beneath the net centre.": "近端发球区中线太短。请标注其与发球线的交点，以及球网中心正下方的地面点。",
+  "Set the near service-line T intersection first, then the ground beneath the net centre. Mark the full 6.4 m line, not a short visible fragment. Use another clear frame if needed.": "先标注近端发球线的 T 形交点，再标注球网中心正下方的地面点。应标注完整的 6.4 米中线，而非可见的一小段；必要时可换到更清晰的帧。",
+  "Mark the near centre service line plus one full-width court line, or any three of the four cross-court lines. Near half-width lines still need both full far lines. Additional lines improve the checks. Each mark can use a different clear frame.": "可标注近端发球区中线加一条完整宽度的球场线，或四条横向球场线中的任意三条。近端半宽线仍需两条完整远端线作为参照。增加标线可加强校验；各标线可在不同的清晰帧上完成。",
+  "Court lines: {ground}/5 · Net lines: {net}/3": "球场线：{ground}/5 · 球网竖线：{net}/3"
 }

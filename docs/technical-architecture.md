@@ -463,12 +463,20 @@ frame-index identity; late replies cannot replace newer settings.
 Annotations use original oriented source coordinates, independent of crop/mirror.
 Each baseline/service-line or net segment retains its source frame, annotation
 precision and optional half-width span. Different lines may use different frames;
-each segment's endpoints use one frame. `courtCoverage` accepts any three of four
-ground lines plus the centre strap and at least one side support. Near service Y is
-5.485 m, far service Y is 18.285 m. Near baseline/service half spans use the centre
-mark/intersection and one singles sideline; both full far lines are then required.
-The minimum set gives eight ground controls plus two elevated net tops; extra lines
-and the other support contribute additional controls to the same 3 × 4 camera fit.
+each segment's endpoints use one frame. `courtCoverage` accepts either three of the
+four transverse ground lines, or the complete near centre service segment plus
+one full-width transverse line. Both require the centre strap and at least one
+side support. The centre segment preserves semantic endpoint order:
+(0, 5.485, 0) at the service-line T, then (0, 11.885, 0) under the net centre.
+It is a 6.4 m longitudinal point reference, not an infinite-line constraint for
+arbitrary fragments. Near service Y is 5.485 m, far service Y is 18.285 m.
+Near baseline/service half spans still require both full far lines for side inference.
+The reduced centre set has eight endpoint observations, including two observations
+of the net-centre foot, five distinct ground locations and two elevated net tops.
+A single transverse line does not define a quadrilateral; the quadrilateral check
+runs when at least two full-width lines are present. All configurations retain
+the fit's rank rejection, residual diagnostics, side ambiguity and speed sensitivity
+gates. Extra lines and the other support contribute to the same 3 × 4 camera fit.
 Absent observations are never fabricated. Portrait source dimensions are accepted.
 The court is 8.23 × 23.77 m, supports are 1.07 m high and the centre strap is 0.914 m
 high. Doubles posts are 12.798 m apart; singles sticks are 10.058 m apart.

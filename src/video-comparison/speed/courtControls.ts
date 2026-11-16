@@ -57,6 +57,12 @@ export function courtControls(setup: ServeSetup, mapping: CourtMapping): CourtCo
     add(key, 0, [side === 'right' ? 0 : -COURT.halfWidth, y, 0]);
     add(key, 1, [side === 'left' ? 0 : COURT.halfWidth, y, 0]);
   }
+  if (setup.lines.nearCenter) {
+    // Semantic order: near service-line T intersection, then ground under the
+    // net centre. These are known endpoints, not an arbitrary visible fragment.
+    add('nearCenter', 0, [0, COURT.nearService, 0]);
+    add('nearCenter', 1, [0, COURT.net, 0]);
+  }
   const postX = setup.netSupports === 'doubles' ? 6.399 : 5.029;
   for (const key of ['netA', 'netB'] as const) {
     if (!setup.lines[key]) continue;

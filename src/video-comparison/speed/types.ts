@@ -2,11 +2,12 @@ import type { FrameIndex } from '../timeline';
 export type Point = { x: number; y: number };
 export type Line = [Point, Point];
 export type GroundLine = 'near' | 'nearService' | 'service' | 'far';
-export type CourtLine = GroundLine | 'netA' | 'netB' | 'netCenter';
+export type CourtLine = GroundLine | 'nearCenter' | 'netA' | 'netB' | 'netCenter';
 export const COURT_LINES: Record<CourtLine, string> = {
   near: 'Near singles baseline',
   nearService: 'Near service line',
   far: 'Far singles baseline',
+  nearCenter: 'Near centre service line',
   service: 'Far service line',
   netA: 'Net support A · top to ground',
   netB: 'Net support B · top to ground',

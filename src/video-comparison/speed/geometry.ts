@@ -70,16 +70,26 @@ export function calibrate(
     )
   };
   const full = GROUND_KEYS.filter((k) => setup.lines[k] && setup.lines[k]!.span !== 'half');
-  const near = setup.lines[full[0]]!,
-    far = setup.lines[full.at(-1)!]!;
-  const polygon = [near.points[0], near.points[1], far.points[1], far.points[0]];
-  const crosses = polygon.map((a, i) => {
-    const b = polygon[(i + 1) % 4],
-      c = polygon[(i + 2) % 4];
-    return (b.x - a.x) * (c.y - b.y) - (b.y - a.y) * (c.x - b.x);
-  });
-  if (!(crosses.every((v) => v > 1e-10) || crosses.every((v) => v < -1e-10)))
-    throw new Error('The full-width court lines must form a non-crossing quadrilateral.');
+  if (full.length >= 2) {
+    const near = setup.lines[full[0]]!,
+      far = setup.lines[full.at(-1)!]!;
+    const polygon = [near.points[0], near.points[1], far.points[1], far.points[0]];
+    const crosses = polygon.map((a, i) => {
+      const b = polygon[(i + 1) % 4],
+        c = polygon[(i + 2) % 4];
+      return (b.x - a.x) * (c.y - b.y) - (b.y - a.y) * (c.x - b.x);
+    });
+    if (!(crosses.every((v) => v > 1e-10) || crosses.every((v) => v < -1e-10)))
+      throw new Error('The full-width court lines must form a non-crossing quadrilateral.');
+  }
+  // The reduced centre-line set has only one transverse line; its independent
+  // controls are checked by the same rank/reprojection and speed-sensitivity gates.
+  if (setup.lines.nearCenter && validate &&
+    error(...setup.lines.nearCenter.points, width, height) < Math.max(4, 2 * setup.pixelError))
+    throw new CalibrationError(
+      'The near centre service line is too short. Mark its service-line intersection and the ground beneath the net centre.',
+      'nearCenter'
+    );
   if (
     setup.lines.netA &&
     setup.lines.netB &&
